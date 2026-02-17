@@ -6,16 +6,16 @@ This project is a vehicle service application built with a modern tech stack.
 
 The project is organized into three main directories:
 
-- **`frontend/`**: The customer-facing web application.
-  - **Tech Stack**: React (Vite), Tailwind CSS v4.
-  - **Port**: 5173
-- **`backend/`**: The server-side logic and API.
-  - **Tech Stack**: Node.js, Express, Mongoose.
-  - **Database**: MongoDB (Atlas).
-  - **Port**: 5001
-- **`admin/`**: The administration dashboard.
-  - **Tech Stack**: React (Vite), Tailwind CSS v4.
-  - **Port**: 5174
+- `frontend/`: The customer-facing web application.
+  - Tech Stack: React (Vite), Tailwind CSS v4.
+  - Port: 5173
+- `backend/`: The server-side logic and API.
+  - Tech Stack: Node.js, Express, Mongoose.
+  - Database: MongoDB (Atlas).
+  - Port: 5001
+- `admin/`: The administration dashboard.
+  - Tech Stack: React (Vite), Tailwind CSS v4.
+  - Port: 5174
 
 ## 🛠 Setup & Installation
 
