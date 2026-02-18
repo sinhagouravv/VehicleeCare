@@ -4,23 +4,38 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import About from './pages/About';
 import Services from './pages/Services';
-import Pricing from './pages/Pricing';
 import Reviews from './pages/Reviews';
 import Contact from './pages/Contact';
+import Login from './pages/Login';
 
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/contact" element={<Contact />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        <Route path="/" element={
+          <Layout>
+            <section id="home">
+              <Home />
+            </section>
+            <section id="about">
+              <About />
+            </section>
+            <section id="services">
+              <Services />
+            </section>
+            {/* <section id="pricing">
+              <Pricing />
+            </section> */}
+            <section id="reviews">
+              <Reviews />
+            </section>
+            <section id="contact">
+              <Contact />
+            </section>
+          </Layout>
+        } />
+        <Route path="/login" element={<Login />} />
+      </Routes>
     </Router>
   );
 }

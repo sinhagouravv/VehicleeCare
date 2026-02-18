@@ -8,6 +8,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+const authRoutes = require('./routes/authRoutes');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -18,6 +20,7 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.get('/', (req, res) => {
     res.send('VehicleeCare Backend API');
 });

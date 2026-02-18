@@ -9,17 +9,18 @@ const Reviews = () => {
     ];
 
     return (
-        <div className="bg-gradient-to-br from-gray-50 to-white min-h-screen py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex items-center py-20 relative">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-100/30 rounded-full blur-3xl -z-10"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl font-bold text-primary-dark mb-4">Customer Stories</h1>
+                    <h1 className="text-4xl font-bold text-[#011023] mb-4">Customer Stories</h1>
                     <p className="text-gray-600">See what our community has to say about their experience.</p>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8">
                     {reviews.map((review, idx) => (
-                        <div key={idx} className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 relative">
-                            <Quote className="absolute top-8 right-8 text-light-blue w-12 h-12 opacity-50" />
+                        <div key={idx} className="bg-white/60 backdrop-blur-md p-8 rounded-2xl shadow-lg border border-white/60 relative hover:-translate-y-2 transition-transform duration-300">
+                            <Quote className="absolute top-8 right-8 text-blue-100 w-12 h-12 opacity-50" />
                             <div className="flex gap-1 mb-6">
                                 {[...Array(5)].map((_, i) => (
                                     <Star key={i} size={16} className={`${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
@@ -27,9 +28,9 @@ const Reviews = () => {
                             </div>
                             <p className="text-gray-600 mb-8 leading-relaxed relative z-10">"{review.text}"</p>
                             <div className="flex items-center gap-4">
-                                <img src={review.image} alt={review.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-light-blue" />
+                                <img src={review.image} alt={review.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-md" />
                                 <div>
-                                    <h4 className="font-bold text-primary-dark">{review.name}</h4>
+                                    <h4 className="font-bold text-[#011023]">{review.name}</h4>
                                     <p className="text-xs text-gray-500">{review.role}</p>
                                 </div>
                             </div>

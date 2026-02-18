@@ -12,33 +12,34 @@ const Services = () => {
     ];
 
     return (
-        <div className="bg-gray-50 min-h-screen py-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-br from-white via-blue-50 to-white min-h-screen flex items-center py-20 relative">
+            <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-blue-100/50 blur-3xl rounded-full pointer-events-none -z-10"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl font-bold text-primary-dark mb-4">Our Services</h1>
+                    <h1 className="text-4xl font-bold text-[#011023] mb-4">Our Services</h1>
                     <p className="text-gray-600 max-w-2xl mx-auto">Comprehensive car care solutions designed to keep your vehicle running like new.</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {services.map((service, idx) => (
-                        <div key={idx} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden group">
+                        <div key={idx} className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/50 overflow-hidden group hover:-translate-y-2">
                             <div className="p-6">
-                                <div className="w-14 h-14 bg-light-blue/30 rounded-lg flex items-center justify-center text-secondary-blue mb-6 group-hover:bg-primary-blue group-hover:text-white transition-colors duration-300">
+                                <div className="w-14 h-14 bg-blue-50 rounded-lg flex items-center justify-center text-[#527FB0] mb-6 group-hover:bg-[#052558] group-hover:text-white transition-colors duration-300">
                                     {service.icon}
                                 </div>
-                                <h3 className="text-xl font-bold text-primary-dark mb-2">{service.title}</h3>
-                                <p className="text-3xl font-bold text-secondary-blue mb-6">{service.price}<span className="text-sm font-normal text-gray-400"> / starting</span></p>
+                                <h3 className="text-xl font-bold text-[#011023] mb-2">{service.title}</h3>
+                                <p className="text-3xl font-bold text-[#527FB0] mb-6">{service.price}<span className="text-sm font-normal text-gray-500"> / starting</span></p>
                                 <ul className="space-y-3">
                                     {service.features.map((feature, fIdx) => (
                                         <li key={fIdx} className="flex items-center text-gray-600 text-sm">
-                                            <span className="w-1.5 h-1.5 bg-accent-blue rounded-full mr-2"></span>
+                                            <span className="w-1.5 h-1.5 bg-[#7C9FC9] rounded-full mr-2"></span>
                                             {feature}
                                         </li>
                                     ))}
                                 </ul>
                             </div>
-                            <div className="bg-gray-50 p-4 border-t border-gray-100">
-                                <button className="w-full py-2 rounded-lg text-primary-blue font-semibold hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-200">
+                            <div className="bg-white/50 p-4 border-t border-gray-100/50">
+                                <button className="w-full py-2 rounded-lg text-[#052558] font-semibold hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-gray-200">
                                     Book Now
                                 </button>
                             </div>
