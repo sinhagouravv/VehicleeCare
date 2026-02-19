@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+// import razorpay from 'razorpay';
 import {
     Settings, Droplet, Disc, Battery, Thermometer, ShieldCheck,
     ChevronRight, ChevronLeft, Car, User, Calendar, Clock, ChevronDown,
-    CheckCircle, Loader, ArrowLeft, Phone, Mail, Edit, Fuel, Zap, Star,
+    CheckCircle, ArrowLeft, Phone, Mail, Edit, Fuel, Zap, Star,
     Wrench, Truck, Sparkles, Layers, Activity, Cpu, Gauge, Hammer,
     MapPin, CircleDollarSign, QrCode, CreditCard
 } from 'lucide-react';
@@ -12,40 +13,40 @@ import {
 // ─── Service Data ────────────────────────────────────────────────────────────
 const SERVICE_DATA = {
     Petrol: [
-        { category: "General Maintenance", options: ["Engine oil change", "Oil filter replacement", "Air filter replacement", "Spark plug replacement", "Multi-point vehicle inspection"] },
-        { category: "Engine & Mechanical", options: ["Engine diagnostics", "Clutch repair", "Gearbox servicing", "Suspension repair", "Brake pad replacement"] },
-        { category: "Fuel System", options: ["Fuel injector cleaning", "Throttle body cleaning", "Fuel pump inspection", "Fuel filter replacement", "Fuel line inspection"] },
-        { category: "AC & Electrical", options: ["AC gas refill", "AC compressor repair", "Battery replacement", "Alternator repair", "Starter motor repair"] },
-        { category: "Body & Exterior", options: ["Dent repair", "Scratch removal", "Bumper repair", "Panel repainting", "Windshield replacement"] },
-        { category: "Cleaning & Detailing", options: ["Interior cleaning", "Exterior wash", "Full detailing", "Ceramic coating", "Dashboard polishing"] },
-        { category: "Tyre & Wheel", options: ["Tyre replacement", "Wheel alignment", "Wheel balancing", "Puncture repair", "Tyre rotation"] },
-        { category: "Inspection & Diagnostics", options: ["Computerized diagnostics", "Brake inspection", "Suspension check", "Battery health test", "Pre-purchase inspection"] },
-        { category: "Battery & Charging", options: ["Battery testing", "Battery replacement", "Charging system inspection", "Wiring inspection", "Fuse replacement"] },
-        { category: "Roadside Assistance", options: ["Towing service", "Jump start", "Flat tyre support", "Emergency fuel delivery", "Breakdown support"] },
+        { category: "General Maintenance", options: [{ name: "Engine oil change", price: 5 }, { name: "Oil filter replacement", price: 5 }, { name: "Air filter replacement", price: 5 }, { name: "Spark plug replacement", price: 5 }, { name: "Multi-point vehicle inspection", price: 5 }] },
+        { category: "Engine & Mechanical", options: [{ name: "Engine diagnostics", price: 5 }, { name: "Clutch repair", price: 5 }, { name: "Gearbox servicing", price: 5 }, { name: "Suspension repair", price: 5 }, { name: "Brake pad replacement", price: 5 }] },
+        { category: "Fuel System", options: [{ name: "Fuel injector cleaning", price: 5 }, { name: "Throttle body cleaning", price: 5 }, { name: "Fuel pump inspection", price: 5 }, { name: "Fuel filter replacement", price: 5 }, { name: "Fuel line inspection", price: 5 }] },
+        { category: "AC & Electrical", options: [{ name: "AC gas refill", price: 5 }, { name: "AC compressor repair", price: 5 }, { name: "Battery replacement", price: 5 }, { name: "Alternator repair", price: 5 }, { name: "Starter motor repair", price: 5 }] },
+        { category: "Body & Exterior", options: [{ name: "Dent repair", price: 5 }, { name: "Scratch removal", price: 5 }, { name: "Bumper repair", price: 5 }, { name: "Panel repainting", price: 5 }, { name: "Windshield replacement", price: 5 }] },
+        { category: "Cleaning & Detailing", options: [{ name: "Interior cleaning", price: 5 }, { name: "Exterior wash", price: 5 }, { name: "Full detailing", price: 5 }, { name: "Ceramic coating", price: 5 }, { name: "Dashboard polishing", price: 5 }] },
+        { category: "Tyre & Wheel", options: [{ name: "Tyre replacement", price: 5 }, { name: "Wheel alignment", price: 5 }, { name: "Wheel balancing", price: 5 }, { name: "Puncture repair", price: 5 }, { name: "Tyre rotation", price: 5 }] },
+        { category: "Inspection & Diagnostics", options: [{ name: "Computerized diagnostics", price: 5 }, { name: "Brake inspection", price: 5 }, { name: "Suspension check", price: 5 }, { name: "Battery health test", price: 5 }, { name: "Pre-purchase inspection", price: 5 }] },
+        { category: "Battery & Charging", options: [{ name: "Battery testing", price: 5 }, { name: "Battery replacement", price: 5 }, { name: "Charging system inspection", price: 5 }, { name: "Wiring inspection", price: 5 }, { name: "Fuse replacement", price: 5 }] },
+        { category: "Roadside Assistance", options: [{ name: "Towing service", price: 5 }, { name: "Jump start", price: 5 }, { name: "Flat tyre support", price: 5 }, { name: "Emergency fuel delivery", price: 5 }, { name: "Breakdown support", price: 5 }] },
     ],
     Diesel: [
-        { category: "General Maintenance", options: ["Engine oil change", "Oil filter replacement", "Air filter replacement", "Diesel fuel filter replacement", "Multi-point vehicle inspection"] },
-        { category: "Engine & Mechanical", options: ["Engine diagnostics", "Turbocharger inspection", "Clutch repair", "Gearbox servicing", "Brake pad replacement"] },
-        { category: "Diesel Fuel System", options: ["Diesel injector cleaning", "Fuel pump inspection", "Fuel line cleaning", "Diesel filter replacement", "Common rail system check"] },
-        { category: "AC & Electrical", options: ["AC gas refill", "AC compressor repair", "Battery replacement", "Alternator repair", "Starter motor repair"] },
-        { category: "Body & Exterior", options: ["Dent repair", "Scratch removal", "Bumper repair", "Panel repainting", "Windshield replacement"] },
-        { category: "Cleaning & Detailing", options: ["Interior cleaning", "Exterior wash", "Full detailing", "Ceramic coating", "Dashboard polishing"] },
-        { category: "Tyre & Wheel", options: ["Tyre replacement", "Wheel alignment", "Wheel balancing", "Puncture repair", "Tyre rotation"] },
-        { category: "Inspection & Diagnostics", options: ["Computerized diagnostics", "Turbo system check", "Brake inspection", "Suspension check", "Pre-purchase inspection"] },
-        { category: "Battery & Charging", options: ["Battery testing", "Battery replacement", "Charging system inspection", "Wiring inspection", "Fuse replacement"] },
-        { category: "Roadside Assistance", options: ["Towing service", "Jump start", "Flat tyre support", "Emergency fuel delivery", "Breakdown support"] },
+        { category: "General Maintenance", options: [{ name: "Engine oil change", price: 5 }, { name: "Oil filter replacement", price: 5 }, { name: "Air filter replacement", price: 5 }, { name: "Diesel fuel filter replacement", price: 5 }, { name: "Multi-point vehicle inspection", price: 5 }] },
+        { category: "Engine & Mechanical", options: [{ name: "Engine diagnostics", price: 5 }, { name: "Turbocharger inspection", price: 5 }, { name: "Clutch repair", price: 5 }, { name: "Gearbox servicing", price: 5 }, { name: "Brake pad replacement", price: 5 }] },
+        { category: "Diesel Fuel System", options: [{ name: "Diesel injector cleaning", price: 5 }, { name: "Fuel pump inspection", price: 5 }, { name: "Fuel line cleaning", price: 5 }, { name: "Diesel filter replacement", price: 5 }, { name: "Common rail system check", price: 5 }] },
+        { category: "AC & Electrical", options: [{ name: "AC gas refill", price: 5 }, { name: "AC compressor repair", price: 5 }, { name: "Battery replacement", price: 5 }, { name: "Alternator repair", price: 5 }, { name: "Starter motor repair", price: 5 }] },
+        { category: "Body & Exterior", options: [{ name: "Dent repair", price: 5 }, { name: "Scratch removal", price: 5 }, { name: "Bumper repair", price: 5 }, { name: "Panel repainting", price: 5 }, { name: "Windshield replacement", price: 5 }] },
+        { category: "Cleaning & Detailing", options: [{ name: "Interior cleaning", price: 5 }, { name: "Exterior wash", price: 5 }, { name: "Full detailing", price: 5 }, { name: "Ceramic coating", price: 5 }, { name: "Dashboard polishing", price: 5 }] },
+        { category: "Tyre & Wheel", options: [{ name: "Tyre replacement", price: 5 }, { name: "Wheel alignment", price: 5 }, { name: "Wheel balancing", price: 5 }, { name: "Puncture repair", price: 5 }, { name: "Tyre rotation", price: 5 }] },
+        { category: "Inspection & Diagnostics", options: [{ name: "Computerized diagnostics", price: 5 }, { name: "Turbo system check", price: 5 }, { name: "Brake inspection", price: 5 }, { name: "Suspension check", price: 5 }, { name: "Pre-purchase inspection", price: 5 }] },
+        { category: "Battery & Charging", options: [{ name: "Battery testing", price: 5 }, { name: "Battery replacement", price: 5 }, { name: "Charging system inspection", price: 5 }, { name: "Wiring inspection", price: 5 }, { name: "Fuse replacement", price: 5 }] },
+        { category: "Roadside Assistance", options: [{ name: "Towing service", price: 5 }, { name: "Jump start", price: 5 }, { name: "Flat tyre support", price: 5 }, { name: "Emergency fuel delivery", price: 5 }, { name: "Breakdown support", price: 5 }] },
     ],
     EV: [
-        { category: "Battery System", options: ["Battery health diagnostics", "Battery cooling system check", "High-voltage battery inspection", "Battery pack replacement", "BMS check"] },
-        { category: "Charging System", options: ["On-board charger inspection", "Charging port inspection", "Fast-charging system check", "Home charger installation", "Charging cable inspection"] },
-        { category: "Motor & Powertrain", options: ["Electric motor diagnostics", "Controller inspection", "Power inverter inspection", "Regen braking check", "Drive shaft inspection"] },
-        { category: "Electrical & Wiring", options: ["HV wiring inspection", "Fuse & relay check", "Low-voltage battery replacement", "Sensor diagnostics", "ECU diagnostics"] },
-        { category: "Brake & Suspension", options: ["Brake pad replacement", "Brake fluid replacement", "Suspension repair", "Shock absorber inspection", "Wheel alignment"] },
-        { category: "Cooling System", options: ["Battery cooling check", "Thermal management check", "Coolant level inspection", "Radiator inspection", "Cooling fan check"] },
-        { category: "Software & Diagnostics", options: ["Software updates", "System recalibration", "Error code scanning", "Firmware updates", "Performance diagnostics"] },
-        { category: "Body & Exterior", options: ["Dent repair", "Scratch removal", "Panel repainting", "Bumper repair", "Windshield replacement"] },
-        { category: "Cleaning & Detailing", options: ["Interior cleaning", "Exterior wash", "Full detailing", "Ceramic coating", "Dashboard polishing"] },
-        { category: "Tyre & Wheel", options: ["Tyre replacement", "Wheel alignment", "Wheel balancing", "Puncture repair", "Tyre rotation"] },
+        { category: "Battery System", options: [{ name: "Battery health diagnostics", price: 5 }, { name: "Battery cooling system check", price: 5 }, { name: "High-voltage battery inspection", price: 5 }, { name: "Battery pack replacement", price: 5 }, { name: "BMS check", price: 5 }] },
+        { category: "Charging System", options: [{ name: "On-board charger inspection", price: 5 }, { name: "Charging port inspection", price: 5 }, { name: "Fast-charging system check", price: 5 }, { name: "Home charger installation", price: 5 }, { name: "Charging cable inspection", price: 5 }] },
+        { category: "Motor & Powertrain", options: [{ name: "Electric motor diagnostics", price: 5 }, { name: "Controller inspection", price: 5 }, { name: "Power inverter inspection", price: 5 }, { name: "Regen braking check", price: 5 }, { name: "Drive shaft inspection", price: 5 }] },
+        { category: "Electrical & Wiring", options: [{ name: "HV wiring inspection", price: 5 }, { name: "Fuse & relay check", price: 5 }, { name: "Low-voltage battery replacement", price: 5 }, { name: "Sensor diagnostics", price: 5 }, { name: "ECU diagnostics", price: 5 }] },
+        { category: "Brake & Suspension", options: [{ name: "Brake pad replacement", price: 5 }, { name: "Brake fluid replacement", price: 5 }, { name: "Suspension repair", price: 5 }, { name: "Shock absorber inspection", price: 5 }, { name: "Wheel alignment", price: 5 }] },
+        { category: "Cooling System", options: [{ name: "Battery cooling check", price: 5 }, { name: "Thermal management check", price: 5 }, { name: "Coolant level inspection", price: 5 }, { name: "Radiator inspection", price: 5 }, { name: "Cooling fan check", price: 5 }] },
+        { category: "Software & Diagnostics", options: [{ name: "Software updates", price: 5 }, { name: "System recalibration", price: 5 }, { name: "Error code scanning", price: 5 }, { name: "Firmware updates", price: 5 }, { name: "Performance diagnostics", price: 5 }] },
+        { category: "Body & Exterior", options: [{ name: "Dent repair", price: 5 }, { name: "Scratch removal", price: 5 }, { name: "Panel repainting", price: 5 }, { name: "Bumper repair", price: 5 }, { name: "Windshield replacement", price: 5 }] },
+        { category: "Cleaning & Detailing", options: [{ name: "Interior cleaning", price: 5 }, { name: "Exterior wash", price: 5 }, { name: "Full detailing", price: 5 }, { name: "Ceramic coating", price: 5 }, { name: "Dashboard polishing", price: 5 }] },
+        { category: "Tyre & Wheel", options: [{ name: "Tyre replacement", price: 5 }, { name: "Wheel alignment", price: 5 }, { name: "Wheel balancing", price: 5 }, { name: "Puncture repair", price: 5 }, { name: "Tyre rotation", price: 5 }] },
     ]
 };
 
@@ -146,12 +147,37 @@ const StepIndicator = ({ current }) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 const FullService = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // ─── Route Guard: Redirect if not from Book Button ────────────────────────
+    useEffect(() => {
+        if (!location.state?.fromBookButton) {
+            navigate('/services', { replace: true });
+        }
+    }, [location, navigate]);
+
+    // ─── Helper for Session Persistence ──────────────────────────────────────
+    const SESSION_KEY = 'service_booking_session';
+
+    const getSessionState = (key, defaultValue) => {
+        // If it's a new session start, ignore storage (we will clear it in effect)
+        if (location.state?.isNewSession) return defaultValue;
+
+        try {
+            const saved = sessionStorage.getItem(SESSION_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed[key] !== undefined ? parsed[key] : defaultValue;
+            }
+        } catch (e) { console.error("Error reading session", e); }
+        return defaultValue;
+    };
 
     // Global State
-    const [fuelType, setFuelType] = useState(null); // 'Petrol', 'Diesel', 'EV', 'Premium'
+    const [fuelType, setFuelType] = useState(() => getSessionState('fuelType', null));
     const [showFuelMenu, setShowFuelMenu] = useState(false);
 
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(() => getSessionState('step', 1));
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -166,7 +192,6 @@ const FullService = () => {
         setVehicleType('');
         setTransmission('');
         setVehicleNumber('');
-        setVehicleNumber('');
         setSelectedServices({});
         setSelectedState('');
         setSelectedDistrict('');
@@ -178,39 +203,63 @@ const FullService = () => {
     // Step 1 – Vehicle Selection (from DB)
     const [carData, setCarData] = useState([]); // Array of { brand, models: [] }
     const [brands, setBrands] = useState([]);
-    const [selectedBrand, setSelectedBrand] = useState('');
+
+    const [selectedBrand, setSelectedBrand] = useState(() => getSessionState('selectedBrand', ''));
     const [models, setModels] = useState([]);
-    const [selectedModel, setSelectedModel] = useState('');
-    const [selectedYear, setSelectedYear] = useState('');
-    const [vehicleType, setVehicleType] = useState('');
-    const [transmission, setTransmission] = useState('');
-    const [vehicleNumber, setVehicleNumber] = useState('');
+    const [selectedModel, setSelectedModel] = useState(() => getSessionState('selectedModel', ''));
+    const [selectedYear, setSelectedYear] = useState(() => getSessionState('selectedYear', ''));
+    const [vehicleType, setVehicleType] = useState(() => getSessionState('vehicleType', '')); // 'Private' or 'Commercial'
+    const [transmission, setTransmission] = useState(() => getSessionState('transmission', '')); // 'Manual' or 'Automatic'
+    const [vehicleNumber, setVehicleNumber] = useState(() => getSessionState('vehicleNumber', ''));
     const [carLoading, setCarLoading] = useState(false);
 
     // Step 2 – Service
-    // Step 2 – Service
-    const [selectedServices, setSelectedServices] = useState({}); // { category: 'selected option' }
+    const [selectedServices, setSelectedServices] = useState(() => getSessionState('selectedServices', {})); // { category: 'selected option' }
 
     // Step 3 – Garage
-    const [selectedState, setSelectedState] = useState('');
-    const [selectedDistrict, setSelectedDistrict] = useState('');
-    const [selectedGarage, setSelectedGarage] = useState(null);
-    const [pickupDrop, setPickupDrop] = useState('');
+    const [selectedState, setSelectedState] = useState(() => getSessionState('selectedState', ''));
+    const [selectedDistrict, setSelectedDistrict] = useState(() => getSessionState('selectedDistrict', ''));
+    const [selectedGarage, setSelectedGarage] = useState(() => getSessionState('selectedGarage', null));
+    const [pickupDrop, setPickupDrop] = useState(() => getSessionState('pickupDrop', ''));
 
-    // Derived lists for dependent dropdowns
+    // Derived lists
     const stateList = Object.keys(GARAGE_DATA);
     const districtList = selectedState ? Object.keys(GARAGE_DATA[selectedState] || {}) : [];
     const garageList = (selectedState && selectedDistrict) ? (GARAGE_DATA[selectedState]?.[selectedDistrict] || []) : [];
     const pickupDropOptions = selectedGarage ? (selectedGarage.pickupDrop || []) : [];
 
     // Step 4 – Schedule
-    const [schedule, setSchedule] = useState({ date: '', time: '' });
+    const [schedule, setSchedule] = useState(() => getSessionState('schedule', { date: '', time: '' }));
 
     // Step 5 – Details
-    const [details, setDetails] = useState({ name: '', phone: '', email: '', notes: '' });
+    const [details, setDetails] = useState(() => getSessionState('details', { name: '', phone: '', email: '', notes: '' }));
 
     // Step 7 – Checkout
-    const [paymentMethod, setPaymentMethod] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState(() => getSessionState('paymentMethod', ''));
+
+    // ─── Persistence Effect ──────────────────────────────────────────────────
+    useEffect(() => {
+        // If this is a fresh start, clear old session and remove the flag from history
+        if (location.state?.isNewSession) {
+            sessionStorage.removeItem(SESSION_KEY);
+            // Replace history to remove 'isNewSession' so reload works normally
+            navigate('.', { replace: true, state: { ...location.state, isNewSession: false } });
+        }
+    }, [location.state, navigate]);
+
+    // Save state on change
+    useEffect(() => {
+        // Don't save if in the middle of a reset (prevent overwriting with defaults before reset completes)
+        if (location.state?.isNewSession) return;
+
+        const stateToSave = {
+            fuelType, step, selectedBrand, selectedModel, selectedYear,
+            vehicleType, transmission, vehicleNumber, selectedServices,
+            selectedState, selectedDistrict, selectedGarage, pickupDrop,
+            schedule, details, paymentMethod
+        };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(stateToSave));
+    }, [fuelType, step, selectedBrand, selectedModel, selectedYear, vehicleType, transmission, vehicleNumber, selectedServices, selectedState, selectedDistrict, selectedGarage, pickupDrop, schedule, details, paymentMethod, location.state]);
 
     // Fetch cars when fuelType changes
     useEffect(() => {
@@ -249,11 +298,47 @@ const FullService = () => {
         setSelectedModel('');
     }, [selectedBrand, carData]);
 
+    // ─── Calculate Total Price ───────────────────────────────────────────────
+    const calculateTotal = () => {
+        if (!fuelType) return 0;
+        let total = 0;
+        const currentFuelData = SERVICE_DATA[fuelType];
+        if (!currentFuelData) return 0;
+
+        Object.entries(selectedServices).forEach(([category, serviceName]) => {
+            if (!serviceName) return;
+            const catData = currentFuelData.find(c => c.category === category);
+            if (catData) {
+                const option = catData.options.find(opt => opt.name === serviceName);
+                if (option) total += option.price;
+            }
+        });
+        return total;
+    };
+
+    const calculateGrandTotal = () => {
+        const base = calculateTotal();
+        const gst = base * 0.18;
+        const pickupCharge = pickupDrop === 'Yes' ? 4 : 0;
+        const fees = pickupCharge + 3 + 2; // Pickup (if yes) + Convenience + Handling
+        return (base + gst + fees).toFixed(2);
+    };
+
     const handleScheduleChange = (e) => setSchedule(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleDetailChange = (e) => setDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-    const handleSubmit = async () => {
-        setSubmitting(true);
+    // ─── Razorpay Helper ─────────────────────────────────────────────────────
+    const loadScript = (src) => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
+    const saveBooking = async (paymentId = 'CASH') => {
         try {
             const bookingData = {
                 user: details,
@@ -268,7 +353,7 @@ const FullService = () => {
                 },
                 service: {
                     title: Object.values(selectedServices).join(', '),
-                    price: "TBD" // Price depends on selection, pending backend logic
+                    price: calculateGrandTotal()
                 },
                 garage: {
                     name: selectedGarage?.name,
@@ -277,7 +362,8 @@ const FullService = () => {
                     pickupDrop
                 },
                 schedule,
-                paymentMethod
+                paymentMethod,
+                paymentId
             };
 
             const response = await fetch('http://localhost:5001/api/bookings', {
@@ -291,8 +377,103 @@ const FullService = () => {
             setSubmitted(true);
         } catch (error) {
             console.error('Error creating booking:', error);
-            alert('Something went wrong! Please try again.');
+            alert('Something went wrong saving your booking.');
         } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // ─── Preload Razorpay Script ─────────────────────────────────────────────
+    useEffect(() => {
+        loadScript('https://checkout.razorpay.com/v1/checkout.js');
+    }, []);
+
+    const handleSubmit = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+
+        if (!selectedGarage || !schedule.date || !schedule.time || !details.name || !details.phone) {
+            alert('Please fill in all details');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            if (paymentMethod === 'netbanking') {
+                // Retry loading if missing (due to adblocker or network)
+                if (!window.Razorpay) {
+                    await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+                }
+
+                if (!window.Razorpay) {
+                    alert('Razorpay SDK could not be loaded. Please disable any Ad Blockers and try again.');
+                    setSubmitting(false);
+                    return;
+                }
+
+                const totalAmount = parseFloat(calculateGrandTotal());
+
+                const orderRes = await fetch('http://localhost:5001/api/payments/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: totalAmount })
+                });
+                const orderData = await orderRes.json();
+
+                if (!orderData.success) throw new Error("Order creation failed");
+
+                const options = {
+                    key: 'rzp_test_SDOW0Mi3saqtVB',
+                    amount: orderData.order.amount,
+                    currency: "INR",
+                    name: "VehicleeCare",
+                    description: "Car Service Booking",
+                    order_id: orderData.order.id,
+                    handler: async function (response) {
+                        const verifyRes = await fetch('http://localhost:5001/api/payments/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        });
+                        const verifyData = await verifyRes.json();
+                        if (verifyData.success) {
+                            saveBooking(response.razorpay_payment_id);
+                        } else {
+                            alert("Payment verification failed");
+                            setSubmitting(false);
+                        }
+                    },
+                    prefill: {
+                        name: details.name,
+                        email: details.email,
+                        contact: details.phone
+                    },
+                    theme: { color: "#052558" },
+                    modal: {
+                        ondismiss: function () {
+                            setSubmitting(false);
+                        }
+                    }
+                };
+
+                const paymentObject = new window.Razorpay(options);
+
+                paymentObject.on('payment.failed', function (response) {
+                    alert(response.error.description);
+                    setSubmitting(false);
+                });
+
+                paymentObject.open();
+
+            } else {
+                saveBooking('CASH');
+            }
+        } catch (error) {
+            console.error('Error initiating payment:', error);
+            alert('Something went wrong! Please try again.');
             setSubmitting(false);
         }
     };
@@ -340,16 +521,17 @@ const FullService = () => {
                             </div>
                             <div className="h-px bg-blue-100 w-full" />
                             <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-[#052558]">Total</span>
-                                <span className="font-bold text-[#527FB0] text-lg">TBD</span>
+                                <span className="text-sm font-bold text-[#052558]">Total Payable (with GST)</span>
+                                <span className="font-bold text-[#527FB0] text-lg">₹{calculateGrandTotal()}</span>
                             </div>
                         </div>
 
                         <button
-                            onClick={() => navigate('/')}
-                            className="w-full py-3 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                            onClick={() => navigate('/services')}
+                            className="absolute top-9.5 -left-20 text-white/50 hover:text-white transition-colors"
+                            title="Back to Services"
                         >
-                            <ArrowLeft size={18} /> Back to Home
+                            <ArrowLeft size={20} />
                         </button>
                     </div>
                 </div>
@@ -368,10 +550,7 @@ const FullService = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between relative">
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => {
-                                if (fuelType) setFuelType(null); // Go back to fuel selection
-                                else navigate('/#services');
-                            }}
+                            onClick={() => navigate('/#home')}
                             className="p-2 rounded-full hover:bg-gray-100 text-[#052558] transition-colors"
                         >
                             <ArrowLeft size={20} />
@@ -425,22 +604,29 @@ const FullService = () => {
                             <p className="text-gray-500 uppercase">Choose your vehicle category to get started.</p>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4  gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-2">
                             {[
-                                { type: 'PETROL', icon: <Fuel size={32} />, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-                                { type: 'DIESEL', icon: <Fuel size={32} />, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100' },
-                                { type: 'EV', icon: <Zap size={32} />, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-                                { type: 'PREMIUM', icon: <Star size={32} />, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
+                                { type: 'Petrol', icon: <Fuel size={32} />, color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-200', shadow: 'hover:shadow-blue-200', ring: 'group-hover:ring-blue-300' },
+                                { type: 'Diesel', icon: <Fuel size={32} />, color: 'text-orange-600', bg: 'bg-orange-500/10', border: 'border-orange-200', shadow: 'hover:shadow-orange-200', ring: 'group-hover:ring-orange-300' },
+                                { type: 'EV', icon: <Zap size={32} />, color: 'text-green-600', bg: 'bg-green-500/10', border: 'border-green-200', shadow: 'hover:shadow-green-200', ring: 'group-hover:ring-green-300' },
+                                { type: 'Premium', icon: <Star size={32} />, color: 'text-purple-600', bg: 'bg-purple-500/10', border: 'border-purple-200', shadow: 'hover:shadow-purple-200', ring: 'group-hover:ring-purple-300' },
                             ].map((item) => (
                                 <button
                                     key={item.type}
                                     onClick={() => setFuelType(item.type)}
-                                    className={`group relative flex flex-col items-center justify-center p-8 rounded-2xl bg-white border-2 hover:border-[#052558] hover:shadow-xl transition-all duration-300 ${item.border}`}
+                                    className={`group relative flex flex-col items-center justify-center p-6 h-60 rounded-3xl bg-white/60 backdrop-blur-xl border-2 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${item.border} ${item.shadow}`}
                                 >
-                                    <div className={`w-16 h-16 rounded-full ${item.bg} flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm`}>
+                                    <div className={`absolute inset-0 rounded-3xl transition-opacity duration-300 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/40 to-white/0 pointer-events-none`} />
+
+                                    <div className={`w-20 h-20 rounded-2xl ${item.bg} flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 shadow-sm ring-1 ring-white/50`}>
                                         <div className={item.color}>{item.icon}</div>
                                     </div>
-                                    <span className="font-bold text-[#011023] text-lg">{item.type}</span>
+
+                                    <h3 className="font-black text-[#011023] text-xl tracking-tight uppercase mb-1">{item.type}</h3>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-[#052558] transition-colors">Select</span>
+
+                                    {/* Hover Ring Effect */}
+                                    <div className={`absolute inset-0 rounded-3xl border-2 border-transparent transition-all duration-300 ${item.ring} opacity-0 group-hover:opacity-100`} />
                                 </button>
                             ))}
                         </div>
@@ -481,7 +667,7 @@ const FullService = () => {
                                             </select>
                                             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={16} />
                                             {carLoading && !brands.length && (
-                                                <Loader size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-[#527FB0]" />
+                                                <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">Loading...</span>
                                             )}
                                         </div>
                                     </div>
@@ -559,7 +745,11 @@ const FullService = () => {
                                         <label className="block text-xs font-bold text-gray-500 mb-2.5 uppercase tracking-wide text-center">Number</label>
                                         <input
                                             value={vehicleNumber}
-                                            onChange={e => setVehicleNumber(e.target.value.toUpperCase())}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, '');
+                                                if (val.length <= 4) setVehicleNumber(val);
+                                            }}
+                                            maxLength={4}
                                             className={`${inputClass} text-center text-xs uppercase font-bold`}
                                             disabled={!transmission}
                                         />
@@ -591,7 +781,7 @@ const FullService = () => {
                                                 >
                                                     <option value=""></option>
                                                     {item.options.map(opt => (
-                                                        <option key={opt} value={opt}>{opt}</option>
+                                                        <option key={opt.name} value={opt.name}>{opt.name}</option>
                                                     ))}
                                                 </select>
                                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={14} />
@@ -776,7 +966,6 @@ const FullService = () => {
                                             onChange={handleDetailChange}
                                             required
                                             autoComplete="off"
-                                            placeholder="John Doe"
                                             className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full`}
                                         />
                                     </div>
@@ -790,7 +979,6 @@ const FullService = () => {
                                             onChange={handleDetailChange}
                                             required
                                             autoComplete="off"
-                                            placeholder="+91 98765 43210"
                                             className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full`}
                                         />
                                     </div>
@@ -802,8 +990,8 @@ const FullService = () => {
                                             name="email"
                                             value={details.email}
                                             onChange={handleDetailChange}
+                                            required
                                             autoComplete="off"
-                                            placeholder="Optional"
                                             className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full`}
                                         />
                                     </div>
@@ -843,7 +1031,6 @@ const FullService = () => {
                                                             ? Object.values(selectedServices).filter(s => s).map((s, i) => <span key={i} className="block">• {s}</span>)
                                                             : 'No service selected'}
                                                     </p>
-                                                    {/* <p className="text-[10px] font-bold uppercase text-[#527FB0]">Price on Inspection</p> */}
                                                 </div>
                                             </div>
                                             <button onClick={() => setStep(2)} className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-[#527FB0] transition-colors"><Edit size={14} /></button>
@@ -856,6 +1043,7 @@ const FullService = () => {
                                                 <div>
                                                     <p className="text-[12px] text-gray-400 pb-1 uppercase font-semibold">Service Center</p>
                                                     <p className="font-bold pb-0.5 uppercase text-[#011023] text-xs">{selectedGarage?.name}</p>
+                                                    <p className="text-[10px] font-bold uppercase text-[#527FB0]">Total: ₹{calculateGrandTotal()}</p>
                                                     <p className="text-[10px] pb-0.5 uppercase text-gray-500">{selectedDistrict}, {selectedState}</p>
                                                     {pickupDrop && <p className="text-[10px] uppercase text-blue-500 font-medium">Pickup & Drop: {pickupDrop}</p>}
                                                 </div>
@@ -901,8 +1089,7 @@ const FullService = () => {
                         {step === 7 && (
                             <div className="animate-[fadeIn_0.3s_ease-out] max-w-xl mx-auto">
                                 <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Checkout</h2>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                     {PAYMENT_METHODS.map(method => (
                                         <div key={method.id}>
                                             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">
@@ -920,6 +1107,46 @@ const FullService = () => {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Bill Summary */}
+                                <div className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm mb-6">
+                                    <div className="bg-[#052558]/5 p-4 border-b border-gray-100">
+                                        <p className="text-xs font-bold text-[#052558] uppercase tracking-wide text-center">Billing Summary</p>
+                                    </div>
+                                    <div className="p-5 space-y-3">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-500 font-medium uppercase">Service Cost</span>
+                                            <span className="font-bold text-[#011023]">₹{calculateTotal()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-500 font-medium uppercase">GST (18%)</span>
+                                            <span className="font-bold text-[#011023]">₹{(calculateTotal() * 0.18).toFixed(2)}</span>
+                                        </div>
+                                        {/* Will be improved later according to the distance */}
+                                        {pickupDrop === 'Yes' && (
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-gray-500 font-medium uppercase">Pickup & Drop</span>
+                                                <span className="font-bold text-[#011023]">₹{4}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-500 font-medium uppercase">Convenience Fee</span>
+                                            <span className="font-bold text-[#011023]">₹{3}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-500 font-medium uppercase">Handling Charges</span>
+                                            <span className="font-bold text-[#011023]">₹{2}</span>
+                                        </div>
+                                        <div className="my-2 border-t border-dashed border-gray-200"></div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="font-bold text-[#052558] uppercase">Total Payable</span>
+                                            <span className="font-bold text-[#527FB0] text-lg">₹{calculateGrandTotal()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+
                             </div>
                         )}
                     </>
@@ -928,14 +1155,15 @@ const FullService = () => {
 
             {/* Sticky Footer Navigation - Conditional Render */}
             {fuelType && (
-                <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 z-20">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div className="fixed bottom-0 w-full bg-white/80 backdrop-blur-xl border-t border-white/40 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
+                    <div className="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
                         <button
                             onClick={() => setStep(s => Math.max(1, s - 1))}
                             disabled={step === 1}
-                            className={`flex items-center gap-2 px-5 py-2.5 text-gray-600 font-semibold hover:text-[#052558] disabled:opacity-30 disabled:cursor-not-allowed transition-colors ${step === 1 ? 'invisible' : ''}`}
+                            className={`group flex items-center gap-2 px-6 py-3 text-gray-500 font-bold uppercase text-xs tracking-wider hover:text-[#052558] hover:bg-blue-50/50 rounded-2xl transition-all disabled:opacity-0 disabled:cursor-not-allowed ${step === 1 ? 'invisible' : ''}`}
                         >
-                            <ChevronLeft size={18} /> Back
+                            <ChevronLeft size={16} />
+                            Back
                         </button>
 
                         <div className="flex-1 flex justify-center text-sm font-medium text-gray-500">
@@ -953,17 +1181,23 @@ const FullService = () => {
                                     (step === 5 && (!details.name || !details.phone)) ||
                                     submitting
                                 }
-                                className="flex items-center gap-2 px-8 py-3 bg-[#052558] text-white font-bold rounded-xl hover:bg-[#052558]/90 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-3 px-6 py-2.5 bg-[#052558] text-white font-bold rounded-2xl shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20 hover:bg-[#052558]/90 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
                             >
-                                Next <ChevronRight size={18} />
+                                <span className="uppercase tracking-wide text-xs">Next</span>
+                                <ChevronRight size={14} className='-mr-2' />
                             </button>
                         ) : (
                             <button
+                                type="button"
                                 onClick={handleSubmit}
                                 disabled={submitting || !paymentMethod}
-                                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="flex items-center gap-3 px-8 py-3 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-2xl shadow-xl shadow-blue-900/20 hover:shadow-blue-900/30 active:translate-y-0 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
                             >
-                                {submitting ? <><Loader size={18} className="animate-spin" /> Confirming...</> : <>Confirm Booking <CheckCircle size={18} /></>}
+                                {submitting
+                                    ? <><span className="uppercase tracking-wide text-xs">Processing...</span></>
+                                    : <><span className="uppercase tracking-wide text-xs">Confirm Booking</span>
+                                    </>
+                                }
                             </button>
                         )}
                     </div>
@@ -972,5 +1206,4 @@ const FullService = () => {
         </div>
     );
 };
-
 export default FullService;

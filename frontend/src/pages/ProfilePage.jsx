@@ -3,14 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import {
     User, Mail, Phone, Car, Settings, MapPin, Calendar,
     CreditCard, ChevronLeft, LogOut, Clipboard, Wrench,
-    CheckCircle, ArrowRight, ShieldCheck, X, Loader2, Bell
+    CheckCircle, ArrowRight, ShieldCheck, X, Loader2, Bell, Eye, EyeOff, ArrowLeft
 } from 'lucide-react';
+
+
+const paymentLabel = (method) => {
+    switch (method) {
+        case 'Card': return 'Credit/Debit Card';
+        case 'UPI': return 'UPI Payment';
+        case 'Net Banking': return 'Net Banking';
+        case 'Cash': return 'Cash on Delivery';
+        default: return method;
+    }
+};
 
 const ProfilePage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [bookings, setBookings] = useState([]);
     const [loadingBookings, setLoadingBookings] = useState(true);
+    const [payments, setPayments] = useState([]);
+    const [loadingPayments, setLoadingPayments] = useState(true);
+    const [notifications, setNotifications] = useState([]);
+    const [loadingNotifications, setLoadingNotifications] = useState(true);
 
     // OTP modal state
     const [showOtpModal, setShowOtpModal] = useState(false);
@@ -28,6 +43,30 @@ const ProfilePage = () => {
     const [editError, setEditError] = useState('');
     const [editSuccess, setEditSuccess] = useState('');
 
+    // Settings modal state
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+    const [showPasswords, setShowPasswords] = useState({});
+    const [pwSaving, setPwSaving] = useState(false);
+    const [pwError, setPwError] = useState('');
+    const [notifPrefs, setNotifPrefs] = useState({ email: user?.emailNotifications ?? true, sms: false, service: false });
+    // Settings OTP step: 'change-password' | 'delete-account' | ''
+    const [sOtpAction, setSotpAction] = useState('');
+    const [sOtp, setSotp] = useState(new Array(6).fill(''));
+    const [sOtpSending, setSotpSending] = useState(false);
+    const [sOtpVerifying, setSotpVerifying] = useState(false);
+    const [sOtpError, setSotpError] = useState('');
+
+    // Email Reminder Popup State
+    const [showEmailReminder, setShowEmailReminder] = useState(false);
+
+    // Global toast notification
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+    const showToast = (msg, type = 'success') => {
+        setToast({ visible: true, message: msg, type });
+        setTimeout(() => setToast({ visible: false, message: '', type: 'success' }), 3500);
+    };
+
     useEffect(() => {
         const stored = localStorage.getItem('user');
         if (!stored) { navigate('/login'); return; }
@@ -36,25 +75,70 @@ const ProfilePage = () => {
 
     useEffect(() => {
         if (!user) return;
-        const fetchBookings = async () => {
+        const fetchHistory = async () => {
             setLoadingBookings(true);
+            setLoadingPayments(true);
+            setLoadingNotifications(true);
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:5001/api/bookings/my', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setBookings(data.bookings || []);
+                const headers = { Authorization: `Bearer ${token}` };
+                const userId = user.id || user._id;
+
+                // Parallel fetch
+                const [resB, resP, resN] = await Promise.all([
+                    fetch(`http://localhost:5001/api/bookings/user/${userId}`, { headers }),
+                    fetch(`http://localhost:5001/api/payments/user/${userId}`, { headers }),
+                    fetch(`http://localhost:5001/api/notifications/user/${userId}`, { headers })
+                ]);
+
+                if (resB.ok) {
+                    const dataB = await resB.json();
+                    setBookings(dataB.data || []);
                 }
+                if (resP.ok) {
+                    const dataP = await resP.json();
+                    setPayments(dataP.data || []);
+                }
+                if (resN.ok) {
+                    const dataN = await resN.json();
+                    setNotifications(dataN.data || []);
+                }
+
             } catch (err) {
-                console.error('Failed to fetch bookings:', err);
+                console.error('Failed to fetch history:', err);
+                // Optionally showToast('Failed to load history', 'error');
             } finally {
                 setLoadingBookings(false);
+                setLoadingPayments(false);
+                setLoadingNotifications(false);
             }
         };
-        fetchBookings();
+        fetchHistory();
     }, [user]);
+
+    useEffect(() => {
+        let interval;
+        if (user && !notifPrefs.email) {
+            interval = setInterval(() => {
+                setShowEmailReminder(true);
+                setTimeout(() => setShowEmailReminder(false), 5000);
+            }, 15000);
+        }
+        return () => clearInterval(interval);
+    }, [user, notifPrefs.email]);
+
+    useEffect(() => {
+        // Lock body scroll
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+            document.documentElement.style.overflow = 'unset';
+            // Also ensure we reset to auto/unset
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        };
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -90,11 +174,116 @@ const ProfilePage = () => {
             setUser(updated);
             localStorage.setItem('user', JSON.stringify(updated));
             setEditSuccess('Profile updated successfully!');
-            setTimeout(() => setShowEditModal(false), 1200);
+            showToast('Profile updated successfully!');
+            setTimeout(() => setShowEditModal(false), 800);
         } catch (err) {
             setEditError('Network error. Please try again.');
         } finally {
             setEditSaving(false);
+        }
+    };
+
+    const handleSendSettingsOtp = async (action) => {
+        if (action === 'change-password') {
+            if (!pwForm.current) { showToast('Current password is required.', 'error'); return; }
+            if (pwForm.next.length < 6) { showToast('New password must be at least 6 characters.', 'error'); return; }
+            if (pwForm.next !== pwForm.confirm) { showToast('Passwords do not match.', 'error'); return; }
+        }
+        setSotpSending(true);
+        try {
+            const res = await fetch('http://localhost:5001/api/auth/send-settings-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id || user._id, purpose: action, currentPassword: pwForm.current }),
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.msg || 'Failed to send OTP', 'error'); return; }
+            setSotp(new Array(6).fill(''));
+            setSotpAction(action);
+        } catch {
+            showToast('Network error. Please try again.', 'error');
+        } finally {
+            setSotpSending(false);
+        }
+    };
+
+    const handleVerifyPwOtp = async () => {
+        setSotpVerifying(true);
+        try {
+            const res = await fetch('http://localhost:5001/api/auth/change-password-otp', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id || user._id, otp: sOtp.join(''), newPassword: pwForm.next }),
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.msg || 'Invalid OTP', 'error'); return; }
+            setPwForm({ current: '', next: '', confirm: '' });
+            setSotp(new Array(6).fill('')); setSotpAction('');
+            setShowSettingsModal(false);
+            showToast('Password changed successfully!');
+        } catch {
+            showToast('Network error. Please try again.', 'error');
+        } finally {
+            setSotpVerifying(false);
+        }
+    };
+
+    const handleVerifyDeleteOtp = async () => {
+        setSotpVerifying(true);
+        try {
+            const res = await fetch('http://localhost:5001/api/auth/delete-account', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id || user._id, otp: sOtp.join('') }),
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.msg || 'Invalid OTP', 'error'); return; }
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/');
+        } catch {
+            showToast('Network error. Please try again.', 'error');
+        } finally {
+            setSotpVerifying(false);
+        }
+    };
+
+    const handleSotpChange = (val, idx) => {
+        if (!/^\d?$/.test(val)) return;
+        const next = [...sOtp];
+        next[idx] = val;
+        setSotp(next);
+        if (val && idx < 5) document.getElementById(`sotp-${idx + 1}`)?.focus();
+    };
+
+    const handleSotpKeyDown = (e, idx) => {
+        if (e.key === 'Backspace' && !sOtp[idx] && idx > 0) {
+            document.getElementById(`sotp-${idx - 1}`)?.focus();
+        }
+    };
+
+    const handleNotifToggle = async (key) => {
+        const newVal = !notifPrefs[key];
+        setNotifPrefs(p => ({ ...p, [key]: newVal }));
+
+        // If it's email, sync with backend
+        if (key === 'email') {
+            try {
+                const res = await fetch('http://localhost:5001/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id || user._id, emailNotifications: newVal })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const updatedUser = { ...user, emailNotifications: newVal };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    setUser(updatedUser);
+                    showToast(`Email notifications ${newVal ? 'enabled' : 'disabled'}`);
+                }
+            } catch (error) {
+                console.error('Failed to update preference');
+            }
         }
     };
 
@@ -178,7 +367,211 @@ const ProfilePage = () => {
         m === 'cash' ? 'Cash on Delivery' : m === 'netbanking' ? 'Net Banking' : m;
 
     return (
-        <div className="min-h-screen bg-[#f0f6ff]">
+        <div className="h-screen overflow-hidden bg-[#FDFDFD] relative">
+
+            {/* ── Global Toast ── */}
+            <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ${toast.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                <div className={`flex items-center gap-3 text-white text-xs font-semibold px-5 py-3 rounded-2xl shadow-xl ${toast.type === 'error' ? 'bg-red-500 shadow-red-200' : 'bg-[#052558] shadow-blue-900/30'}`}>
+                    {toast.type === 'error'
+                        ? <X size={15} className="text-white flex-shrink-0" />
+                        : <CheckCircle size={15} className="text-[#7dd3fc] flex-shrink-0" />}
+                    {toast.message}
+                </div>
+            </div>
+
+            {/* ── Settings Modal ── */}
+            {showSettingsModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+
+                        {/* Header */}
+                        <div className="relative bg-gradient-to-br from-[#041e49] via-[#052558] to-[#1a4a8a] px-7 pt-5 pb-5">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                            <button onClick={() => { setShowSettingsModal(false); setSotpAction(''); setPwError(''); setSotpError(''); }} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all">
+                                <X size={15} />
+                            </button>
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-14 h-14 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                    <Settings size={22} className="text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[15px] font-black text-white uppercase tracking-wide">Settings</h3>
+                                    <p className="text-[12px] uppercase text-white/50 mt-0.5">Manage your account preferences</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Body — 2-column */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+
+                            {/* ── LEFT: Change Password ── */}
+                            <div className="pl-5.5 pr-1 pt-6 pb-6 space-y-3">
+                                <p className="text-[12px] text-[#052558] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <ShieldCheck size={11} /> Change Password
+                                </p>
+                                {[
+                                    { label: 'Current Password', key: 'current' },
+                                    { label: 'New Password', key: 'next' },
+                                    { label: 'Confirm New Password', key: 'confirm' },
+                                ].map(f => (
+                                    <div key={f.key} className="group">
+                                        <label className="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1.5 group-focus-within:text-[#527FB0] transition-colors">{f.label}</label>
+                                        <div className="flex items-center gap-3 border-2 border-gray-200 group-focus-within:border-[#527FB0] bg-[#f4f9ff] rounded-2xl px-4 py-3 transition-all">
+                                            <div className="w-6 h-6 rounded-lg bg-[#052558]/15 flex items-center justify-center flex-shrink-0">
+                                                <ShieldCheck size={12} className="text-[#052558]" />
+                                            </div>
+                                            <input
+                                                type={showPasswords[f.key] ? 'text' : 'password'}
+                                                value={pwForm[f.key]}
+                                                onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))}
+                                                placeholder={f.placeholder}
+                                                className="flex-1 text-sm text-[#011023] font-semibold placeholder-gray-300 outline-none bg-transparent"
+                                            />
+                                            <button
+                                                onClick={() => setShowPasswords(p => ({ ...p, [f.key]: !p[f.key] }))}
+                                                className="text-gray-400 hover:text-[#052558] transition-colors"
+                                            >
+                                                {showPasswords[f.key] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={() => handleSendSettingsOtp('change-password')}
+                                    disabled={sOtpSending && sOtpAction === 'change-password'}
+                                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#052558] to-[#1a4a8a] text-white text-xs mt-4 font-black uppercase tracking-wide hover:opacity-90 transition-all disabled:opacity-60 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
+                                >
+                                    {sOtpSending && sOtpAction === 'change-password'
+                                        ? <><Loader2 size={13} className="animate-spin" /> Sending OTP…</>
+                                        : <><ShieldCheck size={13} /> Update Password</>}
+                                </button>
+                            </div>
+
+                            {/* ── RIGHT: Notifications + Danger Zone ── */}
+                            <div className="px-4 pt-6 pb-7 space-y-5">
+                                {/* Notification Preferences */}
+                                <div>
+                                    <p className="text-[12px] text-[#052558] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <Bell size={11} /> Notifications
+                                    </p>
+                                    <div className="space-y-3">
+                                        {[
+                                            { key: 'email', label: 'Email Notifications', sub: 'Booking confirmations, updates' },
+                                            { key: 'sms', label: 'SMS Notifications', sub: 'OTP & reminders via text', beta: true },
+                                            { key: 'service', label: 'Service Reminders', sub: 'Upcoming service alerts', beta: true },
+                                        ].map(({ key, label, sub, beta }) => (
+                                            <div key={key} className={`flex items-center justify-between border-2 rounded-2xl px-3.5 py-2.5 ${beta ? 'bg-gray-50 border-gray-100 opacity-60' : 'bg-[#f4f9ff] border-gray-100'}`}>
+                                                <div>
+                                                    <p className="text-sm font-bold text-[#011023] flex items-center gap-2">
+                                                        {label}
+                                                        {beta && <span className="bg-[#052558]/10 text-[#052558] text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider">BETA</span>}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                                                </div>
+                                                <button
+                                                    disabled={beta}
+                                                    onClick={() => !beta && handleNotifToggle(key)}
+                                                    className={`w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0 relative ${notifPrefs[key] ? 'bg-[#052558]' : 'bg-gray-200'} ${beta ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                >
+                                                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all duration-300 ${notifPrefs[key] ? 'left-6' : 'left-1'}`} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-gray-100" />
+
+                                {/* Danger Zone */}
+                                <div>
+                                    <p className="text-[12px] text-red-400 font-black uppercase tracking-widest -mt-5.5 mb-3">Danger Zone</p>
+                                    <button
+                                        onClick={() => handleSendSettingsOtp('delete-account')}
+                                        disabled={sOtpSending && sOtpAction === 'delete-account'}
+                                        className="w-full py-3 rounded-2xl border-2 border-red-100 text-xs font-bold text-red-400 hover:bg-red-50 hover:border-red-200 transition-all uppercase tracking-wide flex items-center justify-center gap-2 disabled:opacity-60"
+                                    >
+                                        {sOtpSending && sOtpAction === 'delete-account'
+                                            ? <><Loader2 size={13} className="animate-spin text-red-400" /> Sending OTP…</>
+                                            : 'Delete Account'}
+                                    </button>
+                                    {/* <p className="text-[10px] text-gray-400 text-center mt-2">An OTP will be sent to your email to confirm.</p> */}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── OTP Verification Popup ── */}
+            {sOtpAction && (
+                <div
+                    onClick={() => { setSotpAction(''); setSotp(new Array(6).fill('')); }}
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 relative animate-[fadeIn_0.2s_ease-out]"
+                    >
+                        {/* Close */}
+                        <button
+                            onClick={() => { setSotpAction(''); setSotp(new Array(6).fill('')); }}
+                            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all"
+                        >
+                            <X size={15} />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center mb-5">
+                            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
+                                {sOtpAction === 'delete-account'
+                                    ? <ShieldCheck size={24} className="text-red-500" />
+                                    : <ShieldCheck size={24} className="text-[#052558]" />}
+                            </div>
+                            <h3 className="text-base font-black text-[#011023] uppercase">
+                                {sOtpAction === 'delete-account' ? 'Delete Account' : 'Verify Action'}
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Enter the 6-digit code sent to <strong className="text-[#527FB0]">{user.email}</strong>
+                            </p>
+                        </div>
+
+                        {/* 6-digit OTP boxes */}
+                        <div className="flex gap-2 justify-center mb-6">
+                            {sOtp.map((d, i) => (
+                                <input
+                                    key={i}
+                                    id={`sotp-${i}`}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={1}
+                                    value={d}
+                                    onChange={e => handleSotpChange(e.target.value, i)}
+                                    onKeyDown={e => handleSotpKeyDown(e, i)}
+                                    className={`w-10 h-12 text-center text-lg font-black text-[#011023] border-2 rounded-xl focus:outline-none transition-colors ${sOtpAction === 'delete-account' ? 'border-red-100 focus:border-red-400' : 'border-blue-100 focus:border-[#527FB0]'}`}
+                                />
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={sOtpAction === 'change-password' ? handleVerifyPwOtp : handleVerifyDeleteOtp}
+                            disabled={sOtp.join('').length < 6 || sOtpVerifying}
+                            className={`w-full flex items-center justify-center gap-2 py-3 text-white text-xs font-black uppercase rounded-xl transition-all disabled:opacity-60 ${sOtpAction === 'delete-account' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#052558] hover:bg-[#052558]/90'}`}
+                        >
+                            {sOtpVerifying
+                                ? <Loader2 size={15} className="animate-spin" />
+                                : <CheckCircle size={15} />}
+                            {sOtpVerifying ? 'Verifying…' : 'Confirm'}
+                        </button>
+
+                        <button
+                            onClick={() => { setSotpAction(''); setSotp(new Array(6).fill('')); }}
+                            className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* ── Edit Profile Modal ── */}
             {showEditModal && (
@@ -280,23 +673,23 @@ const ProfilePage = () => {
                                             rows={1}
                                             value={editForm.address}
                                             onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
-                                            className="flex-1 text-sm text-[#011023] font- uppercase placeholder-gray-300 outline-none bg-transparent resize-none leading-relaxed"
+                                            onInput={e => {
+                                                e.target.style.height = 'auto';
+                                                const lineHeight = 24;
+                                                const maxH = lineHeight * 2;
+                                                e.target.style.height = Math.min(e.target.scrollHeight, maxH) + 'px';
+                                            }}
+                                            className="flex-1 text-sm text-[#011023] font- uppercase placeholder-gray-300 outline-none bg-transparent resize-none leading-relaxed overflow-hidden"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Feedback */}
+                            {/* Error feedback */}
                             {editError && (
                                 <div className="mt-4 flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">
                                     <X size={13} className="text-red-400 flex-shrink-0" />
                                     <p className="text-xs text-red-500 font-medium">{editError}</p>
-                                </div>
-                            )}
-                            {editSuccess && (
-                                <div className="mt-4 flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-2.5">
-                                    <CheckCircle size={13} className="text-green-500 flex-shrink-0" />
-                                    <p className="text-xs text-green-600 font-medium">{editSuccess}</p>
                                 </div>
                             )}
 
@@ -414,7 +807,17 @@ const ProfilePage = () => {
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
 
                 <div className="max-w-6xl mx-auto relative">
+                    {/* Back to Home Arrow */}
+                    <button
+                        onClick={() => navigate('/')}
+                        className="absolute top-9.5 -left-20 text-white/50 hover:text-white transition-colors"
+                        title="Back to Home"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+
                     <div className="flex flex-col max-w-5xl ml-3.5 sm:flex-row items-center sm:items-end gap-6">
+
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
                             {/* <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#C2E8FF] via-[#527FB0] to-[#052558] blur-md opacity-60 scale-110" /> */}
@@ -434,12 +837,9 @@ const ProfilePage = () => {
 
                         {/* Name + info */}
                         <div className="flex-1 text-center sm:text-left mb-4.5">
-                            {/* Name row + role + verify */}
+                            {/* Name row + verify */}
                             <div className="flex items-center justify-center sm:justify-start gap-4 flex-wrap">
                                 <h1 className="text-3xl font-black text-white uppercase tracking-tight">{user.name}</h1>
-                                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-white/70">
-                                    {user.role || 'Customer'}
-                                </span>
                                 {/* Verify Now button — only if not verified */}
                                 {!user.isVerified && (
                                     <button
@@ -449,11 +849,6 @@ const ProfilePage = () => {
                                         <ShieldCheck size={11} /> Verify Now
                                     </button>
                                 )}
-                                {/* {user.isVerified && (
-                                    <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-400">
-                                        <CheckCircle size={11} /> Verified
-                                    </span>
-                                )} */}
                             </div>
 
                             <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2">
@@ -462,22 +857,24 @@ const ProfilePage = () => {
                                         <Mail size={11} /> {user.email}
                                     </span>
                                 )}
-                                {user.phone && (
-                                    <span className="flex items-center gap-1.5 text-white/60 text-xs">
-                                        <Phone size={11} /> {user.phone}
-                                    </span>
-                                )}
                             </div>
                         </div>
 
                         {/* Edit Profile, Settings and Logout */}
-                        <div className="flex flex-wrap items-center gap-2.5 mb-6 -mr-24.5">
+                        <div className="flex flex-wrap items-center gap-2.5 mb-7 -mr-24.5">
                             <button onClick={openEditModal} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs font-semibold rounded-xl border border-white/10 transition-all">
                                 <User size={13} /> Edit Profile
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs font-semibold rounded-xl border border-white/10 transition-all">
-                                <Settings size={13} /> Settings
-                            </button>
+                            <div className="relative">
+                                {showEmailReminder && (
+                                    <div className="absolute top-full mt-3 left-1/2 -translate-x-1/2 w-70 bg-[#052558] text-white text-[10px] font-bold text-center py-2 px-3 rounded-xl shadow-xl z-50 animate-[fadeIn_0.3s_ease-out] after:content-[''] after:absolute after:bottom-full after:left-1/2 after:-translate-x-1/2 after:border-8 after:border-transparent after:border-b-[#052558]">
+                                        Turn on Email Notification to get upgrades
+                                    </div>
+                                )}
+                                <button onClick={() => setShowSettingsModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs font-semibold rounded-xl border border-white/10 transition-all">
+                                    <Settings size={13} /> Settings
+                                </button>
+                            </div>
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs font-semibold rounded-xl border border-white/10 transition-all"
@@ -514,19 +911,30 @@ const ProfilePage = () => {
                     <h2 className="text-[11px] text-[#052558] font-semibold uppercase tracking-widest mb-4 flex items-center gap-2">
                         <User size={11} /> Account Details
                     </h2>
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-wrap">
                         {[
-                            { label: 'Full Name', value: user.name, icon: <User size={14} className="text-[#527FB0]" /> },
-                            { label: 'Email Address', value: user.email || '—', icon: <Mail size={14} className="text-[#527FB0]" /> },
-                            { label: 'Phone Number', value: user.phone || '—', icon: <Phone size={14} className="text-[#527FB0]" /> },
-                        ].map(row => (
-                            <div key={row.label} className="flex items-center gap-3 px-5 py-5">
+                            { label: 'Full Name', value: user.name, icon: <User size={14} className="text-[#527FB0]" />, width: 'lg:w-[19%]' },
+                            { label: 'Email Address', value: user.email || '—', icon: <Mail size={14} className="text-[#527FB0]" />, width: 'lg:w-[29%]' },
+                            { label: 'Phone Number', value: user.phone || '—', icon: <Phone size={14} className="text-[#527FB0]" />, width: 'lg:w-[18%]' },
+                            { label: 'Address', value: user.address || '—', icon: <MapPin size={14} className="text-[#527FB0]" />, width: 'lg:w-[34%]' },
+                        ].map((row, i) => (
+                            <div
+                                key={row.label}
+                                className={`
+                                    flex items-center gap-3 px-5 py-5 w-full sm:w-1/2 ${row.width} border-gray-100
+                                    ${i < 3 ? 'border-b' : ''} 
+                                    ${i < 2 ? 'sm:border-b' : 'sm:border-b-0'}
+                                    ${i % 2 === 0 ? 'sm:border-r' : 'sm:border-r-0'}
+                                    lg:border-b-0 
+                                    ${i < 3 ? 'lg:border-r' : 'lg:border-r-0'}
+                                `}
+                            >
                                 <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                                     {row.icon}
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide">{row.label}</p>
-                                    <p className="text-sm font-bold text-[#011023] uppercase truncate">{row.value}</p>
+                                    <p className="text-sm font-bold text-[#011023] uppercase truncate" title={row.value}>{row.value}</p>
                                 </div>
                             </div>
                         ))}
@@ -539,11 +947,11 @@ const ProfilePage = () => {
                     {/* Left column: Service History + Payment History */}
                     <div className="flex flex-col gap-4">
 
-                        {/* Service History */}
+                        {/* Booking History */}
                         <section>
                             <div className="flex items-center justify-between -mt-3 mb-4">
                                 <h2 className="text-[11px] text-[#052558] font-semibold uppercase tracking-widest flex items-center gap-2">
-                                    <Clipboard size={12} /> Service History
+                                    <Clipboard size={12} /> Booking History
                                 </h2>
                                 {!loadingBookings && bookings.length > 0 && (
                                     <span className="text-[10px] bg-[#052558] text-white px-2.5 py-0.5 rounded-full font-bold">
@@ -552,7 +960,7 @@ const ProfilePage = () => {
                                 )}
                             </div>
 
-                            <div className="h-[275px] overflow-y-auto rounded-2xl border border-[#C2E8FF] shadow-sm bg-white">
+                            <div className="h-[275px] overflow-hidden rounded-2xl border border-[#C2E8FF] shadow-sm bg-white">
                                 {loadingBookings ? (
                                     <div className="h-full bg-white rounded-2xl border border-gray-100 p-16 flex items-center justify-center">
                                         <div className="w-7 h-7 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
@@ -662,12 +1070,12 @@ const ProfilePage = () => {
                             <h2 className="text-[11px] text-[#052558] uppercase tracking-widest mb-4 font-semibold flex items-center gap-2">
                                 <CreditCard size={12} /> Payment History
                             </h2>
-                            <div className="h-[275px] overflow-y-auto  rounded-2xl border border-[#C2E8FF] shadow-sm bg-white">
-                                {loadingBookings ? (
+                            <div className="h-[275px] overflow-hidden  rounded-2xl border border-[#C2E8FF] shadow-sm bg-white">
+                                {loadingPayments ? (
                                     <div className="h-full bg-white rounded-2xl border border-gray-100 p-10 flex items-center justify-center">
                                         <div className="w-6 h-6 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
                                     </div>
-                                ) : bookings.filter(b => b.paymentMethod).length === 0 ? (
+                                ) : payments.length === 0 ? (
                                     <div className="h-full bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center text-center">
                                         <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
                                             <CreditCard size={20} className="text-[#527FB0]" />
@@ -675,25 +1083,26 @@ const ProfilePage = () => {
                                         <p className="text-xs font-bold text-gray-400 uppercase">No payments yet</p>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-3">
-                                        {bookings.filter(b => b.paymentMethod).slice(0, 4).map((b, i) => (
-                                            <div key={b._id || i} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-4">
+                                    <div className="flex flex-col gap-3 p-4">
+                                        {payments.map((p, i) => (
+                                            <div key={p._id || i} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-4 hover:shadow-md transition-shadow">
                                                 <div className="w-9 h-9 bg-gradient-to-br from-[#052558] to-[#527FB0] rounded-xl flex items-center justify-center flex-shrink-0">
                                                     <CreditCard size={14} className="text-white" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-black text-[#011023] uppercase truncate">
-                                                        {b.service?.title || 'Service Booking'}
+                                                        {p.booking?.service?.title || 'Service Payment'}
                                                     </p>
-                                                    <p className="text-[10px] text-gray-400 mt-0.5">
-                                                        {paymentLabel(b.paymentMethod)}{b.garage?.name && ` · ${b.garage.name}`}
+                                                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
+                                                        {p.method} • <span className={`${p.status === 'Completed' ? 'text-green-600' : 'text-amber-500'}`}>{p.status}</span>
                                                     </p>
                                                 </div>
-                                                {b.createdAt && (
-                                                    <span className="text-[9px] text-gray-300 font-semibold uppercase flex-shrink-0">
-                                                        {new Date(b.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                                    </span>
-                                                )}
+                                                <div className="text-right">
+                                                    <p className="text-xs font-black text-[#011023]">₹{p.amount}</p>
+                                                    <p className="text-[9px] text-gray-400 mt-0.5 font-bold uppercase">
+                                                        {new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                    </p>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -708,52 +1117,44 @@ const ProfilePage = () => {
                         <h2 className="text-[11px] text-[#052558] uppercase tracking-widest -mt-3 font-semibold mb-4 flex items-center gap-2">
                             <Bell size={12} /> Notifications
                         </h2>
-                        <div className="h-[597px] overflow-y-auto bg-white rounded-2xl border border-[#C2E8FF] shadow-sm divide-y divide-gray-50">
-                            {[
-                                {
-                                    icon: <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0"><User size={14} className="text-[#527FB0]" /></div>,
-                                    title: 'Welcome to VehicleeCare!',
-                                    body: 'Your account has been created successfully.',
-                                    time: user.createdAt
-                                        ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                                        : 'Recently',
-                                    unread: false
-                                },
-                                ...(!user.isVerified ? [{
-                                    icon: <div className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0"><Bell size={14} className="text-amber-400" /></div>,
-                                    title: 'Verify your account',
-                                    body: 'Click "Verify Now" to confirm your email address.',
-                                    time: 'Action needed',
-                                    unread: true
-                                }] : [{
-                                    icon: <div className="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0"><CheckCircle size={14} className="text-green-500" /></div>,
-                                    title: 'Account Verified',
-                                    body: 'Your email has been verified successfully.',
-                                    time: 'Completed',
-                                    unread: false
-                                }]),
-                                ...(bookings.length > 0 ? [{
-                                    icon: <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0"><Car size={14} className="text-[#527FB0]" /></div>,
-                                    title: 'Booking Confirmed',
-                                    body: `Your ${bookings[bookings.length - 1]?.service?.title || 'service'} booking is confirmed.`,
-                                    time: bookings[bookings.length - 1]?.createdAt
-                                        ? new Date(bookings[bookings.length - 1].createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-                                        : '',
-                                    unread: false
-                                }] : []),
-                            ].map((n, i) => (
-                                <div key={i} className={`flex items-start gap-3 px-4 py-4 ${n.unread ? 'bg-blue-50/60' : ''}`}>
-                                    {n.icon}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <p className="text-xs font-black text-[#011023] uppercase">{n.title}</p>
-                                            {n.unread && <span className="w-1.5 h-1.5 bg-[#527FB0] rounded-full flex-shrink-0" />}
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 mt-0.5 leading-relaxed">{n.body}</p>
-                                        <p className="text-[9px] text-gray-300 font-semibold uppercase mt-1">{n.time}</p>
-                                    </div>
+                        <div className="h-[597px] overflow-hidden bg-white rounded-2xl border border-[#C2E8FF] shadow-sm divide-y divide-gray-50">
+                            {loadingNotifications ? (
+                                <div className="h-full flex items-center justify-center">
+                                    <div className="w-7 h-7 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
                                 </div>
-                            ))}
+                            ) : notifications.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                                        <Bell size={28} className="text-[#527FB0]" />
+                                    </div>
+                                    <p className="text-sm font-bold text-[#011023] uppercase">No Notifications</p>
+                                    <p className="text-xs text-gray-400 mt-1">We'll let you know when something important happens.</p>
+                                </div>
+                            ) : (
+                                notifications.map((n, i) => (
+                                    <div key={n._id || i} className={`flex items-start gap-4 px-5 py-5 hover:bg-gray-50 transition-colors ${!n.isRead ? 'bg-blue-50/40 relative' : ''}`}>
+                                        {/* Unread indicator dot */}
+                                        {!n.isRead && (
+                                            <div className="absolute top-5 right-5 w-2 h-2 bg-blue-500 rounded-full shadow-sm ring-2 ring-white" />
+                                        )}
+
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${n.type === 'success' ? 'bg-green-50 text-green-600' :
+                                            n.type === 'error' ? 'bg-red-50 text-red-500' :
+                                                'bg-blue-50 text-[#527FB0]'
+                                            }`}>
+                                            {n.type === 'success' ? <CheckCircle size={15} /> :
+                                                n.type === 'error' ? <X size={15} /> :
+                                                    <Bell size={15} />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black text-[#011023] uppercase leading-snug">{n.message}</p>
+                                            <p className="text-[10px] text-gray-400 mt-1.5 font-bold uppercase tracking-wide">
+                                                {new Date(n.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </section>
 

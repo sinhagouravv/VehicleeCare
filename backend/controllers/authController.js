@@ -134,7 +134,7 @@ exports.verifyOtp = async (req, res) => {
 // ── Update Profile ────────────────────────────────────────────
 exports.updateProfile = async (req, res) => {
     try {
-        const { userId, name, phone, address, currentPassword, newPassword } = req.body;
+        const { userId, name, phone, address, emailNotifications, currentPassword, newPassword } = req.body;
         if (!userId) return res.status(400).json({ msg: 'User ID required' });
 
         const user = await User.findById(userId);
@@ -143,6 +143,7 @@ exports.updateProfile = async (req, res) => {
         if (name) user.name = name.trim();
         if (phone !== undefined) user.phone = phone.trim();
         if (address !== undefined) user.address = address.trim();
+        if (emailNotifications !== undefined) user.emailNotifications = emailNotifications;
 
         // Optional password change
         if (newPassword) {
@@ -162,5 +163,103 @@ exports.updateProfile = async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Update failed' });
+    }
+};
+
+// ── Send Settings OTP ─────────────────────────────────────────
+// purpose: 'change-password' | 'delete-account'
+exports.sendSettingsOtp = async (req, res) => {
+    try {
+        const { userId, purpose, currentPassword } = req.body;
+        if (!userId) return res.status(400).json({ msg: 'User ID required' });
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // For password change: verify current password first
+        if (purpose === 'change-password') {
+            if (!currentPassword) return res.status(400).json({ msg: 'Current password is required' });
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) return res.status(400).json({ msg: 'Current password is incorrect' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.emailOtp = otp;
+        user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        await user.save();
+
+        const subjects = {
+            'change-password': 'VehicleeCare — Confirm Password Change',
+            'delete-account': 'VehicleeCare — Confirm Account Deletion',
+        };
+        const actions = {
+            'change-password': 'change your password',
+            'delete-account': '<strong style="color:#c00">permanently delete your account</strong>',
+        };
+
+        await transporter.sendMail({
+            from: `"VehicleeCare" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: subjects[purpose] || 'VehicleeCare — Security Code',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f0f6ff; border-radius: 16px;">
+                    <h2 style="color: #011023; margin-bottom: 4px;">VehicleeCare</h2>
+                    <p style="color: #527FB0; font-size: 13px; margin-bottom: 24px;">Security Verification</p>
+                    <p style="color: #011023; font-size: 14px;">Hi <strong>${user.name}</strong>, use this OTP to ${actions[purpose] || 'proceed'}:</p>
+                    <div style="background: #011023; color: #C2E8FF; font-size: 36px; font-weight: 900; letter-spacing: 10px; text-align: center; padding: 20px; border-radius: 12px; margin: 20px 0;">${otp}</div>
+                    <p style="color: #888; font-size: 12px;">Valid for <strong>10 minutes</strong>. Do not share it.</p>
+                </div>
+            `
+        });
+
+        res.json({ msg: 'OTP sent to your email' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Failed to send OTP' });
+    }
+};
+
+// ── Change Password (OTP-verified) ────────────────────────────
+exports.changePasswordOtp = async (req, res) => {
+    try {
+        const { userId, otp, newPassword } = req.body;
+        if (!userId || !otp || !newPassword) return res.status(400).json({ msg: 'All fields required' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (!user.emailOtp || !user.otpExpiry) return res.status(400).json({ msg: 'No OTP issued' });
+        if (new Date() > user.otpExpiry) return res.status(400).json({ msg: 'OTP expired. Request a new one.' });
+        if (user.emailOtp !== otp.trim()) return res.status(400).json({ msg: 'Invalid OTP' });
+        if (newPassword.length < 6) return res.status(400).json({ msg: 'Password must be at least 6 characters' });
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.emailOtp = undefined;
+        user.otpExpiry = undefined;
+        await user.save();
+
+        res.json({ msg: 'Password changed successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Failed to change password' });
+    }
+};
+
+// ── Delete Account (OTP-verified) ─────────────────────────────
+exports.deleteAccount = async (req, res) => {
+    try {
+        const { userId, otp } = req.body;
+        if (!userId || !otp) return res.status(400).json({ msg: 'User ID and OTP required' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (!user.emailOtp || !user.otpExpiry) return res.status(400).json({ msg: 'No OTP issued' });
+        if (new Date() > user.otpExpiry) return res.status(400).json({ msg: 'OTP expired. Request a new one.' });
+        if (user.emailOtp !== otp.trim()) return res.status(400).json({ msg: 'Invalid OTP' });
+
+        await User.findByIdAndDelete(userId);
+        res.json({ msg: 'Account deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Failed to delete account' });
     }
 };

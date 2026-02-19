@@ -2,10 +2,17 @@ const mongoose = require('mongoose');
 
 const BookingSchema = new mongoose.Schema({
     user: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         name: { type: String, required: true },
         phone: { type: String, required: true },
         email: { type: String },
         notes: { type: String }
+    },
+    payment: {
+        method: { type: String },
+        status: { type: String, default: 'Pending' },
+        transactionId: { type: String },
+        amount: { type: Number }
     },
     vehicle: {
         year: { type: String, required: true },
