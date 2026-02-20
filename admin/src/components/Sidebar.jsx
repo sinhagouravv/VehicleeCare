@@ -1,13 +1,17 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, Users, MapPin, Settings, Star } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, Users, MapPin, Settings, Star, Building2, TrendingUp, Wrench, Zap } from 'lucide-react';
 
 const Sidebar = () => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
+        { name: 'Analytics', path: '/analytics', icon: <TrendingUp size={20} /> },
         { name: 'Bookings', path: '/bookings', icon: <CalendarCheck size={20} /> },
         { name: 'Users', path: '/users', icon: <Users size={20} /> },
         { name: 'Garages', path: '/garages', icon: <MapPin size={20} /> },
+        { name: 'Services', path: '/services', icon: <Wrench size={20} /> },
+        { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
+        { name: 'Franchise', path: '/franchise', icon: <Building2 size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
     ];
