@@ -11,7 +11,7 @@ const Services = () => {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Services Directory</h1>
                 <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">

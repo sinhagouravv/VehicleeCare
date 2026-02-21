@@ -20,7 +20,7 @@ const MyBookings = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Assigned Bookings</h1>
             </div>

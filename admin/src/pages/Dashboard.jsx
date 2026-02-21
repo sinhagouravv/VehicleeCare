@@ -10,7 +10,7 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Overview</h1>

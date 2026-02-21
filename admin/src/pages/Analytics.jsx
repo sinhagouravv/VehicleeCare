@@ -3,7 +3,7 @@ import { TrendingUp, Users, DollarSign, Activity, BarChart2, PieChart } from 'lu
 
 const Analytics = () => {
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Analytics Overview</h1>
                 <div className="flex gap-3">

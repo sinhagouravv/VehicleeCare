@@ -1,9 +1,9 @@
 import React from 'react';
-import { Activity, Car, CheckCircle, TrendingUp, AlertCircle, Wrench } from 'lucide-react';
+import { Activity, Car, CheckCircle, TrendingUp, AlertCircle, Wrench, CalendarCheck } from 'lucide-react';
 
 const Dashboard = () => {
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Today's Overview</h1>
@@ -13,7 +13,7 @@ const Dashboard = () => {
 
             {/* KPI Metrics List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-blue-50 text-[#527FB0] rounded-xl"><Car size={24} /></div>
                         <span className="flex items-center text-[#527FB0] text-sm font-bold bg-blue-50 px-2 py-1 rounded-lg">
@@ -24,7 +24,7 @@ const Dashboard = () => {
                     <h3 className="text-3xl font-black text-[#011023]">12</h3>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl"><CheckCircle size={24} /></div>
                     </div>
@@ -32,7 +32,7 @@ const Dashboard = () => {
                     <h3 className="text-3xl font-black text-[#011023]">5</h3>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-amber-50 text-amber-500 rounded-xl"><AlertCircle size={24} /></div>
                     </div>
@@ -40,7 +40,7 @@ const Dashboard = () => {
                     <h3 className="text-3xl font-black text-[#011023]">3</h3>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-purple-50 text-purple-500 rounded-xl"><TrendingUp size={24} /></div>
                         <span className="flex items-center text-emerald-500 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-lg">
@@ -54,7 +54,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Active Jobs Pipeline */}
-                <div className="lg:col-span-2 bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
+                <div className="lg:col-span-2 bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-extrabold text-[#011023] flex items-center gap-2">
                             <Activity className="text-[#527FB0]" size={20} /> Live Shop Floor
@@ -88,7 +88,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Upcoming Appointments */}
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
+                <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-extrabold text-[#011023] flex items-center gap-2">
                             <CalendarCheck className="text-[#527FB0]" size={20} /> Next Arrivals

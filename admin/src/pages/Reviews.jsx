@@ -11,7 +11,7 @@ const Reviews = () => {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Customer Reviews</h1>
                 <div className="flex gap-3">
