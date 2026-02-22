@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 // import razorpay from 'razorpay';
 import {
@@ -180,6 +180,7 @@ const FullService = () => {
     const [step, setStep] = useState(() => getSessionState('step', 1));
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [bookingId, setBookingId] = useState('');
 
     // Helper to reset form on fuel change
     const switchFuelType = (type) => {
@@ -214,7 +215,62 @@ const FullService = () => {
     const [carLoading, setCarLoading] = useState(false);
 
     // Step 2 – Service
-    const [selectedServices, setSelectedServices] = useState(() => getSessionState('selectedServices', {})); // { category: 'selected option' }
+    const [selectedServices, setSelectedServices] = useState(() => getSessionState('selectedServices', {}));
+
+    // ── Application State ──────────────────────────────────────────────────────
+    const [disabledServices, setDisabledServices] = useState([]);
+    const [customServices, setCustomServices] = useState([]);
+    const [serviceOverrides, setServiceOverrides] = useState({});
+
+    // Fetch disabled services & overrides from DB
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                // Fetch disabled services
+                const resDisabled = await fetch('http://localhost:5001/api/settings/disabledServices');
+                const dataDisabled = await resDisabled.json();
+                if (dataDisabled.success && dataDisabled.data) {
+                    setDisabledServices(dataDisabled.data);
+                }
+
+                // Fetch custom services
+                const resCustom = await fetch('http://localhost:5001/api/settings/customServices');
+                const dataCustom = await resCustom.json();
+                if (dataCustom.success && dataCustom.data) {
+                    setCustomServices(dataCustom.data);
+                }
+
+                // Fetch service overrides
+                const resOverrides = await fetch('http://localhost:5001/api/settings/serviceOverrides');
+                const dataOverrides = await resOverrides.json();
+                if (dataOverrides.success && dataOverrides.data) {
+                    setServiceOverrides(dataOverrides.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch settings:", err);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    // Dynamically merge custom services into the hardcoded SERVICE_DATA structure
+    const dynamicServiceData = useMemo(() => {
+        const data = JSON.parse(JSON.stringify(SERVICE_DATA));
+        customServices.forEach(cs => {
+            const fuelCategories = data[cs.fuelType];
+            if (fuelCategories) {
+                let cat = fuelCategories.find(c => c.category === cs.category);
+                if (!cat) {
+                    cat = { category: cs.category, options: [] };
+                    fuelCategories.push(cat);
+                }
+                if (!cat.options.find(opt => opt.name === cs.name)) {
+                    cat.options.push({ name: cs.name, price: parseFloat(String(cs.price).replace(/[^0-9.]/g, '')) || 5 });
+                }
+            }
+        });
+        return data;
+    }, [customServices]);
 
     // Step 3 – Garage
     const [selectedState, setSelectedState] = useState(() => getSessionState('selectedState', ''));
@@ -302,7 +358,7 @@ const FullService = () => {
     const calculateTotal = () => {
         if (!fuelType) return 0;
         let total = 0;
-        const currentFuelData = SERVICE_DATA[fuelType];
+        const currentFuelData = dynamicServiceData[fuelType];
         if (!currentFuelData) return 0;
 
         Object.entries(selectedServices).forEach(([category, serviceName]) => {
@@ -310,7 +366,12 @@ const FullService = () => {
             const catData = currentFuelData.find(c => c.category === category);
             if (catData) {
                 const option = catData.options.find(opt => opt.name === serviceName);
-                if (option) total += option.price;
+                if (option) {
+                    // Pull overridden price or default to option.price
+                    const priceStr = serviceOverrides[option.name]?.price || option.price;
+                    const priceVal = parseFloat(String(priceStr).replace(/[^0-9.]/g, '')) || 0;
+                    total += priceVal;
+                }
             }
         });
         return total;
@@ -340,8 +401,15 @@ const FullService = () => {
 
     const saveBooking = async (paymentId = 'CASH') => {
         try {
+            // Retrieve user info from local storage to get the ID if it exists
+            const storedUser = localStorage.getItem('user');
+            const loggedInUser = storedUser ? JSON.parse(storedUser) : null;
+
             const bookingData = {
-                user: details,
+                user: {
+                    ...details,
+                    id: loggedInUser ? (loggedInUser.id || loggedInUser._id) : undefined
+                },
                 vehicle: {
                     year: selectedYear,
                     make: selectedBrand,
@@ -372,7 +440,12 @@ const FullService = () => {
                 body: JSON.stringify(bookingData)
             });
 
-            if (!response.ok) throw new Error('Booking failed');
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Booking failed');
+
+            if (data.success && data.data && data.data.bookingId) {
+                setBookingId(data.data.bookingId);
+            }
 
             setSubmitted(true);
         } catch (error) {
@@ -504,6 +577,15 @@ const FullService = () => {
 
                         <div className="bg-blue-50/50 rounded-xl border border-blue-100 p-5 text-left space-y-3 mb-6 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+                            {bookingId && (
+                                <>
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-xs text-gray-500 uppercase tracking-wide">Booking ID</span>
+                                        <span className="font-bold text-[#052558] text-sm text-right">{bookingId}</span>
+                                    </div>
+                                    <div className="h-px bg-blue-100 w-full" />
+                                </>
+                            )}
                             <div className="flex justify-between items-start">
                                 <span className="text-xs text-gray-500 uppercase tracking-wide">Vehicle</span>
                                 <span className="font-semibold text-[#011023] text-sm text-right">{selectedYear} {selectedBrand} {selectedModel} ({fuelType})</span>
@@ -526,6 +608,21 @@ const FullService = () => {
                             </div>
                         </div>
 
+                        <button
+                            onClick={() => navigate('/profile')}
+                            className="w-full px-4 py-3 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-wide mb-3"
+                        >
+                            Track Booking Status
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/services')}
+                            className="w-full px-4 py-3 bg-blue-50 text-[#052558] font-bold rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors uppercase tracking-wide"
+                        >
+                            Back to Services
+                        </button>
+
+                        {/* Top-left arrow (optional now that we have buttons, but keeping for consistency) */}
                         <button
                             onClick={() => navigate('/services')}
                             className="absolute top-9.5 -left-20 text-white/50 hover:text-white transition-colors"
@@ -765,29 +862,34 @@ const FullService = () => {
 
                                 {/* 10 Select Dropdowns Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                                    {(SERVICE_DATA[fuelType] || SERVICE_DATA['Petrol']).map((item, index) => (
-                                        <div key={index}>
-                                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center truncate" title={item.category}>
-                                                {item.category}
-                                            </label>
-                                            <div className="relative">
-                                                <select
-                                                    value={selectedServices[item.category] || ''}
-                                                    onChange={e => setSelectedServices(prev => ({
-                                                        ...prev,
-                                                        [item.category]: e.target.value
-                                                    }))}
-                                                    className={`${selectClass} text-center text-[10.5px] uppercase font-bold py-2 px-8 h-10`}
-                                                >
-                                                    <option value=""></option>
-                                                    {item.options.map(opt => (
-                                                        <option key={opt.name} value={opt.name}>{opt.name}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={14} />
+                                    {(dynamicServiceData[fuelType] || dynamicServiceData['Petrol']).map((item, index) => {
+                                        const availableOptions = item.options.filter(opt => !disabledServices.includes(opt.name));
+                                        if (availableOptions.length === 0) return null;
+
+                                        return (
+                                            <div key={index}>
+                                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center truncate" title={item.category}>
+                                                    {item.category}
+                                                </label>
+                                                <div className="relative">
+                                                    <select
+                                                        value={selectedServices[item.category] || ''}
+                                                        onChange={e => setSelectedServices(prev => ({
+                                                            ...prev,
+                                                            [item.category]: e.target.value
+                                                        }))}
+                                                        className={`${selectClass} text-center text-[10.5px] uppercase font-bold py-2 px-8 h-10`}
+                                                    >
+                                                        <option value=""></option>
+                                                        {availableOptions.map(opt => (
+                                                            <option key={opt.name} value={opt.name}>{opt.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={14} />
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -1043,7 +1145,7 @@ const FullService = () => {
                                                 <div>
                                                     <p className="text-[12px] text-gray-400 pb-1 uppercase font-semibold">Service Center</p>
                                                     <p className="font-bold pb-0.5 uppercase text-[#011023] text-xs">{selectedGarage?.name}</p>
-                                                    <p className="text-[10px] font-bold uppercase text-[#527FB0]">Total: ₹{calculateGrandTotal()}</p>
+                                                    {/* <p className="text-[10px] font-bold uppercase text-[#527FB0]">Total: ₹{calculateGrandTotal()}</p> */}
                                                     <p className="text-[10px] pb-0.5 uppercase text-gray-500">{selectedDistrict}, {selectedState}</p>
                                                     {pickupDrop && <p className="text-[10px] uppercase text-blue-500 font-medium">Pickup & Drop: {pickupDrop}</p>}
                                                 </div>

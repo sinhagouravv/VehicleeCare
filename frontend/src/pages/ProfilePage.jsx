@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
     User, Mail, Phone, Car, Settings, MapPin, Calendar,
     CreditCard, ChevronLeft, LogOut, Clipboard, Wrench,
-    CheckCircle, ArrowRight, ShieldCheck, X, Loader2, Bell, Eye, EyeOff, ArrowLeft
+    CheckCircle, ArrowRight, ShieldCheck, X, Loader2, Bell, Eye, EyeOff, ArrowLeft, Download
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 
 const paymentLabel = (method) => {
@@ -365,6 +367,106 @@ const ProfilePage = () => {
 
     const paymentLabel = (m) =>
         m === 'cash' ? 'Cash on Delivery' : m === 'netbanking' ? 'Net Banking' : m;
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'Confirmed': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'Scheduled': return 'bg-purple-100 text-purple-700 border-purple-200';
+            case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
+        }
+    };
+
+    const handleDownloadInvoice = (booking) => {
+        try {
+            const doc = new jsPDF();
+            const primaryColor = [5, 37, 88];
+            const textColor = [100, 100, 100];
+
+            // Header
+            doc.setFontSize(22);
+            doc.setTextColor(...primaryColor);
+            doc.text("VehicleeCare Invoice", 105, 20, null, null, "center");
+
+            // Info Details
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Booking ID: ${booking.bookingId || booking._id}`, 14, 40);
+
+            const bookingDate = new Date(booking.createdAt).toLocaleString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+            doc.text(`Booking Date: ${bookingDate}`, 14, 47);
+            doc.text(`Scheduled Slot: ${booking.schedule?.date || 'N/A'} at ${booking.schedule?.time || ''}`, 14, 54);
+            doc.text(`Status: ${booking.status || 'Pending'}`, 14, 61);
+
+            // Customer Details
+            doc.setFontSize(14);
+            doc.setTextColor(...primaryColor);
+            doc.text("Customer Details", 14, 76);
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+
+            const cName = booking.user?.name || user?.name || 'N/A';
+            const cPhone = booking.user?.phone || user?.phone || 'N/A';
+            doc.text(`Name: ${cName}`, 14, 84);
+            doc.text(`Phone: ${cPhone}`, 14, 91);
+
+            // Vehicle Details
+            doc.setFontSize(14);
+            doc.setTextColor(...primaryColor);
+            doc.text("Vehicle Details", 14, 106);
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Make: ${booking.vehicle?.make || 'N/A'}`, 14, 114);
+            doc.text(`Model: ${booking.vehicle?.model || 'N/A'}`, 14, 121);
+            doc.text(`Year: ${booking.vehicle?.year || 'N/A'}`, 14, 128);
+
+            // Cost calculation
+            const totalAmountStr = booking.payment?.amount || booking.service?.price || '0';
+            const totalAmount = parseFloat(totalAmountStr) || 0;
+            const basePrice = (totalAmount / 1.18).toFixed(2);
+            const gstAmount = (totalAmount - basePrice).toFixed(2);
+
+            const tableBody = [
+                [booking.service?.title || 'General Service', `Rs. ${basePrice}`]
+            ];
+
+            autoTable(doc, {
+                startY: 140,
+                head: [['Service Description', 'Amount']],
+                body: tableBody,
+                theme: 'grid',
+                headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
+                styles: { fontSize: 11, cellPadding: 6 }
+            });
+
+            // Breakdown Summary
+            const finalY = doc.lastAutoTable?.finalY || 140;
+            const rightRightX = 195;
+
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Subtotal: Rs. ${basePrice}`, rightRightX, finalY + 15, { align: 'right' });
+            doc.text(`GST (18%): Rs. ${gstAmount}`, rightRightX, finalY + 22, { align: 'right' });
+            doc.text(`Platform Fee: Rs. 0.00`, rightRightX, finalY + 29, { align: 'right' });
+
+            doc.setFontSize(14);
+            doc.setTextColor(...primaryColor);
+            doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, rightRightX, finalY + 41, { align: 'right' });
+
+            doc.setFontSize(10);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Thank you for using VehicleeCare.", 105, finalY + 60, null, null, "center");
+
+            doc.save(`Invoice_${booking.bookingId || booking._id}.pdf`);
+        } catch (err) {
+            console.error("Error generating PDF:", err);
+            alert("Error downloading invoice. Please try again.");
+        }
+    };
 
     return (
         <div className="h-screen overflow-hidden bg-[#FDFDFD] relative">
@@ -989,6 +1091,7 @@ const ProfilePage = () => {
                                                         <Car size={14} className="text-white/70" />
                                                         <p className="text-white font-black text-xs uppercase tracking-wide">
                                                             {b.vehicle?.make} {b.vehicle?.model} {b.vehicle?.year && `· ${b.vehicle.year}`}
+                                                            {b.bookingId && <span className="ml-2 px-1.5 py-0.5 bg-white/20 rounded text-[9px] text-[#C2E8FF] tracking-widest">{b.bookingId}</span>}
                                                         </p>
                                                     </div>
                                                     {b.createdAt && (
@@ -1058,6 +1161,16 @@ const ProfilePage = () => {
                                                         </span>
                                                     </div>
                                                 )}
+
+                                                {/* Status & Actions Footer */}
+                                                <div className="bg-gray-50 border-t border-gray-100 flex items-center justify-between px-5 py-3">
+                                                    <span className={`inline-block px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border ${getStatusColor(b.status)}`}>
+                                                        {b.status || 'Pending'}
+                                                    </span>
+                                                    <button onClick={() => handleDownloadInvoice(b)} className="text-[#052558] font-black text-[10px] uppercase tracking-widest hover:text-[#527FB0] transition-colors flex items-center gap-1.5 bg-white border border-gray-200 shadow-sm px-3 py-1.5 rounded-lg active:scale-95">
+                                                        <Download size={13} /> Invoice
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

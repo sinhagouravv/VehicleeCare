@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const BookingSchema = new mongoose.Schema({
+    bookingId: { type: String },
     user: {
         id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         name: { type: String, required: true },
@@ -30,6 +31,12 @@ const BookingSchema = new mongoose.Schema({
     schedule: {
         date: { type: String, required: true },
         time: { type: String, required: true }
+    },
+    garage: {
+        name: { type: String },
+        state: { type: String },
+        district: { type: String },
+        pickupDrop: { type: String }
     },
     status: {
         type: String,

@@ -61,8 +61,7 @@ exports.getUserPayments = async (req, res) => {
         const payments = await Payment.find({ user: req.params.userId })
             .populate({
                 path: 'booking',
-                select: 'vehicle service schedule garage',
-                populate: { path: 'garage', select: 'name' } // If garage is a ref
+                select: 'vehicle service schedule garage'
             })
             .sort({ date: -1 });
 

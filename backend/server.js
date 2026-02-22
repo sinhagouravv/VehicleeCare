@@ -22,7 +22,11 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', require('./routes/bookingRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/cars', require('./routes/carRoutes'));
+app.use('/api/settings', require('./routes/settingRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
 app.get('/', (req, res) => {
     res.send('VehicleeCare Backend API');
 });

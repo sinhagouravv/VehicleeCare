@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car } from 'lucide-react';
+import { defaultServicesList } from '../data/servicesData';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
     const [disabledServices, setDisabledServices] = useState([]);
+    const [customServices, setCustomServices] = useState([]);
     const [billingSettings, setBillingSettings] = useState({
         platformFee: '',
         gst: '',
@@ -152,6 +154,12 @@ const Settings = () => {
                 const result = await res.json();
                 if (result.success && result.data) {
                     setDisabledServices(result.data);
+                }
+
+                const resCustom = await fetch('http://localhost:5001/api/settings/customServices');
+                const resultCustom = await resCustom.json();
+                if (resultCustom.success && resultCustom.data) {
+                    setCustomServices(resultCustom.data);
                 }
 
                 const billRes = await fetch('http://localhost:5001/api/settings/billingSettings');
@@ -1085,420 +1093,64 @@ const Settings = () => {
                                 {/* Tab Content Wrapper */}
                                 <div className="space-y-8 overflow-y-auto custom-scrollbar" style={{ maxHeight: "calc(100vh - 340px)" }}>
 
-                                    {/* Petrol */}
-                                    {activeServiceTab === 'PETROL' && (
-                                        <>
+                                    {/* Dynamic Services Tab */}
+                                    {(() => {
+                                        if (activeServiceTab === 'PREMIUM') return null;
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                                {/* Section 1 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">General Maintenance</h3>
-                                                    {['Engine oil change', 'Oil filter replacement', 'Air filter replacement', 'Spark plug replacement', 'Multi-point vehicle inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 2 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Engine & Mechanical</h3>
-                                                    {['Engine diagnostics', 'Clutch repair', 'Gearbox servicing', 'Suspension repair', 'Brake pad replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 3 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Fuel System</h3>
-                                                    {['Fuel injector cleaning', 'Throttle body cleaning', 'Fuel pump inspection', 'Fuel filter replacement', 'Fuel line inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 4 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">AC & Electrical</h3>
-                                                    {['AC gas refill', 'AC compressor repair', 'Battery replacement', 'Alternator repair', 'Starter motor repair'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 5 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Body & Exterior</h3>
-                                                    {['Dent repair', 'Scratch removal', 'Bumper repair', 'Panel repainting', 'Windshield replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 6 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Cleaning & Detailing</h3>
-                                                    {['Interior cleaning', 'Exterior wash', 'Full detailing', 'Ceramic coating', 'Dashboard polishing'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 7 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Tyre & Wheel</h3>
-                                                    {['Tyre replacement', 'Wheel alignment', 'Wheel balancing', 'Puncture repair', 'Tyre rotation'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 8 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Inspection & Diagnostics</h3>
-                                                    {['Computerized diagnostics', 'Brake inspection', 'Suspension check', 'Battery health test', 'Pre-purchase inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 9 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Battery & Charging</h3>
-                                                    {['Battery testing', 'Battery replacement', 'Charging system inspection', 'Wiring inspection', 'Fuse replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 10 */}
-                                                <div className="space-y-2.5 bg-white p-5 mb-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Roadside Assistance</h3>
-                                                    {['Towing service', 'Jump start', 'Flat tyre support', 'Emergency fuel delivery', 'Breakdown support'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                        const activeFuelTypeStr = activeServiceTab === 'PETROL' ? 'Petrol' :
+                                            activeServiceTab === 'DIESEL' ? 'Diesel' :
+                                                activeServiceTab === 'EV' ? 'EV' : '';
 
-                                    {/* Diesel */}
-                                    {activeServiceTab === 'DIESEL' && (
-                                        <>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                                {/* Section 1 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">General Maintenance</h3>
-                                                    {['Engine oil change', 'Oil filter replacement', 'Air filter replacement', 'Diesel fuel filter replacement', 'Multi-point vehicle inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 2 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Engine & Mechanical</h3>
-                                                    {['Engine diagnostics', 'Turbocharger inspection', 'Clutch repair', 'Gearbox servicing', 'Brake pad replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 3 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Diesel Fuel System</h3>
-                                                    {['Diesel injector cleaning', 'Fuel pump inspection', 'Fuel line cleaning', 'Diesel filter replacement', 'Common rail system check'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 4 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">AC & Electrical</h3>
-                                                    {['AC gas refill', 'AC compressor repair', 'Battery replacement', 'Alternator repair', 'Starter motor repair'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 5 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Body & Exterior</h3>
-                                                    {['Dent repair', 'Scratch removal', 'Bumper repair', 'Panel repainting', 'Windshield replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 6 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Cleaning & Detailing</h3>
-                                                    {['Interior cleaning', 'Exterior wash', 'Full detailing', 'Ceramic coating', 'Dashboard polishing'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 7 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Tyre & Wheel</h3>
-                                                    {['Tyre replacement', 'Wheel alignment', 'Wheel balancing', 'Puncture repair', 'Tyre rotation'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 8 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Inspection & Diagnostics</h3>
-                                                    {['Computerized diagnostics', 'Turbo system check', 'Brake inspection', 'Suspension check', 'Pre-purchase inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 9 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Battery & Charging</h3>
-                                                    {['Battery testing', 'Battery replacement', 'Charging system inspection', 'Wiring inspection', 'Fuse replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 10 */}
-                                                <div className="space-y-2.5 bg-white p-5 mb-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Roadside Assistance</h3>
-                                                    {['Towing service', 'Jump start', 'Flat tyre support', 'Emergency fuel delivery', 'Breakdown support'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                        const allServices = [...defaultServicesList, ...customServices];
+                                        const filteredServices = allServices.filter(s => s.fuelType === activeFuelTypeStr);
 
-                                    {/* EV */}
-                                    {activeServiceTab === 'EV' && (
-                                        <>
+                                        // Group dynamically while maintaining intrinsic order from defaultServicesList
+                                        const categoryOrderRaw = [...new Set(defaultServicesList.map(s => s.category))];
+                                        const getCategoryIndex = (cat) => {
+                                            const idx = categoryOrderRaw.indexOf(cat);
+                                            return idx !== -1 ? idx : 999;
+                                        };
+
+                                        // Apply ordering
+                                        const sortedServices = filteredServices.sort((a, b) => {
+                                            const catA = getCategoryIndex(a.category);
+                                            const catB = getCategoryIndex(b.category);
+                                            // By Category Sequence first
+                                            if (catA !== catB) return catA - catB;
+                                            // Then maintain relative addition order within the category (implied by array order)
+                                            return 0;
+                                        });
+
+                                        // Group by category after sorting
+                                        const servicesByCategory = sortedServices.reduce((acc, curr) => {
+                                            if (!acc[curr.category]) acc[curr.category] = [];
+                                            if (!acc[curr.category].find(s => s.name === curr.name)) {
+                                                acc[curr.category].push(curr);
+                                            }
+                                            return acc;
+                                        }, {});
+
+                                        return (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                                {/* Section 1 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Battery System Services</h3>
-                                                    {['Battery health diagnostics', 'Battery cooling system check', 'High-voltage battery inspection', 'Battery pack replacement (authorized)', 'Battery management system (BMS) check'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
+                                                {Object.entries(servicesByCategory).map(([category, items]) => (
+                                                    <div key={category} className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] mb-1.5">
+                                                        <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">{category}</h3>
+                                                        <div className="space-y-0.5 max-h-[140px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                                            {items.map(s => (
+                                                                <div key={s.id || s.name} className="flex items-center justify-between border-b border-gray-100 last:border-0 pb-1.5 last:pb-0">
+                                                                    <span className="text-xs uppercase text-gray-700">{s.name}</span>
+                                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                                        <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(s.name)} onChange={() => handleServiceToggle(s.name)} />
+                                                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
+                                                                    </label>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 2 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Charging System Services</h3>
-                                                    {['On-board charger inspection', 'Charging port inspection', 'Fast-charging system check', 'Home charger installation', 'Charging cable inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 3 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Motor & Powertrain Services</h3>
-                                                    {['Electric motor diagnostics', 'Controller inspection', 'Power inverter inspection', 'Regenerative braking system check', 'Drive shaft inspection'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 4 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Electrical & Wiring Services</h3>
-                                                    {['High-voltage wiring inspection', 'Fuse & relay check', 'Low-voltage (12V) battery replacement', 'Sensor diagnostics', 'ECU diagnostics'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 5 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Brake & Suspension Services</h3>
-                                                    {['Brake pad replacement', 'Brake fluid replacement', 'Suspension repair', 'Shock absorber inspection', 'Wheel alignment'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 6 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Cooling System Services</h3>
-                                                    {['Battery cooling system check', 'Thermal management system inspection', 'Coolant level inspection', 'Radiator inspection (if applicable)', 'Cooling fan check'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 7 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Software & Diagnostics</h3>
-                                                    {['Software updates', 'System recalibration', 'Error code scanning', 'Firmware updates', 'Performance diagnostics'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 8 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Body & Exterior Services</h3>
-                                                    {['Dent repair', 'Scratch removal', 'Panel repainting', 'Bumper repair', 'Windshield replacement'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 9 */}
-                                                <div className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Cleaning & Detailing</h3>
-                                                    {['Interior cleaning', 'Exterior wash', 'Full detailing', 'Ceramic coating', 'Dashboard polishing'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {/* Section 10 */}
-                                                <div className="space-y-2.5 bg-white p-5 mb-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                                                    <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">Tyre & Wheel Services</h3>
-                                                    {['Tyre replacement', 'Wheel alignment', 'Wheel balancing', 'Puncture repair', 'Tyre rotation'].map(item => (
-                                                        <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
-                                                            <span className="text-xs uppercase text-gray-700">{item}</span>
-                                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(item)} onChange={() => handleServiceToggle(item)} />
-                                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        </>
-                                    )}
+                                        );
+                                    })()}
 
 
 
