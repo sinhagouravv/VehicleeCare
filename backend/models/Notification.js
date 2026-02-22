@@ -1,19 +1,22 @@
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+    eventType: {
+        type: String,
+        required: true,
+        enum: ['user_registered', 'booking_created', 'message_received', 'review_submitted', 'garage_added', 'charging_station_added']
+    },
+    title: {
+        type: String,
         required: true
     },
     message: {
         type: String,
         required: true
     },
-    type: {
-        type: String,
-        default: 'info',
-        enum: ['info', 'success', 'warning', 'error']
+    meta: {
+        type: Object,
+        default: {}
     },
     isRead: {
         type: Boolean,

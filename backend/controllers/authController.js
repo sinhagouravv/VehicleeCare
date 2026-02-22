@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { createAdminNotification } = require('./notificationController');
 
 // ── Mailer Setup ────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
@@ -45,6 +46,13 @@ exports.register = async (req, res) => {
         const payload = { user: { id: user.id } };
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
             if (err) throw err;
+            // Fire admin notification
+            createAdminNotification({
+                eventType: 'user_registered',
+                title: 'New User Registered',
+                message: `${name} (${email}) has just created an account.`,
+                meta: { userId: user.id, name, email }
+            });
             res.json({
                 token,
                 user: { id: user.id, userId: user.userId, name: user.name, email: user.email, isVerified: user.isVerified, role: user.role }

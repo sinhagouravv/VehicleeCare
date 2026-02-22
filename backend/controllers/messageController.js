@@ -1,4 +1,5 @@
 const Message = require('../models/Message');
+const { createAdminNotification } = require('./notificationController');
 
 // Create a new message from the contact form
 exports.createMessage = async (req, res) => {
@@ -80,6 +81,14 @@ exports.createMessage = async (req, res) => {
         });
 
         await newMessage.save();
+
+        // Fire admin notification
+        createAdminNotification({
+            eventType: 'message_received',
+            title: 'New Contact Message',
+            message: `${name} (${email}) sent a message: "${subject}".`,
+            meta: { messageId: newMessage.messageId, name, email, subject }
+        });
 
         res.status(201).json({ success: true, message: "Message sent successfully!", data: newMessage });
     } catch (err) {

@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
+const { createAdminNotification } = require('./notificationController');
 
 // @desc    Create a new booking
 // @route   POST /api/bookings
@@ -99,6 +100,14 @@ exports.createBooking = async (req, res) => {
                 type: 'success'
             });
         }
+
+        // Fire admin notification
+        createAdminNotification({
+            eventType: 'booking_created',
+            title: 'New Booking Received',
+            message: `${user.name || 'A user'} booked ${service.title || 'a service'} for ${vehicle.make} ${vehicle.model} on ${schedule.date}.`,
+            meta: { bookingId: savedBooking.bookingId, userId: user.id, service: service.title, vehicle: `${vehicle.make} ${vehicle.model}` }
+        });
 
         res.status(201).json({
             success: true,

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getUserNotifications, markAsRead, markAllAsRead } = require('../controllers/notificationController');
+const ctrl = require('../controllers/notificationController');
 
-router.get('/user/:userId', getUserNotifications);
-router.put('/:id/read', markAsRead);
-router.put('/user/:userId/read-all', markAllAsRead);
+router.get('/', ctrl.getAll);
+router.patch('/mark-all-read', ctrl.markAllRead);
+router.patch('/:id/read', ctrl.markRead);
+router.delete('/:id', ctrl.deleteOne);
 
 module.exports = router;
