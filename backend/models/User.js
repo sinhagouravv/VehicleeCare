@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+    userId: {
+        type: String,
+        unique: true
+    },
     name: {
         type: String,
         required: true,
@@ -26,6 +30,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    phone: {
+        type: String,
+        default: ''
+    },
     isVerified: {
         type: Boolean,
         default: false
@@ -39,6 +47,10 @@ const userSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    emailNotifications: {
+        type: Boolean,
+        default: true
     }
 });
 

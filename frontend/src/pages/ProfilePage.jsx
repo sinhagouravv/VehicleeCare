@@ -72,7 +72,27 @@ const ProfilePage = () => {
     useEffect(() => {
         const stored = localStorage.getItem('user');
         if (!stored) { navigate('/login'); return; }
-        setUser(JSON.parse(stored));
+        const parsedUser = JSON.parse(stored);
+        setUser(parsedUser);
+
+        // Fetch fresh user data from DB (to pull userId and latest fields)
+        const mongoId = parsedUser.id || parsedUser._id;
+        if (mongoId) {
+            fetch('http://localhost:5001/api/auth/me', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mongoId })
+            })
+                .then(r => r.json())
+                .then(freshUser => {
+                    if (freshUser && freshUser.id) {
+                        const merged = { ...parsedUser, ...freshUser };
+                        localStorage.setItem('user', JSON.stringify(merged));
+                        setUser(merged);
+                    }
+                })
+                .catch(() => { }); // silently fail — localStorage data already loaded
+        }
     }, [navigate]);
 
     useEffect(() => {
@@ -954,9 +974,9 @@ const ProfilePage = () => {
                             </div>
 
                             <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2">
-                                {user.email && (
-                                    <span className="flex items-center gap-1.5 text-white/60 text-xs">
-                                        <Mail size={11} /> {user.email}
+                                {(user.userId || user.id) && (
+                                    <span className="flex items-center gap-1.5 text-white/60 text-xs font-bold tracking-widest">
+                                        <User size={11} /> {user.userId || user.id}
                                     </span>
                                 )}
                             </div>

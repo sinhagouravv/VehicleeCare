@@ -7,6 +7,7 @@ router.post('/login', authController.login);
 router.post('/send-otp', authController.sendOtp);
 router.post('/verify-otp', authController.verifyOtp);
 router.patch('/update-profile', authController.updateProfile);
+router.post('/me', authController.getMe);
 router.post('/send-settings-otp', authController.sendSettingsOtp);
 router.patch('/change-password-otp', authController.changePasswordOtp);
 router.delete('/delete-account', authController.deleteAccount);

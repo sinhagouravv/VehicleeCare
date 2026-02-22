@@ -20,7 +20,23 @@ exports.register = async (req, res) => {
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ msg: 'User already exists' });
 
-        user = new User({ name, email, password });
+        // Generate unique 9-digit user ID (starts with 65, no zeroes)
+        let generatedId = '';
+        let isUnique = false;
+
+        while (!isUnique) {
+            generatedId = '65';
+            for (let i = 0; i < 7; i++) {
+                generatedId += Math.floor(Math.random() * 9) + 1; // 1-9
+            }
+
+            const existingId = await User.findOne({ userId: generatedId });
+            if (!existingId) {
+                isUnique = true;
+            }
+        }
+
+        user = new User({ userId: generatedId, name, email, password });
 
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
@@ -31,7 +47,7 @@ exports.register = async (req, res) => {
             if (err) throw err;
             res.json({
                 token,
-                user: { id: user.id, name: user.name, email: user.email, isVerified: user.isVerified, role: user.role }
+                user: { id: user.id, userId: user.userId, name: user.name, email: user.email, isVerified: user.isVerified, role: user.role }
             });
         });
     } catch (err) {
@@ -52,11 +68,29 @@ exports.login = async (req, res) => {
         if (!isMatch) return res.status(400).json({ msg: 'Invalid Credentials' });
 
         const payload = { user: { id: user.id } };
+
+        // Backfill userId for existing users who don't have one
+        if (!user.userId) {
+            let generatedId = '';
+            let isUnique = false;
+
+            while (!isUnique) {
+                generatedId = '65';
+                for (let i = 0; i < 7; i++) {
+                    generatedId += Math.floor(Math.random() * 9) + 1; // digits 1-9, no zero
+                }
+                const existingId = await User.findOne({ userId: generatedId });
+                if (!existingId) isUnique = true;
+            }
+            user.userId = generatedId;
+            await user.save();
+        }
+
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
             if (err) throw err;
             res.json({
                 token,
-                user: { id: user.id, name: user.name, email: user.email, isVerified: user.isVerified, role: user.role }
+                user: { id: user.id, userId: user.userId, name: user.name, email: user.email, isVerified: user.isVerified, role: user.role }
             });
         });
     } catch (err) {
@@ -158,11 +192,37 @@ exports.updateProfile = async (req, res) => {
 
         res.json({
             msg: 'Profile updated',
-            user: { id: user.id, name: user.name, email: user.email, phone: user.phone, address: user.address, isVerified: user.isVerified, role: user.role }
+            user: { id: user.id, userId: user.userId, name: user.name, email: user.email, phone: user.phone, address: user.address, isVerified: user.isVerified, role: user.role }
         });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Update failed' });
+    }
+};
+
+// ── Get Me (refresh user data) ────────────────────────────────
+exports.getMe = async (req, res) => {
+    try {
+        const { mongoId } = req.body;
+        if (!mongoId) return res.status(400).json({ msg: 'ID required' });
+
+        const user = await User.findById(mongoId).select('-password');
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        res.json({
+            id: user.id,
+            userId: user.userId,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            isVerified: user.isVerified,
+            role: user.role,
+            emailNotifications: user.emailNotifications
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Failed to fetch user' });
     }
 };
 
