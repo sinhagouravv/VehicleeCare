@@ -29,6 +29,7 @@ app.use('/api/settings', require('./routes/settingRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/garages', require('./routes/garageRoutes'));
+app.use('/api/charging-stations', require('./routes/chargingStationRoutes'));
 app.get('/', (req, res) => {
     res.send('VehicleeCare Backend API');
 });

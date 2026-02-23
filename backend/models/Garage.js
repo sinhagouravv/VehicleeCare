@@ -8,7 +8,7 @@ const GarageSchema = new mongoose.Schema({
     address: { type: String },
     coordinates: { type: String },           // e.g. "30.7333, 76.7794"
     type: { type: [String] },          // e.g. ['Petrol', 'Diesel', 'EV']
-    rating: { type: Number, default: 0 },
+    rating: { type: Number, default: null },
     partner: { type: Boolean, default: false },
     pickupDrop: { type: Boolean, default: false },
     ownerName: { type: String },

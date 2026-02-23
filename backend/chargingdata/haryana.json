@@ -1,0 +1,402 @@
+[
+    {
+        "state": "Haryana",
+        "district": "Gurugram",
+        "place": "Sultanpur",
+        "lat": 28.4200,
+        "lng": 76.8800,
+        "pincode": "122506"
+    },
+    {
+        "state": "Haryana",
+        "district": "Gurugram",
+        "place": "Rewasan",
+        "lat": 28.3300,
+        "lng": 76.9200,
+        "pincode": "122103"
+    },
+    {
+        "state": "Haryana",
+        "district": "Gurugram",
+        "place": "Harsaru",
+        "lat": 28.4300,
+        "lng": 76.9500,
+        "pincode": "122505"
+    },
+    {
+        "state": "Haryana",
+        "district": "Gurugram",
+        "place": "Badshahpur Outskirts",
+        "lat": 28.4000,
+        "lng": 77.0500,
+        "pincode": "122101"
+    },
+    {
+        "state": "Haryana",
+        "district": "Gurugram",
+        "place": "Garhi Harsaru",
+        "lat": 28.4300,
+        "lng": 76.9600,
+        "pincode": "122505"
+    },
+    {
+        "state": "Haryana",
+        "district": "Faridabad",
+        "place": "Prithla",
+        "lat": 28.2700,
+        "lng": 77.3100,
+        "pincode": "121102"
+    },
+    {
+        "state": "Haryana",
+        "district": "Faridabad",
+        "place": "Hodal Rural",
+        "lat": 27.9000,
+        "lng": 77.3700,
+        "pincode": "121106"
+    },
+    {
+        "state": "Haryana",
+        "district": "Faridabad",
+        "place": "Hathin",
+        "lat": 28.0200,
+        "lng": 77.2400,
+        "pincode": "121103"
+    },
+    {
+        "state": "Haryana",
+        "district": "Faridabad",
+        "place": "Chhainsa",
+        "lat": 28.3200,
+        "lng": 77.3500,
+        "pincode": "121004"
+    },
+    {
+        "state": "Haryana",
+        "district": "Faridabad",
+        "place": "Seekri",
+        "lat": 28.3500,
+        "lng": 77.3000,
+        "pincode": "121004"
+    },
+    {
+        "state": "Haryana",
+        "district": "Hisar",
+        "place": "Agroha",
+        "lat": 29.3200,
+        "lng": 75.7800,
+        "pincode": "125047"
+    },
+    {
+        "state": "Haryana",
+        "district": "Hisar",
+        "place": "Nalwa",
+        "lat": 29.0500,
+        "lng": 75.8000,
+        "pincode": "125037"
+    },
+    {
+        "state": "Haryana",
+        "district": "Hisar",
+        "place": "Bass",
+        "lat": 29.1500,
+        "lng": 75.8500,
+        "pincode": "125001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Hisar",
+        "place": "Kheri Jalab",
+        "lat": 29.2000,
+        "lng": 75.7000,
+        "pincode": "125001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Hisar",
+        "place": "Uklana Rural",
+        "lat": 29.5000,
+        "lng": 75.8800,
+        "pincode": "125113"
+    },
+    {
+        "state": "Haryana",
+        "district": "Karnal",
+        "place": "Munak",
+        "lat": 29.8200,
+        "lng": 77.0100,
+        "pincode": "132040"
+    },
+    {
+        "state": "Haryana",
+        "district": "Karnal",
+        "place": "Kachhwa",
+        "lat": 29.7000,
+        "lng": 76.9000,
+        "pincode": "132001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Karnal",
+        "place": "Pingli",
+        "lat": 29.7200,
+        "lng": 76.9500,
+        "pincode": "132001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Karnal",
+        "place": "Phurlak",
+        "lat": 29.6000,
+        "lng": 76.8500,
+        "pincode": "132036"
+    },
+    {
+        "state": "Haryana",
+        "district": "Karnal",
+        "place": "Jalmana",
+        "lat": 29.6500,
+        "lng": 76.9800,
+        "pincode": "132001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Panipat",
+        "place": "Bhadar",
+        "lat": 29.2500,
+        "lng": 76.9000,
+        "pincode": "132105"
+    },
+    {
+        "state": "Haryana",
+        "district": "Panipat",
+        "place": "Sewah",
+        "lat": 29.3200,
+        "lng": 76.9200,
+        "pincode": "132108"
+    },
+    {
+        "state": "Haryana",
+        "district": "Panipat",
+        "place": "Siwah",
+        "lat": 29.3400,
+        "lng": 76.9500,
+        "pincode": "132108"
+    },
+    {
+        "state": "Haryana",
+        "district": "Panipat",
+        "place": "Kairana Road Belt",
+        "lat": 29.2800,
+        "lng": 77.0000,
+        "pincode": "132101"
+    },
+    {
+        "state": "Haryana",
+        "district": "Panipat",
+        "place": "Ugra Kheri",
+        "lat": 29.3700,
+        "lng": 76.9700,
+        "pincode": "132103"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rohtak",
+        "place": "Gohana Outskirts",
+        "lat": 29.1300,
+        "lng": 76.7000,
+        "pincode": "131301"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rohtak",
+        "place": "Kansala",
+        "lat": 28.8500,
+        "lng": 76.6500,
+        "pincode": "124001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rohtak",
+        "place": "Bhalaut",
+        "lat": 28.8900,
+        "lng": 76.5600,
+        "pincode": "124001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rohtak",
+        "place": "Madina",
+        "lat": 28.9000,
+        "lng": 76.4500,
+        "pincode": "124001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rohtak",
+        "place": "Sundana",
+        "lat": 28.9500,
+        "lng": 76.5500,
+        "pincode": "124001"
+    },
+    {
+        "state": "Haryana",
+        "district": "Sonipat",
+        "place": "Barhi",
+        "lat": 28.9900,
+        "lng": 77.0400,
+        "pincode": "131101"
+    },
+    {
+        "state": "Haryana",
+        "district": "Sonipat",
+        "place": "Janti Kalan",
+        "lat": 28.8500,
+        "lng": 77.0600,
+        "pincode": "131028"
+    },
+    {
+        "state": "Haryana",
+        "district": "Sonipat",
+        "place": "Khewra",
+        "lat": 28.9000,
+        "lng": 77.0200,
+        "pincode": "131029"
+    },
+    {
+        "state": "Haryana",
+        "district": "Sonipat",
+        "place": "Sisana",
+        "lat": 29.0500,
+        "lng": 76.9800,
+        "pincode": "131101"
+    },
+    {
+        "state": "Haryana",
+        "district": "Sonipat",
+        "place": "Ghasauli",
+        "lat": 29.0300,
+        "lng": 77.0000,
+        "pincode": "131101"
+    },
+    {
+        "state": "Haryana",
+        "district": "Ambala",
+        "place": "Ambala City Outskirts",
+        "lat": 30.3800,
+        "lng": 76.7800,
+        "pincode": "134003"
+    },
+    {
+        "state": "Haryana",
+        "district": "Ambala",
+        "place": "Kesri",
+        "lat": 30.3300,
+        "lng": 76.9300,
+        "pincode": "133104"
+    },
+    {
+        "state": "Haryana",
+        "district": "Ambala",
+        "place": "Panjo Khera",
+        "lat": 30.4000,
+        "lng": 77.0000,
+        "pincode": "134203"
+    },
+    {
+        "state": "Haryana",
+        "district": "Ambala",
+        "place": "Mandhour",
+        "lat": 30.3500,
+        "lng": 76.8200,
+        "pincode": "134007"
+    },
+    {
+        "state": "Haryana",
+        "district": "Ambala",
+        "place": "Tandwal",
+        "lat": 30.4800,
+        "lng": 77.0900,
+        "pincode": "134203"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rewari",
+        "place": "Rampura",
+        "lat": 28.2000,
+        "lng": 76.6500,
+        "pincode": "123401"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rewari",
+        "place": "Bikaner Road Belt",
+        "lat": 28.2500,
+        "lng": 76.6500,
+        "pincode": "123401"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rewari",
+        "place": "Dungerwas",
+        "lat": 28.3500,
+        "lng": 76.5000,
+        "pincode": "123302"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rewari",
+        "place": "Majra",
+        "lat": 28.2600,
+        "lng": 76.6200,
+        "pincode": "123501"
+    },
+    {
+        "state": "Haryana",
+        "district": "Rewari",
+        "place": "Kanhawas",
+        "lat": 28.2700,
+        "lng": 76.7000,
+        "pincode": "123401"
+    },
+    {
+        "state": "Haryana",
+        "district": "Yamunanagar",
+        "place": "Chhachhrauli Rural",
+        "lat": 30.2600,
+        "lng": 77.3600,
+        "pincode": "135103"
+    },
+    {
+        "state": "Haryana",
+        "district": "Yamunanagar",
+        "place": "Bilaspur Outskirts",
+        "lat": 30.3000,
+        "lng": 77.3000,
+        "pincode": "135102"
+    },
+    {
+        "state": "Haryana",
+        "district": "Yamunanagar",
+        "place": "Sadhaura Rural",
+        "lat": 30.3800,
+        "lng": 77.4700,
+        "pincode": "133204"
+    },
+    {
+        "state": "Haryana",
+        "district": "Yamunanagar",
+        "place": "Radaur Belt",
+        "lat": 30.0300,
+        "lng": 77.1500,
+        "pincode": "135133"
+    },
+    {
+        "state": "Haryana",
+        "district": "Yamunanagar",
+        "place": "Mustafabad Rural",
+        "lat": 30.2000,
+        "lng": 77.1500,
+        "pincode": "133103"
+    }
+]

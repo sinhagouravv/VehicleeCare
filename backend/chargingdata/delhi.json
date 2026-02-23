@@ -1,0 +1,362 @@
+[
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Timarpur",
+        "lat": 28.6900,
+        "lng": 77.2100,
+        "pincode": "110054"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Wazirabad Road Belt",
+        "lat": 28.7200,
+        "lng": 77.2300,
+        "pincode": "110084"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Bharat Nagar",
+        "lat": 28.7100,
+        "lng": 77.1700,
+        "pincode": "110052"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Model Town Fringe",
+        "lat": 28.7100,
+        "lng": 77.1900,
+        "pincode": "110009"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Mukherjee Nagar Backside",
+        "lat": 28.7100,
+        "lng": 77.2000,
+        "pincode": "110009"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Saket Backside Lanes",
+        "lat": 28.5200,
+        "lng": 77.2100,
+        "pincode": "110017"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Mehrauli Fringe",
+        "lat": 28.5200,
+        "lng": 77.1800,
+        "pincode": "110030"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Khanpur",
+        "lat": 28.5100,
+        "lng": 77.2300,
+        "pincode": "110062"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Dakshinpuri",
+        "lat": 28.5100,
+        "lng": 77.2300,
+        "pincode": "110062"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Pushp Vihar Fringe",
+        "lat": 28.5300,
+        "lng": 77.2100,
+        "pincode": "110017"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Mayur Vihar Phase 3 Fringe",
+        "lat": 28.6000,
+        "lng": 77.3200,
+        "pincode": "110096"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Laxmi Nagar Backside",
+        "lat": 28.6300,
+        "lng": 77.2800,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Geeta Colony Fringe",
+        "lat": 28.6500,
+        "lng": 77.2700,
+        "pincode": "110031"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Pandav Nagar",
+        "lat": 28.6200,
+        "lng": 77.2900,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Patparganj Industrial Side",
+        "lat": 28.6300,
+        "lng": 77.3000,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Tilak Nagar Fringe",
+        "lat": 28.6400,
+        "lng": 77.0900,
+        "pincode": "110018"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Subhash Nagar",
+        "lat": 28.6400,
+        "lng": 77.1100,
+        "pincode": "110027"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Janakpuri C-block Side",
+        "lat": 28.6200,
+        "lng": 77.0900,
+        "pincode": "110058"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Uttam Nagar Outskirts",
+        "lat": 28.6200,
+        "lng": 77.0500,
+        "pincode": "110059"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Kirari",
+        "lat": 28.7100,
+        "lng": 77.0500,
+        "pincode": "110086"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Rithala",
+        "lat": 28.7100,
+        "lng": 77.1000,
+        "pincode": "110085"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Mangolpuri Industrial",
+        "lat": 28.6900,
+        "lng": 77.1000,
+        "pincode": "110083"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Prem Nagar",
+        "lat": 28.7000,
+        "lng": 77.0700,
+        "pincode": "110086"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Sultanpuri",
+        "lat": 28.7000,
+        "lng": 77.0700,
+        "pincode": "110086"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Pooth Khurd",
+        "lat": 28.7500,
+        "lng": 77.0600,
+        "pincode": "110039"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Dwarka Sector 26 Fringe",
+        "lat": 28.6000,
+        "lng": 77.0400,
+        "pincode": "110077"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Palam Village Side",
+        "lat": 28.5900,
+        "lng": 77.0800,
+        "pincode": "110045"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Mahipalpur Backside",
+        "lat": 28.5400,
+        "lng": 77.1200,
+        "pincode": "110037"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Raj Nagar 2",
+        "lat": 28.6000,
+        "lng": 77.0700,
+        "pincode": "110077"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Dabri",
+        "lat": 28.6100,
+        "lng": 77.0800,
+        "pincode": "110045"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Karawal Nagar Extension",
+        "lat": 28.7300,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Khajuri Khas Belt",
+        "lat": 28.7100,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Yamuna Vihar C-block",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Mustafabad Backside",
+        "lat": 28.7100,
+        "lng": 77.2900,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Brijpuri",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Vivek Vihar Fringe",
+        "lat": 28.6700,
+        "lng": 77.3100,
+        "pincode": "110095"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Jhilmil Colony",
+        "lat": 28.6700,
+        "lng": 77.3100,
+        "pincode": "110095"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Anand Vihar Backside",
+        "lat": 28.6500,
+        "lng": 77.3100,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Shahdara Old Lanes",
+        "lat": 28.6700,
+        "lng": 77.2900,
+        "pincode": "110032"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Dilshad Colony",
+        "lat": 28.6800,
+        "lng": 77.3200,
+        "pincode": "110095"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "INA Backside",
+        "lat": 28.5700,
+        "lng": 77.2100,
+        "pincode": "110023"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Lodhi Road Service Belt",
+        "lat": 28.5900,
+        "lng": 77.2200,
+        "pincode": "110003"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "RK Puram Sector 6 Fringe",
+        "lat": 28.5600,
+        "lng": 77.1800,
+        "pincode": "110022"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Sarojini Service Lane",
+        "lat": 28.5700,
+        "lng": 77.2000,
+        "pincode": "110023"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Chanakyapuri Rear Side",
+        "lat": 28.6000,
+        "lng": 77.1900,
+        "pincode": "110021"
+    }
+]

@@ -1,0 +1,802 @@
+[
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Ghuman",
+        "lat": 31.44195,
+        "lng": 74.84805,
+        "pincode": "143602"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Chogawan",
+        "lat": 31.6670,
+        "lng": 75.1000,
+        "pincode": "143109"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Begowal Kalan",
+        "lat": 31.78639,
+        "lng": 74.95415,
+        "pincode": "143305"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Rani Ka Bagh Extension",
+        "lat": 31.6218,
+        "lng": 74.8640,
+        "pincode": "143001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Sultanwind",
+        "lat": 31.6082,
+        "lng": 74.9617,
+        "pincode": "143001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Khasa Pind",
+        "lat": 31.6291,
+        "lng": 74.8496,
+        "pincode": "143001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Patti Path",
+        "lat": 31.5520,
+        "lng": 74.9240,
+        "pincode": "143416"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Chheharta Sahib Outskirts",
+        "lat": 31.5930,
+        "lng": 74.8290,
+        "pincode": "143105"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Sohal Khurd",
+        "lat": 31.7065,
+        "lng": 74.8782,
+        "pincode": "143006"
+    },
+    {
+        "state": "Punjab",
+        "district": "Amritsar",
+        "place": "Nizampur",
+        "lat": 31.5200,
+        "lng": 74.9400,
+        "pincode": "143022"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Jamalpur",
+        "lat": 30.90052,
+        "lng": 75.91085,
+        "pincode": "141010"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Katani Chowk",
+        "lat": 30.9036,
+        "lng": 75.8590,
+        "pincode": "141008"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Burj Jawahar Singh Wala",
+        "lat": 30.9140,
+        "lng": 75.8570,
+        "pincode": "141113"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Basti Jodhewal",
+        "lat": 30.9020,
+        "lng": 75.8420,
+        "pincode": "141007"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Lalton Khurd",
+        "lat": 30.8800,
+        "lng": 75.8200,
+        "pincode": "142022"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Shampur",
+        "lat": 30.9120,
+        "lng": 75.8800,
+        "pincode": "141113"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Dugri Extension",
+        "lat": 30.8705,
+        "lng": 75.8881,
+        "pincode": "141013"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Giaspura",
+        "lat": 30.8860,
+        "lng": 75.7950,
+        "pincode": "141014"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Ujjan",
+        "lat": 30.8480,
+        "lng": 75.9000,
+        "pincode": "141113"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ludhiana",
+        "place": "Doraha",
+        "lat": 31.0112,
+        "lng": 76.0477,
+        "pincode": "141421"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Bilga",
+        "lat": 31.0833,
+        "lng": 75.7930,
+        "pincode": "144036"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Mehta Chowk",
+        "lat": 31.3300,
+        "lng": 75.6300,
+        "pincode": "144041"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Sidhwan Khurd",
+        "lat": 31.1180,
+        "lng": 75.5330,
+        "pincode": "144409"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Basti Bawa Khel",
+        "lat": 31.1300,
+        "lng": 75.4200,
+        "pincode": "144021"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Tigri",
+        "lat": 31.0900,
+        "lng": 75.4800,
+        "pincode": "144040"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Basti Danishmandan",
+        "lat": 31.1500,
+        "lng": 75.5200,
+        "pincode": "144002"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Dhandowal",
+        "lat": 31.0900,
+        "lng": 75.6700,
+        "pincode": "144004"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Mubarakpur",
+        "lat": 31.1400,
+        "lng": 75.5800,
+        "pincode": "144409"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Kila Bhiwani",
+        "lat": 31.1000,
+        "lng": 75.4300,
+        "pincode": "144629"
+    },
+    {
+        "state": "Punjab",
+        "district": "Jalandhar",
+        "place": "Seerha",
+        "lat": 31.1200,
+        "lng": 75.6100,
+        "pincode": "144106"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Gardri",
+        "lat": 30.3200,
+        "lng": 76.3920,
+        "pincode": "147001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Bhupindra Road Outskirts",
+        "lat": 30.3380,
+        "lng": 76.3940,
+        "pincode": "147001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Jamniwala Bagh",
+        "lat": 30.3205,
+        "lng": 76.4050,
+        "pincode": "147001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Samana Road Stretch",
+        "lat": 30.3050,
+        "lng": 76.1950,
+        "pincode": "147101"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Sanaur Outskirts",
+        "lat": 30.3580,
+        "lng": 76.3710,
+        "pincode": "147103"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Lalru Border Zone",
+        "lat": 30.5720,
+        "lng": 76.6570,
+        "pincode": "140501"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Khasra",
+        "lat": 30.3350,
+        "lng": 76.3900,
+        "pincode": "147001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Khanauri",
+        "lat": 30.1750,
+        "lng": 76.7780,
+        "pincode": "147301"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Chhoti Badi",
+        "lat": 30.3200,
+        "lng": 76.3600,
+        "pincode": "147001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Patiala",
+        "place": "Badrian",
+        "lat": 30.3000,
+        "lng": 76.4200,
+        "pincode": "147111"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Lalhera",
+        "lat": 30.7000,
+        "lng": 76.7600,
+        "pincode": "160055"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Mattaur",
+        "lat": 30.6990,
+        "lng": 76.7050,
+        "pincode": "160059"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Dera Bassi Periphery",
+        "lat": 30.6320,
+        "lng": 76.6860,
+        "pincode": "140507"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Kurali Outskirts",
+        "lat": 30.7860,
+        "lng": 76.5420,
+        "pincode": "140103"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Landran",
+        "lat": 30.6650,
+        "lng": 76.6270,
+        "pincode": "140307"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Gomti Nagar",
+        "lat": 30.7230,
+        "lng": 76.7590,
+        "pincode": "160055"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Mullanpur Dakha Fringes",
+        "lat": 30.8480,
+        "lng": 75.6637,
+        "pincode": "141101"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Bhora",
+        "lat": 30.6800,
+        "lng": 76.7200,
+        "pincode": "160055"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Balongi",
+        "lat": 30.6580,
+        "lng": 76.6930,
+        "pincode": "140301"
+    },
+    {
+        "state": "Punjab",
+        "district": "SAS Nagar (Mohali)",
+        "place": "Kharar-Raipur Bypass Area",
+        "lat": 30.7030,
+        "lng": 76.7080,
+        "pincode": "140301"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Tapa",
+        "lat": 30.1150,
+        "lng": 75.1880,
+        "pincode": "148108"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Bhucho Mandi Rural Belts",
+        "lat": 30.2000,
+        "lng": 75.1400,
+        "pincode": "151101"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Goniana",
+        "lat": 30.2060,
+        "lng": 74.8890,
+        "pincode": "151201"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Rampura Phul Outskirts",
+        "lat": 30.1100,
+        "lng": 75.6160,
+        "pincode": "151103"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Talwandi Sabo",
+        "lat": 30.1200,
+        "lng": 75.4020,
+        "pincode": "151302"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Phul Town Backroads",
+        "lat": 30.1500,
+        "lng": 75.6400,
+        "pincode": "151104"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Maur Periphery",
+        "lat": 29.9100,
+        "lng": 75.2500,
+        "pincode": "151509"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Village Kala",
+        "lat": 30.0800,
+        "lng": 75.1300,
+        "pincode": "151301"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Bhikhi",
+        "lat": 30.1500,
+        "lng": 75.9800,
+        "pincode": "151504"
+    },
+    {
+        "state": "Punjab",
+        "district": "Bathinda",
+        "place": "Baghapurana Belt",
+        "lat": 30.4650,
+        "lng": 75.1620,
+        "pincode": "142038"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Dosanjh Kalan",
+        "lat": 31.2200,
+        "lng": 75.9800,
+        "pincode": "144208"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Chabbewal Outskirts",
+        "lat": 31.4600,
+        "lng": 76.0850,
+        "pincode": "146102"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Mukerian Highway Belt",
+        "lat": 32.0700,
+        "lng": 75.4300,
+        "pincode": "144211"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Talwara Peripheral",
+        "lat": 31.8230,
+        "lng": 75.3650,
+        "pincode": "144216"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Hariana Extension",
+        "lat": 31.7170,
+        "lng": 75.9000,
+        "pincode": "144208"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Tanda Backroads",
+        "lat": 31.4320,
+        "lng": 75.9700,
+        "pincode": "144204"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Garhshankar Bypass",
+        "lat": 31.1730,
+        "lng": 76.3200,
+        "pincode": "144527"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Janauri",
+        "lat": 31.0400,
+        "lng": 76.0300,
+        "pincode": "144528"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Nangal Shali",
+        "lat": 31.1300,
+        "lng": 76.0100,
+        "pincode": "144526"
+    },
+    {
+        "state": "Punjab",
+        "district": "Hoshiarpur",
+        "place": "Sujanpur Tira",
+        "lat": 31.0040,
+        "lng": 75.2430,
+        "pincode": "145023"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Faridkot Road Stretch",
+        "lat": 30.6720,
+        "lng": 74.7650,
+        "pincode": "152002"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Makhu Rural Sectors",
+        "lat": 31.3000,
+        "lng": 74.7650,
+        "pincode": "142044"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Zira Hinterland",
+        "lat": 30.7100,
+        "lng": 75.2440,
+        "pincode": "142047"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Mouzi Kaleyan",
+        "lat": 30.9000,
+        "lng": 74.7000,
+        "pincode": "152022"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Jamke Area",
+        "lat": 30.9300,
+        "lng": 74.7600,
+        "pincode": "152023"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Hussainiwala Nearby Villages",
+        "lat": 30.9000,
+        "lng": 74.5500,
+        "pincode": "152003"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Ferozpur Cantonment Fringe",
+        "lat": 30.9170,
+        "lng": 74.6260,
+        "pincode": "152001"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Talwandi Bhai Periphery",
+        "lat": 31.1650,
+        "lng": 74.8850,
+        "pincode": "142050"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Jhok Sarkari",
+        "lat": 30.8800,
+        "lng": 74.6000,
+        "pincode": "152022"
+    },
+    {
+        "state": "Punjab",
+        "district": "Ferozepur",
+        "place": "Malluwal Area",
+        "lat": 30.9500,
+        "lng": 74.7000,
+        "pincode": "152021"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Dinanagar Outskirts",
+        "lat": 31.8410,
+        "lng": 75.2360,
+        "pincode": "143531"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Qadian Rural Belt",
+        "lat": 31.8280,
+        "lng": 75.3790,
+        "pincode": "143516"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Dhariwal Countryside",
+        "lat": 31.9160,
+        "lng": 75.2470,
+        "pincode": "143519"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Kahnuwan Backroads",
+        "lat": 31.9550,
+        "lng": 75.3250,
+        "pincode": "143528"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Bharoli Kalan Area",
+        "lat": 31.8200,
+        "lng": 75.3160,
+        "pincode": "143532"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Kalanaur Periphery",
+        "lat": 31.3330,
+        "lng": 75.5650,
+        "pincode": "143512"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Chak Sharif",
+        "lat": 31.7200,
+        "lng": 75.3000,
+        "pincode": "143528"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Sri Hargobindpur Belt",
+        "lat": 31.9180,
+        "lng": 75.1570,
+        "pincode": "143515"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Narot Jaimal Singh Area",
+        "lat": 31.5900,
+        "lng": 75.2600,
+        "pincode": "145026"
+    },
+    {
+        "state": "Punjab",
+        "district": "Gurdaspur",
+        "place": "Sagrian",
+        "lat": 31.8330,
+        "lng": 75.2000,
+        "pincode": "143520"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Lehragaga Rural Zones",
+        "lat": 30.4900,
+        "lng": 75.8600,
+        "pincode": "148031"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Dirba Outskirts",
+        "lat": 30.3270,
+        "lng": 75.8930,
+        "pincode": "148035"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Moonak Periphery",
+        "lat": 30.2160,
+        "lng": 75.6720,
+        "pincode": "148033"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Dhuri Backroads",
+        "lat": 30.2860,
+        "lng": 75.8450,
+        "pincode": "148024"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Longowal Belt",
+        "lat": 30.3120,
+        "lng": 75.9400,
+        "pincode": "148106"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Bhawanigarh Outskirts",
+        "lat": 30.2430,
+        "lng": 75.9860,
+        "pincode": "148026"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Bhadaur Region",
+        "lat": 30.2600,
+        "lng": 75.8310,
+        "pincode": "148102"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Handiaya",
+        "lat": 30.3510,
+        "lng": 75.8160,
+        "pincode": "148107"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Lehra Gaga Farm Belts",
+        "lat": 30.4860,
+        "lng": 75.8630,
+        "pincode": "148031"
+    },
+    {
+        "state": "Punjab",
+        "district": "Sangrur",
+        "place": "Chhikka Area",
+        "lat": 30.4800,
+        "lng": 75.8700,
+        "pincode": "148031"
+    }
+]

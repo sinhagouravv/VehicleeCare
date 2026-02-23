@@ -1,0 +1,802 @@
+[
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Burari Outskirts",
+        "lat": 28.7590,
+        "lng": 77.2000,
+        "pincode": "110084"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Nathupura",
+        "lat": 28.7200,
+        "lng": 77.2100,
+        "pincode": "110084"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Sant Nagar (Burari side)",
+        "lat": 28.7500,
+        "lng": 77.2000,
+        "pincode": "110084"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Wazirabad",
+        "lat": 28.7200,
+        "lng": 77.2300,
+        "pincode": "110084"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Jharoda Majra",
+        "lat": 28.7600,
+        "lng": 77.2100,
+        "pincode": "110084"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Ibrahimpur",
+        "lat": 28.7400,
+        "lng": 77.2200,
+        "pincode": "110036"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Bawana Industrial Fringe",
+        "lat": 28.8000,
+        "lng": 77.0300,
+        "pincode": "110039"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Holambi Kalan",
+        "lat": 28.8300,
+        "lng": 77.0700,
+        "pincode": "110082"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Alipur Outskirts",
+        "lat": 28.7900,
+        "lng": 77.1500,
+        "pincode": "110036"
+    },
+    {
+        "state": "Delhi",
+        "district": "North Delhi",
+        "place": "Narela Rural Belt",
+        "lat": 28.8500,
+        "lng": 77.0900,
+        "pincode": "110040"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Maidan Garhi",
+        "lat": 28.5200,
+        "lng": 77.1900,
+        "pincode": "110068"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Aya Nagar",
+        "lat": 28.4800,
+        "lng": 77.1300,
+        "pincode": "110047"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Ghitorni",
+        "lat": 28.5000,
+        "lng": 77.1400,
+        "pincode": "110030"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Satbari",
+        "lat": 28.4900,
+        "lng": 77.1700,
+        "pincode": "110074"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Fatehpur Beri",
+        "lat": 28.4700,
+        "lng": 77.1700,
+        "pincode": "110074"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Neb Sarai",
+        "lat": 28.5300,
+        "lng": 77.2000,
+        "pincode": "110068"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Chattarpur Extension",
+        "lat": 28.5000,
+        "lng": 77.1800,
+        "pincode": "110074"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Asola",
+        "lat": 28.4800,
+        "lng": 77.2500,
+        "pincode": "110025"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Deoli",
+        "lat": 28.5000,
+        "lng": 77.2300,
+        "pincode": "110062"
+    },
+    {
+        "state": "Delhi",
+        "district": "South Delhi",
+        "place": "Tughlakabad Extension",
+        "lat": 28.5000,
+        "lng": 77.2600,
+        "pincode": "110019"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Mandawali",
+        "lat": 28.6200,
+        "lng": 77.3000,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Ghonda",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Karawal Nagar Outskirts",
+        "lat": 28.7300,
+        "lng": 77.2900,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Khajuri Khas",
+        "lat": 28.7100,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Gokalpuri",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "New Ashok Nagar Fringe",
+        "lat": 28.5900,
+        "lng": 77.3100,
+        "pincode": "110096"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Kondli",
+        "lat": 28.6000,
+        "lng": 77.3100,
+        "pincode": "110096"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Chilla Village",
+        "lat": 28.6000,
+        "lng": 77.2900,
+        "pincode": "110091"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Dallupura",
+        "lat": 28.6100,
+        "lng": 77.3100,
+        "pincode": "110096"
+    },
+    {
+        "state": "Delhi",
+        "district": "East Delhi",
+        "place": "Shahdara Border Belt",
+        "lat": 28.6700,
+        "lng": 77.2900,
+        "pincode": "110032"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Mundka Industrial Belt",
+        "lat": 28.6800,
+        "lng": 77.0300,
+        "pincode": "110041"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Tikri Kalan",
+        "lat": 28.6800,
+        "lng": 76.9800,
+        "pincode": "110041"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Nilothi",
+        "lat": 28.6600,
+        "lng": 77.0400,
+        "pincode": "110041"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Baprola",
+        "lat": 28.6300,
+        "lng": 77.0300,
+        "pincode": "110043"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Ranhola",
+        "lat": 28.6400,
+        "lng": 77.0400,
+        "pincode": "110041"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Hastsal",
+        "lat": 28.6300,
+        "lng": 77.0600,
+        "pincode": "110059"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Ghevra",
+        "lat": 28.6900,
+        "lng": 77.0100,
+        "pincode": "110081"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Kanjhawala Outskirts",
+        "lat": 28.7300,
+        "lng": 77.0300,
+        "pincode": "110081"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Najafgarh Rural Belt",
+        "lat": 28.6100,
+        "lng": 76.9900,
+        "pincode": "110043"
+    },
+    {
+        "state": "Delhi",
+        "district": "West Delhi",
+        "place": "Mitraon",
+        "lat": 28.5900,
+        "lng": 76.9800,
+        "pincode": "110043"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Karol Bagh Extension Lanes",
+        "lat": 28.6500,
+        "lng": 77.1900,
+        "pincode": "110005"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Dev Nagar",
+        "lat": 28.6600,
+        "lng": 77.2000,
+        "pincode": "110005"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Daryaganj Backside Area",
+        "lat": 28.6400,
+        "lng": 77.2400,
+        "pincode": "110002"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Paharganj Side Lanes",
+        "lat": 28.6400,
+        "lng": 77.2100,
+        "pincode": "110055"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Ranjit Nagar",
+        "lat": 28.6500,
+        "lng": 77.1600,
+        "pincode": "110008"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Anand Parbat Industrial Pocket",
+        "lat": 28.6600,
+        "lng": 77.1800,
+        "pincode": "110005"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Nabi Karim",
+        "lat": 28.6400,
+        "lng": 77.2100,
+        "pincode": "110055"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Jhandewalan Extension",
+        "lat": 28.6400,
+        "lng": 77.2000,
+        "pincode": "110055"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Idgah Road Area",
+        "lat": 28.6500,
+        "lng": 77.2200,
+        "pincode": "110006"
+    },
+    {
+        "state": "Delhi",
+        "district": "Central Delhi",
+        "place": "Shidipura",
+        "lat": 28.6600,
+        "lng": 77.2000,
+        "pincode": "110005"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Rohini Sector 24 Fringe",
+        "lat": 28.7200,
+        "lng": 77.0900,
+        "pincode": "110085"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Begampur",
+        "lat": 28.7400,
+        "lng": 77.0900,
+        "pincode": "110086"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Pooth Kalan",
+        "lat": 28.7300,
+        "lng": 77.0500,
+        "pincode": "110086"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Shahbad Dairy",
+        "lat": 28.7600,
+        "lng": 77.0500,
+        "pincode": "110042"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Khera Khurd",
+        "lat": 28.8400,
+        "lng": 77.0800,
+        "pincode": "110082"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Khera Kalan",
+        "lat": 28.8200,
+        "lng": 77.0900,
+        "pincode": "110082"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Singhu Border Belt",
+        "lat": 28.8700,
+        "lng": 77.1200,
+        "pincode": "110040"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Bankner",
+        "lat": 28.8500,
+        "lng": 77.1000,
+        "pincode": "110040"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Sanoth",
+        "lat": 28.8200,
+        "lng": 77.1100,
+        "pincode": "110040"
+    },
+    {
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "place": "Holambi Khurd",
+        "lat": 28.8400,
+        "lng": 77.0700,
+        "pincode": "110082"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Dhansa",
+        "lat": 28.5600,
+        "lng": 76.9900,
+        "pincode": "110073"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Jaffarpur Kalan",
+        "lat": 28.5900,
+        "lng": 76.9600,
+        "pincode": "110073"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Ujwa",
+        "lat": 28.5800,
+        "lng": 76.9600,
+        "pincode": "110073"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Kapashera",
+        "lat": 28.5300,
+        "lng": 77.0800,
+        "pincode": "110037"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Samalkha Village",
+        "lat": 28.5400,
+        "lng": 77.0900,
+        "pincode": "110037"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Bijwasan",
+        "lat": 28.5300,
+        "lng": 77.0500,
+        "pincode": "110061"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Pandwala Kalan",
+        "lat": 28.5700,
+        "lng": 76.9600,
+        "pincode": "110043"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Rawta",
+        "lat": 28.5800,
+        "lng": 76.9400,
+        "pincode": "110073"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Najafgarh Outskirts",
+        "lat": 28.6100,
+        "lng": 76.9900,
+        "pincode": "110043"
+    },
+    {
+        "state": "Delhi",
+        "district": "South West Delhi",
+        "place": "Chhawla",
+        "lat": 28.5600,
+        "lng": 77.0000,
+        "pincode": "110071"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Dayalpur",
+        "lat": 28.7200,
+        "lng": 77.2700,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Johripur",
+        "lat": 28.7300,
+        "lng": 77.2700,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Sabhapur",
+        "lat": 28.7300,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Mustafabad Fringe",
+        "lat": 28.7100,
+        "lng": 77.2900,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Gokulpuri",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110094"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Bhajanpura",
+        "lat": 28.7100,
+        "lng": 77.2800,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Subhash Mohalla",
+        "lat": 28.6800,
+        "lng": 77.2700,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Brahmpuri",
+        "lat": 28.6800,
+        "lng": 77.2700,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Ghonda Extension",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "North East Delhi",
+        "place": "Yamuna Vihar Fringe",
+        "lat": 28.7000,
+        "lng": 77.2800,
+        "pincode": "110053"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Vishwas Nagar Back Lanes",
+        "lat": 28.6700,
+        "lng": 77.2900,
+        "pincode": "110032"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Anand Vihar Fringe",
+        "lat": 28.6500,
+        "lng": 77.3100,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Jhilmil Industrial Area",
+        "lat": 28.6700,
+        "lng": 77.3100,
+        "pincode": "110095"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Dilshad Garden Backside",
+        "lat": 28.6800,
+        "lng": 77.3200,
+        "pincode": "110095"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Seemapuri",
+        "lat": 28.6900,
+        "lng": 77.3200,
+        "pincode": "110095"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Chander Nagar",
+        "lat": 28.6500,
+        "lng": 77.3000,
+        "pincode": "110051"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Karkardooma Outskirts",
+        "lat": 28.6500,
+        "lng": 77.3000,
+        "pincode": "110092"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "West Rohtash Nagar",
+        "lat": 28.6800,
+        "lng": 77.2900,
+        "pincode": "110032"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Kabool Nagar",
+        "lat": 28.6900,
+        "lng": 77.3000,
+        "pincode": "110032"
+    },
+    {
+        "state": "Delhi",
+        "district": "Shahdara",
+        "place": "Bholanath Nagar",
+        "lat": 28.6700,
+        "lng": 77.2900,
+        "pincode": "110032"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Sarojini Nagar Service Lanes",
+        "lat": 28.5700,
+        "lng": 77.2000,
+        "pincode": "110023"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "RK Puram Sector 12 Fringe",
+        "lat": 28.5700,
+        "lng": 77.1800,
+        "pincode": "110022"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Chanakyapuri Backside Lanes",
+        "lat": 28.6000,
+        "lng": 77.1900,
+        "pincode": "110021"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Lodhi Colony Extension",
+        "lat": 28.5900,
+        "lng": 77.2200,
+        "pincode": "110003"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Kidwai Nagar",
+        "lat": 28.5800,
+        "lng": 77.2100,
+        "pincode": "110023"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Netaji Nagar Fringe",
+        "lat": 28.5700,
+        "lng": 77.1800,
+        "pincode": "110023"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Bharti Nagar",
+        "lat": 28.6200,
+        "lng": 77.2300,
+        "pincode": "110001"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Pandara Road Area",
+        "lat": 28.6100,
+        "lng": 77.2300,
+        "pincode": "110003"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Gole Market Backside",
+        "lat": 28.6300,
+        "lng": 77.2100,
+        "pincode": "110001"
+    },
+    {
+        "state": "Delhi",
+        "district": "New Delhi",
+        "place": "Talkatora Industrial Side",
+        "lat": 28.6300,
+        "lng": 77.1900,
+        "pincode": "110001"
+    }
+]
