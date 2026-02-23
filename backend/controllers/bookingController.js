@@ -1,6 +1,5 @@
 const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
-const Notification = require('../models/Notification');
 const { createAdminNotification } = require('./notificationController');
 
 // @desc    Create a new booking
@@ -12,7 +11,10 @@ exports.createBooking = async (req, res) => {
 
         // Basic validation
         if (!user || !vehicle || !service || !schedule) {
-            return res.status(400).json({ message: 'All booking fields are required' });
+            return res.status(400).json({ success: false, message: 'All booking fields are required' });
+        }
+        if (!user.name || (!user.phone && !user.notes)) {
+            // Allow missing phone — not a hard block
         }
 
         // Create Booking
@@ -63,6 +65,12 @@ exports.createBooking = async (req, res) => {
             }
         }
 
+        const isFullOnline = paymentMethod === 'netbanking';
+        const isCODAdvance = !isFullOnline && req.body.paymentId && req.body.paymentId !== 'CASH';
+
+        const totalPrice = parseFloat(String(service.price ?? '0').replace(/[^\d.]/g, '')) || 0;
+        const advancePaid = Math.round(totalPrice * 0.25);
+
         const newBooking = new Booking({
             bookingId: generatedId,
             user: { ...user, id: user.id || user._id },
@@ -71,17 +79,17 @@ exports.createBooking = async (req, res) => {
             schedule,
             garage,
             payment: {
-                method: isOnlinePayment ? 'Net Banking' : 'Cash',
-                status: isOnlinePayment ? 'Completed' : 'Pending',
-                amount: parseFloat(service.price.replace(/[^\d.]/g, '')) || 0,
+                method: isFullOnline ? 'Net Banking' : isCODAdvance ? 'Cash on Delivery' : 'Cash',
+                status: isFullOnline ? 'Completed' : isCODAdvance ? 'Partially Paid' : 'Pending',
+                amount: isFullOnline ? totalPrice : isCODAdvance ? advancePaid : totalPrice,
                 transactionId: req.body.paymentId || `TXN${Date.now()}`
             }
         });
 
         const savedBooking = await newBooking.save();
 
-        // If payment is online (Razorpay), create Payment record
-        if (isOnlinePayment && user.id) {
+        // If full online payment (Razorpay), also create Payment record
+        if (isFullOnline && user.id) {
             await Payment.create({
                 user: user.id,
                 booking: savedBooking._id,
@@ -92,14 +100,7 @@ exports.createBooking = async (req, res) => {
             });
         }
 
-        // Create Notification (if user is logged in)
-        if (user.id) {
-            await Notification.create({
-                user: user.id,
-                message: `Booking Confirmed for ${vehicle.make} ${vehicle.model} on ${schedule.date}`,
-                type: 'success'
-            });
-        }
+
 
         // Fire admin notification
         createAdminNotification({
@@ -115,11 +116,10 @@ exports.createBooking = async (req, res) => {
             message: 'Booking confirmed successfully'
         });
     } catch (error) {
-        console.error('Error creating booking:', error);
+        console.error('[Booking] Error creating booking:', error.message, error.stack);
         res.status(500).json({
             success: false,
-            message: 'Server Error: Unable to create booking',
-            error: error.message
+            message: error.message || 'Server Error: Unable to create booking'
         });
     }
 };

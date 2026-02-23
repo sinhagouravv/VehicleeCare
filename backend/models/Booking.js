@@ -4,8 +4,9 @@ const BookingSchema = new mongoose.Schema({
     bookingId: { type: String },
     user: {
         id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        name: { type: String, required: true },
-        phone: { type: String, required: true },
+        userId: { type: String },
+        name: { type: String },
+        phone: { type: String },
         email: { type: String },
         notes: { type: String }
     },
@@ -16,21 +17,21 @@ const BookingSchema = new mongoose.Schema({
         amount: { type: Number }
     },
     vehicle: {
-        year: { type: String, required: true },
-        make: { type: String, required: true },
-        model: { type: String, required: true },
-        fuelType: { type: String, required: true },
-        type: { type: String, required: true },
-        transmission: { type: String, required: true },
-        number: { type: String, required: true }
+        year: { type: String },
+        make: { type: String },
+        model: { type: String },
+        fuelType: { type: String },
+        type: { type: String },
+        transmission: { type: String },
+        number: { type: String }
     },
     service: {
-        title: { type: String, required: true },
-        price: { type: String, required: true }
+        title: { type: String },
+        price: { type: String }
     },
     schedule: {
-        date: { type: String, required: true },
-        time: { type: String, required: true }
+        date: { type: String },
+        time: { type: String }
     },
     garage: {
         name: { type: String },
