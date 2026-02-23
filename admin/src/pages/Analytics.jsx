@@ -5,8 +5,8 @@ const Analytics = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Analytics Overview</h1>
-                <div className="flex gap-3">
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Analytics Overview</h1>
+                <div className="flex gap-3 justify-between">
                     <select className="px-4 py-2.5 bg-white border border-blue-100 rounded-xl text-sm font-bold text-[#052558] focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer shadow-sm">
                         <option>Last 7 Days</option>
                         <option>Last 30 Days</option>
@@ -21,7 +21,7 @@ const Analytics = () => {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-blue-50 text-[#527FB0] rounded-xl"><DollarSign size={24} /></div>
                         <span className="flex items-center text-emerald-500 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-lg">
@@ -32,7 +32,7 @@ const Analytics = () => {
                     <h3 className="text-3xl font-black text-[#011023]">₹4.2M</h3>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-purple-50 text-purple-500 rounded-xl"><Activity size={24} /></div>
                         <span className="flex items-center text-emerald-500 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-lg">
@@ -43,7 +43,7 @@ const Analytics = () => {
                     <h3 className="text-3xl font-black text-[#011023]">1,842</h3>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-amber-50 text-amber-500 rounded-xl"><Users size={24} /></div>
                         <span className="flex items-center text-emerald-500 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-lg">
@@ -54,7 +54,7 @@ const Analytics = () => {
                     <h3 className="text-3xl font-black text-[#011023]">892</h3>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-rose-50 text-rose-500 rounded-xl"><TrendingUp size={24} /></div>
                         <span className="flex items-center text-emerald-500 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-lg">

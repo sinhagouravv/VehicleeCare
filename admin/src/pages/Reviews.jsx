@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, MoreVertical, CheckCircle, XCircle } from 'lucide-react';
 
 const Reviews = () => {
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+    useEffect(() => { setLastRefreshed(new Date()); }, []);
     // Mock Data for UI presentation
     const reviews = [
         { id: "REV-4029", customer: "Sarah Johnson", service: "Brake Pad Replacement", rating: 5, date: "Oct 24, 2023", status: "Published", text: "Absolutely fantastic service! The mechanic arrived on time and fixed my brake issue right in my driveway." },
@@ -13,16 +15,16 @@ const Reviews = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Customer Reviews</h1>
-                <div className="flex gap-3">
-                    <button className="px-5 py-2.5 bg-white text-[#052558] font-bold rounded-xl shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors">
-                        Export CSV
-                    </button>
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
+                <div className="text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
                 </div>
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5.5">
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
                     <p className="text-gray-500 font-semibold mb-1">Average Rating</p>
                     <div className="flex items-center gap-2">
@@ -38,37 +40,24 @@ const Reviews = () => {
                     <p className="text-gray-500 font-semibold mb-1">Pending Approval</p>
                     <p className="text-3xl font-black text-amber-500">12</p>
                 </div>
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
+                    <p className="text-gray-500 font-semibold mb-1">Rejected Reviews</p>
+                    <p className="text-3xl font-black text-red-500">5</p>
+                </div>
             </div>
 
             {/* Main Content Table (Glassmorphism design matching frontend) */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-
-                {/* Filters */}
-                <div className="p-4 border-b border-[#e6f0fa] flex gap-4 bg-white/40">
-                    <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                        <option>All Ratings</option>
-                        <option>5 Stars</option>
-                        <option>4 Stars</option>
-                        <option>3 Stars & Below</option>
-                    </select>
-                    <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                        <option>All Status</option>
-                        <option>Published</option>
-                        <option>Pending</option>
-                        <option>Rejected</option>
-                    </select>
-                </div>
-
-                <div className="overflow-x-auto">
+            <div className="bg-white/60 backdrop-blur-xl max-h-[50rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto h-[700px] relative">
                     <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-blue-50/50 text-xs uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold">Review ID</th>
-                                <th className="p-4 font-bold">Customer & Service</th>
-                                <th className="p-4 font-bold">Rating</th>
-                                <th className="p-4 font-bold max-w-xs">Review Text</th>
-                                <th className="p-4 font-bold">Status</th>
-                                <th className="p-4 font-bold text-center">Actions</th>
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold">Review ID</th>
+                                <th className="p-4.5 font-bold">Customer & Service</th>
+                                <th className="p-4.5 font-bold">Rating</th>
+                                <th className="p-4.5 font-bold max-w-xs">Review Text</th>
+                                <th className="p-4.5 font-bold">Status</th>
+                                <th className="p-4.5 font-bold text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa]">

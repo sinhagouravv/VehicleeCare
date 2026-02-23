@@ -13,8 +13,7 @@ const Dashboard = () => {
         <div className="space-y-8 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Overview</h1>
-                    <p className="text-gray-500 font-medium mt-1">Welcome back. Here's what's happening today.</p>
+                    <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Dashboard</h1>
                 </div>
             </div>
 

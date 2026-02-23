@@ -14,56 +14,39 @@ const ChargingStations = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto ">
+        <div className="space-y-6 max-w-[92rem]  mx-auto ">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Charging Stations</h1>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Charging Stations</h1>
+                <button className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
                     <Plus size={18} />
                     Add Station
                 </button>
             </div>
 
             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="p-4 border-b border-[#e6f0fa] flex gap-4 bg-white/40 justify-between items-center">
-                    <div className="relative w-72">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search by name, city, ID..."
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023] placeholder-gray-400"
-                        />
-                    </div>
-                    <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                        <option>All Statuses</option>
-                        <option>Operational</option>
-                        <option>Maintenance</option>
-                        <option>Offline</option>
-                    </select>
-                </div>
-
-                <div className="overflow-x-auto">
+                <div className="overflow-x-hidden overflow-y-auto h-[875px] relative">
                     <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-blue-50/50 text-xs uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold">Station Info</th>
-                                <th className="p-4 font-bold">Location</th>
-                                <th className="p-4 font-bold text-center">Ports</th>
-                                <th className="p-4 font-bold">Charger Type</th>
-                                <th className="p-4 font-bold text-center">Status</th>
-                                <th className="p-4 font-bold text-center">Manage</th>
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold">Station ID</th>
+                                <th className="p-4.5 font-bold">Station Name</th>
+                                <th className="p-4.5 font-bold">Location</th>
+                                <th className="p-4.5 font-bold text-center">Ports</th>
+                                <th className="p-4.5 font-bold">Charger Type</th>
+                                <th className="p-4.5 font-bold text-center">Status</th>
+                                <th className="p-4.5 font-bold text-center">Manage</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#e6f0fa]">
+                        <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                             {stations.map((station) => (
                                 <tr key={station.id} className="hover:bg-blue-50/30 transition-colors">
                                     <td className="p-4">
+                                        <div className=''>
+                                            <div className="font-bold text-[#011023]">{station.id}</div>
+                                        </div>
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-green-50 text-green-500 rounded-lg">
-                                                <Zap size={18} />
-                                            </div>
                                             <div>
                                                 <div className="font-bold text-[#011023]">{station.name}</div>
-                                                <div className="text-xs text-gray-500">ID: {station.id}</div>
                                             </div>
                                         </div>
                                     </td>

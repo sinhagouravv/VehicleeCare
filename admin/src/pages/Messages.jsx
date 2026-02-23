@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Mail, Eye, Trash2, X } from 'lucide-react';
 
@@ -7,22 +7,29 @@ const Messages = () => {
     const [loading, setLoading] = useState(true);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
-    useEffect(() => {
-        const fetchMessages = async () => {
-            try {
-                const res = await fetch('http://localhost:5001/api/messages');
-                const result = await res.json();
-                if (result.success && result.data) {
-                    setMessages(result.data);
-                }
-            } catch (err) {
-                console.error("Error fetching messages:", err);
-            } finally {
-                setLoading(false);
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    const fetchMessages = useCallback(async (silent = false) => {
+        try {
+            if (!silent) setLoading(true);
+            const res = await fetch('http://localhost:5001/api/messages');
+            const result = await res.json();
+            if (result.success && result.data) {
+                setMessages(result.data);
+                setLastRefreshed(new Date());
             }
-        };
-        fetchMessages();
+        } catch (err) {
+            console.error("Error fetching messages:", err);
+        } finally {
+            if (!silent) setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchMessages();
+        const interval = setInterval(() => fetchMessages(true), 5000);
+        return () => clearInterval(interval);
+    }, [fetchMessages]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this message?")) return;
@@ -69,6 +76,11 @@ const Messages = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Messages</h1>
+                <div className="text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
             {/* Stats Overview */}
@@ -102,7 +114,7 @@ const Messages = () => {
                                 <th className="p-4.5 font-bold text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#e6f0fa]">
+                        <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                             {messages.map((message) => (
                                 <tr key={message._id} className="hover:bg-white/50 transition-colors group">
                                     <td className="p-4.5">

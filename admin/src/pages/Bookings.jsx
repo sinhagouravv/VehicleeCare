@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, MoreVertical, Eye, Download, X, Trash2 } from 'lucide-react';
+import { Search, MoreVertical, Eye, Download, X, Trash2, RefreshCw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -10,23 +10,34 @@ const Bookings = () => {
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchBookings = async () => {
-            try {
-                // In production, add authentication headers (e.g. `Authorization: Bearer ${token}`)
-                const res = await fetch('http://localhost:5001/api/bookings');
-                const result = await res.json();
-                if (result.success && result.data) {
-                    setBookings(result.data);
-                }
-            } catch (err) {
-                console.error("Error fetching bookings:", err);
-            } finally {
-                setLoading(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    const fetchBookings = useCallback(async (silent = false) => {
+        try {
+            if (!silent) setLoading(true);
+            else setRefreshing(true);
+            const res = await fetch('http://localhost:5001/api/bookings');
+            const result = await res.json();
+            if (result.success && result.data) {
+                setBookings(result.data);
+                setLastRefreshed(new Date());
             }
-        };
-        fetchBookings();
+        } catch (err) {
+            console.error("Error fetching bookings:", err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchBookings();
+        // Poll every 5 seconds for new bookings
+        const interval = setInterval(() => fetchBookings(true), 5000);
+        return () => clearInterval(interval);
+    }, [fetchBookings]);
+
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -153,6 +164,12 @@ const Bookings = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto  ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Bookings</h1>
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                    {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
@@ -191,7 +208,7 @@ const Bookings = () => {
                                     </td>
                                     <td className="p-4 text-center w-[18%]">
                                         <div className="font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
-                                        <div className="text-xs text-gray-500">{booking.user?.phone || ""}</div>
+                                        <div className="text-xs text-gray-500 font-mono tracking-wide">{booking.user?.userId || ""}</div>
                                     </td>
                                     <td className="p-4 text-center w-[25%]">
                                         <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
@@ -283,7 +300,13 @@ const Bookings = () => {
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
                                         <div className="bg-blue-50/30 pt-6 pb-3 rounded-xl border border-blue-50 flex items-center gap-3">
                                             <span className="text-2xl font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
-                                            <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Paid</span>
+                                            {selectedBooking.payment?.status === 'Partially Paid' ? (
+                                                <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Partially Paid</span>
+                                            ) : selectedBooking.payment?.status === 'Completed' ? (
+                                                <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Paid</span>
+                                            ) : (
+                                                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Pending</span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">

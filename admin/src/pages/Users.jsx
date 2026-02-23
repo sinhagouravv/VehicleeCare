@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
@@ -18,23 +18,29 @@ const Users = () => {
     const [banSubmitting, setBanSubmitting] = useState(false);
     const [banSuccess, setBanSuccess] = useState('');
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                setLoading(true);
-                const res = await fetch('http://localhost:5001/api/users');
-                if (!res.ok) throw new Error('Failed to fetch users');
-                const data = await res.json();
-                setUsers(data.data || []);
-            } catch (err) {
-                console.error(err);
-                setError('Failed to load users. Is the backend running?');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUsers();
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    const fetchUsers = useCallback(async (silent = false) => {
+        try {
+            if (!silent) setLoading(true);
+            const res = await fetch('http://localhost:5001/api/users');
+            if (!res.ok) throw new Error('Failed to fetch users');
+            const data = await res.json();
+            setUsers(data.data || []);
+            setLastRefreshed(new Date());
+        } catch (err) {
+            console.error(err);
+            if (!silent) setError('Failed to load users. Is the backend running?');
+        } finally {
+            if (!silent) setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchUsers();
+        const interval = setInterval(() => fetchUsers(true), 5000);
+        return () => clearInterval(interval);
+    }, [fetchUsers]);
 
     const getRoleBadge = (role) => {
         switch (role) {
@@ -163,6 +169,11 @@ const Users = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Users</h1>
+                <div className="text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
             {/* Main Content Table */}

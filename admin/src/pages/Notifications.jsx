@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2 } from 'lucide-react';
 
 const EVENT_CONFIG = {
@@ -49,23 +49,29 @@ const timeAgo = (dateStr) => {
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [lastRefreshed, setLastRefreshed] = useState(null);
     const [unread, setUnread] = useState(0);
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const res = await fetch('http://localhost:5001/api/notifications');
             const data = await res.json();
             setNotifications(data.data || []);
             setUnread(data.unreadCount || 0);
+            setLastRefreshed(new Date());
         } catch (e) {
             console.error(e);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchNotifications(); }, []);
+    useEffect(() => {
+        fetchNotifications();
+        const interval = setInterval(() => fetchNotifications(true), 5000);
+        return () => clearInterval(interval);
+    }, [fetchNotifications]);
 
     const markRead = async (id) => {
         await fetch(`http://localhost:5001/api/notifications/${id}/read`, { method: 'PATCH' });
@@ -89,22 +95,14 @@ const Notifications = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">
                     Notifications
-                    {unread > 0 && (
-                        <span className="flex items-center justify-center min-w-[28px] h-7 bg-[#052558] text-white text-xs font-black rounded-full px-2">
-                            {unread}
-                        </span>
-                    )}
                 </h1>
-                {unread > 0 && (
-                    <button
-                        onClick={markAllRead}
-                        className="flex items-center gap-1.5 text-sm font-bold text-[#052558] hover:text-[#1a4a8a] transition-colors"
-                    >
-                        <CheckCheck size={15} /> Mark all as read
-                    </button>
-                )}
+                <div className="text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
             <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
