@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, Users, MapPin, Settings, Star, Building2, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, Users, MapPin, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -12,7 +12,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Garages', path: '/garages', icon: <MapPin size={20} /> },
         { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
         { name: 'Services', path: '/services', icon: <Wrench size={20} /> },
-        { name: 'Franchise', path: '/franchise', icon: <Building2 size={20} /> },
+        { name: 'Messages', path: '/messages', icon: <Mail size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
