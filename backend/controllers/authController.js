@@ -1,6 +1,9 @@
 const User = require('../models/User');
+const Admin = require('../models/Admin');
+const Garage = require('../models/Garage');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const speakeasy = require('speakeasy');
 const nodemailer = require('nodemailer');
 const { createAdminNotification } = require('./notificationController');
 
@@ -103,6 +106,297 @@ exports.login = async (req, res) => {
         });
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Admin Login ──────────────────────────────────────────────
+exports.adminLogin = async (req, res) => {
+    try {
+        const { email, password, otp } = req.body;
+
+        // Email field receives either email or the raw numeric Admin ID
+        let admin = await Admin.findOne({
+            $or: [{ email: email }, { adminId: email }]
+        });
+
+        if (!admin) {
+            return res.status(401).json({ msg: 'Invalid admin credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) {
+            return res.status(401).json({ msg: 'Invalid admin credentials' });
+        }
+
+        // If credentials match but no OTP is provided, tell frontend to show 2FA popup
+        if (!otp) {
+            return res.json({ requires2FA: true, msg: 'Please enter your Microsoft Authenticator code' });
+        }
+
+        // If OTP is provided, verify it via speakeasy using Admin's personal secret or fallback config
+        const secretToUse = admin.twoFactorSecret || process.env.ADMIN_TOTP_SECRET;
+
+        const verified = speakeasy.totp.verify({
+            secret: secretToUse,
+            encoding: 'base32',
+            token: otp,
+            window: 1 // allows 30 seconds before/after leniency
+        });
+
+        if (!verified) {
+            return res.status(400).json({ msg: 'Invalid 2FA code. Please try again.' });
+        }
+
+        const payload = { admin: { id: admin.adminId, role: admin.role, dbId: admin._id } };
+
+        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token, admin: { id: admin.adminId, email: admin.email, role: admin.role } });
+        });
+
+    } catch (err) {
+        console.error("Admin login error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Admin Forgot Password (Send OTP) ────────────────────────
+exports.adminForgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body; // 'email' can be email or adminId
+
+        const admin = await Admin.findOne({
+            $or: [{ email: email }, { adminId: email }]
+        });
+
+        if (!admin) {
+            return res.status(404).json({ msg: 'The email you entered is not an Admin Email, enter correct email address' });
+        }
+
+        // Generate 6-digit numeric OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Save to DB with 10-minute expiry
+        admin.resetPasswordOtp = otp;
+        admin.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+        await admin.save();
+
+        // Send Email using transporter
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: admin.email, // ensure it routes to the actual admin email, not the adminId string
+            subject: 'Admin Portal - Password Reset OTP',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background-color: #f8fafc; border-radius: 8px;">
+                    <h2 style="color: #0f172a;">Admin Password Reset</h2>
+                    <p>You requested a password reset for your VehicleeCare Admin account.</p>
+                    <div style="background-color: #e2e8f0; padding: 15px; text-align: center; border-radius: 6px; margin: 20px 0;">
+                        <span style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #3b82f6;">${otp}</span>
+                    </div>
+                    <p style="font-size: 14px; color: #64748b;">This OTP will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Email Error:", error);
+                return res.status(500).json({ msg: 'Failed to send OTP email' });
+            }
+            res.json({ msg: 'OTP sent to registered admin email successfully' });
+        });
+
+    } catch (err) {
+        console.error("Admin forgot password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Admin Verify Reset OTP (Step 2) ─────────────────────────
+exports.adminVerifyResetOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        const admin = await Admin.findOne({
+            $or: [{ email: email }, { adminId: email }]
+        });
+
+        if (!admin) {
+            return res.status(404).json({ msg: 'Admin account not found' });
+        }
+
+        if (admin.resetPasswordOtp !== otp || admin.resetPasswordExpires < Date.now()) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        // OTP is valid
+        res.json({ msg: 'OTP verified successfully' });
+
+    } catch (err) {
+        console.error("Admin verify reset OTP error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Admin Reset Password (Verify & Update - Step 3) ────────
+exports.adminResetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        const admin = await Admin.findOne({
+            $or: [{ email: email }, { adminId: email }]
+        });
+
+        if (!admin) {
+            return res.status(404).json({ msg: 'Admin account not found' });
+        }
+
+        if (admin.resetPasswordOtp !== otp || admin.resetPasswordExpires < Date.now()) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        admin.password = await bcrypt.hash(newPassword, salt);
+
+        // Clear OTP fields
+        admin.resetPasswordOtp = undefined;
+        admin.resetPasswordExpires = undefined;
+        await admin.save();
+
+        res.json({ msg: 'Password updated successfully. You can now log in.' });
+
+    } catch (err) {
+        console.error("Admin reset password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Garage Login ─────────────────────────────────────────────
+exports.garageLogin = async (req, res) => {
+    try {
+        const { garageId, password } = req.body;
+
+        const garage = await Garage.findOne({ garageId });
+        if (!garage) {
+            return res.status(401).json({ msg: 'Invalid garage credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, garage.password);
+        if (!isMatch) {
+            return res.status(401).json({ msg: 'Invalid garage credentials' });
+        }
+
+        const payload = { garage: { id: garage.garageId, dbId: garage._id } };
+
+        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token, garage: { id: garage.garageId, name: garage.name, ownerEmail: garage.ownerEmail } });
+        });
+
+    } catch (err) {
+        console.error("Garage login error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+
+// ── Garage Forgot Password (Send OTP - Step 1) ──────────────
+exports.garageForgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const garage = await Garage.findOne({ ownerEmail: email });
+
+        if (!garage) {
+            return res.status(404).json({ msg: 'The email you entered is not an Garage Owner Email, enter correct email address' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        garage.resetPasswordOtp = otp;
+        garage.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await garage.save();
+
+        // Send Email
+        const mailOptions = {
+            from: `"VehicleeCare" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Garage Portal - Password Reset OTP',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f0f6ff; border-radius: 16px;">
+                    <h2 style="color: #011023; margin-bottom: 4px;">VehicleeCare Garage</h2>
+                    <p style="color: #527FB0; font-size: 13px; margin-bottom: 24px;">Password Reset Request</p>
+                    <p style="color: #011023; font-size: 14px;">Hi <strong>${garage.name}</strong>, use the OTP below to reset your garage portal password:</p>
+                    <div style="background: #011023; color: #C2E8FF; font-size: 36px; font-weight: 900; letter-spacing: 10px; text-align: center; padding: 20px; border-radius: 12px; margin: 20px 0;">${otp}</div>
+                    <p style="color: #888; font-size: 12px;">This OTP is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Email Error:", error);
+                return res.status(500).json({ msg: 'Failed to send OTP email' });
+            }
+            res.json({ msg: 'OTP sent to registered garage email' });
+        });
+
+    } catch (err) {
+        console.error("Garage forgot password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+
+// ── Garage Verify Reset OTP (Step 2) ─────────────────────────
+exports.garageVerifyResetOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const garage = await Garage.findOne({ ownerEmail: email });
+
+        if (!garage) {
+            return res.status(404).json({ msg: 'Garage account not found' });
+        }
+
+        if (garage.resetPasswordOtp !== otp || garage.resetPasswordExpires < Date.now()) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        res.json({ msg: 'OTP verified successfully' });
+
+    } catch (err) {
+        console.error("Garage verify reset OTP error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+
+// ── Garage Reset Password (Verify & Update - Step 3) ────────
+exports.garageResetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const garage = await Garage.findOne({ ownerEmail: email });
+
+        if (!garage) {
+            return res.status(404).json({ msg: 'Garage account not found' });
+        }
+
+        if (garage.resetPasswordOtp !== otp || garage.resetPasswordExpires < Date.now()) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        garage.password = await bcrypt.hash(newPassword, salt);
+
+        garage.resetPasswordOtp = undefined;
+        garage.resetPasswordExpires = undefined;
+        await garage.save();
+
+        res.json({ msg: 'Password updated successfully. You can now log in.' });
+
+    } catch (err) {
+        console.error("Garage reset password error:", err);
         res.status(500).send('Server Error');
     }
 };
