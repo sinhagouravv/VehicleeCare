@@ -34,6 +34,7 @@ const Analytics = () => {
         active: 0,
         returned: 0
     });
+    const [lastRefreshed, setLastRefreshed] = useState(null);
 
     const formatCurrency = (val) => {
         if (val === 0) return '₹0';
@@ -298,6 +299,7 @@ const Analytics = () => {
                     setDynamicChartData(finalChartData);
 
                     setPopularServices(sortedServices);
+                    setLastRefreshed(new Date());
                 }
             } catch (err) {
                 console.error("Error fetching popular services:", err);
@@ -305,6 +307,9 @@ const Analytics = () => {
         };
 
         fetchAndCalculatePopularServices();
+        const interval = setInterval(fetchAndCalculatePopularServices, 5000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const currentChartData = dynamicChartData.length > 0 ? dynamicChartData : chartData;
@@ -347,9 +352,12 @@ const Analytics = () => {
                         <option>This Year</option>
                         <option>All Time</option>
                     </select> */}
-                    <button className="px-5 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                        Download Report
-                    </button>
+                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                        {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
+                        {lastRefreshed
+                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                            : 'Loading…'}
+                    </div>
                 </div>
             </div>
 
@@ -584,7 +592,7 @@ const Analytics = () => {
                     onChange={(e) => setActiveChartTab(e.target.value)}
                     className="bg-white/60 backdrop-blur-xl border border-white rounded-xl shadow-[0_4px_20px_rgba(5,37,88,0.04)] px-4 py-1.5 text-[12px] font-bold text-[#052558] focus:outline-none cursor-pointer w-auto transition-all duration-300 appearance-none text-center"
                 >
-                    {['REVENUE', 'BOOKING', 'CHARGING STATION', 'USERS'].map((tab) => (
+                    {['REVENUE', 'BOOKING', /*'CHARGING STATION',*/ 'USERS'].map((tab) => (
                         <option key={tab} value={tab} className="font-bold">
                             {tab}
                         </option>

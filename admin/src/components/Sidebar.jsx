@@ -1,16 +1,23 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CalendarCheck, Users, MapPin, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        navigate('/login', { replace: true });
+    };
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Analytics', path: '/analytics', icon: <TrendingUp size={20} /> },
         { name: 'Bookings', path: '/bookings', icon: <CalendarCheck size={20} /> },
         { name: 'Users', path: '/users', icon: <Users size={20} /> },
         { name: 'Garages', path: '/garages', icon: <MapPin size={20} /> },
-        { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
+        // { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
         { name: 'Services', path: '/services', icon: <Wrench size={20} /> },
         { name: 'Messages', path: '/messages', icon: <Mail size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
@@ -70,9 +77,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                 ))}
             </nav>
 
-            {/* Profile/Logout Area */}
             <div className="p-4 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
                 <button
+                    onClick={handleLogout}
                     className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
                     title={isCollapsed ? "Sign Out" : ""}
                 >
