@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Search, Navigation, Phone, Clock, X, Star, Car, Wrench, CircleDollarSign, MessageCircle, Calendar } from 'lucide-react';
 
 const Locate = () => {
@@ -6,139 +6,78 @@ const Locate = () => {
     const [mapLoaded, setMapLoaded] = useState(false);
     const [selectedCenter, setSelectedCenter] = useState(null);
 
-    // Standardized Service Center Data Structure (Template for Admin Panel)
-    // When a new center is added via Admin, it must follow this exact format:
-    // {
-    //     name: string,           // e.g., "Center Name"
-    //     address: string,        // e.g., "Full Address"
-    //     distance: string,       // e.g., "2.5 km" (Calculated or Manual)
-    //     phone: string,          // e.g., "+91 XXXXX XXXXX"
-    //     status: string,         // e.g., "Open Now" | "Closed"
-    //     lat: number,            // Latitude
-    //     lng: number,            // Longitude
-    //     rating: number,         // Rating (0-5)
-    //     workingHours: string,   // e.g., "9:00 AM - 8:00 PM"
-    //     workingDays: string,    // e.g., "Mon - Sun"
-    //     vehicleTypes: string,   // "Petrol, Diesel, EV"
-    //     pickupDrop: string,     // "Available" | "Not Available"
-    //     services: string,       // Comma-separated list
-    //     whatsapp: string        // numeric string for WhatsApp link
-    // }
-    const centers = [
-        {
-            name: "Jalandhar City Hub",
-            address: "Model Town, Jalandhar",
-            distance: "2.5 km",
-            phone: "+91 98765 43210",
-            status: "Open Now",
-            lat: 31.3260,
-            lng: 75.5762,
-            rating: 4.8,
-            workingHours: "9:00 AM - 8:00 PM",
-            workingDays: "Mon - Sun",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Available",
-            services: "General Service, Denting, Painting",
-            whatsapp: "919876543210"
-        },
-        {
-            name: "Phagwara Service Point",
-            address: "GT Road, Phagwara",
-            distance: "15 km",
-            phone: "+91 98765 43211",
-            status: "Open Now",
-            lat: 31.2240,
-            lng: 75.7708,
-            rating: 4.5,
-            workingHours: "9:30 AM - 7:30 PM",
-            workingDays: "Mon - Sat",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Available",
-            services: "General Service, Washing, Detailing",
-            whatsapp: "919876543211"
-        },
-        {
-            name: "Ludhiana Garage",
-            address: "Ferozepur Road, Ludhiana",
-            distance: "45 km",
-            phone: "+91 98765 43212",
-            status: "Closing Soon",
-            lat: 30.9010,
-            lng: 75.8573,
-            rating: 4.2,
-            workingHours: "10:00 AM - 9:00 PM",
-            workingDays: "Mon - Sat",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Available (5km radius)",
-            services: "Engine Repair, Wheel Alignment",
-            whatsapp: "919876543212"
-        },
-        {
-            name: "Amritsar Auto Works",
-            address: "Lawrence Road, Amritsar",
-            distance: "80 km",
-            phone: "+91 98765 43213",
-            status: "Open Now",
-            lat: 31.6340,
-            lng: 74.8723,
-            rating: 4.7,
-            workingHours: "9:00 AM - 7:00 PM",
-            workingDays: "Mon - Sun",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Not Available",
-            services: "Detailing, Ceramic Coating",
-            whatsapp: "919876543213"
-        },
-        {
-            name: "Chandigarh Workshop",
-            address: "Sector 17, Chandigarh",
-            distance: "150 km",
-            phone: "+91 98765 43214",
-            status: "Open Now",
-            lat: 30.7333,
-            lng: 76.7794,
-            rating: 4.9,
-            workingHours: "24/7 Service",
-            workingDays: "Everyday",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Available",
-            services: "Emergency Repair, Towing",
-            whatsapp: "919876543214"
-        },
-        {
-            name: "Patiala Auto Hub",
-            address: "YPS Road, Patiala",
-            distance: "45 km",
-            phone: "+91 98765 43215",
-            status: "Open Now",
-            lat: 30.3398,
-            lng: 76.3869,
-            rating: 4.4,
-            workingHours: "9:00 AM - 8:00 PM",
-            workingDays: "Mon - Sat",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Available",
-            services: "General Service, Oil Change",
-            avgCost: "₹2,500 approx",
-            whatsapp: "919876543215"
-        },
-        {
-            name: "Bathinda Service Zone",
-            address: "Power House Road, Bathinda",
-            distance: "180 km",
-            phone: "+91 98765 43216",
-            status: "Open Now",
-            lat: 30.2109,
-            lng: 74.9454,
-            rating: 4.3,
-            workingHours: "8:30 AM - 6:30 PM",
-            workingDays: "Mon - Sat",
-            vehicleTypes: "Petrol, Diesel, EV",
-            pickupDrop: "Available",
-            services: "Engine Diagnostics, AC Repair",
-            whatsapp: "919876543216"
+    // Live garages fetched from admin API
+    // Live garages and stations fetched from admin API
+    const [allCenters, setAllCenters] = useState([]);
+
+    const fetchCenters = useCallback(async () => {
+        try {
+            const [garagesRes, stationsRes] = await Promise.all([
+                fetch('http://localhost:5001/api/garages'),
+                fetch('http://localhost:5001/api/charging-stations')
+            ]);
+
+            const garagesData = await garagesRes.json();
+            const stationsData = await stationsRes.json();
+
+            let mapped = [];
+
+            if (garagesData.success) {
+                mapped = garagesData.data.map(g => ({
+                    _id: g._id,
+                    name: g.name,
+                    address: g.address || `${g.district || ''}, ${g.state || ''}`,
+                    district: g.district,
+                    state: g.state,
+                    distance: 'N/A',
+                    phone: g.phone || 'N/A',
+                    status: 'Open',
+                    lat: g.coordinates ? parseFloat(g.coordinates.split(',')[0]) : null,
+                    lng: g.coordinates ? parseFloat(g.coordinates.split(',')[1]) : null,
+                    rating: g.rating || 0,
+                    workingHours: g.workingHours || 'N/A',
+                    workingDays: g.workingDays || 'N/A',
+                    vehicleTypes: (g.type || []).join(', ') || 'N/A',
+                    pickupDrop: g.pickupDrop ? 'Available' : 'Not Available',
+                    services: g.services || 'General Servicing',
+                    whatsapp: g.whatsapp || '',
+                    partner: g.partner,
+                }));
+            }
+
+            let stationMapped = [];
+            if (stationsData.success) {
+                stationMapped = stationsData.data.map(s => ({
+                    _id: s.id,
+                    name: s.name,
+                    address: s.address || `${s.district || ''}, ${s.state || ''}`,
+                    district: s.district,
+                    state: s.state,
+                    distance: 'N/A',
+                    phone: s.ownerContact || 'N/A',
+                    status: s.status,
+                    lat: s.coordinates ? parseFloat(s.coordinates.split(',')[0]) : null,
+                    lng: s.coordinates ? parseFloat(s.coordinates.split(',')[1]) : null,
+                    rating: 5.0,
+                    workingHours: '24/7',
+                    workingDays: 'Mon-Sun',
+                    vehicleTypes: (s.type || []).join(', ') || 'EVs',
+                    pickupDrop: 'Not Available',
+                    services: `Charging Station - ${s.ports} Ports`,
+                    whatsapp: '',
+                    partner: false,
+                    isStation: true
+                }));
+            }
+
+            setAllCenters([...mapped, ...stationMapped]);
+            setFilteredCenters([...mapped, ...stationMapped]);
+        } catch (err) {
+            console.error('Failed to fetch centers:', err);
         }
-    ];
+    }, []);
+
+    useEffect(() => { fetchCenters(); }, [fetchCenters]);
 
     useEffect(() => {
         if (selectedCenter) {
@@ -153,7 +92,7 @@ const Locate = () => {
 
     // State for filtering and search
     const [searchQuery, setSearchQuery] = useState("");
-    const [filteredCenters, setFilteredCenters] = useState(centers);
+    const [filteredCenters, setFilteredCenters] = useState([]);
 
     // Calculate distance between two coordinates in km
     const haversineDistance = (coords1, coords2) => {
@@ -175,17 +114,11 @@ const Locate = () => {
     const handleSearch = (e) => {
         const query = e.target.value;
         setSearchQuery(query);
-
-        if (!query) {
-            setFilteredCenters(centers);
-            return;
-        }
-
-        const filtered = centers.filter(center =>
-            center.name.toLowerCase().includes(query.toLowerCase()) ||
-            center.address.toLowerCase().includes(query.toLowerCase())
-        );
-        setFilteredCenters(filtered);
+        if (!query) { setFilteredCenters(allCenters); return; }
+        setFilteredCenters(allCenters.filter(c =>
+            c.name.toLowerCase().includes(query.toLowerCase()) ||
+            (c.address || '').toLowerCase().includes(query.toLowerCase())
+        ));
     };
 
     const handleUseMyLocation = () => {
@@ -195,10 +128,12 @@ const Locate = () => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
 
-                    const sortedCenters = centers.map(center => {
-                        const dist = haversineDistance({ lat: userLat, lng: userLng }, { lat: center.lat, lng: center.lng });
-                        return { ...center, exactDist: dist, distance: `${dist.toFixed(1)} km` };
-                    }).sort((a, b) => a.exactDist - b.exactDist);
+                    const sortedCenters = allCenters
+                        .filter(c => c.lat && c.lng)
+                        .map(center => {
+                            const dist = haversineDistance({ lat: userLat, lng: userLng }, { lat: center.lat, lng: center.lng });
+                            return { ...center, exactDist: dist, distance: `${dist.toFixed(1)} km` };
+                        }).sort((a, b) => a.exactDist - b.exactDist);
 
                     setFilteredCenters(sortedCenters);
                     setSearchQuery(""); // Clear search when using location
@@ -247,12 +182,21 @@ const Locate = () => {
             // Add center itself to bounds
             bounds.extend(defaultMapCenter);
 
-            filteredCenters.forEach(center => {
+            filteredCenters.filter(c => c.lat && c.lng).forEach(center => {
+                // Distinguish between Garages and Charging Stations via custom icons
+                let markerIcon = null;
+                if (center.isStation) {
+                    markerIcon = {
+                        url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png", // Built-in Google green marker
+                    };
+                }
+
                 const marker = new window.google.maps.Marker({
                     position: { lat: center.lat, lng: center.lng },
                     map: map,
                     title: center.name,
-                    animation: window.google.maps.Animation.DROP
+                    animation: window.google.maps.Animation.DROP,
+                    icon: markerIcon
                 });
 
                 const infoWindow = new window.google.maps.InfoWindow({
@@ -336,7 +280,7 @@ const Locate = () => {
                                         <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">{center.distance}</span>
                                     </div>
                                     <div className="flex items-start gap-2 text-sm text-gray-600 mb-2">
-                                        <MapPin size={16} className="mt-0.5 flex-shrink-0" />
+                                        <MapPin size={16} className={`mt-0.5 flex-shrink-0 ${center.isStation ? 'text-emerald-500' : 'text-gray-400'}`} />
                                         <p>{center.address}</p>
                                     </div>
                                     <div className="flex items-center justify-between mt-3 pt-1.5 border-t border-gray-100">

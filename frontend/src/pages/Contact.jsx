@@ -20,14 +20,26 @@ const Contact = () => {
         e.preventDefault();
         setStatus('loading');
 
-        // Simulate API call (replace with real endpoint later)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            const res = await fetch('http://localhost:5001/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
 
-        setStatus('success');
-        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-
-        // Reset to idle after 4 seconds
-        setTimeout(() => setStatus('idle'), 4000);
+            if (res.ok) {
+                setStatus('success');
+                setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+                setTimeout(() => setStatus('idle'), 4000);
+            } else {
+                throw new Error("Failed to send message");
+            }
+        } catch (err) {
+            console.error("Error sending message:", err);
+            // Revert back or show error if preferred. Here we just log for now to prevent breaking UX flow.
+            alert("Error sending message. Please try again.");
+            setStatus('idle');
+        }
     };
 
     const contactInfo = [
@@ -78,7 +90,7 @@ const Contact = () => {
                         <p className="text-gray-500 max-w-2xl mx-auto">Have questions or need a quick service? Reach out and we'll get back to you right away.</p>
                     </div>
 
-                    <div className="grid lg:grid-cols-5 mt-1 gap-4.5 items-start">
+                    <div className="grid lg:grid-cols-5 mt-1 gap-5 items-start">
                         {/* Left: Contact Info */}
                         <div className="lg:col-span-2 space-y-4">
                             {contactInfo.map((item, idx) => (
