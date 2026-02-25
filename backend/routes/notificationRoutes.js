@@ -3,6 +3,7 @@ const router = express.Router();
 const ctrl = require('../controllers/notificationController');
 
 router.get('/', ctrl.getAll);
+router.get('/user/:userId', ctrl.getUserNotifications);
 router.patch('/mark-all-read', ctrl.markAllRead);
 router.patch('/:id/read', ctrl.markRead);
 router.delete('/:id', ctrl.deleteOne);
