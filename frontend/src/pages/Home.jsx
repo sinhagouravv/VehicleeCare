@@ -1,12 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, Shield, Clock, Wrench, DollarSign } from 'lucide-react';
 
 const Home = () => {
+    const navigate = useNavigate();
     return (
         <div className="bg-white">
             {/* Hero Section */}
-            <section className="relative bg-gradient-to-br from-blue-50 via-white to-blue-100 min-h-screen flex items-center relative overflow-hidden">
+            <section className="relative bg-gradient-to-br from-blue-50 via-white to-blue-100 h-screen flex items-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-20">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -20,9 +21,9 @@ const Home = () => {
                                 We bring the workshop to you, ensuring quality and convenience.
                             </p>
                             <div className="flex flex-wrap gap-4">
-                                <a href="#services" className="px-8 py-3 bg-[#052558] hover:bg-[#052558]/90 text-white rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg shadow-blue-900/20 flex items-center gap-2">
+                                <button onClick={() => navigate('/book-service', { state: { fromBookButton: true, isNewSession: true } })} className="px-8 py-3 bg-[#052558] hover:bg-[#052558]/90 text-white rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg shadow-blue-900/20 flex items-center gap-2">
                                     Book Service <ArrowRight size={20} />
-                                </a>
+                                </button>
                                 <a href="#contact" className="px-8 py-3 bg-white/50 hover:bg-white/80 text-[#052558] border border-[#052558]/10 rounded-lg font-semibold transition-all backdrop-blur-sm shadow-sm">
                                     Contact Us
                                 </a>
@@ -58,7 +59,7 @@ const Home = () => {
             </section>
 
             {/* Features Section */}
-            <section className="py-20 bg-white">
+            {/* <section className="py-20 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-3xl mx-auto mb-16">
                         <h2 className="text-3xl font-bold text-[#011023] mb-4">Why Choose VehicleeCare?</h2>
@@ -84,7 +85,7 @@ const Home = () => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-20 bg-gradient-to-r from-blue-50 to-white relative overflow-hidden">
+            {/* <section className="py-20 bg-gradient-to-r from-blue-50 to-white relative overflow-hidden">
                 <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
                     <h2 className="text-3xl md:text-4xl font-bold text-[#011023] mb-6">Ready to give your car the care it deserves?</h2>
                     <p className="text-gray-600 mb-8 max-w-2xl mx-auto">Join thousands of satisfied customers who trust VehicleeCare for their automotive needs.</p>
@@ -92,8 +93,8 @@ const Home = () => {
                         Schedule a Service
                     </Link>
                 </div>
-            </section>
+            </section>  */}
         </div>
     );
 }
-    export default Home;
+export default Home;

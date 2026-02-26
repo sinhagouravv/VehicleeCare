@@ -1,4 +1,14 @@
 const Garage = require('../models/Garage');
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // Generate unique 9-digit garageId: starts with "66", no digit "0", no repeats
 const generateGarageId = async () => {
@@ -47,7 +57,49 @@ exports.getGarages = async (req, res) => {
 exports.createGarage = async (req, res) => {
     try {
         const garageId = await generateGarageId();
-        const garage = await Garage.create({ ...req.body, garageId });
+
+        // Hash temporary password Pass@1234
+        const tempPassword = 'Pass@1234';
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(tempPassword, salt);
+
+        const garage = await Garage.create({ ...req.body, garageId, password: hashedPassword });
+
+        // Send Welcome Email if ownerEmail is provided
+        if (req.body.ownerEmail) {
+            const mailOptions = {
+                from: `"VehicleeCare Admin" <${process.env.EMAIL_USER}>`,
+                to: req.body.ownerEmail,
+                subject: 'Welcome to VehicleeCare - Your Garage Portal Login',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                        <h2 style="color: #0f172a; text-transform: uppercase; margin-top: 0;">Welcome, ${req.body.name}!</h2>
+                        <p style="color: #475569; font-size: 15px; line-height: 1.5;">Your garage has been successfully added to the <strong>VehicleeCare</strong> platform.</p>
+                        
+                        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; margin: 25px 0;">
+                            <h3 style="color: #3b82f6; font-size: 14px; text-transform: uppercase; margin-top: 0; letter-spacing: 1px;">Your Login Credentials</h3>
+                            <p style="margin: 10px 0; color: #334155;"><strong>Garage ID:</strong> <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 16px;">${garageId}</span></p>
+                            <p style="margin: 10px 0; color: #334155;"><strong>Password:</strong> <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 16px;">${tempPassword}</span></p>
+                        </div>
+                        
+                        <p style="color: #475569; font-size: 14px; margin-bottom: 25px;">Please log in to your Garage Portal to manage your services, bookings, and profile. We highly recommend changing your password immediately after your first login.</p>
+                        
+                        <a href="http://localhost:5175/login" style="display: inline-block; background-color: #052558; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 14px;">Access Garage Portal</a>
+
+                        <p>Thank you for choosing VehicleeCare!</p>
+                        <br>
+                        <p>Best regards,</p>
+                        <p>VehicleeCare Team</p>
+                    </div>
+                `
+            };
+
+            // Send async without blocking UI return
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) console.error("Failed to send Welcome Email to Garage:", error);
+            });
+        }
+
         res.status(201).json({ success: true, data: garage });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

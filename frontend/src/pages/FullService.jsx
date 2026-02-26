@@ -51,60 +51,7 @@ const SERVICE_DATA = {
 };
 
 // Garage data structured by State > District > Garages
-const GARAGE_DATA = {
-    Punjab: {
-        Jalandhar: [
-            { id: 1, name: "Jalandhar City Hub", pickupDrop: ["Yes", "No"] },
-            { id: 2, name: "Jalandhar North Point", pickupDrop: ["Yes", "No"] },
-        ],
-        Ludhiana: [
-            { id: 3, name: "Ludhiana Garage", pickupDrop: ["Yes", "No"] },
-            { id: 4, name: "Ludhiana South Hub", pickupDrop: ["Yes", "No"] },
-        ],
-        Amritsar: [
-            { id: 5, name: "Amritsar Auto Works", pickupDrop: ["Yes", "No"] },
-        ],
-        Patiala: [
-            { id: 6, name: "Patiala Auto Hub", pickupDrop: ["Yes", "No"] },
-        ],
-        Bathinda: [
-            { id: 7, name: "Bathinda Service Zone", pickupDrop: ["Yes", "No"] },
-        ],
-        Phagwara: [
-            { id: 8, name: "Phagwara Service Point", pickupDrop: ["Yes", "No"] },
-        ],
-    },
-    Haryana: {
-        Gurugram: [
-            { id: 9, name: "Gurugram Auto Hub", pickupDrop: ["Yes", "No"] },
-            { id: 10, name: "Cyber City Garage", pickupDrop: ["Yes", "No"] },
-        ],
-        Faridabad: [
-            { id: 11, name: "Faridabad Service Point", pickupDrop: ["Yes", "No"] },
-        ],
-        Ambala: [
-            { id: 12, name: "Ambala Auto Works", pickupDrop: ["Yes", "No"] },
-        ],
-    },
-    Chandigarh: {
-        Chandigarh: [
-            { id: 13, name: "Chandigarh Workshop", pickupDrop: ["Yes", "No"] },
-            { id: 14, name: "Sector 17 Garage", pickupDrop: ["Yes", "No"] },
-        ],
-    },
-    Delhi: {
-        "New Delhi": [
-            { id: 15, name: "Connaught Place Hub", pickupDrop: ["Yes", "No"] },
-            { id: 16, name: "Karol Bagh Auto Works", pickupDrop: ["Yes", "No"] },
-        ],
-        Dwarka: [
-            { id: 17, name: "Dwarka Service Zone", pickupDrop: ["Yes", "No"] },
-        ],
-        Rohini: [
-            { id: 18, name: "Rohini Auto Hub", pickupDrop: ["Yes", "No"] },
-        ],
-    },
-};
+// Garage data is now fetched live from /api/garages — no hardcoded list
 
 const PAYMENT_METHODS = [
     { id: 'cash', label: 'Cash on Delivery' },
@@ -116,7 +63,7 @@ const YEARS = Array.from({ length: 26 }, (_, i) => 2025 - i); // 2000-2025
 
 // ─── Step Indicator ──────────────────────────────────────────────────────────
 const StepIndicator = ({ current }) => {
-    const steps = ["Vehicle", "Service", "Garage", "Schedule", "Details", "Review", "Checkout"];
+    const steps = ["Vehicle", "Garage", "Service", "Schedule", "Details", "Review", "Checkout"];
     return (
         <div className="flex items-center justify-center gap-0 mb-4 overflow-x-auto pb-2">
             {steps.map((label, i) => {
@@ -180,6 +127,7 @@ const FullService = () => {
     const [step, setStep] = useState(() => getSessionState('step', 1));
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [showServiceBreakdown, setShowServiceBreakdown] = useState(false);
     const [bookingId, setBookingId] = useState('');
 
     // Helper to reset form on fuel change
@@ -272,6 +220,15 @@ const FullService = () => {
         return data;
     }, [customServices]);
 
+    // ─── Live Garages from API ────────────────────────────────────────────────
+    const [liveGarages, setLiveGarages] = useState([]);
+    useEffect(() => {
+        fetch('http://localhost:5001/api/garages')
+            .then(r => r.json())
+            .then(d => { if (d.success) setLiveGarages(d.data); })
+            .catch(() => { });
+    }, []);
+
     // Step 3 – Garage
     const [selectedState, setSelectedState] = useState(() => getSessionState('selectedState', ''));
     const [selectedDistrict, setSelectedDistrict] = useState(() => getSessionState('selectedDistrict', ''));
@@ -279,9 +236,20 @@ const FullService = () => {
     const [pickupDrop, setPickupDrop] = useState(() => getSessionState('pickupDrop', ''));
 
     // Derived lists
-    const stateList = Object.keys(GARAGE_DATA);
-    const districtList = selectedState ? Object.keys(GARAGE_DATA[selectedState] || {}) : [];
-    const garageList = (selectedState && selectedDistrict) ? (GARAGE_DATA[selectedState]?.[selectedDistrict] || []) : [];
+    const stateList = [...new Set(liveGarages.map(g => g.state).filter(Boolean))].sort();
+    const districtList = selectedState
+        ? [...new Set(liveGarages.filter(g => g.state === selectedState).map(g => g.district).filter(Boolean))].sort()
+        : [];
+    const garageList = (selectedState && selectedDistrict)
+        ? liveGarages
+            .filter(g => g.state === selectedState && g.district === selectedDistrict)
+            .map(g => ({
+                _id: g._id,
+                id: g.garageId,
+                name: g.name,
+                pickupDrop: g.pickupDrop ? ['Yes', 'No'] : ['No']
+            }))
+        : [];
     const pickupDropOptions = selectedGarage ? (selectedGarage.pickupDrop || []) : [];
 
     // Step 4 – Schedule
@@ -302,6 +270,20 @@ const FullService = () => {
             navigate('.', { replace: true, state: { ...location.state, isNewSession: false } });
         }
     }, [location.state, navigate]);
+
+    // Auto-fill contact details from logged-in user account
+    useEffect(() => {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+            const u = JSON.parse(stored);
+            setDetails(prev => ({
+                ...prev,
+                name: u.name || prev.name,
+                email: u.email || prev.email,
+                phone: u.phone || prev.phone,
+            }));
+        }
+    }, []);
 
     // Save state on change
     useEffect(() => {
@@ -408,7 +390,10 @@ const FullService = () => {
             const bookingData = {
                 user: {
                     ...details,
-                    id: loggedInUser ? (loggedInUser.id || loggedInUser._id) : undefined
+                    name: loggedInUser?.name || details.name,
+                    email: loggedInUser?.email || details.email,
+                    id: loggedInUser ? (loggedInUser.id || loggedInUser._id) : undefined,
+                    userId: loggedInUser ? loggedInUser.userId : undefined
                 },
                 vehicle: {
                     year: selectedYear,
@@ -447,10 +432,14 @@ const FullService = () => {
                 setBookingId(data.data.bookingId);
             }
 
+            // We don't reset form state here anymore so the Success Screen can display it.
+            // It will be reset if they click "Book Another Service".
+            sessionStorage.removeItem(SESSION_KEY);
+
             setSubmitted(true);
         } catch (error) {
             console.error('Error creating booking:', error);
-            alert('Something went wrong saving your booking.');
+            alert(`Booking failed: ${error.message || 'Please try again.'}`);
         } finally {
             setSubmitting(false);
         }
@@ -542,7 +531,82 @@ const FullService = () => {
                 paymentObject.open();
 
             } else {
-                saveBooking('CASH');
+                // COD — collect 25% advance via Razorpay
+                const totalAmount = parseFloat(calculateGrandTotal());
+                const advanceAmount = Math.round(totalAmount * 0.25);
+
+                const confirmed = window.confirm(
+                    `For continuing with Cash on Delivery you need to pay 25% of your total amount (₹${advanceAmount}) as an advance.\n\nClick OK to proceed with the advance payment.`
+                );
+
+                if (!confirmed) {
+                    setSubmitting(false);
+                    return;
+                }
+
+                // Load Razorpay if not already loaded
+                if (!window.Razorpay) {
+                    await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+                }
+                if (!window.Razorpay) {
+                    alert('Razorpay SDK could not be loaded. Please disable any Ad Blockers and try again.');
+                    setSubmitting(false);
+                    return;
+                }
+
+                const orderRes = await fetch('http://localhost:5001/api/payments/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: advanceAmount })
+                });
+                const orderData = await orderRes.json();
+                if (!orderData.success) throw new Error('Order creation failed');
+
+                const options = {
+                    key: 'rzp_test_SDOW0Mi3saqtVB',
+                    amount: orderData.order.amount,
+                    currency: 'INR',
+                    name: 'VehicleeCare',
+                    description: `COD Advance (25% of ₹${totalAmount})`,
+                    order_id: orderData.order.id,
+                    handler: async function (response) {
+                        const verifyRes = await fetch('http://localhost:5001/api/payments/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        });
+                        const verifyData = await verifyRes.json();
+                        if (verifyData.success) {
+                            // Save booking — mark as COD with advance paid
+                            saveBooking(response.razorpay_payment_id);
+                        } else {
+                            alert('Advance payment verification failed. Booking not confirmed.');
+                            setSubmitting(false);
+                        }
+                    },
+                    prefill: {
+                        name: details.name,
+                        email: details.email,
+                        contact: details.phone
+                    },
+                    theme: { color: '#052558' },
+                    modal: {
+                        ondismiss: function () {
+                            setSubmitting(false);
+                        }
+                    }
+                };
+
+                const paymentObject = new window.Razorpay(options);
+                paymentObject.on('payment.failed', function (response) {
+                    alert(response.error.description);
+                    setSubmitting(false);
+                });
+                paymentObject.open();
             }
         } catch (error) {
             console.error('Error initiating payment:', error);
@@ -616,10 +680,28 @@ const FullService = () => {
                         </button>
 
                         <button
-                            onClick={() => navigate('/services')}
+                            onClick={() => {
+                                setStep(1);
+                                setSelectedBrand('');
+                                setSelectedModel('');
+                                setSelectedYear('');
+                                setVehicleType('');
+                                setTransmission('');
+                                setVehicleNumber('');
+                                setSelectedServices({});
+                                setSelectedState('');
+                                setSelectedDistrict('');
+                                setSelectedGarage(null);
+                                setPickupDrop('');
+                                setSchedule({ date: '', time: '' });
+                                setDetails(prev => ({ ...prev, notes: '' }));
+                                setPaymentMethod('');
+                                setBookingId('');
+                                setSubmitted(false);
+                            }}
                             className="w-full px-4 py-3 bg-blue-50 text-[#052558] font-bold rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors uppercase tracking-wide"
                         >
-                            Back to Services
+                            Book Another Service
                         </button>
 
                         {/* Top-left arrow (optional now that we have buttons, but keeping for consistency) */}
@@ -856,9 +938,9 @@ const FullService = () => {
                         )}
 
                         {/* ── Step 2: Choose Service ── */}
-                        {step === 2 && (
+                        {step === 3 && (
                             <div className="animate-[fadeIn_0.3s_ease-out]  max-w-6xl mx-auto">
-                                <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Choose a service</h2>
+                                <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Select a Service</h2>
 
                                 {/* 10 Select Dropdowns Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -895,9 +977,9 @@ const FullService = () => {
                         )}
 
                         {/* ── Step 3: Select Garage ── */}
-                        {step === 3 && (
+                        {step === 2 && (
                             <div className="animate-[fadeIn_0.3s_ease-out] max-w-5xl mx-auto">
-                                <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Select a Service Center</h2>
+                                <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Select a Garage</h2>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {/* State */}
@@ -947,17 +1029,18 @@ const FullService = () => {
                                         <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Garage</label>
                                         <div className="relative">
                                             <select
-                                                value={selectedGarage?.id || ''}
+                                                value={selectedGarage && selectedGarage._id ? selectedGarage._id : ''}
                                                 onChange={e => {
-                                                    const g = garageList.find(g => g.id === Number(e.target.value));
+                                                    const gId = e.target.value;
+                                                    const g = garageList.find(g => String(g._id) === String(gId));
                                                     setSelectedGarage(g || null);
                                                     setPickupDrop('');
                                                 }}
                                                 disabled={!selectedDistrict}
                                                 className={`${selectClass} text-center text-[10.5px] uppercase font-bold py-2 px-8 h-10`}
                                             >
-                                                <option value=""></option>
-                                                {garageList.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                                <option value="">SELECT A GARAGE</option>
+                                                {garageList.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
                                             </select>
                                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={14} />
                                         </div>
@@ -1065,25 +1148,29 @@ const FullService = () => {
                                         <input
                                             name="name"
                                             value={details.name}
-                                            onChange={handleDetailChange}
-                                            required
-                                            autoComplete="off"
-                                            className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full`}
+                                            readOnly
+                                            className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full bg-[#f4f9ff] cursor-not-allowed select-none`}
                                         />
                                     </div>
 
                                     {/* Phone */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Phone</label>
-                                        <input
-                                            name="phone"
-                                            value={details.phone}
-                                            onChange={handleDetailChange}
-                                            required
-                                            autoComplete="off"
-                                            className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full`}
-                                        />
-                                    </div>
+                                    {(() => {
+                                        const hasPhone = !!JSON.parse(localStorage.getItem('user') || '{}')?.phone;
+                                        return (
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Phone</label>
+                                                <input
+                                                    name="phone"
+                                                    value={details.phone}
+                                                    readOnly={hasPhone}
+                                                    onChange={!hasPhone ? handleDetailChange : undefined}
+                                                    // placeholder={!hasPhone ? 'Enter phone number' : ''}
+                                                    required
+                                                    className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full ${hasPhone ? 'bg-[#f4f9ff] cursor-not-allowed select-none' : ''}`}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Email */}
                                     <div>
@@ -1091,10 +1178,8 @@ const FullService = () => {
                                         <input
                                             name="email"
                                             value={details.email}
-                                            onChange={handleDetailChange}
-                                            required
-                                            autoComplete="off"
-                                            className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full`}
+                                            readOnly
+                                            className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full bg-[#f4f9ff] cursor-not-allowed select-none`}
                                         />
                                     </div>
                                 </div>
@@ -1195,7 +1280,6 @@ const FullService = () => {
                                     {PAYMENT_METHODS.map(method => (
                                         <div key={method.id}>
                                             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">
-                                                {/* {method.label} */}
                                             </label>
                                             <button
                                                 onClick={() => setPaymentMethod(method.id)}
@@ -1216,10 +1300,44 @@ const FullService = () => {
                                         <p className="text-xs font-bold text-[#052558] uppercase tracking-wide text-center">Billing Summary</p>
                                     </div>
                                     <div className="p-5 space-y-3">
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-gray-500 font-medium uppercase">Service Cost</span>
-                                            <span className="font-bold text-[#011023]">₹{calculateTotal()}</span>
-                                        </div>
+                                        {/* Service Cost row — expandable when >1 service selected */}
+                                        {(() => {
+                                            const selectedEntries = Object.entries(selectedServices).filter(([, v]) => v);
+                                            const currentFuelData = dynamicServiceData[fuelType] || [];
+                                            const canExpand = selectedEntries.length > 1;
+                                            return (
+                                                <>
+                                                    <div
+                                                        className={`flex justify-between items-center text-xs ${canExpand ? 'cursor-pointer select-none' : ''}`}
+                                                        onClick={() => canExpand && setShowServiceBreakdown(p => !p)}
+                                                    >
+                                                        <span className="flex items-center gap-1 text-gray-500 font-medium uppercase">
+                                                            Service Cost
+                                                            {canExpand && (
+                                                                <ChevronDown size={12} className={`text-gray-400 transition-transform duration-200 ${showServiceBreakdown ? 'rotate-180' : ''}`} />
+                                                            )}
+                                                        </span>
+                                                        <span className="font-bold text-[#011023]">₹{calculateTotal()}</span>
+                                                    </div>
+                                                    {canExpand && showServiceBreakdown && (
+                                                        <div className="ml-2 mt-1 space-y-1 border-l-2 border-blue-100 pl-3">
+                                                            {selectedEntries.map(([category, serviceName]) => {
+                                                                const catData = currentFuelData.find(c => c.category === category);
+                                                                const option = catData?.options.find(o => o.name === serviceName);
+                                                                const priceStr = serviceOverrides[serviceName]?.price || option?.price || 0;
+                                                                const price = parseFloat(String(priceStr).replace(/[^0-9.]/g, '')) || 0;
+                                                                return (
+                                                                    <div key={category} className="flex justify-between items-center text-[10px]">
+                                                                        <span className="text-gray-400 uppercase truncate max-w-[65%]">{serviceName}</span>
+                                                                        <span className="font-semibold text-gray-600">₹{price}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="text-gray-500 font-medium uppercase">GST (18%)</span>
                                             <span className="font-bold text-[#011023]">₹{(calculateTotal() * 0.18).toFixed(2)}</span>
@@ -1277,8 +1395,8 @@ const FullService = () => {
                                 onClick={() => setStep(s => s + 1)}
                                 disabled={
                                     (step === 1 && (!selectedBrand || !selectedModel || !selectedYear || !vehicleType || !transmission || vehicleNumber.length < 4)) ||
-                                    (step === 2 && Object.values(selectedServices).filter(s => s).length === 0) ||
-                                    (step === 3 && (!selectedGarage || !pickupDrop)) ||
+                                    (step === 2 && (!selectedGarage || !pickupDrop)) ||
+                                    (step === 3 && Object.values(selectedServices).filter(s => s).length === 0) ||
                                     (step === 4 && (!schedule.date || !schedule.time)) ||
                                     (step === 5 && (!details.name || !details.phone)) ||
                                     submitting

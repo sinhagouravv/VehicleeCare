@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
+const UserNotification = require('../models/UserNotification');
 const { createAdminNotification } = require('./notificationController');
 
 // @desc    Create a new booking
@@ -109,6 +110,16 @@ exports.createBooking = async (req, res) => {
             message: `${user.name || 'A user'} booked ${service.title || 'a service'} for ${vehicle.make} ${vehicle.model} on ${schedule.date}.`,
             meta: { bookingId: savedBooking.bookingId, userId: user.id, service: service.title, vehicle: `${vehicle.make} ${vehicle.model}` }
         });
+
+        // Fire user notification if logged in
+        if (user.id) {
+            await UserNotification.create({
+                userId: user.id,
+                title: 'Booking Confirmed',
+                message: `Your booking for ${vehicle.make} ${vehicle.model} on ${schedule.date} is confirmed!`,
+                type: 'success'
+            });
+        }
 
         res.status(201).json({
             success: true,

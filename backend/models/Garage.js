@@ -19,6 +19,7 @@ const GarageSchema = new mongoose.Schema({
     workingHours: { type: String },
     workingDays: { type: String },
     services: { type: String },
+    password: { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Garage', GarageSchema);

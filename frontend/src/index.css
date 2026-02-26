@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-marquee: marquee 80s linear infinite;
+  --animate-marquee-reverse: marquee-reverse 80s linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+
+    to {
+      transform: translateX(calc(-100% - 1.5rem));
+    }
+  }
+
+  @keyframes marquee-reverse {
+    from {
+      transform: translateX(calc(-100% - 1.5rem));
+    }
+
+    to {
+      transform: translateX(0);
+    }
+  }
+}
+
+@utility pause-on-hover {
+  animation-play-state: paused;
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -21,4 +50,19 @@ body {
   flex-direction: column;
   min-width: 320px;
   min-height: 100vh;
+}
+
+/* ── Suppress browser autofill background color ── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #f4f9ff inset !important;
+  box-shadow: 0 0 0 1000px #f4f9ff inset !important;
+  -webkit-text-fill-color: #011023 !important;
+  transition: background-color 9999s ease-in-out 0s;
 }

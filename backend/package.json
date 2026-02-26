@@ -18,6 +18,10 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",
-    "nodemon": "^3.1.11"
+    "nodemailer": "^8.0.1",
+    "nodemon": "^3.1.11",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.6",
+    "speakeasy": "^2.0.0"
   }
 }

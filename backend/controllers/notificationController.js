@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
+const UserNotification = require('../models/UserNotification');
 
-// ── Create Admin Notification (internal helper) ────────────────
+// ── Internal helper (used by other controllers) ────────────────
 const createAdminNotification = async ({ eventType, title, message, meta = {} }) => {
     try {
         await Notification.create({ eventType, title, message, meta });
@@ -11,7 +12,7 @@ const createAdminNotification = async ({ eventType, title, message, meta = {} })
 
 // ── GET all admin notifications ────────────────────────────────
 // GET /api/notifications
-exports.getAll = async (req, res) => {
+const getAll = async (req, res) => {
     try {
         const notifications = await Notification.find().sort({ createdAt: -1 });
         const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -21,9 +22,22 @@ exports.getAll = async (req, res) => {
     }
 };
 
+// ── GET User Notifications ──────────────────────────────────────
+// GET /api/notifications/user/:userId
+const getUserNotifications = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const notifications = await UserNotification.find({ userId }).sort({ createdAt: -1 });
+        const unreadCount = notifications.filter(n => !n.isRead).length;
+        res.status(200).json({ success: true, count: notifications.length, unreadCount, data: notifications });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server Error', error: err.message });
+    }
+};
+
 // ── Mark single as read ────────────────────────────────────────
 // PATCH /api/notifications/:id/read
-exports.markRead = async (req, res) => {
+const markRead = async (req, res) => {
     try {
         const notif = await Notification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
         if (!notif) return res.status(404).json({ success: false, message: 'Not found' });
@@ -35,7 +49,7 @@ exports.markRead = async (req, res) => {
 
 // ── Mark all as read ───────────────────────────────────────────
 // PATCH /api/notifications/mark-all-read
-exports.markAllRead = async (req, res) => {
+const markAllRead = async (req, res) => {
     try {
         await Notification.updateMany({ isRead: false }, { isRead: true });
         res.json({ success: true, message: 'All notifications marked as read' });
@@ -46,7 +60,7 @@ exports.markAllRead = async (req, res) => {
 
 // ── Delete a notification ──────────────────────────────────────
 // DELETE /api/notifications/:id
-exports.deleteOne = async (req, res) => {
+const deleteOne = async (req, res) => {
     try {
         await Notification.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Deleted' });
@@ -55,4 +69,4 @@ exports.deleteOne = async (req, res) => {
     }
 };
 
-module.exports.createAdminNotification = createAdminNotification;
+module.exports = { getAll, getUserNotifications, markRead, markAllRead, deleteOne, createAdminNotification };

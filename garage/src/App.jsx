@@ -7,11 +7,13 @@ import Settings from './pages/Settings';
 import Services from './pages/Services';
 import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
+import Login from './pages/Login';
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="my-bookings" element={<MyBookings />} />
