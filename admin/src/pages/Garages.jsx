@@ -145,9 +145,9 @@ const Garages = () => {
                                     <td className="p-4">
                                         <div className="font-bold text-[#011023]">{garage.name}</div>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex items-start justify-center gap-1">
-                                            <div>
+                                    <td className="p-4 text-center">
+                                        <div className="flex flex-col items-center justify-center gap-1.5">
+                                            <div className="text-center">
                                                 <div className="font-semibold text-gray-800 text-sm">{garage.district}, {garage.state}</div>
                                                 <div className="text-xs text-gray-500 mt-0.5 normal-case">{garage.address}</div>
                                             </div>

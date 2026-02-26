@@ -202,7 +202,7 @@ const ChargingStations = () => {
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="flex items-start justify-center gap-1.5">
-                                            <div className="text-left">
+                                            <div className="text-center">
                                                 <div className="font-semibold text-gray-800 text-sm">{station.district}, {station.state}</div>
                                                 <div className="text-xs text-gray-500 mt-0.5">{station.address}</div>
                                             </div>

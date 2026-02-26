@@ -8,15 +8,30 @@ import Bookings from './pages/Bookings';
 import Users from './pages/Users';
 import Garages from './pages/Garages';
 import ChargingStations from './pages/ChargingStations';
-import Franchise from './pages/Franchise';
+import Messages from './pages/Messages';
 import Reviews from './pages/Reviews';
+import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
+import Login from './pages/Login';
+import { Navigate } from 'react-router-dom';
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('adminToken');
+  if (!token) return <Navigate to="/login" replace />;
+  return children;
+};
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
           <Route index element={<Dashboard />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="services" element={<Services />} />
@@ -24,10 +39,14 @@ const App = () => {
           <Route path="users" element={<Users />} />
           <Route path="garages" element={<Garages />} />
           <Route path="charging-stations" element={<ChargingStations />} />
-          <Route path="franchise" element={<Franchise />} />
+          <Route path="messages" element={<Messages />} />
           <Route path="reviews" element={<Reviews />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+
+        {/* Catch all redirect to root */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -119,7 +119,7 @@ const Messages = () => {
                                 <tr key={message._id} className="hover:bg-white/50 transition-colors group">
                                     <td className="p-4.5">
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-[#011023] text-[15px]">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
+                                            <span className="font-bold text-[#011023] text-[13px]">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
                                         </div>
                                     </td>
                                     <td className="p-4.5">
