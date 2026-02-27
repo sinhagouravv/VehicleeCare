@@ -1,5 +1,5 @@
 export const defaultServicesList = [
-
+    
         { id: "68I974R", name: "Engine oil change", category: "General Maintenance", fuelType: "Petrol", price: "₹5", duration: "1 hr", active: true },
         { id: "684G39Z", name: "Oil filter replacement", category: "General Maintenance", fuelType: "Petrol", price: "₹5", duration: "1 hr", active: true },
         { id: "68O41U9", name: "Air filter replacement", category: "General Maintenance", fuelType: "Petrol", price: "₹5", duration: "1 hr", active: true },

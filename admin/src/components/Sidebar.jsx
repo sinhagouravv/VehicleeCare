@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, Users, MapPin, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail } from 'lucide-react';
+import { LayoutDashboard, Building2, CalendarCheck, Users, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail, Briefcase, Car, ShoppingBag } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -14,11 +14,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Analytics', path: '/analytics', icon: <TrendingUp size={20} /> },
+        { name: 'Business', path: '/business', icon: <Briefcase size={20} /> },
         { name: 'Bookings', path: '/bookings', icon: <CalendarCheck size={20} /> },
         { name: 'Users', path: '/users', icon: <Users size={20} /> },
-        { name: 'Garages', path: '/garages', icon: <MapPin size={20} /> },
-        // { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
+        { name: 'Garages', path: '/garages', icon: <Building2 size={20} /> },
+        { name: 'Store', path: '/store', icon: <ShoppingBag size={20} /> },
+        { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
         { name: 'Services', path: '/services', icon: <Wrench size={20} /> },
+        { name: 'Parking', path: '/parking', icon: <Car size={20} /> },
         { name: 'Messages', path: '/messages', icon: <Mail size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
@@ -28,7 +31,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     return (
         <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white/40 backdrop-blur-md transform-gpu border-r border-[#e6f0fa] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
             {/* Logo Area */}
-            <div className={`p-6 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
+            <div className={`pt-6 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                     <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
                     <div className="-ml-4">
@@ -58,7 +61,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-2 uppercase space-y-2.5 overflow-y-auto custom-scrollbar">
+            <nav className="flex-1 px-4 py-10 uppercase space-y-1.5 overflow-y-auto custom-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}

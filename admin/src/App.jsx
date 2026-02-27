@@ -13,6 +13,9 @@ import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import Business from './pages/Business';
+import Parking from './pages/Parking';
+import Store from './pages/Store';
 import { Navigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
@@ -43,6 +46,9 @@ const App = () => {
           <Route path="reviews" element={<Reviews />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="business" element={<Business />} />
+          <Route path="parking" element={<Parking />} />
+          <Route path="store" element={<Store />} />
         </Route>
 
         {/* Catch all redirect to root */}

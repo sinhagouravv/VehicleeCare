@@ -40,7 +40,9 @@ const Navbar = () => {
         { name: 'ABOUT', path: '#about', icon: <Info size={20} /> },
         { name: 'SERVICES', path: '#services', icon: <Briefcase size={20} /> },
         { name: 'LOCATE', path: '#locate', icon: <MapPin size={20} /> },
-        // { name: 'Pricing', path: '#pricing', icon: <DollarSign size={20} /> },
+        // { name: 'PRICING', path: '#pricing', icon: <DollarSign size={20} /> },
+        { name: 'STATIONS', path: '#stations' },
+        { name: 'PARKING', path: '#parking' },
         { name: 'REVIEWS', path: '#reviews', icon: <MessageSquare size={20} /> },
         { name: 'CONTACT', path: '#contact', icon: <Phone size={20} /> },
     ];
