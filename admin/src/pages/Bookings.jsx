@@ -192,7 +192,7 @@ const Bookings = () => {
                             {loading ? (
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">
-                                        Loading bookings...
+                                        Server is not running. Kindly start the server.
                                     </td>
                                 </tr>
                             ) : bookings.length === 0 ? (
