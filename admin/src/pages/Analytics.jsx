@@ -553,7 +553,7 @@ const Analytics = () => {
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-amber-50 text-amber-500 rounded-xl"><Users size={15} /></div>
-                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Active User</p>
+                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Employees</p>
                                 <h3 className="text-sm font-black text-[#011023]">{userStats.active}</h3>
                             </div>
                             <div className="flex items-center gap-4">
@@ -566,7 +566,7 @@ const Analytics = () => {
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-rose-50 text-rose-500 rounded-xl"><TrendingUp size={15} /></div>
-                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Returned User</p>
+                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's Employees</p>
                                 <h3 className="text-sm font-black text-[#011023]">{userStats.returned}</h3>
                             </div>
                             <div className="flex items-center gap-4">
@@ -578,6 +578,8 @@ const Analytics = () => {
                     </div>
                 </div>
             </div>
+
+            
 
             {/* Charts Area View */}
 

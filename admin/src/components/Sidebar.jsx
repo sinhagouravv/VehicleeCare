@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, CalendarCheck, Users, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail, Briefcase, Car, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Building2, CalendarCheck, Users, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail, Briefcase, Car, ShoppingBag, UserSquare2, CreditCard } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -14,9 +14,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Analytics', path: '/analytics', icon: <TrendingUp size={20} /> },
+        { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'Business', path: '/business', icon: <Briefcase size={20} /> },
         { name: 'Bookings', path: '/bookings', icon: <CalendarCheck size={20} /> },
         { name: 'Users', path: '/users', icon: <Users size={20} /> },
+        { name: 'Employees', path: '/employees', icon: <UserSquare2 size={20} /> },
         { name: 'Garages', path: '/garages', icon: <Building2 size={20} /> },
         { name: 'Store', path: '/store', icon: <ShoppingBag size={20} /> },
         { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
@@ -61,7 +63,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-1.5 overflow-y-auto custom-scrollbar">
+            <nav className="flex-1 px-4 py-10 uppercase space-y-0.5 overflow-y-auto custom-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}

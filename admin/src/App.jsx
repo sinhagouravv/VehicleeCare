@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
+import Payments from './pages/Payments';
 import Services from './pages/Services';
 import Bookings from './pages/Bookings';
 import Users from './pages/Users';
+import Employees from './pages/Employees';
 import Garages from './pages/Garages';
 import ChargingStations from './pages/ChargingStations';
 import Messages from './pages/Messages';
@@ -37,9 +39,11 @@ const App = () => {
         }>
           <Route index element={<Dashboard />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="payments" element={<Payments />} />
           <Route path="services" element={<Services />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="users" element={<Users />} />
+          <Route path="employees" element={<Employees />} />
           <Route path="garages" element={<Garages />} />
           <Route path="charging-stations" element={<ChargingStations />} />
           <Route path="messages" element={<Messages />} />
