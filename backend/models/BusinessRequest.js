@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const businessRequestSchema = new mongoose.Schema({
+    displayId: {
+        type: String,
+        unique: true
+    },
     businessCategory: {
         type: String,
         required: true,

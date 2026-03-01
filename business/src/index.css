@@ -16,3 +16,34 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Hide Razorpay Customizations (Backdrop & Test Mode Ribbon) */
+.razorpay-backdrop {
+  background: white !important;
+  opacity: 1 !important;
+
+}
+
+/* Hide any floating SVG badges/ribbons injected by Razorpay (usually the Test Mode badge on the right side) */
+.razorpay-container>*:not(iframe):not(.razorpay-backdrop) {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* 
+ * HACK: The actual "Test Mode" ribbon is rendered inside Razorpay's secure cross-origin iframe, 
+ * so it cannot be removed with CSS. Since the background is white, we place a solid white square 
+ * floating in the top right corner to visually cover it up!
+ */
+.razorpay-container::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  background-color: white;
+  z-index: 999999999 !important;
+  pointer-events: none;
+}

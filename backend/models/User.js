@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'admin'],
+        enum: ['user', 'admin', 'vendor'],
         default: 'user'
     },
     address: {
@@ -51,6 +51,19 @@ const userSchema = new mongoose.Schema({
     emailNotifications: {
         type: Boolean,
         default: true
+    },
+    subscriptionPlan: {
+        type: String,
+        enum: ['Basic', 'Premium', 'Elite'],
+        default: 'Basic'
+    },
+    subscriptionStatus: {
+        type: String,
+        enum: ['active', 'inactive', 'past_due'],
+        default: 'inactive'
+    },
+    subscriptionExpiry: {
+        type: Date
     }
 });
 

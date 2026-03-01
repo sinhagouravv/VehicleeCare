@@ -1,15 +1,27 @@
 const mongoose = require('mongoose');
 
 const PaymentSchema = new mongoose.Schema({
+    paymentId: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    type: {
+        type: String,
+        enum: ['Booking', 'Subscription'],
+        required: true
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
+    },
+    business: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User' // Assuming Business is tracked under User with role or separate model? The current app uses User model with different fields, or Business is a separate portal. Wait, let me check. Let's make it flexible or just use `user`.
     },
     booking: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Booking',
-        required: true
+        ref: 'Booking'
     },
     amount: {
         type: Number,

@@ -70,3 +70,24 @@ exports.getUserPayments = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 };
+
+// @desc    Get all payments globally (Admin use)
+// @route   GET /api/payments/all
+// @access  Private
+exports.getAllPayments = async (req, res) => {
+    try {
+        const payments = await Payment.find({})
+            .populate('user', 'name email userId')
+            .populate('business', 'name businessName email userId')
+            .populate({
+                path: 'booking',
+                select: 'bookingId vehicle service status'
+            })
+            .sort({ date: -1 });
+
+        res.status(200).json({ success: true, count: payments.length, data: payments });
+    } catch (error) {
+        console.error("Error fetching all payments:", error);
+        res.status(500).json({ success: false, message: 'Server Error fetching payments' });
+    }
+};

@@ -129,6 +129,7 @@ const FullService = () => {
     const [submitting, setSubmitting] = useState(false);
     const [showServiceBreakdown, setShowServiceBreakdown] = useState(false);
     const [bookingId, setBookingId] = useState('');
+    const [payTrackingId, setPayTrackingId] = useState('');
 
     // Helper to reset form on fuel change
     const switchFuelType = (type) => {
@@ -430,6 +431,7 @@ const FullService = () => {
 
             if (data.success && data.data && data.data.bookingId) {
                 setBookingId(data.data.bookingId);
+                setPayTrackingId(data.paymentId || '');
             }
 
             // We don't reset form state here anymore so the Success Screen can display it.
@@ -646,6 +648,15 @@ const FullService = () => {
                                     <div className="flex justify-between items-start">
                                         <span className="text-xs text-gray-500 uppercase tracking-wide">Booking ID</span>
                                         <span className="font-bold text-[#052558] text-sm text-right">{bookingId}</span>
+                                    </div>
+                                    <div className="h-px bg-blue-100 w-full" />
+                                </>
+                            )}
+                            {payTrackingId && (
+                                <>
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-xs text-gray-500 uppercase tracking-wide">Payment ID</span>
+                                        <span className="font-bold text-[#052558] text-sm text-right">{payTrackingId}</span>
                                     </div>
                                     <div className="h-px bg-blue-100 w-full" />
                                 </>

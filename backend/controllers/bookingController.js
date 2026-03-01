@@ -2,6 +2,7 @@ const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
 const UserNotification = require('../models/UserNotification');
 const { createAdminNotification } = require('./notificationController');
+const { generatePaymentId } = require('../utils/generateId');
 
 // @desc    Create a new booking
 // @route   POST /api/bookings
@@ -88,15 +89,18 @@ exports.createBooking = async (req, res) => {
         });
 
         const savedBooking = await newBooking.save();
+        let paymentRecord = null;
 
-        // If full online payment (Razorpay), also create Payment record
-        if (isFullOnline && user.id) {
-            await Payment.create({
+        // Create Universal Payment tracking record for all checkout methods
+        if (user.id) {
+            paymentRecord = await Payment.create({
+                paymentId: generatePaymentId(),
+                type: 'Booking',
                 user: user.id,
                 booking: savedBooking._id,
                 amount: savedBooking.payment.amount,
-                method: 'Net Banking',
-                status: 'Completed',
+                method: savedBooking.payment.method === 'Cash on Delivery' ? 'Cash' : 'Net Banking',
+                status: savedBooking.payment.status,
                 transactionId: savedBooking.payment.transactionId
             });
         }
@@ -124,6 +128,7 @@ exports.createBooking = async (req, res) => {
         res.status(201).json({
             success: true,
             data: savedBooking,
+            paymentId: paymentRecord ? paymentRecord.paymentId : null,
             message: 'Booking confirmed successfully'
         });
     } catch (error) {

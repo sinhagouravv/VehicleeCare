@@ -401,6 +401,163 @@ exports.garageResetPassword = async (req, res) => {
     }
 };
 
+// ── Business Auth / Vendor Registration ────────────────────────
+exports.businessRegister = async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        let user = await User.findOne({ email });
+        if (user) return res.status(400).json({ msg: 'Vendor already exists with this email' });
+
+        let generatedId = '';
+        let isUnique = false;
+        while (!isUnique) {
+            generatedId = '75';
+            for (let i = 0; i < 7; i++) {
+                generatedId += Math.floor(Math.random() * 9) + 1;
+            }
+            const existingId = await User.findOne({ userId: generatedId });
+            if (!existingId) isUnique = true;
+        }
+
+        user = new User({ userId: generatedId, name, email, password, role: 'vendor' });
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        await user.save();
+
+        const payload = { user: { id: user.id } };
+        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
+            if (err) throw err;
+            res.json({
+                token,
+                business: { id: user.userId, name: user.name, email: user.email, role: user.role }
+            });
+        });
+    } catch (err) {
+        console.error("Business register error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.businessLogin = async (req, res) => {
+    try {
+        const { businessId, password } = req.body;
+
+        const user = await User.findOne({
+            $or: [{ email: businessId }, { userId: businessId }],
+            role: 'vendor'
+        });
+
+        if (!user) return res.status(401).json({ msg: 'Invalid business credentials' });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(401).json({ msg: 'Invalid business credentials' });
+
+        const payload = { user: { id: user.id } };
+        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
+            if (err) throw err;
+            res.json({
+                token,
+                business: { id: user.userId, name: user.name, email: user.email, role: user.role, subscriptionPlan: user.subscriptionPlan, subscriptionStatus: user.subscriptionStatus, subscriptionExpiry: user.subscriptionExpiry }
+            });
+        });
+    } catch (err) {
+        console.error("Business login error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.businessForgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({
+            $or: [{ email: email }, { userId: email }],
+            role: 'vendor'
+        });
+
+        if (!user) return res.status(404).json({ msg: 'Vendor account not found' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.emailOtp = otp;
+        user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        await user.save();
+
+        // Send Email
+        const mailOptions = {
+            from: `"VehicleeCare" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: 'Business Portal - Password Reset OTP',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f0f6ff; border-radius: 16px;">
+                    <h2 style="color: #011023; margin-bottom: 4px;">VehicleeCare Business</h2>
+                    <p style="color: #527FB0; font-size: 13px; margin-bottom: 24px;">Password Reset Request</p>
+                    <p style="color: #011023; font-size: 14px;">Hi <strong>${user.name}</strong>, use the OTP below to reset your business portal password:</p>
+                    <div style="background: #011023; color: #C2E8FF; font-size: 36px; font-weight: 900; letter-spacing: 10px; text-align: center; padding: 20px; border-radius: 12px; margin: 20px 0;">${otp}</div>
+                    <p style="color: #888; font-size: 12px;">This OTP is valid for <strong>10 minutes</strong>.</p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Email Error:", error);
+                return res.status(500).json({ msg: 'Failed to send OTP email' });
+            }
+            res.json({ msg: 'OTP sent to registered business email' });
+        });
+    } catch (err) {
+        console.error("Business forgot password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.businessVerifyResetOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const user = await User.findOne({
+            $or: [{ email: email }, { userId: email }],
+            role: 'vendor'
+        });
+        if (!user) return res.status(404).json({ msg: 'Vendor account not found' });
+
+        if (user.emailOtp !== otp || new Date() > user.otpExpiry) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        res.json({ msg: 'OTP verified successfully' });
+    } catch (err) {
+        console.error("Business verify reset OTP error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.businessResetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const user = await User.findOne({
+            $or: [{ email: email }, { userId: email }],
+            role: 'vendor'
+        });
+        if (!user) return res.status(404).json({ msg: 'Vendor account not found' });
+
+        if (user.emailOtp !== otp || new Date() > user.otpExpiry) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.emailOtp = undefined;
+        user.otpExpiry = undefined;
+        await user.save();
+
+        res.json({ msg: 'Password updated successfully. You can now log in.' });
+    } catch (err) {
+        console.error("Business reset password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
 // ── Send OTP ──────────────────────────────────────────────────
 exports.sendOtp = async (req, res) => {
     try {

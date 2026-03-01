@@ -12,7 +12,17 @@ const submitRequest = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please provide all required fields' });
         }
 
+        // Generate unique display ID starting with 'REQ' + 5 random digits (no zeros)
+        let displayId;
+        let isUnique = false;
+        while (!isUnique) {
+            displayId = 'REQ' + Math.floor(10000 + Math.random() * 90000).toString().replace(/0/g, '1');
+            const existing = await BusinessRequest.findOne({ displayId });
+            if (!existing) isUnique = true;
+        }
+
         const newRequest = await BusinessRequest.create({
+            displayId,
             businessCategory,
             businessName,
             ownerName,
