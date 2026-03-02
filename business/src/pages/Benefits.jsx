@@ -1,49 +1,45 @@
 import React from 'react';
-import { Users, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Users, TrendingUp, ShieldCheck, BarChart3, HeadphonesIcon, CalendarDays, Package, Star, Settings } from 'lucide-react';
 
 const Benefits = () => {
     return (
-        <div id="benefits" className="min-h-[100vh] py-24 relative flex items-center bg-gradient-to-br from-[#010814] via-[#051c3f] to-[#010814] overflow-hidden">
-            {/* Dynamic Background Elements */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay z-0" />
-            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none z-0" />
-            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none z-0" />
+        <div id="benefits" className="min-h-[calc(100vh)] py-20 relative flex items-center bg-slate-50 border-t border-slate-100/50">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent -z-10" />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-                <div className="text-center mb-24">
-                    <h2 className="text-sm font-black text-blue-400 tracking-[0.2em] uppercase mb-4 opacity-80">The VehicleeCare Advantage</h2>
-                    <h3 className="text-5xl md:text-6xl font-black text-white tracking-tight mb-6">Why partner with us?</h3>
-                    <p className="text-xl text-blue-100/70 max-w-3xl mx-auto leading-relaxed font-light">
-                        We provide the cutting-edge tools and massive auto-audience you need to scale your operations rapidly and securely.
-                    </p>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative w-full">
+                <div className="text-center mt-9 mb-12">
+                    <h3 className="text-3xl md:text-4xl font-bold text-[#011023] tracking-tight mb-4">Benefits of VehicleeCare</h3>
+                    <p className="text-slate-500 max-w-2xl mx-auto leading-relaxed text-base">We provide the cutting-edge tools and massive auto-audience you need to scale your </p>
+                    <p className="text-slate-500 max-w-xl mx-auto leading-relaxed text-base">operations rapidly and securely. Join the revolution. Start growing</p>
+                    <p className="text-slate-500 max-w-2xl mx-auto leading-relaxed text-base"> your business with confidence today.
+ </p>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-8 relative">
-                    {/* Connecting line behind cards on desktop */}
-                    <div className="hidden lg:block absolute top-1/2 left-10 right-10 h-0.5 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent -translate-y-1/2 z-0"></div>
-
+                <div className="grid md:grid-cols-2 text-justify lg:grid-cols-3 gap-5.5">
                     {[
-                        { icon: <Users size={40} className="text-cyan-400" />, title: 'Reach Customers', desc: 'Instant access to thousands of verified vehicle owners looking for services in your area.', gradient: 'from-cyan-500/20 to-blue-500/20', glow: 'bg-cyan-500' },
-                        { icon: <TrendingUp size={40} className="text-purple-400" />, title: 'Scale Revenue', desc: 'Fill unused capacity, secure advanced bookings, and watch your monthly revenue surge.', gradient: 'from-purple-500/20 to-indigo-500/20', glow: 'bg-purple-500' },
-                        { icon: <ShieldCheck size={40} className="text-emerald-400" />, title: 'Secure Operations', desc: 'Automated, secure payments deposited directly. Never worry about no-shows again.', gradient: 'from-emerald-500/20 to-teal-500/20', glow: 'bg-emerald-500' }
+                        { icon: <Users size={24} />, title: 'REACH CUSTOMERS', desc: 'Gain instant access to verified vehicle owners searching for trusted services in your area. Our smart matching connects you with high-intent customers.', color: 'blue' },
+                        { icon: <TrendingUp size={24} />, title: 'SCALE REVENUE', desc: 'Boost your business by filling unused capacity and securing bookings in advance. Partners see up to 40% revenue growth with targeted demand and smart pricing tools.', color: 'indigo' },
+                        { icon: <ShieldCheck size={24} />, title: 'SECURE OPERATIONS', desc: 'Eliminate no-shows and delayed payments with our secure payment system. Funds go directly to your bank while we handle disputes for you.', color: 'emerald' },
+                        { icon: <BarChart3 size={24} />, title: 'DEEP ANALYTICS', desc: 'Stop guessing and start tracking with a powerful, easy-to-use dashboard. Monitor performance, analyze customer trends, and optimize your services using real data.', color: 'purple' },
+                        { icon: <HeadphonesIcon size={24} />, title: '24/7 SUPPORT', desc: 'You’re never alone on our platform. Get dedicated account support and 24/7 assistance to help your business grow smoothly at every stage.', color: 'orange' },
+                        { icon: <CalendarDays size={24} />, title: 'SMART SCHEDULING', desc: 'Eliminate double bookings and conflicts with our AI-powered calendar. Automated reminders reduce no-shows and keep your workflow smooth.', color: 'rose' },
+                        { icon: <Package size={24} />, title: 'ADVANCED INVENTORY', desc: 'Sync your parts catalog and track stock levels in real time. Get low-stock alerts and automate reordering from preferred suppliers.', color: 'sky' },
+                        { icon: <Star size={24} />, title: 'BUILD REPUTATION', desc: 'Automatically collect and display verified reviews from customers. Build strong online trust, rank higher locally, and position your brand as a top service destination.', color: 'yellow' },
+                        { icon: <Settings size={24} />, title: 'CRM INTEGRATION', desc: 'No need to replace your current tools. Easily integrate with your CRM, accounting, and inventory systems to create one unified operational hub.', color: 'teal' }
                     ].map((benefit, i) => (
-                        <div key={i} className="group relative z-10">
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-[2.5rem] p-px">
-                                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 to-[#011023]/90 rounded-[2.5rem] backdrop-blur-2xl" />
-                            </div>
-                            <div className="relative h-full bg-slate-900/40 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl transition-all duration-300 hover:-translate-y-3 group-hover:bg-slate-800/50 flex flex-col items-center text-center border border-white/5 select-none">
+                        <div key={i} className="group bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-blue-100 flex flex-col">
 
-                                {/* Icon Container with Glow */}
-                                <div className="relative mb-8">
-                                    <div className={`absolute inset-0 ${benefit.glow} blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-300 rounded-full`} />
-                                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br ${benefit.gradient} border border-white/10 shadow-inner relative z-10 group-hover:scale-110 transition-transform duration-300`}>
-                                        {benefit.icon}
-                                    </div>
+                            {/* Icon and Title Container (Same Line) */}
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className={`w - 12 h - 12 shrink - 0 rounded - 2xl flex items - center justify - center bg - ${benefit.color} -50 text - ${benefit.color} -600 group - hover: scale - 110 group - hover: bg - ${benefit.color} -100 transition - all duration - 300`}>
+                                    {benefit.icon}
                                 </div>
-
-                                <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-50 transition-colors">{benefit.title}</h4>
-                                <p className="text-slate-400 leading-relaxed text-lg font-light group-hover:text-slate-300 transition-colors">{benefit.desc}</p>
+                                <h4 className="text-lg font-bold text-[#011023] uppercase tracking-wide">{benefit.title}</h4>
                             </div>
+
+                            <p className="text-slate-500 leading-relaxed text-sm md:text-base group-hover:text-slate-600 transition-colors">
+                                {benefit.desc}
+                            </p>
                         </div>
                     ))}
                 </div>
