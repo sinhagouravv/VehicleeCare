@@ -12,8 +12,22 @@ const Reviews = () => {
 
     const fetchReviews = async () => {
         try {
-            const response = await axios.get(`${API_URL}/api/website-reviews/admin`);
-            setReviews(response.data);
+            const [websiteRes, businessRes] = await Promise.all([
+                axios.get(`${API_URL}/api/website-reviews/admin`),
+                axios.get(`${API_URL}/api/business-reviews/all`)
+            ]);
+
+            const webReviews = websiteRes.data.map(r => ({ ...r, type: 'Website' }));
+            const bizReviews = businessRes.data.data.map(r => ({
+                ...r,
+                type: 'Business',
+                text: r.review,
+                designation: r.role,
+                status: r.status.charAt(0).toUpperCase() + r.status.slice(1) // capitalize pending to Pending
+            }));
+
+            const combined = [...webReviews, ...bizReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setReviews(combined);
             setLastRefreshed(new Date());
             setLoading(false);
         } catch (error) {
@@ -33,9 +47,13 @@ const Reviews = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleUpdateStatus = async (id, newStatus) => {
+    const handleUpdateStatus = async (id, type, newStatus) => {
         try {
-            await axios.patch(`${API_URL}/api/website-reviews/${id}/status`, { status: newStatus });
+            if (type === 'Website') {
+                await axios.patch(`${API_URL}/api/website-reviews/${id}/status`, { status: newStatus });
+            } else {
+                await axios.put(`${API_URL}/api/business-reviews/${id}/status`, { status: newStatus.toLowerCase() });
+            }
             setReviews(prev => prev.map(rev => rev._id === id ? { ...rev, status: newStatus } : rev));
         } catch (error) {
             console.error("Failed to update status", error);
@@ -43,10 +61,14 @@ const Reviews = () => {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id, type) => {
         if (!window.confirm("Are you sure you want to permanently delete this review?")) return;
         try {
-            await axios.delete(`${API_URL}/api/website-reviews/${id}`);
+            if (type === 'Website') {
+                await axios.delete(`${API_URL}/api/website-reviews/${id}`);
+            } else {
+                await axios.delete(`${API_URL}/api/business-reviews/${id}`);
+            }
             setReviews(prev => prev.filter(rev => rev._id !== id));
         } catch (error) {
             console.error("Failed to delete review", error);
@@ -59,14 +81,17 @@ const Reviews = () => {
     const pendingReviews = reviews.filter(r => r.status === 'Pending').length;
     const rejectedReviews = reviews.filter(r => r.status === 'Rejected').length;
 
-    // Calculate global average rating from all approved ratings arrays
+    // Calculate global average rating from all approved website ratings arrays
     let totalScore = 0;
     let totalVotes = 0;
-    approvedReviews.forEach(r => {
-        r.ratings.forEach(val => {
-            totalScore += val;
-            totalVotes++;
-        });
+    const approvedWebsiteReviews = approvedReviews.filter(r => r.type === 'Website');
+    approvedWebsiteReviews.forEach(r => {
+        if (r.ratings) {
+            r.ratings.forEach(val => {
+                totalScore += val;
+                totalVotes++;
+            });
+        }
     });
     const avgRating = totalVotes > 0 ? (totalScore / totalVotes).toFixed(1) : "0.0";
 
@@ -122,6 +147,7 @@ const Reviews = () => {
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                     <th className="p-4.5 font-bold text-center">Review ID</th>
+                                    <th className="p-4.5 font-bold text-center">Type</th>
                                     <th className="p-4.5 font-bold text-center">Date</th>
                                     <th className="p-4.5 font-bold text-center">Reviewer</th>
                                     <th className="p-4.5 font-bold text-center">Community Rating</th>
@@ -141,6 +167,11 @@ const Reviews = () => {
                                         <td className="p-4 text-center font-semibold text-[#052558] text-[13px] tracking-wide">
                                             {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
                                         </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${rev.type === 'Business' ? 'bg-blue-100/50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                {rev.type}
+                                            </span>
+                                        </td>
                                         <td className="p-4 text-center text-xs font-semibold text-[#011023]">
                                             {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </td>
@@ -150,12 +181,18 @@ const Reviews = () => {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex flex-col items-center justify-center gap-1">
-                                                <div className="flex text-yellow-400">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <Star key={i} size={14} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
-                                                    ))}
-                                                </div>
-                                                <span className="text-[10px] text-gray-400 font-bold lowercase">({rev.ratings.length} votes)</span>
+                                                {rev.type === 'Website' ? (
+                                                    <>
+                                                        <div className="flex text-yellow-400">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star key={i} size={14} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-[10px] text-gray-400 font-bold lowercase">({rev.ratings?.length || 0} votes)</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-300 font-black text-lg">-</span>
+                                                )}
                                             </div>
                                         </td>
 
@@ -174,17 +211,17 @@ const Reviews = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 {rev.status === 'Pending' && (
                                                     <>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, 'Approved')} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
+                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
                                                             <CheckCircle size={18} />
                                                         </button>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, 'Rejected')} className="text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" title="Reject">
+                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" title="Reject">
                                                             <XCircle size={18} />
                                                         </button>
                                                     </>
                                                 )}
 
                                                 {rev.status === 'Rejected' && (
-                                                    <button onClick={() => handleUpdateStatus(rev._id, 'Approved')} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
+                                                    <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
                                                         <CheckCircle size={18} />
                                                     </button>
                                                 )}
@@ -195,7 +232,7 @@ const Reviews = () => {
                                                             <Eye size={18} />
                                                         </button>
                                                         <div className="w-px h-6 bg-gray-200 mx-1"></div>
-                                                        <button onClick={() => handleDelete(rev._id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
+                                                        <button onClick={() => handleDelete(rev._id, rev.type)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
                                                             <Trash2 size={16} />
                                                         </button>
                                                     </>
@@ -248,14 +285,20 @@ const Reviews = () => {
                                         <div className="text-sm font-bold text-[#011023] mb-1">
                                             {new Date(selectedReview.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </div>
-                                        <div className="flex items-center justify-end gap-1">
-                                            <div className="flex text-yellow-400">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={14} className={i < getAverageForReview(selectedReview.ratings) ? "fill-yellow-400" : "text-gray-200"} />
-                                                ))}
+                                        {selectedReview.type === 'Website' ? (
+                                            <div className="flex items-center justify-end gap-1">
+                                                <div className="flex text-yellow-400">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} size={14} className={i < getAverageForReview(selectedReview.ratings) ? "fill-yellow-400" : "text-gray-200"} />
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 font-bold ml-1">({selectedReview.ratings?.length || 0} votes)</span>
                                             </div>
-                                            <span className="text-[10px] text-gray-400 font-bold ml-1">({selectedReview.ratings.length} votes)</span>
-                                        </div>
+                                        ) : (
+                                            <span className={`px-2 py-1 inline-block text-[10px] font-bold uppercase tracking-wider rounded-md bg-blue-100/50 text-blue-600`}>
+                                                Business Review
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -277,7 +320,7 @@ const Reviews = () => {
                                 {selectedReview.status === 'Pending' && (
                                     <button
                                         onClick={() => {
-                                            handleUpdateStatus(selectedReview._id, 'Approved');
+                                            handleUpdateStatus(selectedReview._id, selectedReview.type, 'Approved');
                                             setSelectedReview(null);
                                         }}
                                         className="px-5 py-2.5 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 transition-all text-sm flex items-center gap-2"

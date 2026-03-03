@@ -27,7 +27,7 @@ const demoIcons = [
     { id: 10, icon: Plane, className: 'top-[85%] left-[65%]', color: 'text-sky-500' },
     { id: 11, icon: Ship, className: 'top-[50%] right-[6%]', color: 'text-blue-700' },
     { id: 12, icon: Rocket, className: 'top-[55%] left-[20%]', color: 'text-purple-500' },
-    { id: 13, icon: Helicopter, className: 'top-[20%] left-[60%]', color: 'text-rose-500' },
+    { id: 13, icon: Helicopter, className: 'top-[8%] left-[75%]', color: 'text-rose-500' },
     { id: 14, icon: TramFront, className: 'bottom-[8%] right-[40%]', color: 'text-lime-600' },
     { id: 15, icon: BusFront, className: 'top-[35%] right-[22%]', color: 'text-fuchsia-500' },
     { id: 16, icon: Car, className: 'top-[65%] left-[35%]', color: 'text-zinc-600' },

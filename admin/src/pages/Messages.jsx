@@ -107,8 +107,9 @@ const Messages = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold">Message id</th>
                                 <th className="p-4.5 font-bold">Contact Info</th>
-                                <th className="p-4.5 font-bold">Subject</th>
-                                <th className="p-4.5 font-bold">Message preview</th>
+                                <th className="p-4.5 font-bold text-center">Type</th>
+                                <th className="p-4.5 font-bold text-left">Subject</th>
+                                <th className="p-4.5 font-bold text-left">Message preview</th>
                                 <th className="p-4.5 font-bold">Date Received</th>
                                 <th className="p-4.5 font-bold text-center">Status</th>
                                 <th className="p-4.5 font-bold text-center">Actions</th>
@@ -123,18 +124,24 @@ const Messages = () => {
                                         </div>
                                     </td>
                                     <td className="p-4.5">
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-col items-center">
                                             <span className="font-bold text-[#011023] text-[15px]">{message.name}</span>
+                                            {message.company && <span className="text-xs font-semibold text-purple-600/80 mb-0.5">@ {message.company}</span>}
                                             {message.phone && <span className="text-xs text-gray-400">{message.phone}</span>}
                                             <span className="text-sm text-gray-500">{message.email}</span>
                                         </div>
                                     </td>
-                                    <td className="p-4.5">
+                                    <td className="p-4.5 text-center">
+                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {message.type || 'website'}
+                                        </span>
+                                    </td>
+                                    <td className="p-4.5 text-left">
                                         <span className={`font-semibold ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
                                             {message.subject}
                                         </span>
                                     </td>
-                                    <td className="p-4.5 max-w-xs truncate">
+                                    <td className="p-4.5 max-w-xs truncate text-left">
                                         <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} title={message.message}>
                                             {message.message}
                                         </span>
@@ -175,7 +182,7 @@ const Messages = () => {
                             ))}
                             {messages.length === 0 && (
                                 <tr>
-                                    <td colSpan="6" className="p-8 text-center text-gray-500 font-medium">
+                                    <td colSpan="8" className="p-8 text-center text-gray-500 font-medium">
                                         No messages found. Let's hope someone says hi!
                                     </td>
                                 </tr>
@@ -215,8 +222,10 @@ const Messages = () => {
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Sender Info</h4>
                                     <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedMessage.name}>{selectedMessage.name || 'N/A'}</span></p>
+                                        {selectedMessage.company && <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Company:</span> <span className="font-semibold text-purple-700 truncate">{selectedMessage.company}</span></p>}
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedMessage.phone || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedMessage.email}>{selectedMessage.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex items-center mt-3 pt-3 border-t border-blue-100/50"><span className="text-gray-500 w-16 shrink-0">Type:</span> <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${selectedMessage.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{selectedMessage.type || 'website'}</span></p>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-4.5 w-full md:w-[40%]">

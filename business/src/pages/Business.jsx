@@ -1,5 +1,6 @@
-import React from 'react';
-import { Briefcase, Zap, MapPin, Car, ArrowRight, TrendingUp, ShieldCheck, Clock } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Briefcase, Zap, MapPin, Car, ArrowRight, TrendingUp, ShieldCheck, Clock, X, Building2, User, Mail, Phone, Factory, CheckCircle2 } from 'lucide-react';
+import axios from 'axios';
 
 const sections = [
     {
@@ -18,7 +19,7 @@ const sections = [
         icon: <Briefcase size={28} />,
         stats: ['2.5x Revenue Growth', 'Smart Dispatching', 'Instant Payments'],
         mapQuery: 'auto repair near me',
-        color: 'blue'
+        buttonClasses: 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20 hover:shadow-blue-600/40'
     },
     {
         id: 'charging',
@@ -39,7 +40,7 @@ const sections = [
         icon: <Zap size={28} />,
         stats: ['Live Slot Booking', 'Dynamic Pricing', 'Usage Analytics'],
         mapQuery: 'ev charging station near me',
-        color: 'emerald'
+        buttonClasses: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 hover:shadow-emerald-600/40'
     },
     {
         id: 'parking',
@@ -61,7 +62,7 @@ const sections = [
         icon: <MapPin size={28} />,
         stats: ['100% Utilization', 'Automated Entry', 'Long-term Permits'],
         mapQuery: 'parking lot near me',
-        color: 'purple'
+        buttonClasses: 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20 hover:shadow-purple-600/40'
     },
     {
         id: 'stores',
@@ -84,11 +85,263 @@ const sections = [
         icon: <Car size={28} />,
         stats: ['B2B Sales', 'Live Inventory Sync', 'Local Delivery Net'],
         mapQuery: 'auto parts store near me',
-        color: 'orange'
+        buttonClasses: 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20 hover:orange-blue-600/40'
     }
 ];
 
+const RegistrationModal = ({ activeForm, onClose, sections }) => {
+    const sectionData = sections.find(s => s.id === activeForm);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [error, setError] = useState('');
+
+    const [formData, setFormData] = useState({
+        businessCategory: sectionData ? sectionData.title : '',
+        businessName: '',
+        ownerName: '',
+        email: '',
+        phone: '',
+        state: '',
+        district: '',
+        address: '',
+        customField1: '', // Reused for the specialized field per type
+        customField2: ''  // Reused for the specialized field per type
+    });
+
+    // Helper functions for dynamic strings
+    const getCustomLabel1 = () => {
+        switch (activeForm) {
+            case 'service': return 'Primary Services (e.g., Wash, Repair, Tires)';
+            case 'charging': return 'Supported Connectors (e.g., CCS, Type-2)';
+            case 'parking': return 'Total Parking Slots Available';
+            case 'stores': return 'Store Specialty (e.g., Tyres, Spares, Batteries)';
+            default: return 'Additional Details';
+        }
+    };
+
+    const getCustomLabel2 = () => {
+        switch (activeForm) {
+            case 'service': return 'Daily Capacity (Vehicles/Day)';
+            case 'charging': return 'Total Charging Points';
+            case 'parking': return 'Do you offer EV charging? (Yes/No)';
+            case 'stores': return 'Do you offer Local Delivery? (Yes/No)';
+            default: return 'Other Info';
+        }
+    };
+
+    const textareaRef = React.useRef(null);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'address' && textareaRef.current) {
+            textareaRef.current.style.height = 'auto'; // Reset height
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    };
+
+    // Disable background scrolling when modal is open
+    useEffect(() => {
+        if (activeForm) {
+            document.body.style.overflow = 'hidden';
+            return () => { document.body.style.overflow = 'unset'; };
+        }
+    }, [activeForm]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setError('');
+
+        try {
+            // Append the custom fields into a notes field before sending to the generic endpoint
+            const submitData = {
+                ...formData,
+                taxId: `${getCustomLabel1()}: ${formData.customField1} | ${getCustomLabel2()}: ${formData.customField2}`
+            };
+
+            await axios.post('http://localhost:5001/api/business-requests', submitData);
+            setIsSuccess(true);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!activeForm || !sectionData) return null;
+
+    if (isSuccess) {
+        return (
+            <div
+                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+                onClick={onClose}
+            >
+                <div
+                    className="bg-white max-w-md w-full rounded-3xl shadow-2xl p-8 text-center border border-slate-100 animate-in zoom-in-95"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle2 size={40} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-[#011023] mb-3">Partnership Requested!</h2>
+                    <p className="text-slate-500 mb-8 leading-relaxed">
+                        Thank you for your interest in pairing your {sectionData.title} with VehicleeCare. Our integration team will contact you within 24-48 hours.
+                    </p>
+                    <button onClick={onClose} className="inline-block w-full bg-[#011023] hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-xl transition-colors">
+                        Got it, Thanks
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden relative border border-slate-100 my-4 animate-in zoom-in-95"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between p-6 -mb-5 md:p-8 border-b border-slate-100 bg-slate-50/50 relative">
+                    <div className="flex-1 text-center">
+                        <h3 className="text-2xl uppercase font-semibold text-[#011023] tracking-tight">{sectionData.title} Partner</h3>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 absolute right-6 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-full transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className="p-6 md:p-8">
+                    {error && (
+                        <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Business Name</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Building2 className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input type="text" name="businessName" required value={formData.businessName} onChange={handleChange}
+                                        className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Owner Name</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <User className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input type="text" name="ownerName" required value={formData.ownerName} onChange={handleChange}
+                                        className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Owner Email Address</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Mail className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input type="email" name="email" required value={formData.email} onChange={handleChange}
+                                        className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Owner Phone Number</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Phone className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input type="tel" name="phone" required value={formData.phone} onChange={handleChange}
+                                        className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">State</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <MapPin className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input type="text" name="state" required value={formData.state} onChange={handleChange}
+                                        className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">District</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <MapPin className="h-5 w-5 text-slate-400" />
+                                    </div>
+                                    <input type="text" name="district" required value={formData.district} onChange={handleChange}
+                                        className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Full Business Address</label>
+                            <div className="relative">
+                                <div className="absolute top-3.5 left-3 pointer-events-none">
+                                    <MapPin className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <textarea
+                                    name="address"
+                                    required
+                                    rows={1}
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    ref={textareaRef}
+                                    style={{ minHeight: '52px', overflow: 'hidden' }}
+                                    className="w-full pl-10 pr-5 py-3.5 rounded-xl text-sm border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium bg-slate-50 focus:bg-white resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end gap-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="px-6 py-2.5 rounded-xl font-bold bg-[#011023] hover:bg-[#021836] disabled:bg-slate-400 text-white shadow-xl shadow-slate-900/20 hover:-translate-y-0.5 transition-all"
+                            >
+                                {isSubmitting ? 'Sending Request...' : 'Send Request'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+
 const Business = () => {
+    const [activeForm, setActiveForm] = useState(null);
+
     return (
         <div id="categories" className="bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20.5">
@@ -120,19 +373,8 @@ const Business = () => {
                                         {section.description}
                                     </div>
 
-                                    {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6">
-                                        {section.stats.map((stat, i) => (
-                                            <div key={i} className="flex flex-col gap-3">
-                                                <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-500 transition-colors hover:text-blue-600">
-                                                    {i === 0 ? <TrendingUp size={20} /> : i === 1 ? <ShieldCheck size={20} /> : <Clock size={20} />}
-                                                </div>
-                                                <span className="font-bold text-[#011023] text-sm leading-snug">{stat}</span>
-                                            </div>
-                                        ))}
-                                    </div> */}
-
                                     <div className="pt-2 text-center">
-                                        <button className={`group inline-flex items-center gap-3 px-8 py-3 bg-${section.color}-600 hover:bg-${section.color}-700 text-white rounded-xl font-bold uppercase tracking-wider text-sm transition-all duration-300 shadow-lg shadow-${section.color}-600/20 hover:shadow-${section.color}-600/40 hover:-translate-y-1`}>
+                                        <button onClick={() => setActiveForm(section.id)} className={`group inline-flex items-center gap-3 px-8 py-3 ${section.buttonClasses} text-white rounded-xl font-bold uppercase tracking-wider text-sm transition-all duration-300 shadow-lg hover:-translate-y-1`}>
                                             Partner With Us
                                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                         </button>
@@ -166,6 +408,15 @@ const Business = () => {
                     </div>
                 );
             })}
+
+            {/* Registration Modal Overlay */}
+            {activeForm && (
+                <RegistrationModal
+                    activeForm={activeForm}
+                    onClose={() => setActiveForm(null)}
+                    sections={sections}
+                />
+            )}
         </div>
     );
 };

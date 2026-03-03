@@ -7,8 +7,7 @@ const businessRequestSchema = new mongoose.Schema({
     },
     businessCategory: {
         type: String,
-        required: true,
-        enum: ['garage', 'charging', 'parking', 'store']
+        required: true
     },
     businessName: {
         type: String,

@@ -32,6 +32,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/garages', require('./routes/garageRoutes'));
 app.use('/api/charging-stations', require('./routes/chargingStationRoutes'));
 app.use('/api/website-reviews', require('./routes/websiteReviewRoutes'));
+app.use('/api/business-reviews', require('./routes/businessReviewRoutes'));
 app.use('/api/business-requests', require('./routes/businessRequestRoutes'));
 app.use('/api/employees', require('./routes/employeeRoutes'));
 

@@ -4,9 +4,9 @@ const { createAdminNotification } = require('./notificationController');
 // Create a new message from the contact form
 exports.createMessage = async (req, res) => {
     try {
-        const { name, email, phone, subject, message } = req.body;
+        const { name, email, phone, subject, company, message, type } = req.body;
 
-        if (!name || !email || !subject || !message) {
+        if (!name || !email || !message) {
             return res.status(400).json({ success: false, message: "Please provide all required fields." });
         }
 
@@ -76,8 +76,10 @@ exports.createMessage = async (req, res) => {
             name,
             email,
             phone,
+            company,
             subject,
-            message
+            message,
+            type: type || 'website'
         });
 
         await newMessage.save();
@@ -86,8 +88,8 @@ exports.createMessage = async (req, res) => {
         createAdminNotification({
             eventType: 'message_received',
             title: 'New Contact Message',
-            message: `${name} (${email}) sent a message: "${subject}".`,
-            meta: { messageId: newMessage.messageId, name, email, subject }
+            message: `${name} (${email}) sent a message.`,
+            meta: { messageId: newMessage.messageId, name, email, type }
         });
 
         res.status(201).json({ success: true, message: "Message sent successfully!", data: newMessage });
