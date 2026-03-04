@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, RefreshCw } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
+    const highlightedRow = useHighlight(payments);
     const [loading, setLoading] = useState(true);
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -113,62 +115,65 @@ const Payments = () => {
                                         No payments found.
                                     </td>
                                 </tr>
-                            ) : payments.map((payment) => (
-                                <tr key={payment._id} className="hover:bg-blue-50/30 text-center mt-2 transition-colors">
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]" title={payment.paymentId || payment._id}>
-                                        {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
-                                    </td>
-                                    <td className="p-4 text-center w-[10%]">
-                                        <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getTypeColor(payment.type)}`}>
-                                            {payment.type || 'Booking'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[18%]">
-                                        <div className="font-bold text-[#011023]">{getCustomerName(payment)}</div>
-                                        <div className="text-xs text-gray-500 font-mono tracking-wide">{payment.user?.userId || ''}</div>
-                                    </td>
-                                    <td className="p-4 text-center w-[8%]">
-                                        <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${payment.type === 'Subscription' ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
-                                            {payment.type === 'Subscription' ? 'Vendor' : 'Customer'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[18%]">
-                                        {payment.type === 'Subscription' ? (
-                                            <div className="font-semibold text-gray-800 text-sm">Subscription Plan</div>
-                                        ) : (
-                                            <div className="font-semibold text-gray-800 text-sm">
-                                                {(() => {
-                                                    const title = (payment.booking?.service?.title || '').toLowerCase();
-                                                    if (title.includes('parking')) return 'Parking';
-                                                    if (title.includes('charging') || title.includes('station')) return 'Station';
-                                                    if (title.includes('store') || title.includes('product') || title.includes('purchase')) return 'Store';
-                                                    return 'Service';
-                                                })()}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-center w-[15%]">
-                                        <span className="text-sm text-gray-600 whitespace-nowrap">
-                                            {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            {' '}
-                                            {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[9%]">
-                                        <span className="text-sm font-bold text-gray-800">
-                                            ₹{payment.amount}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[8%]">
-                                        <span className="text-sm text-gray-600 whitespace-nowrap">{payment.method}</span>
-                                    </td>
-                                    <td className="p-4 text-center w-[8%]">
-                                        <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
-                                            {payment.status || 'Pending'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
+                            ) : payments.map((payment) => {
+                                const rowId = payment.paymentId || payment._id;
+                                return (
+                                    <tr key={payment._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]" title={payment.paymentId || payment._id}>
+                                            {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
+                                        </td>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getTypeColor(payment.type)}`}>
+                                                {payment.type || 'Booking'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[18%]">
+                                            <div className="font-bold text-[#011023]">{getCustomerName(payment)}</div>
+                                            <div className="text-xs text-gray-500 font-mono tracking-wide">{payment.user?.userId || ''}</div>
+                                        </td>
+                                        <td className="p-4 text-center w-[8%]">
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${payment.type === 'Subscription' ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
+                                                {payment.type === 'Subscription' ? 'Vendor' : 'Customer'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[18%]">
+                                            {payment.type === 'Subscription' ? (
+                                                <div className="font-semibold text-gray-800 text-sm">Subscription Plan</div>
+                                            ) : (
+                                                <div className="font-semibold text-gray-800 text-sm">
+                                                    {(() => {
+                                                        const title = (payment.booking?.service?.title || '').toLowerCase();
+                                                        if (title.includes('parking')) return 'Parking';
+                                                        if (title.includes('charging') || title.includes('station')) return 'Station';
+                                                        if (title.includes('store') || title.includes('product') || title.includes('purchase')) return 'Store';
+                                                        return 'Service';
+                                                    })()}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-center w-[15%]">
+                                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                                                {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {' '}
+                                                {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[9%]">
+                                            <span className="text-sm font-bold text-gray-800">
+                                                ₹{payment.amount}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[8%]">
+                                            <span className="text-sm text-gray-600 whitespace-nowrap">{payment.method}</span>
+                                        </td>
+                                        <td className="p-4 text-center w-[8%]">
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
+                                                {payment.status || 'Pending'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { Search, MoreVertical, Eye, Download, X, Trash2, RefreshCw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import useHighlight from '../hooks/useHighlight';
 
 const Bookings = () => {
     const [bookings, setBookings] = useState([]);
+    const highlightedRow = useHighlight(bookings);
     const [loading, setLoading] = useState(true);
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -201,53 +203,56 @@ const Bookings = () => {
                                         No bookings found.
                                     </td>
                                 </tr>
-                            ) : bookings.map((booking) => (
-                                <tr key={booking._id} className="hover:bg-blue-50/30 text-center mt-2 transition-colors">
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
-                                        {booking.bookingId || booking._id.substring(0, 8).toUpperCase()}
-                                    </td>
-                                    <td className="p-4 text-center w-[18%]">
-                                        <div className="font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
-                                        <div className="text-xs text-gray-500 font-mono tracking-wide">{booking.user?.userId || ""}</div>
-                                    </td>
-                                    <td className="p-4 text-center w-[25%]">
-                                        <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
-                                            {booking.service?.title}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            {booking.vehicle?.make} {booking.vehicle?.model}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center w-[18%]">
-                                        <span className="text-sm text-gray-600">
-                                            {booking.schedule?.date} {booking.schedule?.time}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[9%]">
-                                        <span className="text-sm font-bold text-gray-800">
-                                            ₹{booking.payment?.amount || booking.service?.price || '0'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[10%]">
-                                        <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
-                                            {booking.status || 'Pending'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[10%]">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
-                                                <Eye size={18} />
-                                            </button>
-                                            <button onClick={() => handleDownloadInvoice(booking)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Invoice">
-                                                <Download size={18} />
-                                            </button>
-                                            <button onClick={() => handleDeleteBooking(booking._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Booking">
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                            ) : bookings.map((booking) => {
+                                const rowId = booking.bookingId || booking._id;
+                                return (
+                                    <tr key={booking._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
+                                            {booking.bookingId || booking._id.substring(0, 8).toUpperCase()}
+                                        </td>
+                                        <td className="p-4 text-center w-[18%]">
+                                            <div className="font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
+                                            <div className="text-xs text-gray-500 font-mono tracking-wide">{booking.user?.userId || ""}</div>
+                                        </td>
+                                        <td className="p-4 text-center w-[25%]">
+                                            <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
+                                                {booking.service?.title}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                {booking.vehicle?.make} {booking.vehicle?.model}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-center w-[18%]">
+                                            <span className="text-sm text-gray-600">
+                                                {booking.schedule?.date} {booking.schedule?.time}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[9%]">
+                                            <span className="text-sm font-bold text-gray-800">
+                                                ₹{booking.payment?.amount || booking.service?.price || '0'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
+                                                {booking.status || 'Pending'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button onClick={() => handleDownloadInvoice(booking)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Invoice">
+                                                    <Download size={18} />
+                                                </button>
+                                                <button onClick={() => handleDeleteBooking(booking._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Booking">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

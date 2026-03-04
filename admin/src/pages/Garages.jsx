@@ -14,8 +14,11 @@ const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV', 'PREMIUM'];
 
 const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: false, ownerName: '', ownerContact: '', ownerEmail: '' };
 
+import useHighlight from '../hooks/useHighlight';
+
 const Garages = () => {
     const [garages, setGarages] = useState([]);
+    const highlightedRow = useHighlight(garages);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -137,56 +140,59 @@ const Garages = () => {
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">Loading…</td></tr>
                             ) : filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No garages found</td></tr>
-                            ) : filtered.map((garage) => (
-                                <tr key={garage._id} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="p-4">
-                                        <div className="font-bold text-[#052558] tracking-widest">{garage.garageId}</div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="font-bold text-[#011023]">{garage.name}</div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex flex-col items-center justify-center gap-1.5">
-                                            <div className="text-center">
-                                                <div className="font-semibold text-gray-800 text-sm">{garage.district}, {garage.state}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5 normal-case">{garage.address}</div>
+                            ) : filtered.map((garage) => {
+                                const rowId = garage.garageId || garage._id;
+                                return (
+                                    <tr key={garage._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                        <td className="p-4">
+                                            <div className="font-bold text-[#052558] tracking-widest">{garage.garageId}</div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="font-bold text-[#011023]">{garage.name}</div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-1.5">
+                                                <div className="text-center">
+                                                    <div className="font-semibold text-gray-800 text-sm">{garage.district}, {garage.state}</div>
+                                                    <div className="text-xs text-gray-500 mt-0.5 normal-case">{garage.address}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                            {(garage.type || []).map(t => (
-                                                <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-semibold">{t}</span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        {garage.pickupDrop ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 font-bold rounded-lg text-sm">Yes</span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 font-bold rounded-lg text-sm">No</span>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 font-bold rounded-lg text-sm">
-                                            {garage.rating ? `${garage.rating} ` : 'N/A '}<span className="text-yellow-400">★</span>
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <button onClick={() => openView(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View">
-                                                <Eye size={17} />
-                                            </button>
-                                            <button onClick={() => openEdit(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit">
-                                                <Edit size={17} />
-                                            </button>
-                                            <button onClick={() => handleDelete(garage._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
-                                                <Trash2 size={17} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex flex-wrap gap-1 justify-center">
+                                                {(garage.type || []).map(t => (
+                                                    <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-semibold">{t}</span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            {garage.pickupDrop ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 font-bold rounded-lg text-sm">Yes</span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 font-bold rounded-lg text-sm">No</span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 font-bold rounded-lg text-sm">
+                                                {garage.rating ? `${garage.rating} ` : 'N/A '}<span className="text-yellow-400">★</span>
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button onClick={() => openView(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View">
+                                                    <Eye size={17} />
+                                                </button>
+                                                <button onClick={() => openEdit(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit">
+                                                    <Edit size={17} />
+                                                </button>
+                                                <button onClick={() => handleDelete(garage._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
+                                                    <Trash2 size={17} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

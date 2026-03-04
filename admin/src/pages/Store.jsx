@@ -26,8 +26,11 @@ const emptyForm = {
 
 const initialStores = [];
 
+import useHighlight from '../hooks/useHighlight';
+
 const Store = () => {
     const [stores, setStores] = useState(initialStores);
+    const highlightedRow = useHighlight(stores);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -192,54 +195,57 @@ const Store = () => {
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                             {filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No stores found</td></tr>
-                            ) : filtered.map((store) => (
-                                <tr key={store.id} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="p-4 text-center">
-                                        <span className="font-bold text-[#011023] tracking-widest">{store.id}</span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="font-bold text-[#011023]">{store.name}</span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-start justify-center gap-1.5">
-                                            <div className="text-center">
-                                                <div className="font-semibold text-gray-800 text-sm">{store.district}, {store.state}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">{store.address}</div>
+                            ) : filtered.map((store) => {
+                                const rowId = store.id || store._id;
+                                return (
+                                    <tr key={store.id || store._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                        <td className="p-4 text-center">
+                                            <span className="font-bold text-[#011023] tracking-widest">{store.id}</span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="font-bold text-[#011023]">{store.name}</span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-start justify-center gap-1.5">
+                                                <div className="text-center">
+                                                    <div className="font-semibold text-gray-800 text-sm">{store.district}, {store.state}</div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">{store.address}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="font-black text-[#052558] text-[14px] ">
-                                            {store.ports}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                            {(store.type || []).map(t => (
-                                                <span key={t} className="px-2.5 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-700">{t}</span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${getStatusColor(store.status)}`}>
-                                            {store.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <button onClick={() => openView(store)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Store">
-                                                <Eye size={16} />
-                                            </button>
-                                            <button onClick={() => openEdit(store)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit Store">
-                                                <Edit size={16} />
-                                            </button>
-                                            <button onClick={() => handleDelete(store.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="font-black text-[#052558] text-[14px] ">
+                                                {store.ports}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex flex-wrap gap-1 justify-center">
+                                                {(store.type || []).map(t => (
+                                                    <span key={t} className="px-2.5 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-700">{t}</span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${getStatusColor(store.status)}`}>
+                                                {store.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button onClick={() => openView(store)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Store">
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button onClick={() => openEdit(store)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit Store">
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button onClick={() => handleDelete(store.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

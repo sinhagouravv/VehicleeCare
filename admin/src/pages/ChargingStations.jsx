@@ -26,8 +26,11 @@ const emptyForm = {
 
 const initialStations = [];
 
+import useHighlight from '../hooks/useHighlight';
+
 const ChargingStations = () => {
     const [stations, setStations] = useState(initialStations);
+    const highlightedRow = useHighlight(stations);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -192,54 +195,57 @@ const ChargingStations = () => {
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                             {filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No stations found</td></tr>
-                            ) : filtered.map((station) => (
-                                <tr key={station.id} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="p-4 text-center">
-                                        <span className="font-bold text-[#011023] tracking-widest">{station.id}</span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="font-bold text-[#011023]">{station.name}</span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-start justify-center gap-1.5">
-                                            <div className="text-center">
-                                                <div className="font-semibold text-gray-800 text-sm">{station.district}, {station.state}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">{station.address}</div>
+                            ) : filtered.map((station) => {
+                                const rowId = station.id || station._id;
+                                return (
+                                    <tr key={station.id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                        <td className="p-4 text-center">
+                                            <span className="font-bold text-[#011023] tracking-widest">{station.id}</span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="font-bold text-[#011023]">{station.name}</span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-start justify-center gap-1.5">
+                                                <div className="text-center">
+                                                    <div className="font-semibold text-gray-800 text-sm">{station.district}, {station.state}</div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">{station.address}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="font-black text-[#052558] text-[14px] ">
-                                            {station.ports}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                            {(station.type || []).map(t => (
-                                                <span key={t} className="px-2.5 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-700">{t}</span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${getStatusColor(station.status)}`}>
-                                            {station.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Station">
-                                                <Eye size={16} />
-                                            </button>
-                                            <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit Station">
-                                                <Edit size={16} />
-                                            </button>
-                                            <button onClick={() => handleDelete(station.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="font-black text-[#052558] text-[14px] ">
+                                                {station.ports}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex flex-wrap gap-1 justify-center">
+                                                {(station.type || []).map(t => (
+                                                    <span key={t} className="px-2.5 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-700">{t}</span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${getStatusColor(station.status)}`}>
+                                                {station.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Station">
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit Station">
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button onClick={() => handleDelete(station.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

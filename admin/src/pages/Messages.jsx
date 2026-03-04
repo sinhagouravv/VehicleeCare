@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Mail, Eye, Trash2, X } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Messages = () => {
     const [messages, setMessages] = useState([]);
+    const highlightedRow = useHighlight(messages);
     const [loading, setLoading] = useState(true);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
@@ -116,70 +118,73 @@ const Messages = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {messages.map((message) => (
-                                <tr key={message._id} className="hover:bg-white/50 transition-colors group">
-                                    <td className="p-4.5">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-[#011023] text-[13px]">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4.5">
-                                        <div className="flex flex-col items-center">
-                                            <span className="font-bold text-[#011023] text-[15px]">{message.name}</span>
-                                            {message.company && <span className="text-xs font-semibold text-purple-600/80 mb-0.5">@ {message.company}</span>}
-                                            {message.phone && <span className="text-xs text-gray-400">{message.phone}</span>}
-                                            <span className="text-sm text-gray-500">{message.email}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4.5 text-center">
-                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            {message.type || 'website'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4.5 text-left">
-                                        <span className={`font-semibold ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
-                                            {message.subject}
-                                        </span>
-                                    </td>
-                                    <td className="p-4.5 max-w-xs truncate text-left">
-                                        <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} title={message.message}>
-                                            {message.message}
-                                        </span>
-                                    </td>
-                                    <td className="p-4.5">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-semibold text-[#011023]">
-                                                {new Date(message.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {messages.map((message) => {
+                                const rowId = message.messageId || message._id;
+                                return (
+                                    <tr key={message._id} id={`row-${rowId}`} className={`transition-all duration-1000 group ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-white/50'}`}>
+                                        <td className="p-4.5">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-[#011023] text-[13px]">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4.5">
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-bold text-[#011023] text-[15px]">{message.name}</span>
+                                                {message.company && <span className="text-xs font-semibold text-purple-600/80 mb-0.5">@ {message.company}</span>}
+                                                {message.phone && <span className="text-xs text-gray-400">{message.phone}</span>}
+                                                <span className="text-sm text-gray-500">{message.email}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4.5 text-center">
+                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {message.type || 'website'}
                                             </span>
-                                            <span className="text-xs text-gray-500">
-                                                {new Date(message.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                        </td>
+                                        <td className="p-4.5 text-left">
+                                            <span className={`font-semibold ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
+                                                {message.subject}
                                             </span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4.5 text-center">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${message.isRead
-                                            ? 'bg-gray-100 text-gray-600'
-                                            : 'bg-emerald-100 text-emerald-700'
-                                            }`}>
-                                            {message.isRead ? 'Read' : 'New'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4.5">
-                                        <div className="flex justify-center gap-3">
-                                            <button
-                                                onClick={() => handleViewMessage(message)}
-                                                className={`p-1.5 rounded-lg transition-colors text-blue-400 hover:text-blue-600 hover:bg-blue-50`}
-                                                title="View Message"
-                                            >
-                                                <Eye size={18} />
-                                            </button>
-                                            <button onClick={() => handleDelete(message._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="p-4.5 max-w-xs truncate text-left">
+                                            <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} title={message.message}>
+                                                {message.message}
+                                            </span>
+                                        </td>
+                                        <td className="p-4.5">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-semibold text-[#011023]">
+                                                    {new Date(message.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {new Date(message.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4.5 text-center">
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${message.isRead
+                                                ? 'bg-gray-100 text-gray-600'
+                                                : 'bg-emerald-100 text-emerald-700'
+                                                }`}>
+                                                {message.isRead ? 'Read' : 'New'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4.5">
+                                            <div className="flex justify-center gap-3">
+                                                <button
+                                                    onClick={() => handleViewMessage(message)}
+                                                    className={`p-1.5 rounded-lg transition-colors text-blue-400 hover:text-blue-600 hover:bg-blue-50`}
+                                                    title="View Message"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button onClick={() => handleDelete(message._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {messages.length === 0 && (
                                 <tr>
                                     <td colSpan="8" className="p-8 text-center text-gray-500 font-medium">

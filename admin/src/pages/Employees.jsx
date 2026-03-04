@@ -3,9 +3,11 @@ import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, 
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import useHighlight from '../hooks/useHighlight';
 
 const Employees = () => {
     const [employees, setEmployees] = useState([]);
+    const highlightedRow = useHighlight(employees);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -210,49 +212,52 @@ const Employees = () => {
                                     <tr>
                                         <td colSpan={7} className="py-16 text-gray-400 text-sm">No employees found.</td>
                                     </tr>
-                                ) : employees.map((employee) => (
-                                    <tr key={employee._id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="p-4">
-                                            <div className="font-bold text-[#011023] tracking-wider">{employee.userId || employee.employeeId || '—'}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-bold uppercase text-[#011023]">{employee.name}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="inline-block px-2.5 py-1 text-xs font-bold rounded-lg bg-[#f0f6ff] text-[#527FB0] border border-[#e6f0fa]">
-                                                {employee.category || 'System'}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-medium text-gray-700 text-sm">{employee.email}</div>
-                                            <div className="text-xs text-gray-500 mt-0.5">{employee.phone || '—'}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`inline-block px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(employee.role)}`}>
-                                                {formatRole(employee.role)}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-sm text-gray-600">{formatDate(employee.createdAt)}</span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-sm font-semibold text-gray-700">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Employee">
-                                                    <Eye size={17} />
-                                                </button>
-                                                <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download Action History">
-                                                    <Download size={17} />
-                                                </button>
-                                                <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable Employee">
-                                                    <UserX size={17} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                ) : employees.map((employee) => {
+                                    const rowId = employee.userId || employee.employeeId || employee._id;
+                                    return (
+                                        <tr key={employee._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                            <td className="p-4">
+                                                <div className="font-bold text-[#011023] tracking-wider">{employee.userId || employee.employeeId || '—'}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-bold uppercase text-[#011023]">{employee.name}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="inline-block px-2.5 py-1 text-xs font-bold rounded-lg bg-[#f0f6ff] text-[#527FB0] border border-[#e6f0fa]">
+                                                    {employee.category || 'System'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-medium text-gray-700 text-sm">{employee.email}</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">{employee.phone || '—'}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`inline-block px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(employee.role)}`}>
+                                                    {formatRole(employee.role)}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-sm text-gray-600">{formatDate(employee.createdAt)}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-sm font-semibold text-gray-700">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Employee">
+                                                        <Eye size={17} />
+                                                    </button>
+                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download Action History">
+                                                        <Download size={17} />
+                                                    </button>
+                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable Employee">
+                                                        <UserX size={17} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     )}

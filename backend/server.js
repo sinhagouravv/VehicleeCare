@@ -35,6 +35,7 @@ app.use('/api/website-reviews', require('./routes/websiteReviewRoutes'));
 app.use('/api/business-reviews', require('./routes/businessReviewRoutes'));
 app.use('/api/business-requests', require('./routes/businessRequestRoutes'));
 app.use('/api/employees', require('./routes/employeeRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
 
 app.get('/', (req, res) => {
     res.send('VehicleeCare Backend API');

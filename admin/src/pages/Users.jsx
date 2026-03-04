@@ -3,9 +3,11 @@ import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, 
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import useHighlight from '../hooks/useHighlight';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
+    const highlightedRow = useHighlight(users);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -210,44 +212,47 @@ const Users = () => {
                                     <tr>
                                         <td colSpan={7} className="py-16 text-gray-400 text-sm">No users found.</td>
                                     </tr>
-                                ) : users.map((user) => (
-                                    <tr key={user._id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="p-4">
-                                            <div className="font-bold text-[#011023] tracking-wider">{user.userId || '—'}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-bold uppercase text-[#011023]">{user.name}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="font-medium text-gray-700 text-sm">{user.email}</div>
-                                            <div className="text-xs text-gray-500 mt-0.5">{user.phone || '—'}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`inline-block px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(user.role)}`}>
-                                                {formatRole(user.role)}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-sm text-gray-600">{formatDate(user.createdAt)}</span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-sm font-semibold text-gray-700">{user.isVerified ? 'Verified' : 'Unverified'}</span>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => handleViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View User">
-                                                    <Eye size={17} />
-                                                </button>
-                                                <button onClick={() => handleDownloadPDF(user)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download PDF">
-                                                    <Download size={17} />
-                                                </button>
-                                                <button onClick={() => { setBanUser(user); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Ban User">
-                                                    <UserX size={17} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                ) : users.map((user) => {
+                                    const rowId = user.userId || user._id;
+                                    return (
+                                        <tr key={user._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                            <td className="p-4">
+                                                <div className="font-bold text-[#011023] tracking-wider">{user.userId || '—'}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-bold uppercase text-[#011023]">{user.name}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-medium text-gray-700 text-sm">{user.email}</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">{user.phone || '—'}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`inline-block px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(user.role)}`}>
+                                                    {formatRole(user.role)}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-sm text-gray-600">{formatDate(user.createdAt)}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-sm font-semibold text-gray-700">{user.isVerified ? 'Verified' : 'Unverified'}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => handleViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View User">
+                                                        <Eye size={17} />
+                                                    </button>
+                                                    <button onClick={() => handleDownloadPDF(user)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download PDF">
+                                                        <Download size={17} />
+                                                    </button>
+                                                    <button onClick={() => { setBanUser(user); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Ban User">
+                                                        <UserX size={17} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     )}
