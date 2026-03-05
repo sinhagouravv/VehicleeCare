@@ -5,6 +5,7 @@ const authController = require('../controllers/authController');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/admin-login', authController.adminLogin);
+router.post('/store-admin-login', authController.storeAdminLogin);
 router.post('/admin-forgot-password', authController.adminForgotPassword);
 router.post('/admin-verify-reset-otp', authController.adminVerifyResetOtp);
 router.post('/admin-reset-password', authController.adminResetPassword);

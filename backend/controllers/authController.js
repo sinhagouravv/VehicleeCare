@@ -161,6 +161,38 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
+// ── Store Admin Login (No 2FA Required) ──────────────────────
+exports.storeAdminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Email field receives either email or the raw numeric Admin ID
+        let admin = await Admin.findOne({
+            $or: [{ email: email }, { adminId: email }]
+        });
+
+        if (!admin) {
+            return res.status(401).json({ msg: 'Invalid store admin credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) {
+            return res.status(401).json({ msg: 'Invalid store admin credentials' });
+        }
+
+        const payload = { admin: { id: admin.adminId, role: admin.role, dbId: admin._id } };
+
+        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token, admin: { id: admin.adminId, email: admin.email, role: admin.role } });
+        });
+
+    } catch (err) {
+        console.error("Store Admin login error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
 // ── Admin Forgot Password (Send OTP) ────────────────────────
 exports.adminForgotPassword = async (req, res) => {
     try {
