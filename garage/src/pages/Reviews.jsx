@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, MessageSquare } from 'lucide-react';
 
 const Reviews = () => {
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setLastRefreshed(new Date());
+        }, 5000);
+        setLastRefreshed(new Date());
+        return () => clearInterval(timer);
+    }, []);
+
     // Mock Data
     const reviews = [
         { id: 1, customer: "Sarah J.", car: "Honda City", date: "Oct 24, 2023", rating: 5, comment: "Excellent service! They picked up my car on time and returned it looking brand new. The full synthetic oil change was reasonably priced." },
@@ -26,8 +36,13 @@ const Reviews = () => {
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Customer Reviews</h1>
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

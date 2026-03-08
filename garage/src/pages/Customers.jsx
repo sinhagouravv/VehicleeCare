@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Search, Mail, Phone, MapPin, MoreVertical } from 'lucide-react';
 
 const Customers = () => {
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setLastRefreshed(new Date());
+        }, 5000);
+        setLastRefreshed(new Date());
+        return () => clearInterval(timer);
+    }, []);
+
     const customers = [
         { id: 1, name: "Rahul Sharma", email: "rahul.s@example.com", phone: "+91 98765 43210", vehicles: 2, totalSpent: 15400, lastVisit: "Oct 24, 2023" },
         { id: 2, name: "Michael Chen", email: "michael.c@example.com", phone: "+91 87654 32109", vehicles: 1, totalSpent: 4200, lastVisit: "Oct 20, 2023" },
@@ -10,13 +20,17 @@ const Customers = () => {
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight flex items-center gap-3">
                     Customers
                 </h1>
-                <button className="px-4 py-2 bg-gradient-to-r from-[#052558] to-[#1a3c75] text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg transition-all">
-                    + Add Customer
-                </button>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                        {lastRefreshed
+                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                            : 'Loading…'}
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white/70 backdrop-blur-md border border-white rounded-2xl shadow-sm overflow-hidden">

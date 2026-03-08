@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Car, Search, Wrench, Settings2, Clock, MapPin } from 'lucide-react';
 
 const Vehicles = () => {
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setLastRefreshed(new Date());
+        }, 5000);
+        setLastRefreshed(new Date());
+        return () => clearInterval(timer);
+    }, []);
+
     const vehicles = [
         { id: "MH01CD4567", model: "Hyundai Creta", year: 2021, owner: "Rahul S.", status: "In Service", nextService: "Pending", type: "SUV" },
         { id: "MH02AB1234", model: "Honda City", year: 2019, owner: "Michael C.", status: "Ready", nextService: "Mar 2024", type: "Sedan" },
@@ -10,13 +20,17 @@ const Vehicles = () => {
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight flex items-center gap-3">
                     Vehicles Directory
                 </h1>
-                <button className="px-4 py-2 bg-gradient-to-r from-[#052558] to-[#1a3c75] text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg transition-all">
-                    Register Vehicle
-                </button>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                        {lastRefreshed
+                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                            : 'Loading…'}
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white/70 backdrop-blur-md border border-white rounded-2xl shadow-sm overflow-hidden">
@@ -66,7 +80,7 @@ const Vehicles = () => {
                                 <div className="flex items-center gap-2 text-sm">
                                     <span className="text-gray-400 font-medium w-24">Status:</span>
                                     <span className={`font-bold ${vehicle.status === 'In Service' ? 'text-blue-600' :
-                                            vehicle.status === 'Ready' ? 'text-emerald-600' : 'text-gray-600'
+                                        vehicle.status === 'Ready' ? 'text-emerald-600' : 'text-gray-600'
                                         }`}>
                                         {vehicle.status}
                                     </span>

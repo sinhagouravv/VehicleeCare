@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Eye, Filter, CheckCircle, Clock } from 'lucide-react';
 
 const MyBookings = () => {
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setLastRefreshed(new Date());
+        }, 5000);
+        setLastRefreshed(new Date());
+        return () => clearInterval(timer);
+    }, []);
+
     // Mock Data
     const bookings = [
         { id: "BK-8902", type: "General Service", car: "Honda City", plate: "MH02AB1234", customer: "Sarah J.", dropTime: "Today, 10:00 AM", status: "In Progress", amount: "₹3,400" },
@@ -21,8 +31,13 @@ const MyBookings = () => {
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Assigned Bookings</h1>
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
