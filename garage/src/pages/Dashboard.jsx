@@ -6,8 +6,7 @@ const Dashboard = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Today's Overview</h1>
-                    <p className="text-gray-500 font-medium mt-1">Welcome back, VehicleeCare Downtown!</p>
+                    <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Dashboard</h1>
                 </div>
             </div>
 

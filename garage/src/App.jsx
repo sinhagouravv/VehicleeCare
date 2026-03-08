@@ -2,7 +2,11 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import Payments from './pages/Payments';
 import MyBookings from './pages/MyBookings';
+import Customers from './pages/Customers';
+import Staff from './pages/Staff';
+import Vehicles from './pages/Vehicles';
 import Settings from './pages/Settings';
 import Services from './pages/Services';
 import Reviews from './pages/Reviews';
@@ -16,7 +20,11 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="payments" element={<Payments />} />
           <Route path="my-bookings" element={<MyBookings />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="staff" element={<Staff />} />
+          <Route path="vehicles" element={<Vehicles />} />
           <Route path="services" element={<Services />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="notifications" element={<Notifications />} />
