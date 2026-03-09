@@ -32,7 +32,7 @@ const MyBookings = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Assigned Bookings</h1>
+                <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Assigned Bookings</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -41,28 +41,6 @@ const MyBookings = () => {
             </div>
 
             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="p-4 border-b border-[#e6f0fa] flex gap-4 bg-white/40 justify-between items-center">
-                    <div className="relative w-80">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search by ID, Customer, Plate..."
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023] placeholder-gray-400"
-                        />
-                    </div>
-                    <div className="flex gap-3">
-                        <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                            <option>All Status</option>
-                            <option>Confirmed</option>
-                            <option>In Progress</option>
-                            <option>Ready</option>
-                        </select>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 transition-colors">
-                            <Filter size={16} /> Filter
-                        </button>
-                    </div>
-                </div>
-
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
