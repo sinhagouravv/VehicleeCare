@@ -448,13 +448,12 @@ const Settings = () => {
 
                             {/* 1. Change Password */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">1️⃣ Change Password</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Update your admin account password.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold text-[#011023] uppercase flex items-center gap-2">Change Password</h2>
                                 </div>
-                                <div className="p-6 space-y-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase space-y-6">
                                     <form onSubmit={handlePasswordChange}>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Current Password</label>
                                                 <input type="password" placeholder="••••••••" value={securitySettings.currentPassword} onChange={e => handleSecurityChange('currentPassword', e.target.value)} className="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 transition-shadow text-sm font-medium text-[#011023]" />
@@ -481,23 +480,23 @@ const Settings = () => {
                                                 <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Confirm Password</label>
                                                 <input type="password" placeholder="••••••••" value={securitySettings.confirmNewPassword} onChange={e => handleSecurityChange('confirmNewPassword', e.target.value)} className="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 transition-shadow text-sm font-medium text-[#011023]" />
                                             </div>
-                                        </div>
-                                        <div className="mt-6">
+                                            <div className="mt-6">
                                             <button type="submit" className="px-5 py-2.5 bg-[#011023] text-white font-bold rounded-xl shadow-sm hover:bg-[#052558] transition-colors uppercase text-[13px]">
                                                 Update Password
                                             </button>
                                         </div>
+                                        </div>
+                                        
                                     </form>
                                 </div>
                             </div>
 
                             {/* 2. Two-Factor Authentication */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">2️⃣ Two-Factor Authentication (Very Important)</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Enterprise-level account security.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Two-Factor Authentication</h2>
                                 </div>
-                                <div className="p-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -524,12 +523,11 @@ const Settings = () => {
 
                             {/* 3. Login Security */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">3️⃣ Login Security</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Monitor and manage active admin sessions.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Login Security</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 ">
                                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                             <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Last Login Time</p>
                                             <p className="font-bold text-[#011023] text-sm">{securitySettings.lastLoginTime}</p>
@@ -542,21 +540,22 @@ const Settings = () => {
                                             <p className="text-xs text-blue-500 uppercase font-semibold mb-1">Active Sessions</p>
                                             <p className="font-bold text-blue-900 text-sm">{securitySettings.activeSessions} Devices</p>
                                         </div>
-                                    </div>
-                                    <div>
+                                        <div>
                                         <button onClick={handleLogoutAllDevices} className="px-5 py-2.5 bg-red-50 text-red-600 border border-red-100 font-bold rounded-xl shadow-sm hover:bg-red-100 transition-colors uppercase text-[13px]">
                                             Logout From All Devices
                                         </button>
                                     </div>
+                                    </div>
+                                    
                                 </div>
                             </div>
 
                             {/* 4. Session Settings */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">4️⃣ Session Settings</h2>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Session Settings</h2>
                                 </div>
-                                <div className="p-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Auto Logout After (Minutes)</label>
@@ -583,11 +582,10 @@ const Settings = () => {
 
                             {/* 5. Account Protection */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">5️⃣ Account Protection</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Enforce strict rules to prevent unauthorized access.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Account Protection</h2>
                                 </div>
-                                <div className="p-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Lock Account After (Failed Attempts)</label>
@@ -621,12 +619,11 @@ const Settings = () => {
 
                             {/* 1. Booking Notifications */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">1️⃣ Booking Notifications</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Operational alerts for booking status changes.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Booking Notifications</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -677,6 +674,15 @@ const Settings = () => {
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                             </label>
                                         </div>
+                                        <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
+                                            <div>
+                                                <h3 className="font-bold text-[#011023] text-sm uppercase">Pickup Completed</h3>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" checked={notificationSettings.pickupAssigned} onChange={e => handleNotificationChange('pickupAssigned', e.target.checked)} className="sr-only peer" />
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
+                                            </label>
+                                        </div>
 
                                     </div>
                                 </div>
@@ -684,12 +690,11 @@ const Settings = () => {
 
                             {/* 2. Payment Notifications */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">2️⃣ Payment Notifications</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Crucial alerts for business control and revenue tracking.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Payment Notifications</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -720,29 +725,17 @@ const Settings = () => {
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                             </label>
                                         </div>
-
-                                        <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
-                                            <div>
-                                                <h3 className="font-bold text-[#011023] text-sm uppercase">Pending Payment Reminder</h3>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.pendingPaymentReminder} onChange={e => handleNotificationChange('pendingPaymentReminder', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
-                                        </div>
-
                                     </div>
                                 </div>
                             </div>
 
                             {/* 3. Garage Notifications */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">3️⃣ Garage Notifications</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Alerts regarding partner garage statuses.</p>
+                               <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Garage Notifications</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -773,29 +766,17 @@ const Settings = () => {
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                             </label>
                                         </div>
-
-                                        <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
-                                            <div>
-                                                <h3 className="font-bold text-[#011023] text-sm uppercase">Low Rating Alert</h3>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.lowRatingAlert} onChange={e => handleNotificationChange('lowRatingAlert', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
-                                        </div>
-
                                     </div>
                                 </div>
                             </div>
 
                             {/* 4. User Activity Alerts */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">4️⃣ User Activity Alerts</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Security-level alerts for user actions.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">User Activity Alerts</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -833,12 +814,11 @@ const Settings = () => {
 
                             {/* 5. System Alerts */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">5️⃣ System Alerts</h2>
-                                    <p className="text-[13px] text-gray-500 mt-1 uppercase">Technical notifications regarding platform health.</p>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">System Alerts</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -869,17 +849,6 @@ const Settings = () => {
                                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                             </label>
                                         </div>
-
-                                        <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
-                                            <div>
-                                                <h3 className="font-bold text-[#011023] text-sm uppercase">Downtime Notification</h3>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.downtimeNotification} onChange={e => handleNotificationChange('downtimeNotification', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
-                                        </div>
-
                                     </div>
                                 </div>
                             </div>
@@ -893,11 +862,11 @@ const Settings = () => {
 
                             {/* 1. Platform Financial Settings */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">Platform Financial Settings</h2>
+                               <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Platform Financial Settings</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Platform Fee (₹ or %)</label>
                                             <input type="text" value={billingSettings.platformFee} onChange={e => handleBillingChange('platformFee', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
@@ -928,11 +897,11 @@ const Settings = () => {
 
                             {/* 2. Commission Settings */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">Commission Settings (Very Important)</h2>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Commission Settings (Very Important)</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Garage Commission (%)</label>
                                             <input type="number" value={billingSettings.garageCommission} onChange={e => handleBillingChange('garageCommission', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
@@ -951,11 +920,11 @@ const Settings = () => {
 
                             {/* 3. Payment Settings */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">Payment Settings</h2>
+                                <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Payment Settings</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
@@ -1004,11 +973,11 @@ const Settings = () => {
 
                             {/* 4. Invoice & Tax Settings */}
                             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-[#e6f0fa]">
-                                    <h2 className="text-lg font-bold text-[#011023] uppercase">Invoice & Tax Settings</h2>
+                               <div className="pt-4 pl-6">
+                                    <h2 className="text-lg font-bold uppercase text-[#011023] flex items-center gap-2">Invoice & Tax Settings</h2>
                                 </div>
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Invoice Prefix</label>
                                             <input type="text" value={billingSettings.invoicePrefix} onChange={e => handleBillingChange('invoicePrefix', e.target.value)} placeholder="INV-" className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
@@ -1022,9 +991,9 @@ const Settings = () => {
                                             <input type="text" maxLength="15" value={billingSettings.companyGst} onChange={e => handleBillingChange('companyGst', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
                                         </div>
                                     </div>
-                                    <div className="space-y-2 mb-6">
+                                    <div className="space-y-2">
                                         <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Billing Address</label>
-                                        <textarea rows="3" value={billingSettings.billingAddress} onChange={e => handleBillingChange('billingAddress', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] custom-scrollbar"></textarea>
+                                        <textarea rows="2" value={billingSettings.billingAddress} onChange={e => handleBillingChange('billingAddress', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] custom-scrollbar"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -1091,7 +1060,7 @@ const Settings = () => {
                                 </div>
 
                                 {/* Tab Content Wrapper */}
-                                <div className="space-y-8 overflow-y-auto custom-scrollbar" style={{ maxHeight: "calc(100vh - 340px)" }}>
+                                <div className="space-y-8 overflow-y-auto custom-scrollbar" style={{ maxHeight: "calc(100vh - 360px)" }}>
 
                                     {/* Dynamic Services Tab */}
                                     {(() => {
@@ -1133,7 +1102,7 @@ const Settings = () => {
                                         return (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                                 {Object.entries(servicesByCategory).map(([category, items]) => (
-                                                    <div key={category} className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] mb-1.5">
+                                                    <div key={category} className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] mb-0.5 ">
                                                         <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">{category}</h3>
                                                         <div className="space-y-0.5 max-h-[140px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                                             {items.map(s => (
