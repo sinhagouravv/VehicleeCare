@@ -23,6 +23,9 @@ const PaymentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Booking'
     },
+    garageId: {
+        type: String
+    },
     amount: {
         type: Number,
         required: true

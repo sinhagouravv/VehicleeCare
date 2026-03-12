@@ -91,3 +91,22 @@ exports.getAllPayments = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error fetching payments' });
     }
 };
+
+// @desc    Get payments for a specific garage
+// @route   GET /api/payments/garage/:garageId
+exports.getGaragePayments = async (req, res) => {
+    try {
+        const payments = await Payment.find({ garageId: req.params.garageId })
+            .populate('user', 'name email userId')
+            .populate({
+                path: 'booking',
+                select: 'bookingId vehicle service status'
+            })
+            .sort({ date: -1 });
+
+        res.status(200).json({ success: true, count: payments.length, data: payments });
+    } catch (error) {
+        console.error("Error fetching garage payments:", error);
+        res.status(500).json({ success: false, message: 'Server Error fetching garage payments' });
+    }
+};
