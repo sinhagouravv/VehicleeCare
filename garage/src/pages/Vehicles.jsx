@@ -3,20 +3,81 @@ import { Car, Search, Wrench, Settings2, Clock, MapPin } from 'lucide-react';
 
 const Vehicles = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [vehicles, setVehicles] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setLastRefreshed(new Date());
-        }, 5000);
-        setLastRefreshed(new Date());
+        const fetchVehicles = async () => {
+            try {
+                const storedUser = localStorage.getItem('garageUser');
+                if (!storedUser) return;
+                const user = JSON.parse(storedUser);
+
+                const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+                const data = await res.json();
+                if (data.success) {
+                    const vehicleMap = {};
+                    
+                    data.data.forEach(b => {
+                        if (!b.vehicle || !b.vehicle.number) return; // Skip if no license plate
+
+                        const plate = b.vehicle.number;
+                        const date = new Date(b.schedule?.date || b.createdAt);
+
+                        // Keep the latest booking for status update
+                        if (!vehicleMap[plate] || date > vehicleMap[plate].lastServiceDate) {
+                            vehicleMap[plate] = {
+                                id: plate,
+                                model: `${b.vehicle.make} ${b.vehicle.model}`.trim(),
+                                year: b.vehicle.year || 'N/A',
+                                owner: b.user?.name || 'Unknown',
+                                status: b.status,
+                                type: b.vehicle.type || 'Unknown',
+                                lastServiceDate: date
+                            };
+                        }
+                    });
+
+                    // Format Next Service (Mock calculation based on 6 months from last visit)
+                    const formattedVehicles = Object.values(vehicleMap).map(v => {
+                        let nextService = 'Pending';
+                        if (!isNaN(v.lastServiceDate.getTime())) {
+                            const nextDate = new Date(v.lastServiceDate);
+                            nextDate.setMonth(nextDate.getMonth() + 6);
+                            if (nextDate > new Date()) {
+                                nextService = nextDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+                            }
+                        }
+                        
+                        // Default Status mapping based on last booking
+                        let displayStatus = 'Ready';
+                        if (['Pending', 'Confirmed', 'In Progress'].includes(v.status)) {
+                            displayStatus = 'In Service';
+                        } else if (v.status === 'Completed') {
+                            displayStatus = 'Completed';
+                        }
+
+                        return {
+                            ...v,
+                            status: displayStatus,
+                            nextService
+                        };
+                    }).sort((a, b) => b.lastServiceDate - a.lastServiceDate);
+
+                    setVehicles(formattedVehicles);
+                }
+            } catch (error) {
+                console.error("Failed to fetch garage vehicles", error);
+            } finally {
+                setLoading(false);
+                setLastRefreshed(new Date());
+            }
+        };
+
+        fetchVehicles();
+        const timer = setInterval(fetchVehicles, 5000);
         return () => clearInterval(timer);
     }, []);
-
-    const vehicles = [
-        { id: "MH01CD4567", model: "Hyundai Creta", year: 2021, owner: "Rahul S.", status: "In Service", nextService: "Pending", type: "SUV" },
-        { id: "MH02AB1234", model: "Honda City", year: 2019, owner: "Michael C.", status: "Ready", nextService: "Mar 2024", type: "Sedan" },
-        { id: "KA05XY9876", model: "Maruti Swift", year: 2022, owner: "Sarah J.", status: "Completed", nextService: "Jan 2024", type: "Hatchback" },
-    ];
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
@@ -60,14 +121,18 @@ const Vehicles = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 p-6">
-                    {vehicles.map((vehicle) => (
+                    {loading ? (
+                        <div className="col-span-full text-center py-10 text-gray-500">Loading vehicles...</div>
+                    ) : vehicles.length === 0 ? (
+                        <div className="col-span-full text-center py-10 text-gray-400">No vehicles have been serviced here yet.</div>
+                    ) : vehicles.map((vehicle) => (
                         <div key={vehicle.id} className="bg-white border border-[#e6f0fa] rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <h3 className="font-black text-[#011023] text-xl tracking-tight">{vehicle.model}</h3>
+                                    <h3 className="font-black text-[#011023] text-xl tracking-tight truncate max-w-[150px]" title={vehicle.model}>{vehicle.model}</h3>
                                     <p className="text-gray-500 font-semibold text-sm">{vehicle.year} • {vehicle.type}</p>
                                 </div>
-                                <span className="bg-yellow-100 text-yellow-800 font-mono font-bold px-3 py-1 rounded border border-yellow-200 shadow-sm text-sm">
+                                <span className="bg-yellow-100 text-yellow-800 font-mono font-bold px-3 py-1 rounded border border-yellow-200 shadow-sm text-sm truncate max-w-[120px]" title={vehicle.id}>
                                     {vehicle.id}
                                 </span>
                             </div>
@@ -75,12 +140,12 @@ const Vehicles = () => {
                             <div className="space-y-3 mb-5">
                                 <div className="flex items-center gap-2 text-sm">
                                     <span className="text-gray-400 font-medium w-24">Owner:</span>
-                                    <span className="font-bold text-[#011023]">{vehicle.owner}</span>
+                                    <span className="font-bold text-[#011023] truncate max-w-[150px]" title={vehicle.owner}>{vehicle.owner}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                     <span className="text-gray-400 font-medium w-24">Status:</span>
                                     <span className={`font-bold ${vehicle.status === 'In Service' ? 'text-blue-600' :
-                                        vehicle.status === 'Ready' ? 'text-emerald-600' : 'text-gray-600'
+                                        vehicle.status === 'Ready' || vehicle.status === 'Completed' ? 'text-emerald-600' : 'text-gray-600'
                                         }`}>
                                         {vehicle.status}
                                     </span>

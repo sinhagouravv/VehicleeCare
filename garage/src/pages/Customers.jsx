@@ -3,20 +3,78 @@ import { Users, Search, Mail, Phone, MapPin, MoreVertical } from 'lucide-react';
 
 const Customers = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [customers, setCustomers] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setLastRefreshed(new Date());
-        }, 5000);
-        setLastRefreshed(new Date());
+        const fetchCustomers = async () => {
+            try {
+                const storedUser = localStorage.getItem('garageUser');
+                if (!storedUser) return;
+                const user = JSON.parse(storedUser);
+
+                const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+                const data = await res.json();
+                if (data.success) {
+                    // Extract unique customers
+                    const customerMap = {};
+                    data.data.forEach(b => {
+                        if (!b.user || !b.user.name) return; // Skip if no user data
+                        
+                        const emailOrPhone = b.user.email || b.user.phone || 'Unknown';
+                        const key = b.user.id || emailOrPhone;
+                        
+                        if (!customerMap[key]) {
+                            customerMap[key] = {
+                                id: key,
+                                name: b.user.name,
+                                email: b.user.email || 'N/A',
+                                phone: b.user.phone || 'N/A',
+                                vehicles: new Set(),
+                                totalSpent: 0,
+                                lastVisitDate: new Date(0) // Start with old date
+                            };
+                        }
+                        
+                        // Add vehicle
+                        if (b.vehicle && b.vehicle.number) {
+                            customerMap[key].vehicles.add(b.vehicle.number);
+                        }
+
+                        // Add spent amount
+                        const amount = parseFloat(String(b.payment?.amount || b.service?.price || '0').replace(/[^0-9.]/g, '')) || 0;
+                        if (b.status === 'Completed') {
+                            customerMap[key].totalSpent += amount;
+                        }
+
+                        // Update last visit date
+                        const defaultDate = new Date(b.schedule?.date || b.createdAt);
+                        if (!isNaN(defaultDate.getTime()) && defaultDate > customerMap[key].lastVisitDate) {
+                            customerMap[key].lastVisitDate = defaultDate;
+                        }
+                    });
+
+                    // Convert map to array and format
+                    const formattedCustomers = Object.values(customerMap).map(c => ({
+                        ...c,
+                        vehicles: c.vehicles.size,
+                        lastVisit: c.lastVisitDate.getTime() === 0 ? 'Unknown' : c.lastVisitDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })
+                    })).sort((a, b) => b.lastVisitDate - a.lastVisitDate);
+
+                    setCustomers(formattedCustomers);
+                }
+            } catch (error) {
+                console.error("Failed to fetch garage customers", error);
+            } finally {
+                setLoading(false);
+                setLastRefreshed(new Date());
+            }
+        };
+
+        fetchCustomers();
+        const timer = setInterval(fetchCustomers, 5000);
         return () => clearInterval(timer);
     }, []);
-
-    const customers = [
-        { id: 1, name: "Rahul Sharma", email: "rahul.s@example.com", phone: "+91 98765 43210", vehicles: 2, totalSpent: 15400, lastVisit: "Oct 24, 2023" },
-        { id: 2, name: "Michael Chen", email: "michael.c@example.com", phone: "+91 87654 32109", vehicles: 1, totalSpent: 4200, lastVisit: "Oct 20, 2023" },
-        { id: 3, name: "Sarah Jones", email: "sarah.j@example.com", phone: "+91 76543 21098", vehicles: 3, totalSpent: 35000, lastVisit: "Oct 15, 2023" },
-    ];
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
@@ -46,7 +104,11 @@ const Customers = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                    {customers.map((customer) => (
+                    {loading ? (
+                        <div className="col-span-full text-center py-10 text-gray-500">Loading customers...</div>
+                    ) : customers.length === 0 ? (
+                        <div className="col-span-full text-center py-10 text-gray-400">No customers found.</div>
+                    ) : customers.map((customer) => (
                         <div key={customer.id} className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative group">
                             <button className="absolute top-4 right-4 text-gray-400 hover:text-[#011023] opacity-0 group-hover:opacity-100 transition-opacity">
                                 <MoreVertical size={18} />
@@ -56,7 +118,7 @@ const Customers = () => {
                                     {customer.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-[#011023] text-lg leading-tight">{customer.name}</h3>
+                                    <h3 className="font-bold text-[#011023] text-lg leading-tight truncate max-w-[150px]" title={customer.name}>{customer.name}</h3>
                                     <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
                                         {customer.vehicles} Vehicle{customer.vehicles > 1 ? 's' : ''}
                                     </span>

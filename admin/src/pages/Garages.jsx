@@ -12,7 +12,7 @@ const API = 'http://localhost:5001/api/garages';
 
 const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV', 'PREMIUM'];
 
-const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: false, ownerName: '', ownerContact: '', ownerEmail: '' };
+const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: '', ownerName: '', ownerContact: '', ownerEmail: '' };
 
 import useHighlight from '../hooks/useHighlight';
 
@@ -295,7 +295,8 @@ const Garages = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Pickup &amp; Drop</label>
-                                    <select value={form.pickupDrop ? 'yes' : 'no'} onChange={e => setForm(p => ({ ...p, pickupDrop: e.target.value === 'yes' }))} className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                    <select value={form.pickupDrop === true ? 'yes' : form.pickupDrop === false ? 'no' : ''} onChange={e => setForm(p => ({ ...p, pickupDrop: e.target.value === '' ? '' : e.target.value === 'yes' }))} className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                        <option value=""></option>
                                         <option value="yes">YES</option>
                                         <option value="no">NO</option>
                                     </select>

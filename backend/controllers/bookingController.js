@@ -73,6 +73,8 @@ exports.createBooking = async (req, res) => {
         const totalPrice = parseFloat(String(service.price ?? '0').replace(/[^\d.]/g, '')) || 0;
         const advancePaid = Math.round(totalPrice * 0.25);
 
+        const payId = generatePaymentId();
+
         const newBooking = new Booking({
             bookingId: generatedId,
             user: { ...user, id: user.id || user._id },
@@ -84,7 +86,8 @@ exports.createBooking = async (req, res) => {
                 method: isFullOnline ? 'Net Banking' : isCODAdvance ? 'Cash on Delivery' : 'Cash',
                 status: isFullOnline ? 'Completed' : isCODAdvance ? 'Partially Paid' : 'Pending',
                 amount: isFullOnline ? totalPrice : isCODAdvance ? advancePaid : totalPrice,
-                transactionId: req.body.paymentId || `TXN${Date.now()}`
+                transactionId: req.body.paymentId || `TXN${Date.now()}`,
+                paymentId: payId
             }
         });
 
@@ -94,10 +97,11 @@ exports.createBooking = async (req, res) => {
         // Create Universal Payment tracking record for all checkout methods
         if (user.id) {
             paymentRecord = await Payment.create({
-                paymentId: generatePaymentId(),
+                paymentId: savedBooking.payment.paymentId,
                 type: 'Booking',
                 user: user.id,
                 booking: savedBooking._id,
+                garageId: garage?.id || null,
                 amount: savedBooking.payment.amount,
                 method: savedBooking.payment.method === 'Cash on Delivery' ? 'Cash' : 'Net Banking',
                 status: savedBooking.payment.status,
@@ -145,8 +149,21 @@ exports.createBooking = async (req, res) => {
 // @access  Private (TODO: Add auth middleware)
 exports.getBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find().sort({ createdAt: -1 });
-        res.status(200).json({ success: true, count: bookings.length, data: bookings });
+        const bookings = await Booking.find().sort({ createdAt: -1 }).lean();
+        
+        // Populate missing paymentId for existing bookings
+        const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
+            if (!booking.payment?.paymentId) {
+                const payment = await Payment.findOne({ booking: booking._id });
+                if (payment) {
+                    if (!booking.payment) booking.payment = {};
+                    booking.payment.paymentId = payment.paymentId;
+                }
+            }
+            return booking;
+        }));
+
+        res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -158,6 +175,30 @@ exports.getUserBookings = async (req, res) => {
     try {
         const bookings = await Booking.find({ 'user.id': req.params.userId }).sort({ createdAt: -1 });
         res.status(200).json({ success: true, count: bookings.length, data: bookings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Get garage bookings
+// @route   GET /api/bookings/garage/:garageId
+exports.getGarageBookings = async (req, res) => {
+    try {
+        const bookings = await Booking.find({ 'garage.id': req.params.garageId }).sort({ createdAt: -1 }).lean();
+        
+        // Populate missing paymentId for existing bookings
+        const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
+            if (!booking.payment?.paymentId) {
+                const payment = await Payment.findOne({ booking: booking._id });
+                if (payment) {
+                    if (!booking.payment) booking.payment = {};
+                    booking.payment.paymentId = payment.paymentId;
+                }
+            }
+            return booking;
+        }));
+
+        res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }

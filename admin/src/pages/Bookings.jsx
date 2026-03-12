@@ -182,24 +182,25 @@ const Bookings = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[32%]">Service & Vehicle</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[26%]">Service & Vehicle</th>
+                                <th className="p-4.5 font-bold text-center w-[21%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="7" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">
                                         Server is not running. Kindly start the server.
                                     </td>
                                 </tr>
                             ) : bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">
                                         No bookings found.
                                     </td>
                                 </tr>
@@ -210,11 +211,11 @@ const Bookings = () => {
                                         <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
                                             {booking.bookingId || booking._id.substring(0, 8).toUpperCase()}
                                         </td>
-                                        <td className="p-4 text-center w-[18%]">
-                                            <div className="font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <div className="text-xs font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
                                             <div className="text-xs text-gray-500 font-mono tracking-wide">{booking.user?.userId || ""}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[25%]">
+                                        <td className="p-4 text-center w-[29%]">
                                             <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
                                                 {booking.service?.title}
                                             </div>
@@ -222,22 +223,27 @@ const Bookings = () => {
                                                 {booking.vehicle?.make} {booking.vehicle?.model}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[18%]">
+                                        <td className="p-4 text-center w-[21%]">
                                             <span className="text-sm text-gray-600">
                                                 {booking.schedule?.date} {booking.schedule?.time}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[9%]">
+                                        <td className="p-4 text-center w-[7%]">
                                             <span className="text-sm font-bold text-gray-800">
                                                 ₹{booking.payment?.amount || booking.service?.price || '0'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[11%]">
+                                            <span className="font-semibold text-[#052558] text-sm">
+                                                {booking.payment?.paymentId || '—'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[9%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                                 {booking.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[6%]">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
                                                     <Eye size={18} />

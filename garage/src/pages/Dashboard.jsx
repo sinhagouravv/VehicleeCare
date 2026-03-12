@@ -4,13 +4,50 @@ import { Activity, Car, CheckCircle, TrendingUp, AlertCircle, Wrench, CalendarCh
 const Dashboard = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
-        const timer = setInterval(() => {
-            setLastRefreshed(new Date());
-        }, 5000);
-        setLastRefreshed(new Date());
+        const fetchDashboardData = async () => {
+            try {
+                const storedUser = localStorage.getItem('garageUser');
+                if (!storedUser) return;
+                const user = JSON.parse(storedUser);
+
+                const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+                const data = await res.json();
+                if (data.success) {
+                    setBookings(data.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch garage dashboard data", error);
+            } finally {
+                setLoading(false);
+                setLastRefreshed(new Date());
+            }
+        };
+
+        fetchDashboardData();
+        const timer = setInterval(fetchDashboardData, 30000); // 30s refresh
         return () => clearInterval(timer);
     }, []);
+
+    // Derived states
+    const activeVehicles = bookings.filter(b => b.status === 'In Progress').length;
+    
+    const today = new Date().toLocaleDateString();
+    const completedToday = bookings.filter(b => 
+        b.status === 'Completed' && new Date(b.updatedAt || b.createdAt).toLocaleDateString() === today
+    ).length;
+    
+    const pendingPickups = bookings.filter(b => b.status === 'Ready for Pickup').length;
+
+    const totalRevenue = bookings
+        .filter(b => b.status === 'Completed')
+        .reduce((sum, b) => sum + (parseFloat(String(b.payment?.amount || b.service?.price || '0').replace(/[^0-9.]/g, '')) || 0), 0);
+
+    const activeJobs = bookings.filter(b => ['In Progress', 'Pending', 'Confirmed', 'Ready for Pickup'].includes(b.status)).slice(0, 5);
+    const upcomingJobs = bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').slice(0, 5);
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
@@ -35,7 +72,7 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <p className="text-gray-500 font-semibold mb-1 text-sm">Vehicles in Garage</p>
-                    <h3 className="text-3xl font-black text-[#011023]">12</h3>
+                    <h3 className="text-3xl font-black text-[#011023]">{activeVehicles}</h3>
                 </div>
 
                 <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
@@ -43,7 +80,7 @@ const Dashboard = () => {
                         <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl"><CheckCircle size={24} /></div>
                     </div>
                     <p className="text-gray-500 font-semibold mb-1 text-sm">Completed Today</p>
-                    <h3 className="text-3xl font-black text-[#011023]">5</h3>
+                    <h3 className="text-3xl font-black text-[#011023]">{completedToday}</h3>
                 </div>
 
                 <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
@@ -51,18 +88,15 @@ const Dashboard = () => {
                         <div className="p-3 bg-amber-50 text-amber-500 rounded-xl"><AlertCircle size={24} /></div>
                     </div>
                     <p className="text-gray-500 font-semibold mb-1 text-sm">Pending Pickups</p>
-                    <h3 className="text-3xl font-black text-[#011023]">3</h3>
+                    <h3 className="text-3xl font-black text-[#011023]">{pendingPickups}</h3>
                 </div>
 
                 <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-purple-50 text-purple-500 rounded-xl"><TrendingUp size={24} /></div>
-                        <span className="flex items-center text-emerald-500 text-sm font-bold bg-emerald-50 px-2 py-1 rounded-lg">
-                            +15%
-                        </span>
                     </div>
-                    <p className="text-gray-500 font-semibold mb-1 text-sm">Weekly Revenue</p>
-                    <h3 className="text-3xl font-black text-[#011023]">₹42.5K</h3>
+                    <p className="text-gray-500 font-semibold mb-1 text-sm">Total Revenue</p>
+                    <h3 className="text-3xl font-black text-[#011023]">₹{totalRevenue.toLocaleString()}</h3>
                 </div>
             </div>
 
@@ -76,17 +110,17 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {[
-                            { id: "JOB-402", car: "Honda City", plate: "MH 02 AB 1234", status: "Inspection", time: "Started 10m ago" },
-                            { id: "JOB-401", car: "Mahindra Thar", plate: "MH 04 XY 9876", status: "Repairing", time: "Started 1h 15m ago" },
-                            { id: "JOB-400", car: "Hyundai i20", plate: "MH 01 CD 4567", status: "Washing", time: "Started 45m ago" },
-                        ].map((job) => (
-                            <div key={job.id} className="flex items-center justify-between p-4 bg-white/40 border border-blue-50 rounded-xl hover:bg-white/80 transition-colors cursor-pointer">
+                        {loading ? (
+                            <div className="p-4 text-center text-gray-500">Loading active jobs...</div>
+                        ) : activeJobs.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400">No active jobs right now.</div>
+                        ) : activeJobs.map((job) => (
+                            <div key={job._id} className="flex items-center justify-between p-4 bg-white/40 border border-blue-50 rounded-xl hover:bg-white/80 transition-colors cursor-pointer">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-blue-50 text-[#527FB0] rounded-xl"><Wrench size={20} /></div>
                                     <div>
-                                        <div className="font-bold text-[#011023]">{job.car}</div>
-                                        <div className="text-xs font-semibold text-gray-500 mt-0.5">{job.id} • {job.plate}</div>
+                                        <div className="font-bold text-[#011023]">{job.vehicle?.make} {job.vehicle?.model}</div>
+                                        <div className="text-xs font-semibold text-gray-500 mt-0.5">{job.bookingId} • {job.vehicle?.number}</div>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -94,7 +128,6 @@ const Dashboard = () => {
                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
                                         {job.status}
                                     </span>
-                                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{job.time}</p>
                                 </div>
                             </div>
                         ))}
@@ -110,16 +143,16 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {[
-                            { time: "14:00", customer: "Rahul S.", service: "General Service" },
-                            { time: "15:30", customer: "Amit P.", service: "Brake Pads" },
-                            { time: "16:45", customer: "Sneha M.", service: "Oil Change" },
-                        ].map((apt, i) => (
-                            <div key={i} className="flex gap-4 p-3 hover:bg-white/40 rounded-xl transition-colors">
-                                <div className="font-black text-[#052558] w-12 pt-0.5">{apt.time}</div>
+                        {loading ? (
+                            <div className="p-4 text-center text-gray-500">Loading arrivals...</div>
+                        ) : upcomingJobs.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400">No upcoming arrivals based on schedule.</div>
+                        ) : upcomingJobs.map((apt, i) => (
+                            <div key={i} className="flex gap-4 p-3 hover:bg-white/40 rounded-xl transition-colors items-center">
+                                <div className="font-black text-[#052558] w-14 text-sm">{apt.schedule?.time?.split(' ')[0]}</div>
                                 <div>
-                                    <p className="font-bold text-[#011023] text-sm">{apt.customer}</p>
-                                    <p className="text-xs text-gray-500 font-medium">{apt.service}</p>
+                                    <p className="font-bold text-[#011023] text-sm">{apt.user?.name}</p>
+                                    <p className="text-xs text-gray-500 font-medium truncate max-w-[150px]">{apt.service?.title}</p>
                                 </div>
                             </div>
                         ))}

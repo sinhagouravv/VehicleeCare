@@ -14,6 +14,7 @@ const BookingSchema = new mongoose.Schema({
         method: { type: String },
         status: { type: String, default: 'Pending' },
         transactionId: { type: String },
+        paymentId: { type: String },
         amount: { type: Number }
     },
     vehicle: {
@@ -34,6 +35,7 @@ const BookingSchema = new mongoose.Schema({
         time: { type: String }
     },
     garage: {
+        id: { type: String },
         name: { type: String },
         state: { type: String },
         district: { type: String },

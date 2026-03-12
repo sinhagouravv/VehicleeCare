@@ -410,6 +410,7 @@ const FullService = () => {
                     price: calculateGrandTotal()
                 },
                 garage: {
+                    id: selectedGarage?.id,
                     name: selectedGarage?.name,
                     state: selectedState,
                     district: selectedDistrict,

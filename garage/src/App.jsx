@@ -12,23 +12,28 @@ import Services from './pages/Services';
 import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="payments" element={<Payments />} />
-          <Route path="my-bookings" element={<MyBookings />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="staff" element={<Staff />} />
-          <Route path="vehicles" element={<Vehicles />} />
-          <Route path="services" element={<Services />} />
-          <Route path="reviews" element={<Reviews />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="settings" element={<Settings />} />
+        
+        {/* Protected Dashboard Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="my-bookings" element={<MyBookings />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="staff" element={<Staff />} />
+            <Route path="vehicles" element={<Vehicles />} />
+            <Route path="services" element={<Services />} />
+            <Route path="reviews" element={<Reviews />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

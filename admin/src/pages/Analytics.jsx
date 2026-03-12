@@ -346,12 +346,6 @@ const Analytics = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Analytics Overview</h1>
                 <div className="flex gap-3 justify-between">
-                    {/* <select className="px-4 py-2 bg-white border border-blue-100 rounded-xl text-sm font-bold text-[#052558] focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer shadow-sm">
-                        <option>Last 7 Days</option>
-                        <option>Last 30 Days</option>
-                        <option>This Year</option>
-                        <option>All Time</option>
-                    </select> */}
                     <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                         {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
                         {lastRefreshed
@@ -365,7 +359,7 @@ const Analytics = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {/* revenue Cards */}
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-lg font-bold uppercase tracking-tight px-1">Revenue</h2>
+                    <h2 className="text-lg font-bold uppercase tracking-tight">Revenue</h2>
                     <div className="grid grid-cols-1 uppercase md:grid-cols-2 lg:grid-cols-2 gap-3">
 
 
@@ -398,7 +392,7 @@ const Analytics = () => {
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-amber-50 text-amber-500 rounded-xl"><Users size={15} /></div>
-                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Garage Revenue</p>
+                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Weekly Revenue</p>
                                 <h3 className="text-sm font-black text-[#011023]">{formatCurrency(revenueStats.garage)}</h3>
                             </div>
                             <div className="flex items-center gap-4">
@@ -411,7 +405,7 @@ const Analytics = () => {
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-4">
                                 <div className="p-2 bg-rose-50 text-rose-500 rounded-xl"><TrendingUp size={15} /></div>
-                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Station Revenue</p>
+                                <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Monthly Revenue</p>
                                 <h3 className="text-sm font-black text-[#011023]">-</h3>
                             </div>
                             <div className="flex items-center gap-4">
@@ -423,7 +417,7 @@ const Analytics = () => {
 
                 {/* Booking Cards */}
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-lg font-bold uppercase tracking-tight px-1">Booking</h2>
+                    <h2 className="text-lg font-bold uppercase tracking-tight">Booking</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -484,7 +478,7 @@ const Analytics = () => {
 
                 {/* Charging Cards */}
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-lg font-bold uppercase tracking-tight px-1">Charging Station</h2>
+                    <h2 className="text-lg font-bold uppercase tracking-tight">Charging Station</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -522,7 +516,7 @@ const Analytics = () => {
 
                 {/* user Cards */}
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-lg font-bold uppercase tracking-tight px-1">Users</h2>
+                    <h2 className="text-lg font-bold uppercase tracking-tight">Users</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
                         <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -582,98 +576,187 @@ const Analytics = () => {
             
 
             {/* Charts Area View */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-rows-1 lg:grid-rows-3 gap-4.5">
 
-            <div className="flex flex-col xl:flex-row justify-start items-start xl:items-center mt-3.5 mb-3.5 gap-3 px-2">
-                <h2 className="text-[25px] font-bold uppercase tracking-tight flex items-center gap-2">
-                    Statistics
-                </h2>
+                    {/* Parking Section */}
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-lg font-bold uppercase tracking-tight">Parking</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 text-[#527FB0] rounded-xl"><DollarSign size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Users</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.total}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +12.5%
+                                    </span>
+                                </div>
+                            </div>
 
-                {/* Custom Tabs */}
-                <select
-                    value={activeChartTab}
-                    onChange={(e) => setActiveChartTab(e.target.value)}
-                    className="bg-white/60 backdrop-blur-xl border border-white rounded-xl shadow-[0_4px_20px_rgba(5,37,88,0.04)] px-4 py-1.5 text-[12px] font-bold text-[#052558] focus:outline-none cursor-pointer w-auto transition-all duration-300 appearance-none text-center"
-                >
-                    {['REVENUE', 'BOOKING', /*'CHARGING STATION',*/ 'USERS'].map((tab) => (
-                        <option key={tab} value={tab} className="font-bold">
-                            {tab}
-                        </option>
-                    ))}
-                </select>
-            </div>
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-purple-50 text-purple-500 rounded-xl"><Activity size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's User</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.today}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +8.2%
+                                    </span>
+                                </div>
+                            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <div className="lg:col-span-2 bg-white/60 backdrop-blur-xl border border-white pt-4 pb-4 pr-2 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] relative min-h-[350px] flex flex-col">
-                    <div className="flex-1 w-full h-full min-h-[445px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={dynamicChartData.length > 0 ? dynamicChartData : chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={
-                                            activeChartTab === 'REVENUE' ? '#527FB0' :
-                                                activeChartTab === 'BOOKING' ? '#8b5cf6' :
-                                                    activeChartTab === 'CHARGING STATION' ? '#f43f5e' : '#f59e0b'
-                                        } stopOpacity={0.4} />
-                                        <stop offset="95%" stopColor={
-                                            activeChartTab === 'REVENUE' ? '#527FB0' :
-                                                activeChartTab === 'BOOKING' ? '#8b5cf6' :
-                                                    activeChartTab === 'CHARGING STATION' ? '#f43f5e' : '#f59e0b'
-                                        } stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 13, fontWeight: 600 }}
-                                    dy={10}
-                                />
-                                <YAxis
-                                    ticks={
-                                        activeChartTab === 'REVENUE'
-                                            ? (useHigherRevenueScale ? [0, 40, 80, 120, 160, 200] : [0, 20, 40, 60, 80, 100])
-                                            : [0, 2, 4, 6, 8, 10]
-                                    }
-                                    domain={
-                                        activeChartTab === 'REVENUE'
-                                            ? (useHigherRevenueScale ? [0, 200] : [0, 100])
-                                            : [0, 10]
-                                    }
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 13, fontWeight: 600 }}
-                                    dx={-10}
-                                />
-                                <Tooltip
-                                    content={<CustomTooltip />}
-                                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey={
-                                        activeChartTab === 'REVENUE' ? 'revenue' :
-                                            activeChartTab === 'BOOKING' ? 'booking' :
-                                                activeChartTab === 'CHARGING STATION' ? 'charging' : 'users'
-                                    }
-                                    stroke={
-                                        activeChartTab === 'REVENUE' ? '#527FB0' :
-                                            activeChartTab === 'BOOKING' ? '#8b5cf6' :
-                                                activeChartTab === 'CHARGING STATION' ? '#f43f5e' : '#f59e0b'
-                                    }
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorValue)"
-                                    activeDot={{ r: 6, strokeWidth: 0 }}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-50 text-amber-500 rounded-xl"><Users size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Employees</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.active}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +24.1%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-rose-50 text-rose-500 rounded-xl"><TrendingUp size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's Employees</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.returned}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +4.3%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Store Section */}
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-lg font-bold uppercase tracking-tight">Store</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 text-[#527FB0] rounded-xl"><DollarSign size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Users</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.total}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +12.5%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-purple-50 text-purple-500 rounded-xl"><Activity size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's User</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.today}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +8.2%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-50 text-amber-500 rounded-xl"><Users size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Employees</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.active}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +24.1%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-rose-50 text-rose-500 rounded-xl"><TrendingUp size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's Employees</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.returned}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +4.3%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Garage Section */}
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-lg font-bold uppercase tracking-tight">Garage</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 text-[#527FB0] rounded-xl"><DollarSign size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Users</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.total}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +12.5%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-purple-50 text-purple-500 rounded-xl"><Activity size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's User</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.today}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +8.2%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-50 text-amber-500 rounded-xl"><Users size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Total Employees</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.active}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +24.1%
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/60 backdrop-blur-xl border border-white pl-3 pr-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-lg transition-all duration-300 flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-rose-50 text-rose-500 rounded-xl"><TrendingUp size={15} /></div>
+                                    <p className="text-gray-500 font-bold text-[13px] uppercase tracking-wider">Today's Employees</p>
+                                    <h3 className="text-sm font-black text-[#011023]">{userStats.returned}</h3>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                        <TrendingUp size={12} className="mr-1" /> +4.3%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-
-                <div className="flex flex-col -mt-12 gap-2">
-                    <h2 className="text-[25px] mb-0.5 font-bold uppercase tracking-tight px-1 flex items-center gap-2">
+                <div className="flex flex-col gap-2 mt-4.5 lg:mt-0">
+                    <h2 className="text-lg  font-bold uppercase tracking-tight">
                         Popular Services
                     </h2>
                     <div className="bg-white/60 backdrop-blur-xl border border-white p-4 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex flex-col gap-2.5 h-full min-h-[350px]">
