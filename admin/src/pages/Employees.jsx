@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban } from 'lucide-react';
+import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -19,6 +19,9 @@ const Employees = () => {
     const [banReason, setBanReason] = useState('');
     const [banSubmitting, setBanSubmitting] = useState(false);
     const [banSuccess, setBanSuccess] = useState('');
+    const [employeeToDelete, setEmployeeToDelete] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
@@ -46,23 +49,41 @@ const Employees = () => {
 
     const getRoleBadge = (role) => {
         switch (role) {
-            case 'admin': return 'bg-purple-100 text-purple-700 font-black';
-            case 'franchise': return 'bg-blue-100 text-blue-800 font-bold';
-            default: return 'bg-gray-100 text-gray-700 font-semibold';
+            case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
+            default: return 'bg-gray-100 text-gray-700 font-bold';
         }
     };
 
     const formatRole = (role) => {
-        if (role === 'admin') return 'Admin';
-        if (role === 'franchise') return 'Franchise Owner';
-        return 'Customer';
+        return role || 'Employee';
     };
 
-    const formatDate = (dateStr) => {
+    const getRoleIcon = (role) => {
+        switch (role) {
+            case 'Mechanic': return <Wrench size={14} />;
+            case 'Manager': return <Briefcase size={14} />;
+            case 'Technician': return <ShieldCheck size={14} />;
+            case 'Support': return <UserCheck size={14} />;
+            case 'Admin': return <Shield size={14} />;
+            default: return <UserSquare2 size={14} />;
+        }
+    };
+
+    const formatDate = (dateStr, includeTime = true) => {
         if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-IN', {
+        const date = new Date(dateStr);
+        const day = date.toLocaleDateString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric'
         });
+        if (!includeTime) return day;
+        const time = date.toLocaleTimeString('en-IN', {
+            hour: '2-digit', minute: '2-digit', hour12: true
+        });
+        return `${day} | ${time}`;
     };
 
     // ── Open View Modal ────────────────────────────────────────
@@ -168,6 +189,29 @@ const Employees = () => {
         }, 2000);
     };
 
+    const handleDelete = async () => {
+        if (!employeeToDelete) return;
+        setDeleting(true);
+        try {
+            const res = await fetch(`http://localhost:5001/api/employees/${employeeToDelete._id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setEmployees(prev => prev.filter(emp => emp._id !== employeeToDelete._id));
+                setIsDeleteModalOpen(false);
+                setEmployeeToDelete(null);
+            } else {
+                alert(data.message || 'Failed to delete employee');
+            }
+        } catch (error) {
+            console.error("Error deleting employee:", error);
+            alert('Error deleting employee');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center">
@@ -180,7 +224,7 @@ const Employees = () => {
             </div>
 
             {/* Main Content Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
                 <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative">
                     {loading ? (
                         <div className="h-full flex items-center justify-center">
@@ -200,9 +244,10 @@ const Employees = () => {
                                     <th className="p-4.5 font-bold">Employee ID</th>
                                     <th className="p-4.5 font-bold">Employee</th>
                                     <th className="p-4.5 font-bold">Category</th>
+                                    <th className="p-4.5 font-bold">Category ID</th>
                                     <th className="p-4.5 font-bold">Contact</th>
                                     <th className="p-4.5 font-bold">Role</th>
-                                    <th className="p-4.5 font-bold">Join Date</th>
+                                    <th className="p-4.5 font-bold">Join Date & Time</th>
                                     <th className="p-4.5 font-bold">Status</th>
                                     <th className="p-4.5 font-bold">Actions</th>
                                 </tr>
@@ -210,7 +255,7 @@ const Employees = () => {
                             <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                                 {employees.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="py-16 text-gray-400 text-sm">No employees found.</td>
+                                        <td colSpan={9} className="py-16 text-gray-400 text-sm">No employees found.</td>
                                     </tr>
                                 ) : employees.map((employee) => {
                                     const rowId = employee.userId || employee.employeeId || employee._id;
@@ -223,27 +268,36 @@ const Employees = () => {
                                                 <div className="font-bold uppercase text-[#011023]">{employee.name}</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className="inline-block px-2.5 py-1 text-xs font-bold rounded-lg bg-[#f0f6ff] text-[#527FB0] border border-[#e6f0fa]">
+                                                <span className="inline-block px-2.5 py-1 uppercase text-xs font-bold rounded-lg bg-[#f0f6ff] text-[#527FB0] border border-[#e6f0fa]">
                                                     {employee.category || 'System'}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-medium text-gray-700 text-sm">{employee.email}</div>
+                                                <div className="font-bold text-[#052558] uppercase">
+                                                    {employee.category === 'Garage' ? (employee.garageId || '—') : '—'}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
                                                 <div className="text-xs text-gray-500 mt-0.5">{employee.phone || '—'}</div>
+                                                <div className="font-medium text-gray-700 text-sm">{employee.email}</div>
+                                            </td>
+                                             <td className="p-4">
+                                                <div className="flex items-center uppercase justify-center gap-1.5 font-bold">
+                                                    <span className={`px-2.5 py-1 text-[11px] rounded-lg ${getRoleBadge(employee.role)}`}>
+                                                        {formatRole(employee.role)}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-center uppercase">
+                                                <div className="font-semibold text-[#011023]">
+                                                    {formatDate(employee.createdAt)}
+                                                </div>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(employee.role)}`}>
-                                                    {formatRole(employee.role)}
-                                                </span>
+                                                <span className="uppercase font-semibold text-gray-700">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm text-gray-600">{formatDate(employee.createdAt)}</span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="text-sm font-semibold text-gray-700">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex items-center justify-center gap-2">
+                                                <div className="flex items-center justify-center gap-1.5">
                                                     <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Employee">
                                                         <Eye size={17} />
                                                     </button>
@@ -252,6 +306,9 @@ const Employees = () => {
                                                     </button>
                                                     <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable Employee">
                                                         <UserX size={17} />
+                                                    </button>
+                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Employee">
+                                                        <Trash2 size={17} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -288,7 +345,9 @@ const Employees = () => {
                                     </div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-[10px] font-bold text-white/70 font-mono bg-white/10 px-2 py-0.5 rounded-full">{viewEmployee.userId || viewEmployee.employeeId || viewEmployee._id?.slice(0, 8)}</span>
-                                        <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-wide">{formatRole(viewEmployee.role)}</span>
+                                        <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
+                                            {getRoleIcon(viewEmployee.role)} {formatRole(viewEmployee.role)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -306,6 +365,9 @@ const Employees = () => {
                                         { icon: <Mail size={13} />, label: 'Email', value: viewEmployee.email },
                                         { icon: <Briefcase size={13} />, label: 'Category', value: viewEmployee.category || 'System' },
                                         { icon: <Phone size={13} />, label: 'Phone', value: viewEmployee.phone || '—' },
+                                        { icon: <CreditCard size={13} />, label: 'Aadhar', value: viewEmployee.adharCard || '—' },
+                                        { icon: <CreditCard size={13} />, label: 'PAN Card', value: viewEmployee.panCard || '—' },
+                                        { icon: <CreditCard size={13} />, label: 'Voter ID', value: viewEmployee.voterId || '—' },
                                         { icon: <MapPin size={13} />, label: 'Address', value: viewEmployee.address || '—' },
                                         { icon: <Calendar size={13} />, label: 'Joined', value: formatDate(viewEmployee.createdAt) },
                                         { icon: <ShieldCheck size={13} />, label: 'Status', value: viewEmployee.isVerified ? 'Verified ✓' : 'Unverified' },
@@ -412,6 +474,51 @@ const Employees = () => {
                                     </div>
                                 </>
                             )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── DELETE EMPLOYEE CONFIRMATION MODAL ────────────────── */}
+            {isDeleteModalOpen && employeeToDelete && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                                    <Trash2 size={18} className="text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg uppercase font-bold text-[#011023]">Delete Employee</h3>
+                                    <p className="text-xs text-red-500 font-bold uppercase tracking-tight">Serious Action Required</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-gray-700">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-8 text-center">
+                            <h4 className="text-xl font-black text-[#011023] mb-2 uppercase">{employeeToDelete.name}</h4>
+                            <p className="text-gray-500 text-sm leading-relaxed">
+                                Are you sure you want to permanently delete this employee? This action <span className="text-red-600 font-bold">CANNOT</span> be undone and all associated records will be orphaned.
+                            </p>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 bg-gray-50 flex gap-3">
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-sm font-bold text-gray-400 hover:bg-white rounded-2xl border-2 border-transparent hover:border-gray-200 transition-all uppercase tracking-tight">Cancel</button>
+                            <button 
+                                onClick={handleDelete} 
+                                disabled={deleting}
+                                className="flex-1 py-3 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all text-sm uppercase tracking-tight disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {deleting ? <><Loader2 size={16} className="animate-spin" /> Deleting...</> : 'Delete Member'}
+                            </button>
                         </div>
                     </div>
                 </div>,

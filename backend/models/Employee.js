@@ -28,11 +28,40 @@ const employeeSchema = new mongoose.Schema({
         enum: ['Garage', 'Station', 'Store', 'Parking'],
         default: ''
     },
+    garageId: {
+        type: String,
+        default: ''
+    },
     phone: {
         type: String,
         default: ''
     },
     address: {
+        type: String,
+        default: ''
+    },
+    shift: {
+        type: String,
+        enum: ['Morning', 'Evening'],
+        default: 'Morning'
+    },
+    panCard: {
+        type: String,
+        default: ''
+    },
+    adharCard: {
+        type: String,
+        default: ''
+    },
+    agreement: {
+        type: String,
+        default: ''
+    },
+    voterId: {
+        type: String,
+        default: ''
+    },
+    salaryType: {
         type: String,
         default: ''
     },
