@@ -162,6 +162,16 @@ const Bookings = () => {
         setIsViewModalOpen(true);
     };
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric'
+        }) + ' | ' + date.toLocaleTimeString('en-IN', {
+            hour: '2-digit', minute: '2-digit', hour12: true
+        });
+    };
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto  ">
             <div className="flex justify-between items-center">
@@ -184,7 +194,7 @@ const Bookings = () => {
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[26%]">Service & Vehicle</th>
-                                <th className="p-4.5 font-bold text-center w-[21%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[21%]">Schedule At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
@@ -271,12 +281,12 @@ const Bookings = () => {
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
-                                <h3 className="text-xl font-bold text-[#052558]">Booking Details</h3>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Booking Details</h3>
                                 <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedBooking.bookingId || selectedBooking._id}</span></p>
                             </div>
                             <button
@@ -290,27 +300,36 @@ const Bookings = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
                             {/* Info Grid */}
                             <div className="flex flex-col md:flex-row gap-6 w-full">
-                                <div className="space-y-4 w-full md:w-[45%]">
+                                <div className="space-y-4 w-full md:w-[46%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
+                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
-                                <div className="space-y-4 w-full md:w-[25%]">
+                                <div className="space-y-4 w-full md:w-[24%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl space-y-2 border border-blue-50">
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Make:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-4.5 w-full md:w-[30%]">
-                                    <div className="">
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
-                                        <div className="bg-blue-50/30 pt-6 pb-3 rounded-xl border border-blue-50 flex items-center gap-3">
-                                            <span className="text-2xl font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
+                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center mt-7 gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor('Pending')}`}>
+                                                    {selectedBooking.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-blue-50/30rounded-xl border border-blue-50 flex items-center gap-4">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
+                                            <span className="text-base ml-5 font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
                                             {selectedBooking.payment?.status === 'Partially Paid' ? (
                                                 <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Partially Paid</span>
                                             ) : selectedBooking.payment?.status === 'Completed' ? (
@@ -319,13 +338,14 @@ const Bookings = () => {
                                                 <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Pending</span>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-16">Status</h4>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor('Pending')}`}>
-                                                Pending
-                                            </span>
+                                        
+                                        <div className="flex items-center gap-4">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Booked At</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className="text-xs font-bold text-gray-600">
+                                                    {formatDate(selectedBooking.createdAt)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -336,12 +356,40 @@ const Bookings = () => {
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Service Details</h4>
                                 <div className="bg-white border border-[#e6f0fa] p-4 gap-5 rounded-xl flex justify-between items-center shadow-sm">
                                     <div>
-                                        <h5 className="font-bold text-[#052558] text-lg">{selectedBooking.service?.title || 'General Service'}</h5>
-                                        <p className="text-sm text-gray-500 mt-1">Scheduled for: <span className="font-semibold text-gray-700">{selectedBooking.schedule?.date} at {selectedBooking.schedule?.time}</span></p>
+                                        <h5 className="font-bold text-[#052558] uppercase text-[15.5px]">{selectedBooking.service?.title || 'General Service'}</h5>
+                                        <p className="text-sm uppercase text-gray-500 mt-1">Scheduled for: <span className="font-semibold text-gray-700">{selectedBooking.schedule?.date} at {selectedBooking.schedule?.time}</span></p>
                                     </div>
-                                    {/*  */}
                                 </div>
                             </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Assigned to</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="uppercase">
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Garage</p>
+                                            <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.garage?.name || 'No Garage Assigned'}</h5>
+                                            <p className="text-sm text-gray-500 mt-0.5">{selectedBooking.garage?.district}, {selectedBooking.garage?.state} | {selectedBooking.garage?.id || 'N/A'}</p>
+                                        </div>
+                                        {/* <div className="text-center uppercase">
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Pickup/Drop</p>
+                                            <span className={`inline-block px-2.5 py-0.5 rounded text-[11px] font-bold ${selectedBooking.garage?.pickupDrop === 'Yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {selectedBooking.garage?.pickupDrop || 'No'}
+                                            </span>
+                                        </div> */}
+                                        <div className="pt-3 text-center border-t border-[#f0f6ff] uppercase">
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                                                <span className="font-semibold text-gray-400 font-mono tracking-widest text-lg">—</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
                         </div>
                     </div>
                 </div>,
