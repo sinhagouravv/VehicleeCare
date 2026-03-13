@@ -53,6 +53,16 @@ const MyBookings = () => {
         setIsViewModalOpen(true);
     };
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric'
+        }) + ' | ' + date.toLocaleTimeString('en-IN', {
+            hour: '2-digit', minute: '2-digit', hour12: true
+        });
+    };
+
     const handleDownloadInvoice = (booking) => {
         try {
             const doc = new jsPDF();
@@ -144,77 +154,81 @@ const MyBookings = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold text-center w-[10%]">Booking ID</th>
-                                <th className="p-4 font-bold text-center w-[14%]">Customer</th>
-                                <th className="p-4 font-bold text-center w-[30%]">Service & Vehicle</th>
-                                <th className="p-4 font-bold text-center w-[20%]">Date & Time</th>
-                                <th className="p-4 font-bold text-center w-[8%]">Amount</th>
-                                <th className="p-4 font-bold text-center w-[12%]">Payment ID</th>
-                                <th className="p-4 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4 font-bold text-center w-[8%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Booked At</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Service & Vehicle</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Schedule</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Price</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">Loading assigned bookings...</td>
+                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">Loading assigned bookings...</td>
                                 </tr>
                             ) : bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">No bookings found for this garage.</td>
+                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No bookings found for this garage.</td>
                                 </tr>
                             ) : bookings.map((booking) => (
                                 <tr key={booking._id} className="text-center transition-all hover:bg-blue-50/30">
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center" title={booking.bookingId || booking._id}>
+                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
                                         {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="font-bold text-[#011023]">{booking.user?.name || 'Unknown'}</div>
-                                        <div className="text-xs text-gray-500 font-mono tracking-wide">{booking.user?.phone || ''}</div>
+                                    <td className="p-4 text-center w-[13%]">
+                                        <div className="text-xs font-bold text-[#011023]">{formatDate(booking.createdAt)}</div>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="font-semibold text-gray-800 text-sm truncate max-w-[220px] mx-auto" title={booking.service?.title}>
+                                    <td className="p-4 text-center w-[13%]">
+                                        <div className="font-bold text-[#011023] truncate px-2" title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
+                                        <div className="text-[10px] text-gray-400 font-mono tracking-tight">{booking.user?.phone || ''}</div>
+                                    </td>
+                                    <td className="p-4 text-center w-[18%]">
+                                        <div className="font-semibold text-gray-800 text-sm truncate max-w-[160px] mx-auto" title={booking.service?.title}>
                                             {booking.service?.title}
                                         </div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-[10px] text-gray-400">
                                             {booking.vehicle?.make} {booking.vehicle?.model}
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <span className="text-sm text-gray-600">
-                                            {booking.schedule?.date} {booking.schedule?.time}
+                                    <td className="p-4 text-center w-[15%]">
+                                        <span className="text-[13px] font-medium text-gray-600">
+                                            {booking.schedule?.date} | {booking.schedule?.time}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <span className="text-sm font-bold text-gray-800">
+                                    <td className="p-4 text-center w-[7%]">
+                                        <span className="text-[13.5px] font-black text-[#011023]">
                                             ₹{booking.payment?.amount || booking.service?.price || '0'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <span className="font-semibold text-[#052558] text-sm">
+                                    <td className="p-4 text-center w-[11%]">
+                                        <span className="font-semibold text-[#052558] text-[11px] truncate block px-1" title={booking.payment?.paymentId}>
                                             {booking.payment?.paymentId || '—'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
+                                    <td className="p-4 text-center w-[11%]">
+                                        <span className={`inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                             {booking.status || 'Pending'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-2">
+                                    <td className="p-4 text-center w-[7%]">
+                                        <div className="flex items-center justify-center gap-1">
                                             <button
                                                 onClick={() => handleViewDetails(booking)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
                                                 title="View Details"
                                             >
-                                                <Eye size={18} />
+                                                <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => handleDownloadInvoice(booking)}
                                                 className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
                                                 title="Download Invoice"
                                             >
-                                                <Download size={18} />
+                                                <Download size={17} />
                                             </button>
                                         </div>
                                     </td>
@@ -232,12 +246,12 @@ const MyBookings = () => {
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
-                                <h3 className="text-xl font-bold text-[#052558]">Booking Details</h3>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Booking Details</h3>
                                 <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedBooking.bookingId || selectedBooking._id}</span></p>
                             </div>
                             <button
@@ -251,46 +265,57 @@ const MyBookings = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 {/* Customer Info */}
-                                <div className="space-y-4 w-full md:w-[45%]">
+                                <div className="space-y-4 w-full md:w-[46%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedBooking.user?.name || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800">{selectedBooking.user?.phone || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.email || 'N/A'}</span></p>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Vehicle Info */}
-                                <div className="space-y-4 w-full md:w-[25%]">
+                                <div className="space-y-4 w-full md:w-[24%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Make:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Plate:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.number || 'N/A'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Payment & Status */}
-                                <div className="flex flex-col gap-4 w-full md:w-[30%]">
-                                    <div>
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Payment</h4>
-                                        <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 flex items-center gap-3">
-                                            <span className="text-2xl font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
+                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center mt-7 gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
+                                                    {selectedBooking.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-blue-50/30 rounded-xl border border-blue-50 flex items-center gap-4">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
+                                            <span className="text-base ml-5 font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
                                             {selectedBooking.payment?.status === 'Partially Paid' ? (
-                                                <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-bold uppercase">Partial</span>
+                                                <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Partially Paid</span>
                                             ) : selectedBooking.payment?.status === 'Completed' ? (
-                                                <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs font-bold uppercase">Paid</span>
+                                                <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Paid</span>
                                             ) : (
-                                                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold uppercase">Pending</span>
+                                                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Pending</span>
                                             )}
                                         </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Status</h4>
-                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
-                                            {selectedBooking.status || 'Pending'}
-                                        </span>
+                                        <div className="flex items-center gap-4">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Booked At</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className="text-xs font-bold text-gray-600">
+                                                    {formatDate(selectedBooking.createdAt)}
+                                                </span>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -298,24 +323,37 @@ const MyBookings = () => {
                             {/* Service Details */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Service Details</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-4 rounded-xl flex justify-between items-center shadow-sm">
+                                <div className="bg-white border border-[#e6f0fa] p-4 gap-5 rounded-xl flex justify-between items-center shadow-sm">
                                     <div>
-                                        <h5 className="font-bold text-[#052558] text-lg">{selectedBooking.service?.title || 'General Service'}</h5>
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            Scheduled for: <span className="font-semibold text-gray-700">{selectedBooking.schedule?.date} at {selectedBooking.schedule?.time}</span>
-                                        </p>
-                                        {selectedBooking.garage?.name && (
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                Garage: <span className="font-semibold text-gray-700">{selectedBooking.garage.name}</span>
-                                            </p>
-                                        )}
+                                        <h5 className="font-bold text-[#052558] uppercase text-[15.5px]">{selectedBooking.service?.title || 'General Service'}</h5>
+                                        <p className="text-sm uppercase text-gray-500 mt-1">Scheduled for: <span className="font-semibold text-gray-700">{selectedBooking.schedule?.date} at {selectedBooking.schedule?.time}</span></p>
                                     </div>
-                                    <button
-                                        onClick={() => handleDownloadInvoice(selectedBooking)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-bold text-sm rounded-xl hover:bg-emerald-100 transition-colors"
-                                    >
-                                        <Download size={16} /> Invoice
-                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Assigned to</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="uppercase">
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Garage</p>
+                                            <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.garage?.name || 'No Garage Assigned'}</h5>
+                                            <p className="text-sm text-gray-500 mt-0.5">{selectedBooking.garage?.district}, {selectedBooking.garage?.state} | {selectedBooking.garage?.id || 'N/A'}</p>
+                                        </div>
+                                        {/* <div className="text-center uppercase">
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Pickup/Drop</p>
+                                            <span className={`inline-block px-2.5 py-0.5 rounded text-[11px] font-bold ${selectedBooking.garage?.pickupDrop === 'Yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {selectedBooking.garage?.pickupDrop || 'No'}
+                                            </span>
+                                        </div> */}
+                                        <div className="pt-3 text-center border-t border-[#f0f6ff] uppercase">
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                                                <span className="font-semibold text-gray-400 font-mono tracking-widest text-lg">—</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
