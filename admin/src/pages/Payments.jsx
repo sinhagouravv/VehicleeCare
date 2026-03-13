@@ -156,7 +156,7 @@ const Payments = () => {
                                 <th className="p-4.5 font-bold text-center w-[12%]">User</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">User Type</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[18%]">Details</th> */}
-                                <th className="p-4.5 font-bold text-center w-[15%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Paid At</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Amount</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Method</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
