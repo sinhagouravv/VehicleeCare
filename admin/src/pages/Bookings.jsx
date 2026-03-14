@@ -193,10 +193,11 @@ const Bookings = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[26%]">Service & Vehicle</th>
-                                <th className="p-4.5 font-bold text-center w-[21%]">Schedule At</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[22%]">Service</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Schedule At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
                             </tr>
@@ -223,9 +224,14 @@ const Bookings = () => {
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
                                             <div className="text-xs font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
-                                            <div className="text-xs text-gray-500 font-mono tracking-wide">{booking.user?.userId || ""}</div>
+                                            <div className="text-xs text-gray-500">{booking.user?.userId || ""}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[29%]">
+                                        <td className="p-4 text-center w-[10%]">
+                                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${booking.store ? 'bg-purple-100 text-purple-700' : booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                {booking.store ? 'Store' : booking.parking ? 'Parking' : 'Garage'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[34%]">
                                             <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
                                                 {booking.service?.title}
                                             </div>
@@ -233,22 +239,23 @@ const Bookings = () => {
                                                 {booking.vehicle?.make} {booking.vehicle?.model}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[21%]">
+                                        <td className="p-4 text-center w-[12%]">
                                             <span className="text-sm text-gray-600">
-                                                {booking.schedule?.date} {booking.schedule?.time}
+                                                {booking.schedule?.date} <br />
+                                                {booking.schedule?.time}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[7%]">
+                                        <td className="p-4 text-center w-[5%]">
                                             <span className="text-sm font-bold text-gray-800">
                                                 ₹{booking.payment?.amount || booking.service?.price || '0'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[11%]">
+                                        <td className="p-4 text-center w-[9%]">
                                             <span className="font-semibold text-[#052558] text-sm">
                                                 {booking.payment?.paymentId || '—'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[9%]">
+                                        <td className="p-4 text-center w-[7%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                                 {booking.status || 'Pending'}
                                             </span>
@@ -367,9 +374,19 @@ const Bookings = () => {
                                 <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm space-y-4">
                                     <div className="flex justify-between items-start">
                                         <div className="uppercase">
-                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Garage</p>
-                                            <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.garage?.name || 'No Garage Assigned'}</h5>
-                                            <p className="text-sm text-gray-500 mt-0.5">{selectedBooking.garage?.district}, {selectedBooking.garage?.state} | {selectedBooking.garage?.id || 'N/A'}</p>
+                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">
+                                                {selectedBooking.store ? 'Store' : selectedBooking.parking ? 'Parking' : 'Garage'}
+                                            </p>
+                                            <h5 className="font-bold text-[#052558] text-[15.5px]">
+                                                {selectedBooking.store ? (selectedBooking.store?.name || 'No Store Assigned') : 
+                                                 selectedBooking.parking ? (selectedBooking.parking?.name || 'No Parking Assigned') : 
+                                                 (selectedBooking.garage?.name || 'No Garage Assigned')}
+                                            </h5>
+                                            <p className="text-sm text-gray-500 mt-0.5">
+                                                {selectedBooking.store ? `${selectedBooking.store?.district || ''}${selectedBooking.store?.state ? `, ${selectedBooking.store.state}` : ''} | ${selectedBooking.store?.id || 'N/A'}` : 
+                                                 selectedBooking.parking ? `${selectedBooking.parking?.district || ''}${selectedBooking.parking?.state ? `, ${selectedBooking.parking.state}` : ''} | ${selectedBooking.parking?.id || 'N/A'}` : 
+                                                 `${selectedBooking.garage?.district || ''}${selectedBooking.garage?.state ? `, ${selectedBooking.garage.state}` : ''} | ${selectedBooking.garage?.id || 'N/A'}`}
+                                            </p>
                                         </div>
                                         {/* <div className="text-center uppercase">
                                             <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Pickup/Drop</p>

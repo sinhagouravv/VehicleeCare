@@ -151,6 +151,7 @@ const Payments = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[12%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">User</th>
@@ -184,6 +185,19 @@ const Payments = () => {
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
+                                            {payment.type === 'Subscription' ? (
+                                                <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-fuchsia-100 text-fuchsia-700">
+                                                    Business
+                                                </span>
+                                            ) : payment.booking ? (
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${payment.booking.store ? 'bg-purple-100 text-purple-700' : payment.booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                    {payment.booking.store ? 'Store' : payment.booking.parking ? 'Parking' : 'Garage'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400">—</span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-center w-[10%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getTypeColor(payment.type)}`}>
                                                 {payment.type || 'Booking'}
                                             </span>
@@ -203,30 +217,11 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         {/* <td className="p-4 text-center w-[18%]">
-                                            {payment.type === 'Subscription' ? (
-                                                <div className="font-semibold text-gray-800 text-sm">Subscription</div>
-                                            ) : (
-                                                <div className="font-semibold text-gray-800 text-sm">
-                                                    {(() => {
-                                                        const title = (payment.booking?.service?.title || '').toLowerCase();
-                                                        if (title.includes('parking')) return 'Parking';
-                                                        if (title.includes('store') || title.includes('product') || title.includes('purchase')) return 'Store';
-                                                        if (title.includes('charging')) return 'Station';
-
-                                                        // If it has a garageId, it's an auto service
-                                                        if (payment.garageId) return 'Service';
-
-                                                        // Fallback for bookings without garageId (e.g. charging/parking usually have their own business IDs)
-                                                        if (title.includes('station')) return 'Station';
-
-                                                        return 'Service';
-                                                    })()}
-                                                </div>
-                                            )}
+                                            {payment.booking?.service?.title}
                                         </td> */}
                                         <td className="p-4 text-center w-[15%]">
                                             <span className="text-sm text-gray-600 whitespace-nowrap">
-                                                {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} <br></br> 
                                                 {' '}
                                                 {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                             </span>
@@ -271,61 +266,105 @@ const Payments = () => {
             </div>
             {/* View Details Modal */}
             {isViewModalOpen && selectedPayment && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm"
+                    onClick={() => setIsViewModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
-                                <h3 className="text-xl font-bold text-[#011023]">Payment Details</h3>
-                                <p className="text-sm text-gray-500 font-mono mt-1">{selectedPayment.paymentId}</p>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Payment Details</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedPayment.paymentId}</span></p>
                             </div>
-                            <button onClick={() => setIsViewModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <X size={20} className="text-gray-500" />
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
                             </button>
                         </div>
-                        <div className="p-8 space-y-8 max-h-[80vh] overflow-y-auto">
-                            <div className="grid grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-bold text-[#052558] uppercase tracking-widest border-b pb-2">Customer & User</h4>
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-semibold text-gray-900">{getCustomerName(selectedPayment)}</p>
-                                        <p className="text-xs text-gray-500 font-mono uppercase tracking-tight">{selectedPayment.user?.userId || 'N/A'}</p>
-                                        <p className="text-xs text-gray-500">{selectedPayment.user?.email || 'N/A'}</p>
+
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                            {/* Top Row */}
+                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                                {/* Customer Info */}
+                                <div className="space-y-3 w-full md:w-[42%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800">{selectedPayment.user?.userId || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate lowercase">{selectedPayment.user?.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-bold text-[#052558] uppercase tracking-widest border-b pb-2">Payment Status</h4>
-                                    <div className="flex flex-col gap-2">
-                                        <span className={`px-3 py-1 text-xs font-bold rounded-full w-fit ${getStatusColor(selectedPayment.status)}`}>
+
+                                {/* Category */}
+                                <div className="space-y-3 w-full md:w-[15%]">
+                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Category</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase border border-blue-50 h-[81px] flex items-center justify-center">
+                                        {selectedPayment.type === 'Subscription' ? (
+                                            <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-fuchsia-100 text-fuchsia-700">Business</span>
+                                        ) : selectedPayment.booking ? (
+                                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${selectedPayment.booking.store ? 'bg-purple-100 text-purple-700' : selectedPayment.booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                {selectedPayment.booking.store ? 'Store' : selectedPayment.booking.parking ? 'Parking' : 'Garage'}
+                                            </span>
+                                        ) : <span className="text-gray-400">—</span>}
+                                    </div>
+                                </div>
+
+                                {/* Status */}
+                                <div className="space-y-3 w-full md:w-[12%]">
+                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Status</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase border border-blue-50 h-[81px] flex items-center justify-center">
+                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(selectedPayment.status)}`}>
                                             {selectedPayment.status}
                                         </span>
-                                        <p className="text-xs text-gray-400 font-medium">Method: {selectedPayment.method}</p>
+                                    </div>
+                                </div>
+
+                                {/* Method */}
+                                <div className="space-y-3 w-full md:w-[16%]">
+                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Method</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase border border-blue-50 h-[81px] flex items-center justify-center">
+                                        <p className="text-sm font-semibold text-center text-gray-700">{selectedPayment.method}</p>
+                                    </div>
+                                </div>
+
+                                {/* Amount */}
+                                <div className="space-y-3 w-full md:w-[10%]">
+                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Amount</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[81px] flex items-center justify-center">
+                                        <p className="text-base font-bold text-center text-[#011023]">₹{selectedPayment.amount?.toLocaleString()}</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold text-[#052558] uppercase tracking-widest border-b pb-2">Transaction Details</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-gray-50 rounded-2xl">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Transaction ID</p>
-                                        <p className="text-sm text-gray-700 font-mono">{selectedPayment.transactionId || 'N/A'}</p>
-                                    </div>
-                                    <div className="p-4 bg-gray-50 rounded-2xl">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Payment Type</p>
-                                        <p className="text-sm text-gray-700 font-bold">{selectedPayment.type}</p>
-                                    </div>
-                                    <div className="p-4 bg-gray-50 rounded-2xl">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Date & Time</p>
-                                        <p className="text-sm text-gray-700 font-medium">
-                                            {new Date(selectedPayment.date).toLocaleString('en-IN', {
-                                                day: '2-digit', month: 'short', year: 'numeric',
-                                                hour: '2-digit', minute: '2-digit', hour12: true
-                                            })}
-                                        </p>
-                                    </div>
-                                    <div className="p-4 bg-gray-50 rounded-2xl">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Amount Paid</p>
-                                        <p className="text-lg font-black text-[#011023]">₹{selectedPayment.amount}</p>
+                            {/* Transaction Details */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Transaction Details</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm">
+                                    <div className="flex gap-4">
+                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[2]">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Transaction ID</p>
+                                            <p className="text-sm text-[#011023] font-semibold">{selectedPayment.transactionId || 'N/A'}</p>
+                                        </div>
+                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[1]">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Payment ID</p>
+                                            <p className="text-sm text-[#011023] font-semibold">{selectedPayment.paymentId || 'N/A'}</p>
+                                        </div>
+                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[1]">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Booking ID</p>
+                                            <p className="text-sm text-[#011023] font-semibold">{selectedPayment.type === 'Booking' ? (selectedPayment.booking?.bookingId || '—') : '—'}</p>
+                                        </div>
+                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[2]">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Paid At</p>
+                                            <p className="text-sm text-[#011023] font-semibold">
+                                                {new Date(selectedPayment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(selectedPayment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
