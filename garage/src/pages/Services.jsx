@@ -67,7 +67,7 @@ const Services = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hide-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-blue-50/50 text-xs uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">

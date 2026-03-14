@@ -58,7 +58,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-2 overflow-y-auto custom-scrollbar">
+            <nav className="flex-1 px-4 py-10 uppercase space-y-2 overflow-y-auto hide-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}

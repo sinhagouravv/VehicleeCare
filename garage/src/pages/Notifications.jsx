@@ -110,7 +110,7 @@ const Notifications = () => {
             </div>
 
             <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-y-auto h-[860px]">
+                <div className="overflow-y-auto h-[860px] hide-scrollbar">
                     {loading ? (
                         <div className="h-full flex items-center justify-center">
                             <div className="flex flex-col items-center gap-3 text-gray-400">

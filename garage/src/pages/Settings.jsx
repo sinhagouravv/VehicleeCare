@@ -88,7 +88,7 @@ const Settings = () => {
                     </div>
 
                     {/* Tab Content Wrapper */}
-                    <div className="space-y-8 overflow-y-auto custom-scrollbar" style={{ maxHeight: "calc(100vh - 340px)" }}>
+                    <div className="space-y-8 overflow-y-auto hide-scrollbar" style={{ maxHeight: "calc(100vh - 340px)" }}>
 
                         {/* Petrol */}
                         {activeServiceTab === 'PETROL' && (

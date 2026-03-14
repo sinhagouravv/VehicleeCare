@@ -48,8 +48,8 @@ const Users = () => {
         switch (role) {
             case 'admin': return 'bg-purple-100 text-purple-700 font-black';
             case 'franchise': return 'bg-blue-100 text-blue-800 font-bold';
-            case 'vendor': return 'bg-emerald-100 text-emerald-800 font-bold';
-            default: return 'bg-gray-100 text-gray-700 font-semibold';
+            case 'vendor': return 'bg-[#dcfce7] text-[#065f46] font-bold';
+            default: return 'bg-cyan-100 text-cyan-700 font-bold';
         }
     };
 
@@ -200,9 +200,10 @@ const Users = () => {
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                     <th className="p-4.5 font-bold">User ID</th>
                                     <th className="p-4.5 font-bold">User</th>
+                                    <th className="p-4.5 font-bold">Category</th>
                                     <th className="p-4.5 font-bold">Contact</th>
                                     <th className="p-4.5 font-bold">Role</th>
-                                    <th className="p-4.5 font-bold">Join Date</th>
+                                    <th className="p-4.5 font-bold">Join Date & Time</th>
                                     <th className="p-4.5 font-bold">Status</th>
                                     <th className="p-4.5 font-bold">Actions</th>
                                 </tr>
@@ -223,19 +224,26 @@ const Users = () => {
                                                 <div className="font-bold uppercase text-[#011023]">{user.name}</div>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-medium text-gray-700 text-sm">{user.email}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">{user.phone || '—'}</div>
+                                                <span className={`inline-block px-3 uppercase py-1 text-xs font-bold rounded-full ${user.role === 'vendor' || user.role === 'franchise' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                    {user.role === 'vendor' || user.role === 'franchise' ? 'Business' : 'Regular'}
+                                                </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(user.role)}`}>
+                                                <div className="text-xs text-gray-500 mt-0.5">{user.phone || '—'}</div>
+                                                <div className="font-medium text-gray-700 text-sm">{user.email}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`inline-block px-2.5 py-1 uppercase text-xs rounded-lg ${getRoleBadge(user.role)}`}>
                                                     {formatRole(user.role)}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm text-gray-600">{formatDate(user.createdAt)}</span>
+                                                <span className="text-sm uppercase text-gray-600">
+                                                    {formatDate(user.createdAt)} | {user.createdAt ? new Date(user.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}
+                                                </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm font-semibold text-gray-700">{user.isVerified ? 'Verified' : 'Unverified'}</span>
+                                                <span className="text-sm font-semibold uppercase text-gray-700">{user.isVerified ? 'Verified' : 'Unverified'}</span>
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-center gap-2">
@@ -304,6 +312,7 @@ const Users = () => {
                                         { icon: <Calendar size={13} />, label: 'Joined', value: formatDate(viewUser.createdAt) },
                                         { icon: <ShieldCheck size={13} />, label: 'Status', value: viewUser.isVerified ? 'Verified ✓' : 'Unverified' },
                                         { icon: <User size={13} />, label: 'Role', value: formatRole(viewUser.role) },
+                                        { icon: <Clipboard size={13} />, label: 'Category', value: viewUser.role === 'vendor' || viewUser.role === 'franchise' ? 'Business' : 'Regular' },
                                     ].map(row => (
                                         <div key={row.label} className="bg-[#f4f9ff] rounded-2xl px-4 py-3 flex items-center gap-2">
                                             <div className="text-[#527FB0] flex-shrink-0">{row.icon}</div>
