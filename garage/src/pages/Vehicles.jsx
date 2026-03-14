@@ -1,175 +1,296 @@
-import React, { useState, useEffect } from 'react';
-import { Car, Search, Wrench, Settings2, Clock, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Eye, X, Trash2 } from 'lucide-react';
 
 const Vehicles = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [deleteModal, setDeleteModal] = useState({ open: false, vehicle: null });
 
-    useEffect(() => {
-        const fetchVehicles = async () => {
-            try {
-                const storedUser = localStorage.getItem('garageUser');
-                if (!storedUser) return;
-                const user = JSON.parse(storedUser);
+    const fetchVehicles = useCallback(async (silent = false) => {
+        try {
+            if (!silent) setLoading(true);
+            const storedUser = localStorage.getItem('garageUser');
+            if (!storedUser) return;
+            const user = JSON.parse(storedUser);
 
-                const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
-                const data = await res.json();
-                if (data.success) {
-                    const vehicleMap = {};
-                    
-                    data.data.forEach(b => {
-                        if (!b.vehicle || !b.vehicle.number) return; // Skip if no license plate
+            const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+            const data = await res.json();
+            if (data.success) {
+                const vehicleMap = {};
 
-                        const plate = b.vehicle.number;
-                        const date = new Date(b.schedule?.date || b.createdAt);
+                data.data.forEach(b => {
+                    if (!b.vehicle || !b.vehicle.number) return;
 
-                        // Keep the latest booking for status update
-                        if (!vehicleMap[plate] || date > vehicleMap[plate].lastServiceDate) {
-                            vehicleMap[plate] = {
-                                id: plate,
-                                model: `${b.vehicle.make} ${b.vehicle.model}`.trim(),
-                                year: b.vehicle.year || 'N/A',
-                                owner: b.user?.name || 'Unknown',
-                                status: b.status,
-                                type: b.vehicle.type || 'Unknown',
-                                lastServiceDate: date
-                            };
-                        }
-                    });
+                    const plate = b.vehicle.number;
 
-                    // Format Next Service (Mock calculation based on 6 months from last visit)
-                    const formattedVehicles = Object.values(vehicleMap).map(v => {
-                        let nextService = 'Pending';
-                        if (!isNaN(v.lastServiceDate.getTime())) {
-                            const nextDate = new Date(v.lastServiceDate);
-                            nextDate.setMonth(nextDate.getMonth() + 6);
-                            if (nextDate > new Date()) {
-                                nextService = nextDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-                            }
-                        }
-                        
-                        // Default Status mapping based on last booking
-                        let displayStatus = 'Ready';
-                        if (['Pending', 'Confirmed', 'In Progress'].includes(v.status)) {
-                            displayStatus = 'In Service';
-                        } else if (v.status === 'Completed') {
-                            displayStatus = 'Completed';
-                        }
+                    // Use createdAt for precise timing and sorting, as it captures the actual visit/record time
+                    const visitDate = new Date(b.createdAt || b.updatedAt || Date.now());
 
-                        return {
-                            ...v,
-                            status: displayStatus,
-                            nextService
+                    // Aggregate the latest data for each unique vehicle (by license plate)
+                    if (!vehicleMap[plate] || visitDate > vehicleMap[plate].lastVisitDate) {
+                        vehicleMap[plate] = {
+                            id: plate,
+                            customerId: b.user?.userId || b.user?.id || '—',
+                            ownerName: b.user?.name || 'Unknown',
+                            bookingId: b.bookingId || b._id?.substring(0, 8).toUpperCase(),
+                            brand: b.vehicle.make || '—',
+                            model: b.vehicle.model || '—',
+                            number: b.vehicle.number,
+                            year: b.vehicle.year || '—',
+                            type: b.vehicle.type || '—',
+                            transmission: b.vehicle.transmission || '—',
+                            lastVisitDate: visitDate,
+                            lastService: b.service?.title || b.service?.name || '',
+                            serviceHistory: [],
                         };
-                    }).sort((a, b) => b.lastServiceDate - a.lastServiceDate);
+                    }
+                });
 
-                    setVehicles(formattedVehicles);
-                }
-            } catch (error) {
-                console.error("Failed to fetch garage vehicles", error);
-            } finally {
-                setLoading(false);
+                const formattedVehicles = Object.values(vehicleMap).sort((a, b) => b.lastVisitDate - a.lastVisitDate);
+                setVehicles(formattedVehicles);
                 setLastRefreshed(new Date());
             }
-        };
-
-        fetchVehicles();
-        const timer = setInterval(fetchVehicles, 5000);
-        return () => clearInterval(timer);
+        } catch (error) {
+            console.error("Failed to fetch garage vehicles", error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchVehicles();
+        const timer = setInterval(() => fetchVehicles(true), 10000);
+        return () => clearInterval(timer);
+    }, [fetchVehicles]);
+
+    const handleViewDetails = (vehicle) => {
+        setSelectedVehicle(vehicle);
+        setIsViewModalOpen(true);
+    };
+
+    const handleDeleteVehicle = () => {
+        if (!deleteModal.vehicle) return;
+        // Local state filtering for immediate UI feedback as per pattern
+        setVehicles(prev => prev.filter(v => v.id !== deleteModal.vehicle.id));
+        setDeleteModal({ open: false, vehicle: null });
+    };
+
+    const formatDate = (date) => {
+        if (!date || isNaN(date.getTime())) return '—';
+        const d = new Date(date);
+        const day = d.toLocaleDateString('en-IN', { day: '2-digit' });
+        const month = d.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+        const year = d.getFullYear();
+        const time = d.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        }).toLowerCase();
+        return `${day} ${month} ${year} | ${time}`;
+    };
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-extrabold text-[#011023] uppercase tracking-tight flex items-center gap-3">
-                    Vehicles Directory
-                </h1>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                        {lastRefreshed
-                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                            : 'Loading…'}
-                    </div>
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Vehicles Directory</h1>
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
                 </div>
             </div>
 
-            <div className="bg-white/70 backdrop-blur-md border border-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-[#e6f0fa] flex justify-between items-center bg-white/40">
-                    <div className="relative w-full max-w-md">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search by license plate or model..."
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023] placeholder-gray-400"
-                        />
-                    </div>
-                    <div className="flex gap-3">
-                        <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                            <option>All Types</option>
-                            <option>SUV</option>
-                            <option>Sedan</option>
-                            <option>Hatchback</option>
-                        </select>
-                        <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                            <option>All Status</option>
-                            <option>In Service</option>
-                            <option>Ready</option>
-                            <option>Completed</option>
-                        </select>
-                    </div>
+            {/* Main Table */}
+            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[11%]">Customer Id</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Brand</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Model</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Number</th>
+                                <th className="p-4.5 font-bold text-center w-[22%]">Other Details</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Last Visit</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">Loading vehicles...</td>
+                                </tr>
+                            ) : vehicles.length === 0 ? (
+                                <tr>
+                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No vehicles found.</td>
+                                </tr>
+                            ) : vehicles.map((v) => (
+                                <tr key={v.id} className="text-center transition-all hover:bg-blue-50/30">
+                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[11%]" title={v.customerId}>
+                                        {v.customerId}
+                                    </td>
+                                    <td className="p-4 text-center w-[10%]">
+                                        <div className="font-bold text-[#011023] truncate px-2" title={v.ownerName}>{v.ownerName}</div>
+                                    </td>
+                                    <td className="p-4 text-center w-[10%]">
+                                        <div className="font-bold text-[#052558] truncate px-1" title={v.bookingId}>{v.bookingId}</div>
+                                    </td>
+                                    <td className="p-4 text-center w-[10%] font-bold text-[#011023]">
+                                        {v.brand}
+                                    </td>
+                                    <td className="p-4 text-center w-[9%] font-bold text-[#0f172a]">
+                                        {v.model}
+                                    </td>
+                                    <td className="p-4 text-center w-[9%]">
+                                        <span className="bg-[#fef3c7] text-[#92400e] font-bold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide">
+                                            {v.number}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-center w-[19%]">
+                                        <div className="flex flex-wrap justify-center gap-1.5">
+                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold border border-blue-100">{v.year}</span>
+                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-bold border border-emerald-100">{v.type}</span>
+                                            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md font-bold border border-purple-100">{v.transmission}</span>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-center w-[15%]">
+                                        <span className="text-sm font-semibold text-gray-600">
+                                            {formatDate(v.lastVisitDate)}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-center w-[11%]">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <button
+                                                onClick={() => handleViewDetails(v)}
+                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye size={17} />
+                                            </button>
+                                            <button
+                                                onClick={() => setDeleteModal({ open: true, vehicle: v })}
+                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                title="Delete Vehicle"
+                                            >
+                                                <Trash2 size={17} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 p-6">
-                    {loading ? (
-                        <div className="col-span-full text-center py-10 text-gray-500">Loading vehicles...</div>
-                    ) : vehicles.length === 0 ? (
-                        <div className="col-span-full text-center py-10 text-gray-400">No vehicles have been serviced here yet.</div>
-                    ) : vehicles.map((vehicle) => (
-                        <div key={vehicle.id} className="bg-white border border-[#e6f0fa] rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="font-black text-[#011023] text-xl tracking-tight truncate max-w-[150px]" title={vehicle.model}>{vehicle.model}</h3>
-                                    <p className="text-gray-500 font-semibold text-sm">{vehicle.year} • {vehicle.type}</p>
+            {/* View Details Modal */}
+            {isViewModalOpen && selectedVehicle && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm"
+                    onClick={() => setIsViewModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Vehicle Details</h3>
+                                <p className="text-sm text-gray-500 uppercase mt-1">Plate: <span className="font-semibold text-gray-700">{selectedVehicle.number}</span></p>
+                            </div>
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6 hide-scrollbar uppercase">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Owner Info */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Owner Info</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-bold text-[#011023] truncate">{selectedVehicle.ownerName}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Cust ID:</span> <span className="font-bold text-gray-800 truncate">{selectedVehicle.customerId}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Booking ID:</span> <span className="font-bold text-[#052558] truncate">{selectedVehicle.bookingId}</span></p>
+                                    </div>
                                 </div>
-                                <span className="bg-yellow-100 text-yellow-800 font-mono font-bold px-3 py-1 rounded border border-yellow-200 shadow-sm text-sm truncate max-w-[120px]" title={vehicle.id}>
-                                    {vehicle.id}
-                                </span>
+
+                                {/* Vehicle Specs */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Specifications</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Brand:</span> <span className="font-bold text-[#011023]">{selectedVehicle.brand}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Model:</span> <span className="font-bold text-gray-800">{selectedVehicle.model}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Trans:</span> <span className="font-bold text-gray-800">{selectedVehicle.transmission}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Quick Stats */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Overview</h4>
+                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Year:</span> <span className="font-bold text-[#011023]">{selectedVehicle.year}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Body Type:</span> <span className="font-bold text-gray-800">{selectedVehicle.type}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Last Visit:</span> <span className="font-bold text-gray-800">{formatDate(selectedVehicle.lastVisitDate).split('|')[0]}</span></p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="space-y-3 mb-5">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-400 font-medium w-24">Owner:</span>
-                                    <span className="font-bold text-[#011023] truncate max-w-[150px]" title={vehicle.owner}>{vehicle.owner}</span>
+                            {/* History Placeholder */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Service</h4>
+                                <div className="bg-blue-50/30 border border-blue-50 pt-1 pb-3 rounded-xl">
+                                    <p className="text-[#052558] font-bold text-sm">{selectedVehicle.lastService}</p>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-400 font-medium w-24">Status:</span>
-                                    <span className={`font-bold ${vehicle.status === 'In Service' ? 'text-blue-600' :
-                                        vehicle.status === 'Ready' || vehicle.status === 'Completed' ? 'text-emerald-600' : 'text-gray-600'
-                                        }`}>
-                                        {vehicle.status}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-400 font-medium w-24">Next Service:</span>
-                                    <span className="font-bold text-gray-700">{vehicle.nextService}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-2 pt-4 border-t border-[#e6f0fa]">
-                                <button className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded-xl text-sm font-bold transition-colors flex justify-center items-center gap-2">
-                                    <Wrench size={14} /> Service History
-                                </button>
-                                <button className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 rounded-xl text-sm font-bold transition-colors flex justify-center items-center gap-2">
-                                    <Settings2 size={14} /> Details
-                                </button>
                             </div>
                         </div>
-                    ))}
-                </div>
-            </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteModal.open && createPortal(
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 text-center space-y-4">
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-bold text-[#052558] uppercase">Delete Vehicle?</h3>
+                                <p className="text-gray-500 text-sm">
+                                    Are you sure you want to remove <span className="font-bold text-gray-700">{deleteModal.vehicle?.number}</span> from the directory? This action cannot be undone.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex p-4 gap-3 bg-gray-50/50">
+                            <button
+                                onClick={() => setDeleteModal({ open: false, vehicle: null })}
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors uppercase text-xs"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteVehicle}
+                                className="flex-1 px-4 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all uppercase text-xs"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
 
 export default Vehicles;
+

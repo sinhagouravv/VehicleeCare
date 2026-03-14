@@ -247,7 +247,7 @@ const Staff = () => {
 
             {/* Main Content Table (Glassmorphism) */}
             <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative">
+                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
                     <table className="w-full text-center border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
@@ -474,7 +474,7 @@ const Staff = () => {
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 space-y-4 uppercase overflow-y-auto max-h-[70vh]">
+                        <div className="p-6 space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar">
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-[#011023] mb-1.5">Full Name</label>
