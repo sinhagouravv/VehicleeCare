@@ -12,7 +12,7 @@ const Staff = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [saving, setSaving] = useState(false);
-
+    
     // Actions State
     const [banEmployee, setBanEmployee] = useState(null);
     const [banReason, setBanReason] = useState('');
@@ -22,28 +22,27 @@ const Staff = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [copySuccess, setCopySuccess] = useState('');
 
-    const [form, setForm] = useState({
-        name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
+    const [form, setForm] = useState({ 
+        name: '', email: '', phone: '', role: '', address: '', category: 'Store', 
         shift: '', panCard: '', adharCard: '', voterId: '', agreement: '', salaryType: ''
     });
 
     const fetchStaff = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const storedUser = localStorage.getItem('garageUser');
+            const storedUser = localStorage.getItem('adminUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/employees/garage/${user.id}`);
+            const res = await fetch(`http://localhost:5001/api/employees/garage/${user.id || user._id}`);
             const data = await res.json();
             if (data.success) {
                 setStaffMembers(data.data || []);
                 setLastRefreshed(new Date());
             }
         } catch (error) {
-            console.error("Failed to fetch garage staff", error);
+            console.error("Failed to fetch store staff", error);
         } finally {
             setLoading(false);
         }
@@ -64,24 +63,24 @@ const Staff = () => {
         if (!form.name || !form.email || !form.phone) return alert('Please fill all required fields');
         setSaving(true);
         try {
-            const storedUser = localStorage.getItem('garageUser');
-            const garageId = storedUser ? JSON.parse(storedUser).id : null;
-
+            const storedUser = localStorage.getItem('adminUser');
+            const storeId = storedUser ? (JSON.parse(storedUser).id || JSON.parse(storedUser)._id) : null;
+            
             const url = isEditMode ? `http://localhost:5001/api/employees/${form._id}` : 'http://localhost:5001/api/employees';
             const method = isEditMode ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...form, garageId })
+                body: JSON.stringify({ ...form, garageId: storeId, category: 'Store' })
             });
             const data = await res.json();
             if (data.success) {
                 await fetchStaff(true);
                 setIsAddModalOpen(false);
                 setIsEditMode(false);
-                setForm({
-                    name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
+                setForm({ 
+                    name: '', email: '', phone: '', role: '', address: '', category: 'Store',
                     shift: '', panCard: '', adharCard: '', voterId: '', agreement: '', salaryType: ''
                 });
             } else {
@@ -101,13 +100,27 @@ const Staff = () => {
         setIsAddModalOpen(true);
     };
 
+    const getRoleIcon = (role) => {
+        switch (role) {
+            case 'Chef': return <Zap size={14} />;
+            case 'Waiter': return <UserCheck size={14} />;
+            case 'Cashier': return <CreditCard size={14} />;
+            case 'Delivery': return <ShoppingBag size={14} />;
+            case 'Manager': return <Briefcase size={14} />;
+            case 'Admin': return <Shield size={14} />;
+            default: return <UserSquare2 size={14} />;
+        }
+    };
+
     const getRoleBadge = (role) => {
         switch (role) {
             case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
             case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
-            case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
-            case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
-            case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'Staff': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'Chef': return 'bg-orange-100 text-orange-700 font-bold';
+            case 'Waiter': return 'bg-pink-100 text-pink-700 font-bold';
+            case 'Cashier': return 'bg-cyan-100 text-cyan-700 font-bold';
+            case 'Delivery': return 'bg-lime-100 text-lime-700 font-bold';
             default: return 'bg-gray-100 text-gray-700 font-bold';
         }
     };
@@ -129,31 +142,6 @@ const Staff = () => {
         return `${day} | ${time}`;
     };
 
-    const getRoleIcon = (role) => {
-        switch (role) {
-            case 'Mechanic': return <Wrench size={14} />;
-            case 'Manager': return <Briefcase size={14} />;
-            case 'Technician': return <ShieldCheck size={14} />;
-            case 'Support': return <UserCheck size={14} />;
-            case 'Admin': return <Shield size={14} />;
-            default: return <UserSquare2 size={14} />;
-        }
-    };
-
-    const formatAadhar = (val) => {
-        const digits = val.replace(/\D/g, '').slice(0, 12);
-        return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-    };
-
-    const formatPAN = (val) => {
-        return val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10);
-    };
-
-    const formatVoter = (val) => {
-        return val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10);
-    };
-
-    // ── Download PDF ───────────────────────────────────────────
     const handleDownloadPDF = async (staff) => {
         const doc = new jsPDF();
         const primary = [5, 37, 88];
@@ -161,7 +149,7 @@ const Staff = () => {
 
         doc.setFontSize(20);
         doc.setTextColor(...primary);
-        doc.text('VehicleeCare — Staff Report', 105, 18, null, null, 'center');
+        doc.text('VehicleeCare — Store Staff Report', 105, 18, null, null, 'center');
 
         doc.setFontSize(11);
         doc.setTextColor(...gray);
@@ -195,12 +183,10 @@ const Staff = () => {
         doc.save(`Staff_${staff.employeeId || staff._id}_Report.pdf`);
     };
 
-    // ── Ban/Disable Staff ───────────────────────────────────────────────
     const handleBanSubmit = async () => {
         if (!banReason.trim()) return;
         setBanSubmitting(true);
-        // Simulate API call for now (matches admin panel behavior)
-        await new Promise(r => setTimeout(r, 900));
+        await new Promise(r => setTimeout(r, 900)); 
         setBanSuccess(`Access restricted for "${banEmployee.name}".`);
         setBanSubmitting(false);
         setTimeout(() => {
@@ -210,7 +196,6 @@ const Staff = () => {
         }, 2000);
     };
 
-    // ── Delete Staff ───────────────────────────────────────────────────
     const handleDelete = async () => {
         if (!employeeToDelete) return;
         setDeleting(true);
@@ -234,15 +219,9 @@ const Staff = () => {
         }
     };
 
-    const handleCopy = (text, type) => {
-        navigator.clipboard.writeText(text);
-        setCopySuccess(type);
-        setTimeout(() => setCopySuccess(''), 2000);
-    };
-
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Employee Management</h1>
                 <div className="flex items-center gap-4">
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm">
@@ -252,7 +231,6 @@ const Staff = () => {
                 </div>
             </div>
 
-            {/* Main Content Table (Glassmorphism) */}
             <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
                 <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
                     <table className="w-full text-center border-collapse">
@@ -274,7 +252,7 @@ const Staff = () => {
                                     <td colSpan={8} className="py-16 text-gray-400 text-sm">
                                         <div className="flex flex-col items-center gap-2">
                                             <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                                            <p className="text-sm font-medium uppercase tracking-widest opacity-60">Loading records...</p>
+                                            <p className="text-sm font-medium uppercase tracking-widest opacity-60">Loading staff...</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -308,7 +286,7 @@ const Staff = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600' : staff.shift === 'Evening' ? 'bg-indigo-50 text-indigo-600' : staff.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
                                             {staff.shift || '—'}
                                         </span>
                                     </td>
@@ -322,20 +300,19 @@ const Staff = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-1.5">
-                                            <button onClick={() => handleViewDetails(staff)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Staff">
+                                            <button onClick={() => handleViewDetails(staff)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View">
                                                 <Eye size={17} />
                                             </button>
-
-                                            <button onClick={() => handleEdit(staff)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" title="Edit Staff">
+                                            <button onClick={() => handleEdit(staff)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" title="Edit">
                                                 <Edit size={17} />
                                             </button>
-                                            <button onClick={() => { setBanEmployee(staff); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable Staff">
+                                            <button onClick={() => { setBanEmployee(staff); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable">
                                                 <UserX size={17} />
                                             </button>
-                                            <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download Report">
+                                            <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download">
                                                 <Download size={17} />
                                             </button>
-                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Staff">
+                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
                                                 <Trash2 size={17} />
                                             </button>
                                         </div>
@@ -347,7 +324,10 @@ const Staff = () => {
                 </div>
             </div>
 
-            {/* View Details Modal (MyBookings Alignment) */}
+            {/* Modals from Staff.jsx (View, Add, Ban, Delete) would go here, adapted for Store */}
+            {/* For brevity, including core logic above and porting modal structures from garage/Staff.jsx */}
+            
+            {/* View Details Modal (Refined Alignment) */}
             {isViewModalOpen && selectedStaff && createPortal(
                 <div 
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm transition-all duration-300"
@@ -380,7 +360,7 @@ const Staff = () => {
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedStaff.name || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedStaff.phone || '—'}</span></p>
-                                        <p className="text-sm flex pb-4"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate ">{selectedStaff.email || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedStaff.email || '—'}</span></p>
                                     </div>
                                 </div>
 
@@ -394,11 +374,11 @@ const Staff = () => {
                                     </div>
                                 </div>
 
-                                {/* Payment & Status (Other Details) */}
+                                {/* Status & Join Info */}
                                 <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
                                     <div className="space-y-1.25">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
-                                        <div className="flex items-center  gap-3">
+                                        <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
                                             <div className="flex uppercase items-center gap-2">
                                                 <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${selectedStaff.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
@@ -445,7 +425,7 @@ const Staff = () => {
                             </div>
 
                             {/* Residential Archive (Full Width) */}
-                            <div className="space-y-2 ">
+                            <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
                                 <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
                                     <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
@@ -454,107 +434,92 @@ const Staff = () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Modal Footer - Actions */}
-                        
                     </div>
                 </div>,
                 document.body
             )}
 
-            {/* Add Employee Modal */}
+            {/* Add/Edit Modal */}
             {isAddModalOpen && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
-                    <div className="relative w-full max-w-5xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                        {/* Header */}
+                    <div className="relative w-full max-w-5xl bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">{isEditMode ? 'Update Employee' : 'Add New Employee'}</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5">{isEditMode ? 'Update existing credentials' : 'Register a new staff member'}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditMode(false); }} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700">
-                                <X size={20} />
-                            </button>
+                            <h2 className="text-xl font-bold text-[#011023] uppercase">{isEditMode ? 'Update Member' : 'New Staff Member'}</h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors"><X size={20} /></button>
                         </div>
-
-                        {/* Body */}
                         <div className="p-6 space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar">
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Full Name</label>
-                                    <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Full Name</label>
+                                    <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none"/>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Phone Number</label>
-                                    <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Phone</label>
+                                    <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none"/>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Email Address</label>
-                                    <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none lowercase" />
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Email</label>
+                                    <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none lowercase"/>
                                 </div>
                             </div>
-
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Role</label>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Role</label>
                                     <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
                                         <option value=""></option>
-                                        <option value="Mechanic">MECHANIC</option>
                                         <option value="Manager">MANAGER</option>
-                                        <option value="Technician">TECHNICIAN</option>
-                                        <option value="Support">SUPPORT</option>
+                                        <option value="Staff">STAFF</option>
+                                        <option value="Chef">CHEF</option>
+                                        <option value="Waiter">WAITER</option>
+                                        <option value="Cashier">CASHIER</option>
+                                        <option value="Delivery">DELIVERY</option>
                                         <option value="Admin">ADMIN</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Shift</label>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Shift</label>
                                     <select value={form.shift} onChange={e => setForm({ ...form, shift: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="Morning">MORNING</option>
                                         <option value="Evening">EVENING</option>
+                                        <option value="Night">NIGHT</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Salary Type</label>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Salary Period</label>
                                     <select value={form.salaryType} onChange={e => setForm({ ...form, salaryType: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="Monthly">MONTHLY</option>
                                         <option value="Weekly">WEEKLY</option>
                                         <option value="Daily">DAILY</option>
-                                        <option value="Hourly">HOURLY</option>
+                                        <option value="PerDelivery">PER DELIVERY</option>
                                     </select>
                                 </div>
                             </div>
-
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">PAN Card Number</label>
-                                    <input value={form.panCard} onChange={e => setForm({ ...form, panCard: formatPAN(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">PAN Card</label>
+                                    <input value={form.panCard} onChange={e => setForm({ ...form, panCard: e.target.value.toUpperCase() })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none" maxLength={10}/>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Aadhar Card Number</label>
-                                    <input value={form.adharCard} onChange={e => setForm({ ...form, adharCard: formatAadhar(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={14} />
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Aadhar</label>
+                                    <input value={form.adharCard} onChange={e => setForm({ ...form, adharCard: e.target.value })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none" maxLength={14}/>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Voter ID</label>
-                                    <input value={form.voterId} onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Voter ID</label>
+                                    <input value={form.voterId} onChange={e => setForm({ ...form, voterId: e.target.value.toUpperCase() })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none" maxLength={10}/>
                                 </div>
                             </div>
-
                             <div>
-                                <label className="block text-sm font-bold text-[#011023] mb-1.5">Residential Address</label>
-                                <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none h-16 resize-none" />
+                                <label className="block text-sm font-bold text-[#011023] mb-1.5 font-sans">Address</label>
+                                <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white border border-[#e6f0fa] rounded-xl outline-none h-20 resize-none"/>
                             </div>
                         </div>
-
-                        {/* Footer */}
                         <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditMode(false); }} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
-                                {saving ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Employee' : 'Add Employee')}
+                            <button onClick={() => setIsAddModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-gray-500">CANCEL</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl shadow-lg shadow-emerald-600/25 uppercase tracking-wide">
+                                {saving ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Save Changes' : 'Confirm Add')}
                             </button>
                         </div>
                     </div>
@@ -562,55 +527,25 @@ const Staff = () => {
                 document.body
             )}
 
-            {/* Disable Staff Modal */}
+            {/* Disable Account Modal */}
             {banEmployee && createPortal(
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setBanEmployee(null)} />
-                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50">
-                        <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-5 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                                    <Ban size={18} className="text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-white uppercase tracking-wide">Disable Account</h3>
-                                    <p className="text-xs text-white/60 mt-0.5">{banEmployee.name}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setBanEmployee(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all">
-                                <X size={15} />
-                            </button>
+                    <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                        <div className="bg-red-600 px-6 py-5 flex items-center justify-between text-white uppercase">
+                            <h3 className="text-sm font-black">Restrict Access</h3>
+                            <button onClick={() => setBanEmployee(null)}><X size={18} /></button>
                         </div>
-
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 uppercase">
                             {banSuccess ? (
-                                <div className="flex flex-col items-center gap-3 py-4">
-                                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                        <UserX size={22} className="text-red-500" />
-                                    </div>
-                                    <p className="text-sm font-bold text-[#011023] text-center uppercase tracking-tight">{banSuccess}</p>
-                                </div>
+                                <p className="text-sm font-bold text-center text-red-600 border border-red-100 bg-red-50 p-4 rounded-xl">{banSuccess}</p>
                             ) : (
                                 <>
-                                    <p className="text-[13.5px] uppercase text-gray-500">Provide a reason for disabling <strong className="text-[#011023]">{banEmployee.name}</strong>. Access will be revoked immediately.</p>
-                                    <div>
-                                        <label className="text-[11px] text-gray-400 uppercase font-bold tracking-widest block mb-2">Reason</label>
-                                        <textarea
-                                            rows={3}
-                                            value={banReason}
-                                            onChange={e => setBanReason(e.target.value)}
-                                            className="w-full border-2 border-gray-100 uppercase focus:border-red-200 bg-gray-50/50 rounded-2xl px-4 py-3 text-sm text-[#011023] placeholder-gray-300 outline-none resize-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="flex gap-3 pt-1">
-                                        <button onClick={() => setBanEmployee(null)} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 text-sm font-bold text-gray-400 hover:bg-gray-50 transition-all">CANCEL</button>
-                                        <button
-                                            onClick={handleBanSubmit}
-                                            disabled={!banReason.trim() || banSubmitting}
-                                            className="flex-1 py-3 rounded-2xl bg-red-500 text-white text-sm font-black uppercase tracking-wide hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            {banSubmitting ? <><Loader2 size={13} className="animate-spin" /> DISABLING...</> : <><UserX size={13} /> DISABLE NOW</>}
-                                        </button>
+                                    <p className="text-sm text-gray-500">Reason for disabling <strong className="text-[#011023]">{banEmployee.name}</strong>:</p>
+                                    <textarea value={banReason} onChange={e => setBanReason(e.target.value)} className="w-full border border-gray-100 rounded-2xl px-4 py-3 text-sm outline-none resize-none h-24" placeholder="Enter reason..."/>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setBanEmployee(null)} className="flex-1 py-3 border border-gray-100 rounded-2xl font-bold text-gray-400">CANCEL</button>
+                                        <button onClick={handleBanSubmit} disabled={!banReason.trim()} className="flex-1 py-3 bg-red-500 text-white rounded-2xl font-black disabled:opacity-50">RESTRICT NOW</button>
                                     </div>
                                 </>
                             )}
@@ -620,37 +555,19 @@ const Staff = () => {
                 document.body
             )}
 
-            {/* Delete Confirmation Modal */}
+            {/* Delete Modal */}
             {isDeleteModalOpen && employeeToDelete && createPortal(
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
-                    <div className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
-                            <div className="w-16 h-16 rounded-3xl bg-red-100 flex items-center justify-center shadow-inner">
-                                <Trash2 size={24} className="text-red-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl uppercase font-black text-[#011023]">Remove Member</h3>
-                                <p className="text-xs text-red-500 font-bold uppercase tracking-widest mt-1">Permanent Removal</p>
-                            </div>
+                    <div className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl p-8 text-center uppercase">
+                        <div className="w-16 h-16 rounded-3xl bg-red-100 flex items-center justify-center mx-auto mb-6">
+                            <Trash2 size={24} className="text-red-600" />
                         </div>
-
-                        <div className="p-8 text-center uppercase tracking-tight">
-                            <h4 className="text-lg font-bold text-[#011023] mb-2">{employeeToDelete.name}</h4>
-                            <p className="text-gray-500 text-xs leading-relaxed">
-                                Are you sure you want to permanently delete this account? All performance records and credentials will be lost.
-                            </p>
-                        </div>
-
-                        <div className="p-6 bg-gray-50 flex gap-3">
-                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-xs font-bold text-gray-400 hover:bg-white rounded-2xl border-2 border-transparent hover:border-gray-200 transition-all uppercase">CANCEL</button>
-                            <button
-                                onClick={handleDelete}
-                                disabled={deleting}
-                                className="flex-1 py-3 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all text-xs uppercase disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'CONFIRM DELETE'}
-                            </button>
+                        <h3 className="text-xl font-black text-[#011023] mb-2">Remove Member</h3>
+                        <p className="text-gray-500 text-xs leading-relaxed mb-8">Permanently delete <strong>{employeeToDelete.name}</strong> from your records? This cannot be undone.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-gray-400 font-bold border border-gray-100 rounded-2xl">BACK</button>
+                            <button onClick={handleDelete} className="flex-1 py-3 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20">DELETE</button>
                         </div>
                     </div>
                 </div>,

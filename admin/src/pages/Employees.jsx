@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard } from 'lucide-react';
+import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard, Zap, ShoppingBag } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -51,10 +51,24 @@ const Employees = () => {
         switch (role) {
             case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
             case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'Staff': return 'bg-emerald-100 text-emerald-700 font-bold';
             case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
             case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
             case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'Chef': return 'bg-orange-100 text-orange-700 font-bold';
+            case 'Waiter': return 'bg-pink-100 text-pink-700 font-bold';
+            case 'Cashier': return 'bg-cyan-100 text-cyan-700 font-bold';
+            case 'Delivery': return 'bg-lime-100 text-lime-700 font-bold';
             default: return 'bg-gray-100 text-gray-700 font-bold';
+        }
+    };
+
+    const getShiftBadge = (shift) => {
+        switch (shift) {
+            case 'Morning': return 'bg-orange-50 text-orange-600';
+            case 'Evening': return 'bg-indigo-50 text-indigo-600';
+            case 'Night': return 'bg-purple-100 text-purple-700';
+            default: return 'bg-gray-50 text-gray-400';
         }
     };
 
@@ -64,6 +78,10 @@ const Employees = () => {
 
     const getRoleIcon = (role) => {
         switch (role) {
+            case 'Chef': return <Zap size={14} />;
+            case 'Waiter': return <UserCheck size={14} />;
+            case 'Cashier': return <CreditCard size={14} />;
+            case 'Delivery': return <ShoppingBag size={14} />;
             case 'Mechanic': return <Wrench size={14} />;
             case 'Manager': return <Briefcase size={14} />;
             case 'Technician': return <ShieldCheck size={14} />;
@@ -247,6 +265,7 @@ const Employees = () => {
                                     <th className="p-4.5 font-bold">Category ID</th>
                                     <th className="p-4.5 font-bold">Contact</th>
                                     <th className="p-4.5 font-bold">Role</th>
+                                    {/* <th className="p-4.5 font-bold">Shift</th> */}
                                     <th className="p-4.5 font-bold">Join Date & Time</th>
                                     <th className="p-4.5 font-bold">Status</th>
                                     <th className="p-4.5 font-bold">Actions</th>
@@ -267,11 +286,17 @@ const Employees = () => {
                                             <td className="p-4">
                                                 <div className="font-bold uppercase text-[#011023]">{employee.name}</div>
                                             </td>
-                                            <td className="p-4">
-                                                <span className="inline-block px-2.5 py-1 uppercase text-xs font-bold rounded-lg bg-[#f0f6ff] text-[#527FB0] border border-[#e6f0fa]">
-                                                    {employee.category || 'System'}
-                                                </span>
-                                            </td>
+                                             <td className="p-4">
+                                                 <span className={`inline-block px-2.5 py-1 uppercase text-xs font-bold rounded-lg border ${
+                                                     employee.category === 'Store' ? 'bg-orange-50 text-orange-600 border-orange-200' : 
+                                                     employee.category === 'Garage' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                                     employee.category === 'Station' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                     employee.category === 'Parking' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
+                                                     'bg-[#f0f6ff] text-[#527FB0] border-[#e6f0fa]'
+                                                 }`}>
+                                                     {employee.category || 'System'}
+                                                 </span>
+                                             </td>
                                             <td className="p-4">
                                                 <div className="font-bold text-[#052558] uppercase">
                                                     {employee.category === 'Garage' ? (employee.garageId || '—') : '—'}
@@ -288,6 +313,11 @@ const Employees = () => {
                                                     </span>
                                                 </div>
                                             </td>
+                                            {/* <td className="p-4 text-center">
+                                                <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${getShiftBadge(employee.shift)}`}>
+                                                    {employee.shift || '—'}
+                                                </span>
+                                            </td> */}
                                             <td className="p-4 text-center uppercase">
                                                 <div className="font-semibold text-[#011023]">
                                                     {formatDate(employee.createdAt)}
@@ -321,97 +351,141 @@ const Employees = () => {
                 </div>
             </div>
 
-            {/* ── VIEW EMPLOYEE MODAL ───────────────────────── */}
+            {/* VIEW EMPLOYEE MODAL (Refined Alignment) */}
             {viewEmployee && createPortal(
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setViewEmployee(null)} />
-                    <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 max-h-[90vh] flex flex-col">
-                        {/* Header */}
-                        <div className="relative bg-gradient-to-r from-[#041e49] via-[#052558] to-[#1a4a8a] px-6 py-5 flex items-center justify-between flex-shrink-0 overflow-hidden">
-                            {/* Decorative orb */}
-                            <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
-                            <div className="absolute -bottom-8 right-20 w-20 h-20 bg-white/5 rounded-full pointer-events-none" />
-
-                            <div className="flex items-center gap-4 relative z-10">
-                                {/* Initials Avatar */}
-                                <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                    <span className="text-base font-black text-white">
-                                        {viewEmployee.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-[15px] font-black text-white uppercase tracking-wide">{viewEmployee.name}</h3>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] font-bold text-white/70 font-mono bg-white/10 px-2 py-0.5 rounded-full">{viewEmployee.userId || viewEmployee.employeeId || viewEmployee._id?.slice(0, 8)}</span>
-                                        <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
-                                            {getRoleIcon(viewEmployee.role)} {formatRole(viewEmployee.role)}
-                                        </span>
-                                    </div>
-                                </div>
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => setViewEmployee(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Employee Details</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{viewEmployee.userId || viewEmployee.employeeId || viewEmployee._id?.slice(0, 8)}</span></p>
                             </div>
-                            <button onClick={() => setViewEmployee(null)} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all">
-                                <X size={15} />
+                            <button 
+                                onClick={() => setViewEmployee(null)} 
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="flex gap-5 p-6 h-[490px] overflow-hidden">
-                            {/* Account Details — 40% */}
-                            <div className="w-[35%] flex-shrink-0">
-                                <p className="text-[11px] text-[#052558] font-black uppercase tracking-widest mb-3">Account Details</p>
-                                <div className="grid grid-cols-1 gap-3">
-                                    {[
-                                        { icon: <Mail size={13} />, label: 'Email', value: viewEmployee.email },
-                                        { icon: <Briefcase size={13} />, label: 'Category', value: viewEmployee.category || 'System' },
-                                        { icon: <Phone size={13} />, label: 'Phone', value: viewEmployee.phone || '—' },
-                                        { icon: <CreditCard size={13} />, label: 'Aadhar', value: viewEmployee.adharCard || '—' },
-                                        { icon: <CreditCard size={13} />, label: 'PAN Card', value: viewEmployee.panCard || '—' },
-                                        { icon: <CreditCard size={13} />, label: 'Voter ID', value: viewEmployee.voterId || '—' },
-                                        { icon: <MapPin size={13} />, label: 'Address', value: viewEmployee.address || '—' },
-                                        { icon: <Calendar size={13} />, label: 'Joined', value: formatDate(viewEmployee.createdAt) },
-                                        { icon: <ShieldCheck size={13} />, label: 'Status', value: viewEmployee.isVerified ? 'Verified ✓' : 'Unverified' },
-                                        { icon: <User size={13} />, label: 'Role', value: formatRole(viewEmployee.role) },
-                                    ].map(row => (
-                                        <div key={row.label} className="bg-[#f4f9ff] rounded-2xl px-4 py-3 flex items-center gap-2">
-                                            <div className="text-[#527FB0] flex-shrink-0">{row.icon}</div>
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{row.label}</p>
-                                                <p className="text-sm text-[#011023] font-semibold truncate">{row.value}</p>
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Personal Info */}
+                                <div className="space-y-2 w-full md:w-[42%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewEmployee.name || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewEmployee.phone || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewEmployee.email || '—'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Employment Info */}
+                                <div className="space-y-2 w-full md:w-[22%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="font-semibold ml-2 text-[#011023]">{formatRole(viewEmployee.role)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className="font-semibold ml-2 text-gray-800">{viewEmployee.shift || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{viewEmployee.salaryType || 'Monthly'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Status & Join Info */}
+                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                                    <div className="space-y-1.25">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${viewEmployee.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                                    {viewEmployee.isVerified ? 'Verified' : 'Pending'}
+                                                </span>
                                             </div>
                                         </div>
-                                    ))}
+
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Category</h4>
+                                            <span className="text-xs ml-3 font-bold text-blue-600 border border-blue-100 bg-blue-50 px-2 py-0.5 rounded-lg uppercase">
+                                                {viewEmployee.category || 'System'}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Joined At</h4>
+                                            <span className="text-xs ml-3 font-bold text-gray-600 uppercase">
+                                                {formatDate(viewEmployee.createdAt, true)}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Booking History — 65% */}
-                            <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                                <p className="text-[11px] text-[#052558] font-black uppercase tracking-widest mb-3 flex items-center gap-1.5">Tasks History</p>
+                            {/* Booking History (Preserved Section) */}
+                            {/* <div className="flex flex-col overflow-hidden">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Tasks History</h4>
                                 {loadingBookings ? (
-                                    <div className="flex items-center justify-center py-8">
+                                    <div className="flex items-center justify-center py-8 bg-gray-50/50 rounded-2xl border border-gray-100">
                                         <Loader2 size={22} className="animate-spin text-[#527FB0]" />
                                     </div>
                                 ) : employeeBookings.length === 0 ? (
-                                    <p className="text-sm text-gray-400 text-center py-6 bg-gray-50 rounded-2xl">No tasks found for this employee.</p>
+                                    <p className="text-sm text-gray-400 text-center py-8 bg-gray-50/50 rounded-2xl border border-gray-100 uppercase font-bold tracking-widest opacity-60">No tasks found for this employee.</p>
                                 ) : (
-                                    <div className="space-y-2 overflow-y-auto gap-3 flex-1 pr-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 hide-scrollbar">
                                         {employeeBookings.map(b => (
-                                            <div key={b._id} className="bg-[#f4f9ff] rounded-2xl px-4 py-3.5 flex items-center justify-between">
-                                                <div className="w-[70%]">
-                                                    <p className="text-xs font-bold text-[#011023]">{b.service?.title || 'Service'}</p>
-                                                    <p className="text-[10px] text-gray-400 font-mono mt-0.5">{b.bookingId || b._id?.slice(0, 10)}</p>
+                                            <div key={b._id} className="bg-blue-50/20 border border-blue-50/50 rounded-xl px-4 py-3 flex items-center justify-between hover:bg-white hover:border-blue-100 transition-all shadow-sm">
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs font-bold text-[#011023] truncate uppercase">{b.service?.title || 'Service'}</p>
+                                                    <p className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase">ID: {b.bookingId || b._id?.slice(0, 10)}</p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs  font-bold text-[#011023]">Rs. {b.payment?.amount || b.service?.price || '—'}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(b.createdAt)}</p>
+                                                <div className="text-right flex flex-col items-end gap-1">
+                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider ${b.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : b.status === 'Cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                                                        {b.status || 'Pending'}
+                                                    </span>
+                                                    <p className="text-[10px] text-gray-500 font-bold">{formatDate(b.createdAt, false)}</p>
                                                 </div>
-                                                <span className={`ml-4 text-[10px] font-bold px-2.5 py-1 rounded-full ${b.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : b.status === 'Cancelled' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
-                                                    {b.status || 'Pending'}
-                                                </span>
                                             </div>
                                         ))}
                                     </div>
                                 )}
+                            </div> */}
+
+                            {/* Legal Documentation Archive */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Legal Documentation</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-6 rounded-xl shadow-sm">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">PAN Card Number</p>
+                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{viewEmployee.panCard || '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Adhar Protocol</p>
+                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{viewEmployee.adharCard || '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Voter ID Registry</p>
+                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{viewEmployee.voterId || '—'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Residential Archive */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
+                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
+                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewEmployee.address || 'No Address Provided'}</h5>
+                                    {/* <p className="text-sm text-gray-500 mt-1 uppercase">Physical Deployment Address Registry</p> */}
+                                </div>
                             </div>
                         </div>
                     </div>
