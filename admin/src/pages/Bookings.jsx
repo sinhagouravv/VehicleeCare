@@ -309,7 +309,7 @@ const Bookings = () => {
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 <div className="space-y-4 w-full md:w-[46%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
@@ -340,26 +340,24 @@ const Bookings = () => {
                                             {selectedBooking.payment?.status === 'Partially Paid' ? (
                                                 <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Partially Paid</span>
                                             ) : selectedBooking.payment?.status === 'Completed' ? (
-                                                <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Paid</span>
+                                                <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Completed</span>
                                             ) : (
                                                 <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Pending</span>
                                             )}
                                         </div>
                                         
-                                        <div className="flex items-center gap-4">
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Booked At</h4>
-                                            <div className="flex uppercase items-center gap-2">
-                                                <span className="text-xs font-bold text-gray-600">
-                                                    {formatDate(selectedBooking.createdAt)}
-                                                </span>
-                                            </div>
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Booked At</h4>
+                                            <span className="text-xs ml-2 font-bold text-gray-600 uppercase">
+                                                {formatDate(selectedBooking.createdAt)}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Service Details */}
-                            <div className="space-y-4">
+                            <div className="space-y-4"> 
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Service Details</h4>
                                 <div className="bg-white border border-[#e6f0fa] p-4 gap-5 rounded-xl flex justify-between items-center shadow-sm">
                                     <div>
@@ -369,41 +367,40 @@ const Bookings = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Assigned to</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm space-y-4">
-                                    <div className="flex justify-between items-start">
-                                        <div className="uppercase">
-                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">
-                                                {selectedBooking.store ? 'Store' : selectedBooking.parking ? 'Parking' : 'Garage'}
-                                            </p>
-                                            <h5 className="font-bold text-[#052558] text-[15.5px]">
-                                                {selectedBooking.store ? (selectedBooking.store?.name || 'No Store Assigned') : 
-                                                 selectedBooking.parking ? (selectedBooking.parking?.name || 'No Parking Assigned') : 
-                                                 (selectedBooking.garage?.name || 'No Garage Assigned')}
-                                            </h5>
-                                            <p className="text-sm text-gray-500 mt-0.5">
-                                                {selectedBooking.store ? `${selectedBooking.store?.district || ''}${selectedBooking.store?.state ? `, ${selectedBooking.store.state}` : ''} | ${selectedBooking.store?.id || 'N/A'}` : 
-                                                 selectedBooking.parking ? `${selectedBooking.parking?.district || ''}${selectedBooking.parking?.state ? `, ${selectedBooking.parking.state}` : ''} | ${selectedBooking.parking?.id || 'N/A'}` : 
-                                                 `${selectedBooking.garage?.district || ''}${selectedBooking.garage?.state ? `, ${selectedBooking.garage.state}` : ''} | ${selectedBooking.garage?.id || 'N/A'}`}
-                                            </p>
-                                        </div>
-                                        {/* <div className="text-center uppercase">
-                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Pickup/Drop</p>
-                                            <span className={`inline-block px-2.5 py-0.5 rounded text-[11px] font-bold ${selectedBooking.garage?.pickupDrop === 'Yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                {selectedBooking.garage?.pickupDrop || 'No'}
-                                            </span>
-                                        </div> */}
-                                        <div className="pt-3 text-center border-t border-[#f0f6ff] uppercase">
-                                            <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-2 h-2 rounded-full bg-gray-300"></span>
-                                                <span className="font-semibold text-gray-400 font-mono tracking-widest text-lg">—</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                        {/* Entity & Employees Info */}
+                        <div className="flex gap-5 -mt-1">
+                            {/* Entity Info - 40% */}
+                            <div className="w-[40%] bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm uppercase">
+                                <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">
+                                    {selectedBooking.store ? 'Assigned Store' : selectedBooking.parking ? 'Assigned Parking' : 'Assigned Garage'}
+                                </p>
+                                <h5 className="font-bold text-[#052558] text-[15.5px] truncate" title={
+                                    selectedBooking.store?.name || selectedBooking.parking?.name || selectedBooking.garage?.name
+                                }>
+                                    {selectedBooking.store ? (selectedBooking.store?.name || 'No Store Assigned') : 
+                                     selectedBooking.parking ? (selectedBooking.parking?.name || 'No Parking Assigned') : 
+                                     (selectedBooking.garage?.name || 'No Garage Assigned')}
+                                </h5>
+                                <p className="text-sm text-gray-500 mt-0.5 truncate">
+                                    {selectedBooking.store ? `${selectedBooking.store?.district || ''}, ${selectedBooking.store?.state || ''} | ${selectedBooking.store?.id || 'N/A'}` : 
+                                     selectedBooking.parking ? `${selectedBooking.parking?.district || ''}, ${selectedBooking.parking?.state || ''} | ${selectedBooking.parking?.id || 'N/A'}` : 
+                                     `${selectedBooking.garage?.district || ''}, ${selectedBooking.garage?.state || ''} | ${selectedBooking.garage?.id || 'N/A'}`}
+                                </p>
+                            </div>
+
+                            {/* Employees Info - 70% */}
+                            <div className="w-[70%] bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm flex divide-x divide-[#e6f0fa]">
+                                <div className="w-1/2 pr-4 uppercase">
+                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee's</p>
+                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
+                                    <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedBooking.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
+                                </div>
+                                <div className="w-1/2 pl-4 uppercase">
+                                    <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
+                                    <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedBooking.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
                                 </div>
                             </div>
+                        </div>
 
 
 
