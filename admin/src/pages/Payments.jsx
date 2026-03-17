@@ -150,7 +150,7 @@ const Payments = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[12%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">ID</th>
@@ -220,7 +220,7 @@ const Payments = () => {
                                             {payment.booking?.service?.title}
                                         </td> */}
                                         <td className="p-4 text-center w-[15%]">
-                                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                                            <span className="text-sm font-semibold whitespace-nowrap">
                                                 {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} <br></br> 
                                                 {' '}
                                                 {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
@@ -232,7 +232,7 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
-                                            <span className="text-sm text-gray-600 whitespace-nowrap">{payment.method}</span>
+                                            <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>

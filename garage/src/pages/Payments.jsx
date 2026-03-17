@@ -139,7 +139,8 @@ const Payments = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="px-6 py-4.5 font-bold text-center w-[12%]">Payment ID</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[10%]">Booking ID</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[14%]">User</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[12%]">User</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[10%]">User ID</th>
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[9%]">User Type</th> */}
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[14%]">Details</th> */}
                                 <th className="px-6 py-4.5 font-bold text-center w-[14%]">Paid At</th>
@@ -174,12 +175,14 @@ const Payments = () => {
                                                 {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[14%]">
-                                            <div className="font-bold text-[#011023]">{getCustomerName(payment)}</div>
-                                            <div className="text-xs text-gray-500 font-mono tracking-wide">{payment.user?.userId || ''}</div>
+                                        <td className="p-4 text-center w-[12%]">
+                                            <div className="font-semibold text-sm text-[#011023]">{getCustomerName(payment)}</div>
+                                        </td>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <div className="text-sm font-semibold uppercase">{payment.user?.userId || '—'}</div>
                                         </td>
                                         <td className="p-4 text-center w-[14%]">
-                                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                                            <span className="text-sm font-semibold whitespace-nowrap">
                                                 {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | 
                                                 {' '}
                                                 {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
@@ -191,7 +194,7 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[7%]">
-                                            <span className="text-sm text-gray-600 whitespace-nowrap">{payment.method}</span>
+                                            <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
                                         </td>
                                         <td className="p-4 text-center w-[7%]">
                                             <span className={`inline-block px-3 py-1 text-[10px] text-center font-bold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
