@@ -118,42 +118,41 @@ const Reviews = () => {
                 </div>
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-5.5">
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                        <p className="text-gray-500 font-semibold mb-1">Live Average Rating</p>
+                <div className="grid grid-cols-1 md:grid-cols-4 uppercase gap-5.5">
+                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold">Live Average Rating</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-3xl font-black text-[#011023]">{avgRating}</span>
-                            <Star className="text-yellow-400 fill-yellow-400" size={24} />
+                            <span className="text-2xl font-black text-[#011023]">{avgRating}</span>
                         </div>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                        <p className="text-gray-500 font-semibold mb-1">Total Submission</p>
-                        <p className="text-3xl font-black text-[#011023]">{reviews.length}</p>
+                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold">Total Submission</p>
+                        <p className="text-2xl font-black text-[#011023]">{reviews.length}</p>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                        <p className="text-gray-500 font-semibold mb-1">Pending Approval</p>
-                        <p className="text-3xl font-black text-amber-500">{pendingReviews}</p>
+                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold">Pending Approval</p>
+                        <p className="text-2xl font-black text-amber-500">{pendingReviews}</p>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                        <p className="text-gray-500 font-semibold mb-1">Rejected Reviews</p>
-                        <p className="text-3xl font-black text-red-500">{rejectedReviews}</p>
+                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold">Rejected Reviews</p>
+                        <p className="text-2xl font-black text-red-500">{rejectedReviews}</p>
                     </div>
                 </div>
 
                 {/* Main Content Table */}
-                <div className="bg-white/60 backdrop-blur-xl max-h-[50rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                    <div className="overflow-x-hidden overflow-y-auto h-[730px] relative">
+                <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                    <div className="overflow-x-hidden overflow-y-auto h-[750px] relative">
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center">Review ID</th>
-                                    <th className="p-4.5 font-bold text-center">Type</th>
-                                    <th className="p-4.5 font-bold text-center">Date</th>
-                                    <th className="p-4.5 font-bold text-center">Reviewer</th>
-                                    <th className="p-4.5 font-bold text-center">Community Rating</th>
-                                    <th className="p-4.5 font-bold text-center max-w-xs">Review Text</th>
-                                    <th className="p-4.5 font-bold text-center">Status</th>
-                                    <th className="p-4.5 font-bold text-center">Actions</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Review ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Reviewer</th>
+                                    <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
+                                    <th className="p-4.5 font-bold text-center w-[35%]">Review Text</th>
+                                    <th className="p-4.5 font-bold text-center w-[6%]">Rating</th>
+                                    <th className="p-4.5 font-bold text-center w-[12%]">Date</th>
+                                    <th className="p-4.5 font-bold text-center w-[4%]">Status</th>
+                                    <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
@@ -168,17 +167,15 @@ const Reviews = () => {
                                             {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
                                         </td>
                                         <td className="p-4 text-center">
+                                            <div className="font-bold text-[#011023]">{rev.name}</div>
+                                            <div className="text-xs text-center text-gray-500">{rev.designation || 'Customer'}</div>
+                                        </td>
+                                        <td className="p-4 text-center">
                                             <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${rev.type === 'Business' ? 'bg-blue-100/50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
                                                 {rev.type}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center text-xs font-semibold text-[#011023]">
-                                            {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <div className="font-bold text-[#011023]">{rev.name}</div>
-                                            <div className="text-xs text-center text-gray-500">{rev.designation || 'Customer'}</div>
-                                        </td>
+                                        <td className="p-4 text-sm text-center text-gray-600 whitespace-normal" title={rev.text}>{rev.text}</td>
                                         <td className="p-4">
                                             <div className="flex flex-col items-center justify-center gap-1">
                                                 {rev.type === 'Website' ? (
@@ -195,8 +192,9 @@ const Reviews = () => {
                                                 )}
                                             </div>
                                         </td>
-
-                                        <td className="p-4 max-w-xs text-sm text-center text-gray-600 truncate" title={rev.text}>{rev.text}</td>
+                                        <td className="p-4 text-center text-xs font-semibold text-[#011023]">
+                                            {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(rev.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                        </td>
 
                                         <td className="p-4 text-center">
                                             <span className={`px-3 py-1 text-[11px] font-bold rounded-full ${rev.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
@@ -231,7 +229,6 @@ const Reviews = () => {
                                                         <button onClick={() => setSelectedReview(rev)} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Full Review">
                                                             <Eye size={18} />
                                                         </button>
-                                                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
                                                         <button onClick={() => handleDelete(rev._id, rev.type)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
                                                             <Trash2 size={16} />
                                                         </button>
