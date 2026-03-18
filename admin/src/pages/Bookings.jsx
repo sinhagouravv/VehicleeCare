@@ -191,15 +191,15 @@ const Bookings = () => {
                     <table className="w-full text-left  border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[22%]">Service</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Schedule At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -256,12 +256,12 @@ const Bookings = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[7%]">
-                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
+                                            <span className={`inline-block px-3 py-1 text-[10px] text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                                 {booking.status || 'Pending'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[6%]">
-                                            <div className="flex items-center justify-center gap-2">
+                                            <div className="flex items-center justify-center gap-1">
                                                 <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
                                                     <Eye size={18} />
                                                 </button>
