@@ -142,8 +142,8 @@ const Notifications = () => {
                                         {/* Content */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-3">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <h4 className={`text-sm ${notif.isRead ? 'font-semibold text-gray-700' : 'font-black text-[#011023]'}`}>
+                                                <div className="flex items-center uppercase gap-2 flex-wrap">
+                                                    <h4 className={`text-sm ${notif.isRead ? 'font-semibold text-gray-700' : 'font-semibold text-[#011023]'}`}>
                                                         {notif.title}
                                                     </h4>
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${cfg.color}`}>
