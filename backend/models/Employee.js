@@ -20,8 +20,8 @@ const employeeSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['Mechanic', 'Manager', 'Technician', 'Support', 'Admin'],
-        default: 'Mechanic'
+        enum: ['Mechanic', 'Manager', 'Technician', 'Support', 'Admin', 'Chef', 'Waiter', 'Cashier', 'Delivery', 'Staff'],
+        default: 'Staff'
     },
     category: {
         type: String,
@@ -42,7 +42,7 @@ const employeeSchema = new mongoose.Schema({
     },
     shift: {
         type: String,
-        enum: ['Morning', 'Evening'],
+        enum: ['Morning', 'Evening', 'Night'],
         default: 'Morning'
     },
     panCard: {

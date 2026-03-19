@@ -27,6 +27,7 @@ const BookingSchema = new mongoose.Schema({
         number: { type: String }
     },
     service: {
+        id: { type: String },
         title: { type: String },
         price: { type: String }
     },
@@ -41,11 +42,25 @@ const BookingSchema = new mongoose.Schema({
         district: { type: String },
         pickupDrop: { type: String }
     },
+    assignedEmployees: {
+        technician: {
+            id: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+            employeeId: { type: String },
+            name: { type: String }
+        },
+        support: {
+            id: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+            employeeId: { type: String },
+            name: { type: String }
+        }
+    },
     status: {
         type: String,
         default: 'Pending',
         enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled']
-    }
+    },
+    isPickedUp: { type: Boolean, default: false },
+    isDelivered: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Booking', BookingSchema);

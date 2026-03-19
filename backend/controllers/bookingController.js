@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
 const UserNotification = require('../models/UserNotification');
+const Employee = require('../models/Employee');
 const { createAdminNotification } = require('./notificationController');
 const { generatePaymentId } = require('../utils/generateId');
 
@@ -15,9 +16,81 @@ exports.createBooking = async (req, res) => {
         if (!user || !vehicle || !service || !schedule) {
             return res.status(400).json({ success: false, message: 'All booking fields are required' });
         }
-        if (!user.name || (!user.phone && !user.notes)) {
-            // Allow missing phone — not a hard block
+
+        // --- Auto Employee Assignment Logic ---
+        // Determine Shift: 9am-3pm (Morning), 3pm-9pm (Evening)
+        let shift = 'Morning';
+        if (schedule.time) {
+            const timeStr = String(schedule.time).toLowerCase();
+            // Regex to find the first occurrence of a number (hour) and am/pm
+            const match = timeStr.match(/(\d+)(?::\d+)?\s*(am|pm)/);
+            
+            if (match) {
+                let hour = parseInt(match[1]);
+                const period = match[2];
+
+                if (period === 'pm' && hour !== 12) hour += 12;
+                if (period === 'am' && hour === 12) hour = 0;
+
+                // Evening: 3 PM (15:00) to 9 PM (21:00)
+                if (hour >= 15 && hour < 21) {
+                    shift = 'Evening';
+                } else {
+                    shift = 'Morning';
+                }
+            } else {
+                // Check if it's a fixed slot string like "9am-3pm"
+                if (timeStr.includes('evening') || timeStr.includes('3pm')) {
+                    shift = 'Evening';
+                } else {
+                    shift = 'Morning';
+                }
+            }
         }
+
+
+        // Find available employees (Technician and Support) for the shift
+        const garageId = garage?.id ? String(garage.id).trim() : null;
+        
+        // Fetch all verified employees for this specific garage
+        // We filter by shift in-memory so Mongoose defaults are applied to records missing explicit shift fields
+        const allEmployees = await Employee.find({ garageId, isVerified: true });
+
+        const technicians = allEmployees.filter(e => 
+            e.shift === shift && /^Technician$/i.test(e.role)
+        );
+        
+        const supportStaff = allEmployees.filter(e => 
+            e.shift === shift && /^Support$/i.test(e.role)
+        );
+
+        console.log(`[Assignment] Garage: ${garageId}, Shift: ${shift}, Found: Techs(${technicians.length}), Support(${supportStaff.length})`);
+
+
+        const assignedEmployees = {
+            technician: null,
+            support: null
+        };
+
+        if (technicians.length > 0) {
+            const tech = technicians[Math.floor(Math.random() * technicians.length)];
+            assignedEmployees.technician = {
+                id: tech._id,
+                employeeId: tech.employeeId,
+                name: tech.name
+            };
+        }
+
+        if (supportStaff.length > 0) {
+            const supp = supportStaff[Math.floor(Math.random() * supportStaff.length)];
+            assignedEmployees.support = {
+                id: supp._id,
+                employeeId: supp.employeeId,
+                name: supp.name
+            };
+        }
+
+        // ----------------------------------------
 
         // Create Booking
         const isOnlinePayment = paymentMethod === 'netbanking' || (req.body.paymentId && req.body.paymentId !== 'CASH');
@@ -79,7 +152,11 @@ exports.createBooking = async (req, res) => {
             bookingId: generatedId,
             user: { ...user, id: user.id || user._id },
             vehicle,
-            service,
+            service: {
+                id: service.id,
+                title: service.title,
+                price: service.price
+            },
             schedule,
             garage,
             payment: {
@@ -88,9 +165,11 @@ exports.createBooking = async (req, res) => {
                 amount: isFullOnline ? totalPrice : isCODAdvance ? advancePaid : totalPrice,
                 transactionId: req.body.paymentId || `TXN${Date.now()}`,
                 paymentId: payId
-            }
+            },
+            assignedEmployees
         });
 
+        newBooking.markModified('assignedEmployees');
         const savedBooking = await newBooking.save();
         let paymentRecord = null;
 
@@ -199,6 +278,29 @@ exports.getGarageBookings = async (req, res) => {
         }));
 
         res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Update booking status
+// @route   PUT /api/bookings/:id/status
+// @access  Private
+exports.updateBookingStatus = async (req, res) => {
+    try {
+        const { status, isPickedUp, isDelivered } = req.body;
+        const booking = await Booking.findById(req.params.id);
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+
+        if (status) booking.status = status;
+        if (isPickedUp !== undefined) booking.isPickedUp = isPickedUp;
+        if (isDelivered !== undefined) booking.isDelivered = isDelivered;
+
+        await booking.save();
+        res.status(200).json({ success: true, data: booking });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
