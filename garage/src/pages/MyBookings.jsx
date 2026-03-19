@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Download, X, Users } from 'lucide-react';
+import { Eye, Download, X, Users, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -51,6 +51,22 @@ const MyBookings = () => {
     const handleViewDetails = (booking) => {
         setSelectedBooking(booking);
         setIsViewModalOpen(true);
+    };
+
+    const handleDelete = async (bookingId) => {
+        if (!window.confirm("Are you sure you want to remove this booking?")) return;
+        try {
+            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBookings(prev => prev.filter(b => b._id !== bookingId));
+            }
+        } catch (error) {
+            console.error("Failed to delete booking", error);
+            alert("Failed to delete booking. Please try again.");
+        }
     };
 
     const formatDate = (dateStr) => {
@@ -195,7 +211,7 @@ const MyBookings = () => {
                                             {booking.schedule?.date} | {booking.schedule?.time}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[5%]">
+                                    <td className="p-4 text-center w-[3%]">
                                         <span className="text-sm font-semibold text-[#011023]">
                                             ₹{booking.payment?.amount || booking.service?.price || '0'}
                                         </span>
@@ -219,15 +235,22 @@ const MyBookings = () => {
                                             >
                                                 <Eye size={17} />
                                             </button>
-                                        <button
-                                            onClick={() => handleDownloadInvoice(booking)}
-                                            className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
-                                            title="Download Invoice"
-                                        >
-                                            <Download size={17} />
-                                        </button>
-                                    </div>
-                                </td>
+                                            <button
+                                                onClick={() => handleDownloadInvoice(booking)}
+                                                className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                                                title="Download Invoice"
+                                            >
+                                                <Download size={17} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(booking._id)}
+                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                title="Remove"
+                                            >
+                                                <Trash2 size={17} />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                     </tbody>

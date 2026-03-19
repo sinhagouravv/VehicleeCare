@@ -361,7 +361,12 @@ const Staff = () => {
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Staff Details</h3>
-                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedStaff.employeeId || '—'}</span></p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{selectedStaff.employeeId || '—'}</span></p>
+                                    <button onClick={() => handleViewDetails(selectedStaff)} className="text-gray-400 p-1.5 rounded-lg transition-colors" title="Working Details">
+                                        <Eye size={17} />
+                                    </button>
+                                </div>
                             </div>
                             <button 
                                 onClick={() => setIsViewModalOpen(false)} 

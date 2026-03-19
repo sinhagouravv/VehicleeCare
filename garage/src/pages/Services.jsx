@@ -1,114 +1,204 @@
-import React, { useState } from 'react';
-import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye } from 'lucide-react';
 
 const Services = () => {
-    // Mock Data
-    const [services, setServices] = useState([
-        { id: "SRV-001", name: "General Service", category: "Maintenance", duration: "1.5 Hrs", price: "₹3,400", status: "Active" },
-        { id: "SRV-002", name: "Full Synthetic Oil Change", category: "Maintenance", duration: "45 Mins", price: "₹4,200", status: "Active" },
-        { id: "SRV-003", name: "Brake Pad Match & Replace", category: "Repair", duration: "2 Hrs", price: "₹2,100", status: "Active" },
-        { id: "SRV-004", name: "Battery Replacement", category: "Electrical", duration: "30 Mins", price: "₹5,600", status: "Inactive" },
-        { id: "SRV-005", name: "AC Gas Top-up", category: "AC/HVAC", duration: "1 Hr", price: "₹1,500", status: "Active" },
-        { id: "SRV-006", name: "Wheel Alignment & Balancing", category: "Wheels", duration: "1 Hr", price: "₹800", status: "Active" },
-    ]);
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    const fetchBookings = async (silent = false) => {
+        try {
+            if (!silent) setLoading(true);
+            const storedUser = localStorage.getItem('garageUser');
+            if (!storedUser) return;
+            const user = JSON.parse(storedUser);
+
+            const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+            const data = await res.json();
+            if (data.success) {
+                setBookings(data.data);
+                setLastRefreshed(new Date());
+            }
+        } catch (error) {
+            console.error("Failed to fetch garage bookings", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBookings();
+        const timer = setInterval(() => fetchBookings(true), 5000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const toggleStatus = async (bookingId, field, value) => {
+        try {
+            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, [field]: value } : b));
+            }
+        } catch (error) {
+            console.error(`Failed to update ${field}`, error);
+        }
+    };
+
+    const handleStatusChange = async (bookingId, newStatus) => {
+        try {
+            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: newStatus } : b));
+            }
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
+    const handleDelete = async (bookingId) => {
+        if (!window.confirm("Are you sure you want to remove this booking?")) return;
+        try {
+            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBookings(prev => prev.filter(b => b._id !== bookingId));
+            }
+        } catch (error) {
+            console.error("Failed to delete booking", error);
+        }
+    };
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Active': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-            case 'Inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
+            case 'Completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'Confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'In Progress': return 'bg-purple-100 text-purple-800 border-purple-200';
+            case 'Pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+            case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
 
-    const getCategoryIcon = (category) => {
-        switch (category) {
-            case 'Maintenance': return <Settings size={14} className="text-blue-500" />;
-            case 'Repair': return <Wrench size={14} className="text-amber-500" />;
-            case 'Electrical': return <AlertCircle size={14} className="text-red-500" />;
-            default: return <Wrench size={14} className="text-gray-500" />;
-        }
-    }
+    const getCategoryStyle = (category) => {
+        const cat = category?.toLowerCase();
+        if (cat?.includes('petrol')) return 'bg-blue-100 text-blue-800 border-blue-200';
+        if (cat?.includes('diesel')) return 'bg-orange-100 text-orange-800 border-orange-200';
+        if (cat?.includes('electric') || cat?.includes('ev')) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        if (cat?.includes('cng')) return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-slate-100 text-slate-800 border-slate-200';
+    };
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Service Catalog</h1>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(5,37,88,0.2)] hover:shadow-[0_12px_25px_rgba(5,37,88,0.3)] hover:-translate-y-0.5 transition-all duration-300">
-                    <Plus size={18} /> Add New Service
-                </button>
+                <h1 className="text-2xl font-extrabold text-[#011023] uppercase tracking-tight">Service Management</h1>
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : 'Loading…'}
+                </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="p-4 border-b border-[#e6f0fa] flex gap-4 bg-white/40 justify-between items-center">
-                    <div className="relative w-80">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search services by name, ID..."
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023] placeholder-gray-400"
-                        />
-                    </div>
-                    <div className="flex gap-3">
-                        <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                            <option>All Categories</option>
-                            <option>Maintenance</option>
-                            <option>Repair</option>
-                            <option>Electrical</option>
-                            <option>Wheels</option>
-                        </select>
-                        <select className="px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 cursor-pointer">
-                            <option>All Status</option>
-                            <option>Active</option>
-                            <option>Inactive</option>
-                        </select>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 transition-colors">
-                            <Filter size={16} /> Filter
-                        </button>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto hide-scrollbar">
+            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
                     <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-blue-50/50 text-xs uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold">Service Info</th>
-                                <th className="p-4 font-bold">Category</th>
-                                <th className="p-4 font-bold">Est. Duration</th>
-                                <th className="p-4 font-bold">Starting Price</th>
-                                <th className="p-4 font-bold">Status</th>
-                                <th className="p-4 font-bold text-center">Actions</th>
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[37%]">Service Details</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Assigned To</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]">Duration</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#e6f0fa]">
-                            {services.map((service) => (
-                                <tr key={service.id} className="hover:bg-blue-50/30 transition-colors group">
-                                    <td className="p-4">
-                                        <div className="font-bold text-[#011023]">{service.name}</div>
-                                        <div className="text-xs text-gray-500 font-medium uppercase mt-0.5">{service.id}</div>
+                        <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" className="p-8 text-center text-sm text-gray-500">Loading bookings...</td>
+                                </tr>
+                            ) : bookings.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No bookings found.</td>
+                                </tr>
+                            ) : bookings.map((booking) => (
+                                <tr key={booking._id} className="text-center transition-all hover:bg-blue-50/30">
+                                    <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[8%]">
+                                        {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                                            {getCategoryIcon(service.category)} {service.category}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-sm font-medium text-gray-600">
-                                        {service.duration}
-                                    </td>
-                                    <td className="p-4 font-black text-[#011023]">
-                                        {service.price}
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${getStatusStyle(service.status)}`}>
-                                            {service.status}
+                                    {/* <td className="p-4 text-center">
+                                        {booking.payment?.paymentId || '—'}
+                                    </td> */}
+                                    <td className="p-4 text-center w-[8%]">
+                                        <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${getCategoryStyle(booking.vehicle?.fuelType)}`}>
+                                            {booking.vehicle?.fuelType || 'N/A'}
                                         </span>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit Service">
-                                                <Edit size={16} />
+                                    <td className="p-4 text-center w-[45%]">
+                                        <div className="font-bold text-[#0f172a] text-[13px] uppercase leading-snug">{booking.service?.title}</div>
+                                        <div className="text-[11.5px] text-slate-500 uppercase mt-1 tracking-wide">{booking.service?.id || '—'}</div>
+                                    </td>
+
+                                    <td className="p-4 text-center w-[11%]">
+                                        <div className="font-bold text-[#011023]">
+                                            {booking.assignedEmployees?.technician?.name || 'Waiting...'}
+                                        </div>
+                                        <div className="text-[11.5px] text-gray-500">
+                                            {booking.assignedEmployees?.technician?.employeeId || 'ID Pending'}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-center w-[5%]">
+                                        —
+                                    </td>
+                                    
+                                    {/* <td className="p-4 text-center">
+                                        <button 
+                                            onClick={() => toggleStatus(booking._id, 'isPickedUp', !booking.isPickedUp)}
+                                            className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all ${booking.isPickedUp ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}`}
+                                        >
+                                            {booking.isPickedUp ? 'YES' : 'NO'}
+                                        </button>
+                                    </td> */}
+                                    <td className="p-4 text-center w-[8%]">
+                                        <span className={`px-3 py-1 text-[10px] uppercase font-bold rounded-full border ${getStatusStyle('Pending')}`}>
+                                            Pending
+                                        </span>
+                                    </td>
+                                    {/* <td className="p-4 text-center">
+                                        <button 
+                                            disabled={!booking.isPickedUp}
+                                            onClick={() => toggleStatus(booking._id, 'isDelivered', !booking.isDelivered)}
+                                            className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all ${booking.isDelivered ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-400 border-gray-200 disabled:opacity-50'}`}
+                                        >
+                                            {booking.isDelivered ? 'YES' : 'NO'}
+                                        </button>
+                                    </td> */}
+                                    <td className="p-4 text-center w-[7%]">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <button 
+                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" 
+                                                title="View Details"
+                                            >
+                                                <Eye size={17} />
                                             </button>
-                                            <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Service">
-                                                <Trash2 size={16} />
+                                            <button 
+                                                onClick={() => handleDelete(booking._id)}
+                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" 
+                                                title="Remove"
+                                            >
+                                                <Trash2 size={17} />
                                             </button>
                                         </div>
                                     </td>

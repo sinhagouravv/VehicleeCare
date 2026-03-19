@@ -37,21 +37,11 @@ const Reviews = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-extrabold text-[#011023] tracking-tight">Customer Reviews</h1>
+                <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Customer Reviews</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
                         : 'Loading…'}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* Summary Cards */}
-                <div className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] text-center">
-                    <p className="text-gray-500 font-semibold mb-2 text-sm">Average Rating</p>
-                    <h3 className="text-4xl font-black text-[#011023] mb-2">4.8</h3>
-                    <div className="flex justify-center mb-1">{renderStars(5)}</div>
-                    <p className="text-xs text-gray-400">Based on 124 reviews</p>
                 </div>
             </div>
 
