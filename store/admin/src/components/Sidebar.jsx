@@ -16,6 +16,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'Products', path: '/products', icon: <ShoppingBag size={20} /> },
         { name: 'Orders', path: '/orders', icon: <Briefcase size={20} /> },
+        { name: 'Customers', path: '/customers', icon: <Users size={20} /> },
+        { name: 'Staff', path: '/staff', icon: <UserSquare2 size={20} /> },
         { name: 'Inventory', path: '/inventory', icon: <Building2 size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
