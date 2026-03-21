@@ -1,4 +1,5 @@
 const Garage = require('../models/Garage');
+const { createAdminNotification } = require('./notificationController');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 
@@ -64,6 +65,14 @@ exports.createGarage = async (req, res) => {
         const hashedPassword = await bcrypt.hash(tempPassword, salt);
 
         const garage = await Garage.create({ ...req.body, garageId, password: hashedPassword });
+
+        // Fire admin notification
+        createAdminNotification({
+            eventType: 'garage_added',
+            title: 'New Garage Added',
+            message: `A new garage, ${garage.name}, has been added (ID: ${garage.garageId}).`,
+            meta: { garageId: garage.garageId, name: garage.name, ownerEmail: garage.ownerEmail }
+        });
 
         // Send Welcome Email if ownerEmail is provided
         if (req.body.ownerEmail) {

@@ -84,12 +84,23 @@ exports.createMessage = async (req, res) => {
 
         await newMessage.save();
 
+        // Attempt to find a registered user by email to show their 65... ID
+        const User = require('../models/User');
+        const registeredUser = await User.findOne({ email });
+        const displayUserId = registeredUser?.userId || 'GUEST';
+
         // Fire admin notification
         createAdminNotification({
             eventType: 'message_received',
             title: 'New Contact Message',
             message: `${name} (${email}) sent a message.`,
-            meta: { messageId: newMessage.messageId, name, email, type }
+            meta: { 
+                messageId: newMessage.messageId, 
+                userName: name, 
+                displayUserId, // Show 65... ID if registered, else GUEST
+                email, 
+                type 
+            }
         });
 
         res.status(201).json({ success: true, message: "Message sent successfully!", data: newMessage });

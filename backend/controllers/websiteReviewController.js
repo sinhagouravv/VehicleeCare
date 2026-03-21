@@ -1,4 +1,6 @@
 const WebsiteReview = require('../models/WebsiteReview');
+const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // @desc    Create a new Website Review (Defaults to Pending)
 // @route   POST /api/website-reviews
@@ -16,7 +18,15 @@ exports.createReview = async (req, res) => {
         };
 
         if (user) {
-            newReviewData.user = user;
+            // If the user ID provided is not a valid MongoDB ObjectId, it might be the human-readable userId (e.g., 65...)
+            if (!mongoose.Types.ObjectId.isValid(user)) {
+                const foundUser = await User.findOne({ userId: user });
+                if (foundUser) {
+                    newReviewData.user = foundUser._id;
+                }
+            } else {
+                newReviewData.user = user;
+            }
         }
 
         const review = await WebsiteReview.create(newReviewData);
@@ -48,7 +58,7 @@ exports.getApprovedReviews = async (req, res) => {
 exports.getAllReviewsForAdmin = async (req, res) => {
     try {
         // Fetch all reviews sorted with Pending first, then by date created
-        const reviews = await WebsiteReview.find().sort({ status: -1, createdAt: -1 });
+        const reviews = await WebsiteReview.find().sort({ status: -1, createdAt: -1 }).populate('user', 'userId');
         res.status(200).json(reviews);
     } catch (error) {
         console.error("Error in getAllReviewsForAdmin:", error);

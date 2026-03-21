@@ -53,8 +53,8 @@ exports.register = async (req, res) => {
             createAdminNotification({
                 eventType: 'user_registered',
                 title: 'New User Registered',
-                message: `${name} (${email}) has just created an account.`,
-                meta: { userId: user.id, name, email }
+                message: `A new user, ${name}, has created an account with User ID ${generatedId}.`,
+                meta: { userId: user.id, displayUserId: user.userId, name, email, role: 'user' }
             });
             res.json({
                 token,
@@ -461,9 +461,18 @@ exports.businessRegister = async (req, res) => {
         const payload = { user: { id: user.id } };
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }, (err, token) => {
             if (err) throw err;
+            
+            // Fire admin notification
+            createAdminNotification({
+                eventType: 'user_registered',
+                title: 'New Business User Joined',
+                message: `A new business user, ${name}, has created an account with User ID ${generatedId}.`,
+                meta: { userId: user.id, displayUserId: user.userId, name, email, role: 'vendor' }
+            });
+
             res.json({
                 token,
-                business: { id: user.userId, name: user.name, email: user.email, role: user.role }
+                business: { id: user.id, userId: user.userId, name: user.name, email: user.email, role: user.role }
             });
         });
     } catch (err) {
@@ -491,7 +500,7 @@ exports.businessLogin = async (req, res) => {
             if (err) throw err;
             res.json({
                 token,
-                business: { id: user.userId, name: user.name, email: user.email, role: user.role, subscriptionPlan: user.subscriptionPlan, subscriptionStatus: user.subscriptionStatus, subscriptionExpiry: user.subscriptionExpiry }
+                business: { id: user.id, userId: user.userId, name: user.name, email: user.email, role: user.role, subscriptionPlan: user.subscriptionPlan, subscriptionStatus: user.subscriptionStatus, subscriptionExpiry: user.subscriptionExpiry }
             });
         });
     } catch (err) {

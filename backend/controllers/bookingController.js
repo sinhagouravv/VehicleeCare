@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
+const User = require('../models/User');
 const UserNotification = require('../models/UserNotification');
 const Employee = require('../models/Employee');
 const { createAdminNotification } = require('./notificationController');
@@ -190,12 +191,23 @@ exports.createBooking = async (req, res) => {
 
 
 
+        // Fetch full user to get custom userId (65...)
+        const fullUser = user.id ? await User.findById(user.id) : null;
+        const displayUserId = fullUser?.userId || user.userId || 'GUEST';
+
         // Fire admin notification
         createAdminNotification({
             eventType: 'booking_created',
             title: 'New Booking Received',
-            message: `${user.name || 'A user'} booked ${service.title || 'a service'} for ${vehicle.make} ${vehicle.model} on ${schedule.date}.`,
-            meta: { bookingId: savedBooking.bookingId, userId: user.id, service: service.title, vehicle: `${vehicle.make} ${vehicle.model}` }
+            message: `Booked ${service.title || 'a service'} for ${vehicle.make} ${vehicle.model} on ${schedule.date}.`,
+            meta: { 
+                bookingId: savedBooking.bookingId, 
+                userId: savedBooking.user.id, 
+                userName: savedBooking.user.name,
+                displayUserId, // This will be the 65... ID
+                service: service.title, 
+                vehicle: `${vehicle.make} ${vehicle.model}` 
+            }
         });
 
         // Fire user notification if logged in
@@ -301,6 +313,26 @@ exports.updateBookingStatus = async (req, res) => {
 
         await booking.save();
         res.status(200).json({ success: true, data: booking });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Get bookings for a specific employee
+// @route   GET /api/bookings/employee/:employeeId
+// @access  Private
+exports.getEmployeeBookings = async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        // Search in both technician and support IDs
+        const bookings = await Booking.find({
+            $or: [
+                { 'assignedEmployees.technician.id': employeeId },
+                { 'assignedEmployees.support.id': employeeId }
+            ]
+        }).sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, data: bookings });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }

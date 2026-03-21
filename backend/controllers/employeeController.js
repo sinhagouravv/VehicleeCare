@@ -1,5 +1,6 @@
 const Employee = require('../models/Employee');
 const { generateEmployeeId } = require('../utils/generateId');
+const { createAdminNotification } = require('./notificationController');
 
 // @desc    Get all employees
 // @route   GET /api/employees
@@ -47,6 +48,25 @@ const createEmployee = async (req, res) => {
     try {
         const employeeId = generateEmployeeId();
         const employee = await Employee.create({ ...req.body, employeeId, isVerified: true });
+        
+        // Fetch garage name for better notification
+        const garage = await Garage.findOne({ garageId: employee.garageId });
+        const garageName = garage ? garage.name : 'Unknown Garage';
+
+        // Fire admin notification
+        createAdminNotification({
+            eventType: 'employee_added',
+            title: 'New Employee Added',
+            message: `A new employee, ${employee.name}, has been added to the ${garageName} ${employee.garageId} for ${employee.role} role.`,
+            meta: { 
+                employeeId: employee.employeeId, 
+                name: employee.name, 
+                garageId: employee.garageId,
+                garageName: garageName,
+                role: employee.role 
+            }
+        });
+
         res.status(201).json({ success: true, data: employee });
     } catch (err) {
         console.error("Error creating employee:", err);

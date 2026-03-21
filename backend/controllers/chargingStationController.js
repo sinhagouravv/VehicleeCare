@@ -14,6 +14,15 @@ exports.getStations = async (req, res) => {
 exports.createStation = async (req, res) => {
     try {
         const newStation = await ChargingStation.create(req.body);
+
+        // Fire admin notification
+        createAdminNotification({
+            eventType: 'charging_station_added',
+            title: 'New Charging Station Added',
+            message: `A new charging station, ${newStation.title}, has been added (ID: ${newStation.id}).`,
+            meta: { stationId: newStation.id, title: newStation.title }
+        });
+
         res.status(201).json({ success: true, data: newStation });
     } catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {

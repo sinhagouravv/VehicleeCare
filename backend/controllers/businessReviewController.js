@@ -1,4 +1,5 @@
 const BusinessReview = require('../models/BusinessReview');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 
 exports.submitReview = async (req, res) => {
@@ -16,7 +17,12 @@ exports.submitReview = async (req, res) => {
         };
 
         if (businessUserId && businessUserId !== 'null' && businessUserId !== 'undefined') {
-            if (mongoose.Types.ObjectId.isValid(businessUserId)) {
+            if (!mongoose.Types.ObjectId.isValid(businessUserId)) {
+                const foundUser = await User.findOne({ userId: businessUserId });
+                if (foundUser) {
+                    newReviewData.businessUser = foundUser._id;
+                }
+            } else {
                 newReviewData.businessUser = businessUserId;
             }
         }
@@ -46,7 +52,7 @@ exports.getApprovedReviews = async (req, res) => {
 
 exports.getAllReviews = async (req, res) => {
     try {
-        const reviews = await BusinessReview.find().sort({ createdAt: -1 }).populate('businessUser', 'name email');
+        const reviews = await BusinessReview.find().sort({ createdAt: -1 }).populate('businessUser', 'name email userId');
         res.status(200).json({ success: true, data: reviews });
     } catch (error) {
         console.error('Get All Business Reviews Error:', error);
