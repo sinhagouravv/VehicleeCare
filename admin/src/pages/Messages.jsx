@@ -86,35 +86,41 @@ const Messages = () => {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5.5">
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                    <p className="text-gray-500 font-semibold mb-1">Total Messages</p>
-                    <p className="text-3xl font-black text-[#011023]">{totalMessages}</p>
+            <div className="flex flex-wrap uppercase items-center gap-5.5">
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                    <div className="flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold uppercase">Total Messages</p>
+                        <p className="text-3xl font-black text-[#011023]">{totalMessages}</p>
+                    </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                    <p className="text-gray-500 font-semibold mb-1">Read Messages</p>
-                    <p className="text-3xl font-black text-emerald-500">{readMessages}</p>
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                    <div className="flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold uppercase">Read Messages</p>
+                        <p className="text-3xl font-black text-emerald-500">{readMessages}</p>
+                    </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)]">
-                    <p className="text-gray-500 font-semibold mb-1">Unread Messages</p>
-                    <p className="text-3xl font-black text-blue-500">{unreadMessages}</p>
+                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                    <div className="flex justify-between items-center">
+                        <p className="text-gray-500 font-semibold uppercase">Unread Messages</p>
+                        <p className="text-3xl font-black text-blue-500">{unreadMessages}</p>
+                    </div>
                 </div>
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
             <div className="bg-white/60 backdrop-blur-xl max-h-[50rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[730px] relative">
+                <div className="overflow-x-hidden overflow-y-auto h-[750px] relative">
                     <table className="w-full text-center border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold">Message id</th>
                                 <th className="p-4.5 font-bold">Contact Info</th>
-                                <th className="p-4.5 font-bold text-center">Type</th>
-                                <th className="p-4.5 font-bold text-left">Subject</th>
-                                <th className="p-4.5 font-bold text-left">Message preview</th>
+                                <th className="p-4.5 font-bold">Type</th>
+                                <th className="p-4.5 font-bold">Subject</th>
+                                <th className="p-4.5 font-bold">Message preview</th>
                                 <th className="p-4.5 font-bold">Date Received</th>
-                                <th className="p-4.5 font-bold text-center">Status</th>
-                                <th className="p-4.5 font-bold text-center">Actions</th>
+                                <th className="p-4.5 font-bold">Status</th>
+                                <th className="p-4.5 font-bold">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -128,29 +134,27 @@ const Messages = () => {
                                             </div>
                                         </td>
                                         <td className="p-4.5">
-                                            <div className="flex flex-col items-center">
-                                                <span className="font-bold text-[#011023] text-[15px]">{message.name}</span>
-                                                {message.company && <span className="text-xs font-semibold text-purple-600/80 mb-0.5">@ {message.company}</span>}
-                                                {message.phone && <span className="text-xs text-gray-400">{message.phone}</span>}
-                                                <span className="text-sm text-gray-500">{message.email}</span>
+                                            <div className="flex flex-col uppercase items-center">
+                                                <span className="font-bold text-[#011023] text-">{message.name}</span>
+                                                <span className="text-xs lowercase text-gray-500">{message.email}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4.5 text-center">
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                        <td className="p-4.5 text-center uppercase">
+                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700 font-extrabold' : 'bg-emerald-100 text-emerald-700 font-extrabold'}`}>
                                                 {message.type || 'website'}
                                             </span>
                                         </td>
-                                        <td className="p-4.5 text-left">
+                                        <td className="p-4.5 text-center uppercase">
                                             <span className={`font-semibold ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
-                                                {message.subject}
+                                                {message.type === 'business' ? 'Business inquiry' : message.subject}
                                             </span>
                                         </td>
-                                        <td className="p-4.5 max-w-xs truncate text-left">
+                                        <td className="p-4.5 max-w-xs truncate text-center uppercase">
                                             <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} title={message.message}>
                                                 {message.message}
                                             </span>
                                         </td>
-                                        <td className="p-4.5">
+                                        <td className="p-4.5 uppercase">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-semibold text-[#011023]">
                                                     {new Date(message.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -169,10 +173,10 @@ const Messages = () => {
                                             </span>
                                         </td>
                                         <td className="p-4.5">
-                                            <div className="flex justify-center gap-3">
+                                            <div className="flex justify-center gap-1">
                                                 <button
                                                     onClick={() => handleViewMessage(message)}
-                                                    className={`p-1.5 rounded-lg transition-colors text-blue-400 hover:text-blue-600 hover:bg-blue-50`}
+                                                    className={`p-1.5 rounded-lg transition-colors text-gray-400 hover:text-blue-600 hover:bg-blue-50`}
                                                     title="View Message"
                                                 >
                                                     <Eye size={18} />
@@ -200,17 +204,17 @@ const Messages = () => {
             {/* View Details Modal */}
             {selectedMessage && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
                     onClick={() => setSelectedMessage(null)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
-                                <h3 className="text-xl font-bold text-[#052558]">Message Details</h3>
-                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedMessage.messageId || selectedMessage._id.substring(0, 7).toUpperCase()}</span></p>
+                                <h3 className="text-xl font-bold text-[#052558] uppercase">Message Details</h3>
+                                <p className="text-sm text-gray-500 mt-1 uppercase">ID: <span className="font-semibold text-gray-700">{selectedMessage.messageId || selectedMessage._id.substring(0, 7).toUpperCase()}</span></p>
                             </div>
                             <button
                                 onClick={() => setSelectedMessage(null)}
@@ -225,20 +229,20 @@ const Messages = () => {
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 <div className="space-y-4 w-full md:w-[60%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Sender Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedMessage.name}>{selectedMessage.name || 'N/A'}</span></p>
-                                        {selectedMessage.company && <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Company:</span> <span className="font-semibold text-purple-700 truncate">{selectedMessage.company}</span></p>}
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedMessage.phone || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedMessage.email}>{selectedMessage.email || 'N/A'}</span></p>
-                                        <p className="text-sm flex items-center mt-3 pt-3 border-t border-blue-100/50"><span className="text-gray-500 w-16 shrink-0">Type:</span> <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${selectedMessage.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{selectedMessage.type || 'website'}</span></p>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl space-y-2 border border-blue-50 uppercase">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedMessage.name}>{selectedMessage.name || 'N/A'}</span></p>
+                                        {selectedMessage.company && <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Company:</span> <span className="font-semibold text-purple-700 truncate">{selectedMessage.company}</span></p>}
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedMessage.phone || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedMessage.email}>{selectedMessage.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-4.5 w-full md:w-[40%]">
                                     <div className="space-y-4">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Timestamp</h4>
-                                        <div className="bg-blue-50/30 p-4 rounded-xl space-y-2 border border-blue-50">
-                                            <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Date:</span> <span className="font-semibold text-[#011023]">{new Date(selectedMessage.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
-                                            <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Time:</span> <span className="font-semibold text-gray-800">{new Date(selectedMessage.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></p>
+                                        <div className="bg-blue-50/30 pt-4 rounded-xl space-y-2 border border-blue-50 uppercase">
+                                            <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Date:</span> <span className="font-semibold text-[#011023]">{new Date(selectedMessage.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                                            <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Time:</span> <span className="font-semibold text-gray-800">{new Date(selectedMessage.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></p>
+                                            <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Type:</span> <span className={`px-2 py-0.5 rounded text-[10px] text-center font-bold uppercase ${selectedMessage.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>{selectedMessage.type || 'website'}</span></p>
                                         </div>
                                     </div>
                                 </div>
@@ -247,9 +251,11 @@ const Messages = () => {
                             {/* Message Content */}
                             <div className="space-y-3 mt-4">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Subject & Message</h4>
-                                <h3 className="text-xl font-bold text-[#011023] bg-blue-50/30 px-5 pt-5 rounded-t-xl border-x border-t border-blue-50">{selectedMessage.subject}</h3>
-                                <div className="bg-blue-50/30 rounded-b-xl p-5 border-x border-b border-blue-50 mt-0">
-                                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                <h3 className="text-base uppercase font-bold text-[#011023] bg-blue-50/30 pt-1 rounded-t-xl border-x border-t border-blue-50">
+                                    {selectedMessage.type === 'business' ? 'Business inquiry' : selectedMessage.subject}
+                                </h3>
+                                <div className="bg-blue-50/30 rounded-b-xl text-[15px] pb-1 pr-2 text-justify border-x border-b border-blue-50 mt-0 uppercase">
+                                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed normal-case">
                                         {selectedMessage.message}
                                     </p>
                                 </div>

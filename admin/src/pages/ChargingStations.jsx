@@ -183,13 +183,13 @@ const ChargingStations = () => {
                     <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[13px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold text-center">Station ID</th>
-                                <th className="p-4 font-bold text-center">Station Name</th>
-                                <th className="p-4 font-bold text-center">Location</th>
-                                <th className="p-4 font-bold text-center">Ports</th>
-                                <th className="p-4 font-bold text-center">Charger Type</th>
-                                <th className="p-4 font-bold text-center">Status</th>
-                                <th className="p-4 font-bold text-center">Manage</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Station ID</th>
+                                <th className="p-4 font-bold text-center w-[15%]">Station Name</th>
+                                <th className="p-4 font-bold text-center w-[30%]">Location</th>
+                                <th className="p-4 font-bold text-center w-[5%]">Ports</th>
+                                <th className="p-4 font-bold text-center w-[22%]">Charger Type</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Manage</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
@@ -219,9 +219,13 @@ const ChargingStations = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex flex-wrap gap-1 justify-center">
+                                            <div className="flex flex-wrap gap-1.5 justify-center">
                                                 {(station.type || []).map(t => (
-                                                    <span key={t} className="px-2.5 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-700">{t}</span>
+                                                    <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                        t.toLowerCase().includes('ac') ? 'bg-blue-100 text-blue-700' :
+                                                        t.toLowerCase().includes('dc') ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                    }`}>{t}</span>
                                                 ))}
                                             </div>
                                         </td>
@@ -264,7 +268,7 @@ const ChargingStations = () => {
                                     <p className="text-xs text-gray-500 font-medium mt-0.5">Create a new station entry</p>
                                 </div>
                             </div>
-                            <button onClick={closeModal} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                            <button onClick={closeModal} className="p-2 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
                         </div>
 
                         {/* Body */}
@@ -383,8 +387,8 @@ const ChargingStations = () => {
 
                         {/* Footer */}
                         <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
+                            <button onClick={closeModal} className="px-5 py-2.5 text-sm uppercase font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm uppercase font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
                                 {saving ? 'Adding…' : 'Add Station'}
                             </button>
                         </div>
@@ -504,79 +508,78 @@ const ChargingStations = () => {
 
             {/* ── View Modal ── */}
             {viewTarget && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={closeView} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
-                        {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-slate-50/60 to-transparent">
-                            <div className="flex items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023] uppercase">{viewTarget.name}</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5 tracking-widest">ID: {viewTarget.id}</p>
-                                </div>
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    onClick={closeView}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Station Details</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{viewTarget.id}</span></p>
                             </div>
-                            <button onClick={closeView} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                            <button onClick={closeView} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                                <X size={20} />
+                            </button>
                         </div>
-                        {/* Body */}
-                        <div className="p-6 space-y-4 uppercase">
-                            {/* Row 1 — Owner */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Owner Name</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.ownerName || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Owner Contact</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.ownerContact || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-widest">Owner Email</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px] normal-case">{viewTarget.ownerEmail || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                            </div>
-                            {/* Row 2 — Station Name, State, District */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Station Name</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.name || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">State</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.state || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">District</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.district || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                            </div>
-                            {/* Row 3 — Coordinates + Address */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Coordinates</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px] normal-case">{viewTarget.coordinates || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Address</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.address || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                            </div>
-                            {/* Row 4 — Ports, Status, Charger Types */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Ports</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.ports ?? <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Status</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.status || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Charger Types</label>
-                                    <div className="flex gap-2">
-                                        {(viewTarget.type || []).map(t => (
-                                            <div key={t} className="flex-1 py-1.5 text-center rounded-lg text-xs font-bold border bg-gray-100/60 border-white/40 text-[#011023]">{t}</div>
-                                        ))}
+
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Owner Info */}
+                                <div className="space-y-2 w-full md:w-[38%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
                                     </div>
+                                </div>
+
+                                {/* Station Info */}
+                                <div className="space-y-2 w-full md:w-[26%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Station Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Ports:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.ports ?? '—'}</span></p>
+                                        <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Status:</span>
+                                            <span className={`ml-2 inline-block px-3 py-0.5 text-[10px] font-bold uppercase rounded-full ${viewTarget.status === 'Operational' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {viewTarget.status || '—'}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                                {/* Charger Types */}
+                                <div className="space-y-2 w-full md:w-[33%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Charger Types</h4>
+                                    <div className="flex flex-wrap gap-2 pt-3.5">
+                                        {(viewTarget.type || []).length > 0 ? (
+                                            (viewTarget.type || []).map(t => (
+                                                <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                    t.toLowerCase().includes('ac') ? 'bg-blue-100 text-blue-700' :
+                                                    t.toLowerCase().includes('dc') ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-gray-100 text-gray-700'
+                                                }`}>{t}</span>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-gray-400 font-bold uppercase">None</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Location Archive */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Location Archive</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
+                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1 flex justify-between items-center">
+                                        <span>Geographic Allocation</span>
+                                        <span className="text-[10px] text-gray-400 font-semibold normal-case"></span>
+                                    </p>
+                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>

@@ -13,7 +13,8 @@ const Employees = () => {
 
     // Modals
     const [viewEmployee, setViewEmployee] = useState(null);
-    const [employeeBookings, setEmployeeBookings] = useState([]);
+    const [serviceHistory, setServiceHistory] = useState([]);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [loadingBookings, setLoadingBookings] = useState(false);
     const [banEmployee, setBanEmployee] = useState(null);
     const [banReason, setBanReason] = useState('');
@@ -105,15 +106,19 @@ const Employees = () => {
     };
 
     // ── Open View Modal ────────────────────────────────────────
-    const handleViewEmployee = async (employee) => {
+    const handleViewEmployee = (employee) => {
         setViewEmployee(employee);
-        setEmployeeBookings([]);
+    };
+
+    const fetchServiceHistory = async (employeeId) => {
+        setServiceHistory([]);
         setLoadingBookings(true);
+        setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/employee/${employee._id}`);
+            const res = await fetch(`http://localhost:5001/api/bookings/employee/${employeeId}`);
             if (res.ok) {
                 const data = await res.json();
-                setEmployeeBookings(data.data || []);
+                setServiceHistory(data.data || []);
             }
         } catch (e) {
             console.error(e);
@@ -193,6 +198,18 @@ const Employees = () => {
     };
 
     // ── Ban/Dismiss Employee ───────────────────────────────────────────────
+    // ── Body Scroll Lock ──────────────────────────────────────
+    useEffect(() => {
+        if (viewEmployee || banEmployee || isHistoryModalOpen || isDeleteModalOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [viewEmployee, banEmployee, isHistoryModalOpen, isDeleteModalOpen]);
+
     const handleBanSubmit = async () => {
         if (!banReason.trim()) return;
         setBanSubmitting(true);
@@ -259,16 +276,15 @@ const Employees = () => {
                         <table className="w-full text-center border-collapse">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold">Employee ID</th>
-                                    <th className="p-4.5 font-bold">Employee</th>
-                                    <th className="p-4.5 font-bold">Category</th>
-                                    <th className="p-4.5 font-bold">Category ID</th>
-                                    <th className="p-4.5 font-bold">Contact</th>
-                                    <th className="p-4.5 font-bold">Role</th>
-                                    {/* <th className="p-4.5 font-bold">Shift</th> */}
-                                    <th className="p-4.5 font-bold">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold">Status</th>
-                                    <th className="p-4.5 font-bold">Actions</th>
+                                    <th className="p-4.5 font-bold w-[11%]">Employee ID</th>
+                                    <th className="p-4.5 font-bold w-[15%]">Employee</th>
+                                    <th className="p-4.5 font-bold w-[9%]">Category</th>
+                                    <th className="p-4.5 font-bold w-[11%]">Category ID</th>
+                                    <th className="p-4.5 font-bold w-[15%]">Contact</th>
+                                    <th className="p-4.5 font-bold w-[10%]">Role</th>
+                                    <th className="p-4.5 font-bold w-[17%]">Join Date & Time</th>
+                                    <th className="p-4.5 font-bold w-[7%]">Status</th>
+                                    <th className="p-4.5 font-bold w-[6%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -354,7 +370,7 @@ const Employees = () => {
             {/* VIEW EMPLOYEE MODAL (Refined Alignment) */}
             {viewEmployee && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setViewEmployee(null)}
                 >
                     <div 
@@ -362,11 +378,16 @@ const Employees = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
-                            <div>
-                                <h3 className="text-xl uppercase font-bold text-[#052558]">Employee Details</h3>
-                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{viewEmployee.userId || viewEmployee.employeeId || viewEmployee._id?.slice(0, 8)}</span></p>
-                            </div>
+                        <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                             <div>
+                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Employee Details</h3>
+                                 <div className="flex items-center gap-2 mt-1">
+                                     <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewEmployee.userId || viewEmployee.employeeId || viewEmployee._id?.slice(0, 8)}</span></p>
+                                     <button onClick={() => fetchServiceHistory(viewEmployee._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50" title="Service History">
+                                         <Eye size={17} />
+                                     </button>
+                                 </div>
+                             </div>
                             <button 
                                 onClick={() => setViewEmployee(null)} 
                                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -428,34 +449,7 @@ const Employees = () => {
                                 </div>
                             </div>
 
-                            {/* Booking History (Preserved Section) */}
-                            {/* <div className="flex flex-col overflow-hidden">
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Tasks History</h4>
-                                {loadingBookings ? (
-                                    <div className="flex items-center justify-center py-8 bg-gray-50/50 rounded-2xl border border-gray-100">
-                                        <Loader2 size={22} className="animate-spin text-[#527FB0]" />
-                                    </div>
-                                ) : employeeBookings.length === 0 ? (
-                                    <p className="text-sm text-gray-400 text-center py-8 bg-gray-50/50 rounded-2xl border border-gray-100 uppercase font-bold tracking-widest opacity-60">No tasks found for this employee.</p>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 hide-scrollbar">
-                                        {employeeBookings.map(b => (
-                                            <div key={b._id} className="bg-blue-50/20 border border-blue-50/50 rounded-xl px-4 py-3 flex items-center justify-between hover:bg-white hover:border-blue-100 transition-all shadow-sm">
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="text-xs font-bold text-[#011023] truncate uppercase">{b.service?.title || 'Service'}</p>
-                                                    <p className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase">ID: {b.bookingId || b._id?.slice(0, 10)}</p>
-                                                </div>
-                                                <div className="text-right flex flex-col items-end gap-1">
-                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider ${b.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : b.status === 'Cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                                                        {b.status || 'Pending'}
-                                                    </span>
-                                                    <p className="text-[10px] text-gray-500 font-bold">{formatDate(b.createdAt, false)}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div> */}
+
 
                             {/* Legal Documentation Archive */}
                             <div className="space-y-2">
@@ -593,6 +587,85 @@ const Employees = () => {
                             >
                                 {deleting ? <><Loader2 size={16} className="animate-spin" /> Deleting...</> : 'Delete Member'}
                             </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Service History Modal */}
+            {isHistoryModalOpen && createPortal(
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#011023]/180 backdrop-blur-sm transition-all duration-300" onClick={() => setIsHistoryModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[65vh] animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="p-6 flex justify-between items-center bg-white">
+                            <div className="flex items-center gap-4">
+                                <div>
+                                    <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Service History</h3>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-black">{serviceHistory.length}</span></p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto flex-1 hide-scrollbar">
+                            {serviceHistory.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                                        <Briefcase size={28} className="text-gray-300" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-gray-400 uppercase tracking-widest">No Activity Records</h4>
+                                    <p className="text-xs text-gray-300 mt-2 uppercase font-medium">This employee hasn't been assigned any bookings yet.</p>
+                                </div>
+                            ) : (
+                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[420px] shadow-sm bg-white hide-scrollbar">
+                                    <table className="w-full text-center border-collapse">
+                                        <thead className="bg-[#f8faff] text-[12px] uppercase font-black tracking-widest text-[#527FB0] border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
+                                            <tr>
+                                                <th className="p-4 px-6 text-left">Booking Details</th>
+                                                <th className="p-4">Customer</th>
+                                                <th className="p-4 text-center">Assignment</th>
+                                                <th className="p-4">Schedule</th>
+                                                <th className="p-4 text-right px-6">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#e1ecf8]">
+                                            {serviceHistory.map((booking) => (
+                                                <tr key={booking._id} className="hover:bg-gray-50/50 transition-all duration-300">
+                                                    <td className="p-4 px-6 text-left">
+                                                        <div className="font-black text-[#011023] text-sm uppercase tracking-tight">{booking.bookingId || '—'}</div>
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{booking.service?.title || 'General Service'}</div>
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <div className="font-bold text-gray-700 text-xs uppercase">{booking.user?.name || 'Regular'}</div>
+                                                        <div className="text-[10px] text-gray-400 font-medium">UID: {booking.user?.userId || '—'}</div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-gray-50 text-gray-600 border border-gray-100 shadow-sm">
+                                                            {booking.assignedEmployees?.technician?.id === (viewEmployee?._id) ? 'Technician' : 'Support'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 text-center uppercase">
+                                                        <div className="font-bold text-[#011023] text-xs">{formatDate(booking.schedule?.date, false)}</div>
+                                                        <div className="text-[10px] text-gray-400 font-bold">{booking.schedule?.time || '—'}</div>
+                                                    </td>
+                                                    <td className="p-4 text-right px-6">
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                booking.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                    'bg-gray-50 text-gray-600 border border-gray-100'
+                                                            }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,

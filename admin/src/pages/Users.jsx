@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban } from 'lucide-react';
+import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Briefcase } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -13,7 +13,8 @@ const Users = () => {
 
     // Modals
     const [viewUser, setViewUser] = useState(null);
-    const [userBookings, setUserBookings] = useState([]);
+    const [serviceHistory, setServiceHistory] = useState([]);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [loadingBookings, setLoadingBookings] = useState(false);
     const [banUser, setBanUser] = useState(null);
     const [banReason, setBanReason] = useState('');
@@ -46,10 +47,10 @@ const Users = () => {
 
     const getRoleBadge = (role) => {
         switch (role) {
-            case 'admin': return 'bg-purple-100 text-purple-700 font-black';
-            case 'franchise': return 'bg-blue-100 text-blue-800 font-bold';
-            case 'vendor': return 'bg-[#dcfce7] text-[#065f46] font-bold';
-            default: return 'bg-cyan-100 text-cyan-700 font-bold';
+            case 'admin': return 'bg-purple-100 text-purple-700 font-bold px-3 py-1 text-xs';
+            case 'franchise': return 'bg-blue-100 text-blue-800 font-bold px-3 py-1 text-xs';
+            case 'vendor': return 'bg-fuchsia-100 text-fuchsia-700 font-bold px-3 py-1 text-xs';
+            default: return 'bg-orange-100 text-orange-700 font-bold px-3 py-1 text-xs';
         }
     };
 
@@ -60,23 +61,34 @@ const Users = () => {
         return 'Customer';
     };
 
-    const formatDate = (dateStr) => {
+    const formatDate = (dateStr, showTime = false) => {
         if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-IN', {
+        const date = new Date(dateStr).toLocaleDateString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric'
         });
+        if (showTime) {
+            const time = new Date(dateStr).toLocaleTimeString('en-IN', {
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+            return `${date} | ${time}`;
+        }
+        return date;
     };
 
     // ── Open View Modal ────────────────────────────────────────
-    const handleViewUser = async (user) => {
+    const handleViewUser = (user) => {
         setViewUser(user);
-        setUserBookings([]);
+    };
+
+    const fetchServiceHistory = async (userId) => {
+        setServiceHistory([]);
         setLoadingBookings(true);
+        setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/user/${user._id}`);
+            const res = await fetch(`http://localhost:5001/api/bookings/user/${userId}`);
             if (res.ok) {
                 const data = await res.json();
-                setUserBookings(data.data || []);
+                setServiceHistory(data.data || []);
             }
         } catch (e) {
             console.error(e);
@@ -154,6 +166,18 @@ const Users = () => {
         doc.save(`User_${user.userId || user._id}_Report.pdf`);
     };
 
+    // ── Body Scroll Lock ──────────────────────────────────────
+    useEffect(() => {
+        if (viewUser || banUser || isHistoryModalOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [viewUser, banUser, isHistoryModalOpen]);
+
     // ── Ban User ───────────────────────────────────────────────
     const handleBanSubmit = async () => {
         if (!banReason.trim()) return;
@@ -198,14 +222,14 @@ const Users = () => {
                         <table className="w-full text-center border-collapse">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold">User ID</th>
-                                    <th className="p-4.5 font-bold">User</th>
-                                    <th className="p-4.5 font-bold">Category</th>
-                                    <th className="p-4.5 font-bold">Contact</th>
-                                    <th className="p-4.5 font-bold">Role</th>
-                                    <th className="p-4.5 font-bold">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold">Status</th>
-                                    <th className="p-4.5 font-bold">Actions</th>
+                                    <th className="p-4.5 font-bold w-[12%]">User ID</th>
+                                    <th className="p-4.5 font-bold w-[15%]">User</th>
+                                    <th className="p-4.5 font-bold w-[10%]">Category</th>
+                                    <th className="p-4.5 font-bold w-[20%]">Contact</th>
+                                    <th className="p-4.5 font-bold w-[10%]">Role</th>
+                                    <th className="p-4.5 font-bold w-[20%]">Join Date & Time</th>
+                                    <th className="p-4.5 font-bold w-[8%]">Status</th>
+                                    <th className="p-4.5 font-bold w-[8%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -233,17 +257,23 @@ const Users = () => {
                                                 <div className="font-medium text-gray-700 text-sm">{user.email}</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block px-2.5 py-1 uppercase text-xs rounded-lg ${getRoleBadge(user.role)}`}>
+                                                <span className={`inline-block uppercase rounded-full ${getRoleBadge(user.role)}`}>
                                                     {formatRole(user.role)}
                                                 </span>
                                             </td>
                                             <td className="p-4">
                                                 <span className="text-sm uppercase text-gray-600">
-                                                    {formatDate(user.createdAt)} | {user.createdAt ? new Date(user.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}
+                                                    {formatDate(user.createdAt, true)}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm font-semibold uppercase text-gray-700">{user.isVerified ? 'Verified' : 'Unverified'}</span>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                                                    user.isVerified 
+                                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+                                                    : 'bg-amber-100 text-amber-800 border-amber-200'
+                                                }`}>
+                                                    {user.isVerified ? 'Verified' : 'Pending'}
+                                                </span>
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-center gap-2">
@@ -269,90 +299,85 @@ const Users = () => {
 
             {/* ── VIEW USER MODAL ───────────────────────── */}
             {viewUser && createPortal(
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setViewUser(null)} />
-                    <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 max-h-[90vh] flex flex-col">
-                        {/* Header */}
-                        <div className="relative bg-gradient-to-r from-[#041e49] via-[#052558] to-[#1a4a8a] px-6 py-5 flex items-center justify-between flex-shrink-0 overflow-hidden">
-                            {/* Decorative orb */}
-                            <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
-                            <div className="absolute -bottom-8 right-20 w-20 h-20 bg-white/5 rounded-full pointer-events-none" />
-
-                            <div className="flex items-center gap-4 relative z-10">
-                                {/* Initials Avatar */}
-                                <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                    <span className="text-base font-black text-white">
-                                        {viewUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-[15px] font-black text-white uppercase tracking-wide">{viewUser.name}</h3>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] font-bold text-white/70 font-mono bg-white/10 px-2 py-0.5 rounded-full">{viewUser.userId || viewUser._id?.slice(0, 8)}</span>
-                                        <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2 py-0.5 rounded-full uppercase tracking-wide">{formatRole(viewUser.role)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <button onClick={() => setViewUser(null)} className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all">
-                                <X size={15} />
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => setViewUser(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                             <div>
+                                 <h3 className="text-xl uppercase font-bold text-[#052558]">User Details</h3>
+                                 <div className="flex items-center gap-2 mt-1">
+                                     <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewUser.userId || viewUser._id?.slice(0, 8)}</span></p>
+                                     <button onClick={() => fetchServiceHistory(viewUser._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50" title="Booking History">
+                                         <Eye size={17} />
+                                     </button>
+                                 </div>
+                             </div>
+                            <button 
+                                onClick={() => setViewUser(null)} 
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="flex gap-5 p-6 h-[490px] overflow-hidden">
-                            {/* Account Details — 40% */}
-                            <div className="w-[35%] flex-shrink-0">
-                                <p className="text-[11px] text-[#052558] font-black uppercase tracking-widest mb-3">Account Details</p>
-                                <div className="grid grid-cols-1 gap-3">
-                                    {[
-                                        { icon: <Mail size={13} />, label: 'Email', value: viewUser.email },
-                                        { icon: <Phone size={13} />, label: 'Phone', value: viewUser.phone || '—' },
-                                        { icon: <MapPin size={13} />, label: 'Address', value: viewUser.address || '—' },
-                                        { icon: <Calendar size={13} />, label: 'Joined', value: formatDate(viewUser.createdAt) },
-                                        { icon: <ShieldCheck size={13} />, label: 'Status', value: viewUser.isVerified ? 'Verified ✓' : 'Unverified' },
-                                        { icon: <User size={13} />, label: 'Role', value: formatRole(viewUser.role) },
-                                        { icon: <Clipboard size={13} />, label: 'Category', value: viewUser.role === 'vendor' || viewUser.role === 'franchise' ? 'Business' : 'Regular' },
-                                    ].map(row => (
-                                        <div key={row.label} className="bg-[#f4f9ff] rounded-2xl px-4 py-3 flex items-center gap-2">
-                                            <div className="text-[#527FB0] flex-shrink-0">{row.icon}</div>
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{row.label}</p>
-                                                <p className="text-sm text-[#011023] font-semibold truncate">{row.value}</p>
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Personal Info */}
+                                <div className="space-y-2 w-full md:w-[42%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewUser.name || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewUser.phone || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewUser.email || '—'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Account Info */}
+                                <div className="space-y-2 w-full md:w-[22%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Account Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="font-semibold ml-2 text-[#011023]">{formatRole(viewUser.role)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Type:</span> <span className="font-semibold ml-2 text-gray-800">{viewUser.role === 'vendor' || viewUser.role === 'franchise' ? 'Business' : 'Regular'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Status & Join Info */}
+                                <div className="flex flex-col gap-4.5 w-full md:w-[32%]">
+                                    <div className="space-y-1.25">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${viewUser.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                                    {viewUser.isVerified ? 'Verified' : 'Pending'}
+                                                </span>
                                             </div>
                                         </div>
-                                    ))}
+
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Joined At</h4>
+                                            <span className="text-xs ml-3 font-bold text-gray-600 uppercase">
+                                                {formatDate(viewUser.createdAt, true)}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Booking History — 65% */}
-                            <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                                <p className="text-[11px] text-[#052558] font-black uppercase tracking-widest mb-3 flex items-center gap-1.5">Booking History</p>
-                                {loadingBookings ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 size={22} className="animate-spin text-[#527FB0]" />
-                                    </div>
-                                ) : userBookings.length === 0 ? (
-                                    <p className="text-sm text-gray-400 text-center py-6 bg-gray-50 rounded-2xl">No bookings found for this user.</p>
-                                ) : (
-                                    <div className="space-y-2 overflow-y-auto gap-3 flex-1 pr-1">
-                                        {userBookings.map(b => (
-                                            <div key={b._id} className="bg-[#f4f9ff] rounded-2xl px-4 py-3.5 flex items-center justify-between">
-                                                <div className="w-[70%]">
-                                                    <p className="text-xs font-bold text-[#011023]">{b.service?.title || 'Service'}</p>
-                                                    <p className="text-[10px] text-gray-400 font-mono mt-0.5">{b.bookingId || b._id?.slice(0, 10)}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs  font-bold text-[#011023]">Rs. {b.payment?.amount || b.service?.price || '—'}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(b.createdAt)}</p>
-                                                </div>
-                                                <span className={`ml-4 text-[10px] font-bold px-2.5 py-1 rounded-full ${b.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : b.status === 'Cancelled' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
-                                                    {b.status || 'Pending'}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                            {/* Residential Archive */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
+                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
+                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewUser.address || 'No Address Provided'}</h5>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -414,6 +439,74 @@ const Users = () => {
                                         </button>
                                     </div>
                                 </>
+                            )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Service History Modal */}
+            {isHistoryModalOpen && createPortal(
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#011023]/180 backdrop-blur-sm transition-all duration-300" onClick={() => setIsHistoryModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[65vh] animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="pr-6 pl-6 pt-6 pb-1 flex justify-between items-center bg-white">
+                            <div className="flex items-center gap-4">
+                                <div>
+                                    <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Booking History</h3>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-black">{serviceHistory.length}</span></p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto flex-1 hide-scrollbar">
+                            {serviceHistory.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                                        <Briefcase size={28} className="text-gray-300" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-gray-400 uppercase tracking-widest">No Activity Records</h4>
+                                    <p className="text-xs text-gray-300 mt-2 uppercase font-medium">This user hasn't made any bookings yet.</p>
+                                </div>
+                            ) : (
+                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[570px] shadow-sm bg-white hide-scrollbar">
+                                    <table className="w-full text-center border-collapse">
+                                        <thead className="bg-gray-50 text-[12px] uppercase font-black tracking-widest text-gray-400 border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
+                                            <tr>
+                                                <th className="p-4 w-[70%] text-center">Booking Details</th>
+                                                <th className="p-4 w-[20%] text-center">Schedule</th>
+                                                <th className="p-4 w-[10%] text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#e1ecf8]">
+                                            {serviceHistory.map((booking) => (
+                                                <tr key={booking._id} className="hover:bg-gray-50/50 transition-all duration-300">
+                                                    <td className="p-4 text-center">
+                                                        <div className="text-xs text-[#011023] font-semibold uppercase">{booking.service?.title || 'General Service'}</div>
+                                                        <div className="font-semibold text-gray-400 text-[11px] uppercase mt-0.5 tracking-tight">{booking.bookingId || '—'}</div>
+                                                    </td>
+                                                    <td className="p-4 text-center uppercase">
+                                                        <div className="font-semibold text-[#011023] text-xs">{formatDate(booking.schedule?.date || booking.createdAt, false)}</div>
+                                                        <div className="text-[11px] text-gray-400 font-semibold">{booking.schedule?.time || '—'}</div>
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                booking.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                    'bg-gray-50 text-gray-600 border border-gray-100'
+                                                            }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             )}
                         </div>
                     </div>

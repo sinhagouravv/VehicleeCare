@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, MapPin, Eye, Edit, Trash2, X, Check } from 'lucide-react';
+import { Search, Plus, MapPin, Eye, Edit, Trash2, X, Check, Briefcase, Users } from 'lucide-react';
 import punjabData from '../garagedata/punjab.json';
 import haryanaData from '../garagedata/haryana.json';
 import delhiData from '../garagedata/delhi.json';
@@ -19,6 +19,7 @@ import useHighlight from '../hooks/useHighlight';
 const Garages = () => {
     const [garages, setGarages] = useState([]);
     const highlightedRow = useHighlight(garages);
+    // Add highlightedRow state for visual feedback
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -27,6 +28,52 @@ const Garages = () => {
     const [saving, setSaving] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [viewTarget, setViewTarget] = useState(null);
+
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    const [garageEmployees, setGarageEmployees] = useState([]);
+    const [loadingEmployees, setLoadingEmployees] = useState(false);
+
+    const fetchGarageEmployees = async (garageId) => {
+        setGarageEmployees([]);
+        setLoadingEmployees(true);
+        setIsEmployeesModalOpen(true);
+        try {
+            const res = await fetch(`http://localhost:5001/api/employees/garage/${garageId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setGarageEmployees(data.data || []);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingEmployees(false);
+        }
+    };
+
+    const formatDate = (dateStr, includeTime = true) => {
+        if (!dateStr) return '—';
+        const date = new Date(dateStr);
+        const day = date.toLocaleDateString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric'
+        });
+        if (!includeTime) return day;
+        const time = date.toLocaleTimeString('en-IN', {
+            hour: '2-digit', minute: '2-digit', hour12: true
+        });
+        return `${day} | ${time}`;
+    };
+
+    // ── Body Scroll Lock ──────────────────────────────────────
+    useEffect(() => {
+        if (showModal || viewTarget) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [showModal, viewTarget]);
 
     const fetchGarages = useCallback(async (silent = false) => {
         try {
@@ -128,10 +175,10 @@ const Garages = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10%]">Garage ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Garage Name</th>
-                                <th className="p-4 font-bold text-center w-[15%]">Location</th>
-                                <th className="p-4 font-bold text-center w-[20%]">Vehicle Types</th>
+                                <th className="p-4 font-bold text-center w-[23%]">Location</th>
+                                <th className="p-4 font-bold text-center w-[14%]">Vehicle Types</th>
                                 <th className="p-4 font-bold text-center w-[8%]">Pickup</th>
-                                <th className="p-4 font-bold text-center w-[9%]">Rating</th>
+                                <th className="p-4 font-bold text-center w-[6%]">Rating</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Actions</th>
                             </tr>
                         </thead>
@@ -159,22 +206,29 @@ const Garages = () => {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <div className="flex flex-wrap gap-1 justify-center">
+                                            <div className="flex flex-wrap gap-1.5 justify-center">
                                                 {(garage.type || []).map(t => (
-                                                    <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-semibold">{t}</span>
+                                                    <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                        t.toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
+                                                        t.toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
+                                                        t.toLowerCase() === 'diesel' ? 'bg-indigo-100 text-indigo-700' :
+                                                        t.toLowerCase() === 'hybrid' ? 'bg-purple-100 text-purple-700' :
+                                                        t.toLowerCase() === 'cng' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                    }`}>{t}</span>
                                                 ))}
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             {garage.pickupDrop ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 font-bold rounded-lg text-sm">Yes</span>
+                                                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full text-xs uppercase">Yes</span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 font-bold rounded-lg text-sm">No</span>
+                                                <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-bold rounded-full text-xs uppercase">No</span>
                                             )}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 font-bold rounded-lg text-sm">
-                                                {garage.rating ? `${garage.rating} ` : 'N/A '}<span className="text-yellow-400">★</span>
+                                            <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 font-bold rounded-full text-xs">
+                                                {garage.rating ? `${garage.rating}` : 'N/A'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
@@ -412,8 +466,8 @@ const Garages = () => {
                         </div>
                         {/* Footer */}
                         <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg hover:shadow-blue-600/25 disabled:opacity-60">
+                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold uppercase text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 uppercase text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg hover:shadow-blue-600/25 disabled:opacity-60">
                                 {saving ? 'Saving…' : 'Save Changes'}
                             </button>
                         </div>
@@ -424,84 +478,180 @@ const Garages = () => {
 
             {/* ── View Garage Modal ── */}
             {viewTarget && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={closeView} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
-                        {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-slate-50/60 to-transparent">
-                            <div className="flex items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023] uppercase">{viewTarget.name}</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5 tracking-widest">ID: {viewTarget.garageId}</p>
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    onClick={closeView}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Garage Details</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewTarget.garageId || viewTarget._id?.slice(0, 8)}</span></p>
+                                    <button onClick={() => fetchGarageEmployees(viewTarget.garageId || viewTarget._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50" title="Garage Staff">
+                                        <Eye size={15} />
+                                    </button>
                                 </div>
                             </div>
-                            <button onClick={closeView} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                            <button
+                                onClick={closeView}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
-                        {/* Body */}
-                        <div className="p-6 space-y-4 uppercase">
-                            {/* Row 1 — Owner */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Owner Name</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.ownerName || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Owner Contact</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.ownerContact || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-widest">Owner Email</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px] normal-case">{viewTarget.ownerEmail || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                            </div>
-                            {/* Row 2 — Garage Name, State, District */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Garage Name</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.name || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">State</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.state || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">District</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.district || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                            </div>
-                            {/* Row 3 — Coordinates + Address */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Coordinates</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px] normal-case">{viewTarget.coordinates || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Address</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.address || <span className="text-gray-300">—</span>}</div>
-                                </div>
-                            </div>
-                            {/* Row 4 — Rating, Pickup & Drop, Vehicle Types */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Rating</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.rating || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Pickup &amp; Drop</label>
-                                    <div className="px-4 py-2.5 bg-gray-100/60 border border-white/40 rounded-xl text-xs font-semibold text-[#011023] min-h-[38px]">{viewTarget.pickupDrop ? 'YES' : 'NO'}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-1.5 tracking-widest">Vehicle Types</label>
-                                    <div className="flex gap-2">
-                                        {(viewTarget.type || []).map(t => (
-                                            <div key={t} className="flex-1 py-2.5 text-center rounded-lg text-xs font-bold border bg-gray-100/60 border-white/40 text-[#011023]">{t}</div>
-                                        ))}
+
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Owner Info */}
+                                <div className="space-y-2 w-full md:w-[42%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
                                     </div>
+                                </div>
+
+                                {/* Garage Info */}
+                                <div className="space-y-2 w-full md:w-[42%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Garage Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Rating:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.rating ? `${viewTarget.rating} ★` : 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Pickup:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.pickupDrop ? 'Yes' : 'No'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Other Details */}
+                                {/* <div className="flex flex-col gap-4.5 w-full md:w-[32%]">
+                                    <div className="space-y-1.25">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Partner</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${viewTarget.partner ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-600 border border-gray-100'}`}>
+                                                    {viewTarget.partner ? 'Active' : 'No'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 mt-4">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Vehicles</h4>
+                                            <div className="flex flex-wrap gap-1.5 ml-3">
+                                                {(viewTarget.type || []).length > 0 ? (
+                                                    viewTarget.type.map(t => (
+                                                        <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                            t.toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
+                                                            t.toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
+                                                            t.toLowerCase() === 'diesel' ? 'bg-indigo-100 text-indigo-700' :
+                                                            t.toLowerCase() === 'hybrid' ? 'bg-purple-100 text-purple-700' :
+                                                            t.toLowerCase() === 'cng' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-gray-100 text-gray-700'
+                                                        }`}>{t}</span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-xs font-bold text-gray-600 uppercase">—</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div> 
+                                </div>*/}
+                            </div>
+
+                            {/* Location Archive */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Location Archive</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
+                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1 flex justify-between items-center">
+                                        <span>Geographic Allocation</span>
+                                        {/* <span className="text-[10px] text-gray-400 font-semibold">{viewTarget.district || '—'}, {viewTarget.state || '—'} &bull; {viewTarget.coordinates || '—'}</span> */}
+                                    </p>
+                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
                         {/* Footer */}
 
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Garage Staff Modal */}
+            {isEmployeesModalOpen && createPortal(
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#011023]/0 backdrop-blur-sm transition-all duration-300" onClick={() => setIsEmployeesModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col h-[50vh] animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="pt-6 pr-6 pl-6 flex justify-between items-center bg-white">
+                            <div className="flex items-center gap-4">
+                                <div>
+                                    <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Garage Staff List</h3>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Employee: <span className="text-[#011023] font-black">{garageEmployees.length}</span></p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsEmployeesModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto flex-1 hide-scrollbar">
+                            {garageEmployees.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-24 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                                        <Users size={28} className="text-gray-300" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-gray-400 uppercase tracking-widest">No Employees Yet</h4>
+                                    <p className="text-xs text-gray-300 mt-2 uppercase font-medium">This garage hasn't registered any staff members.</p>
+                                </div>
+                            ) : (
+                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[415px] shadow-sm bg-white hide-scrollbar">
+                                    <table className="w-full text-center border-collapse">
+                                        <thead className="bg-gray-50 text-[12px] uppercase font-black tracking-widest text-gray-400 border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
+                                            <tr>
+                                                <th className="p-4 w-[20%] text-center px-6">Emp ID</th>
+                                                <th className="p-4 w-[35%] text-center">Employee Name</th>
+                                                <th className="p-4 w-[25%] text-center">Contact</th>
+                                                <th className="p-4 w-[20%] text-center px-6">Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#e1ecf8]">
+                                            {garageEmployees.map((employee) => (
+                                                <tr key={employee._id} className="hover:bg-gray-50/50 transition-all duration-300">
+                                                    <td className="p-4 text-center px-6">
+                                                        <div className="font-semibold text-gray-500 text-xs uppercase tracking-tight">{employee.userId || employee.employeeId || '—'}</div>
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <div className="text-xs font-semibold text-[#011023] uppercase tracking-tight">{employee.name}</div>
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <div className="text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap">{employee.phone || '—'}</div>
+                                                    </td>
+                                                    <td className="p-4 text-center px-6">
+                                                        <span className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                            employee.role === 'Technician' ? 'bg-amber-100 text-amber-700' :
+                                                            employee.role === 'Support' ? 'bg-indigo-100 text-indigo-700' :
+                                                            employee.role === 'Mechanic' ? 'bg-emerald-100 text-emerald-700' :
+                                                            employee.role === 'Admin' ? 'bg-fuchsia-100 text-fuchsia-700' :
+                                                            employee.role === 'Manager' ? 'bg-blue-100 text-blue-700' :
+                                                            'bg-gray-100 text-gray-700'
+                                                        }`}>
+                                                            {employee.role || 'Staff'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>,
                 document.body

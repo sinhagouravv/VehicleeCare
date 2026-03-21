@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Star, Trash2, Eye, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Star, Trash2, Eye, CheckCircle, XCircle, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 
 const Reviews = () => {
@@ -46,6 +47,43 @@ const Reviews = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Smart mapping: Generate a map of reviewer names to their User IDs from known reviews
+    const nameToUserIdMap = useMemo(() => {
+        const map = {};
+        reviews.forEach(rev => {
+            const uid = rev.user?.userId || rev.businessUser?.userId || 
+                        rev.userId || rev.user_id ||
+                        (typeof rev.user === 'string' ? rev.user : 
+                        (typeof rev.businessUser === 'string' ? rev.businessUser : null));
+            if (uid && rev.name) {
+                // Normalize name: trim, uppercase, and collapse multiple spaces
+                const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
+                map[normalizedName] = uid;
+            }
+        });
+        return map;
+    }, [reviews]);
+
+    const getDisplayUserId = (rev) => {
+        if (!rev) return 'Guest';
+        const directId = rev.user?.userId || rev.businessUser?.userId || 
+                         rev.userId || rev.user_id ||
+                         (typeof rev.user === 'string' ? rev.user : 
+                         (typeof rev.businessUser === 'string' ? rev.businessUser : null));
+        
+        if (directId) return directId;
+        
+        // Smart fallback: If direct ID is missing, try to find it by name from other reviews
+        if (rev.name) {
+            const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
+            if (nameToUserIdMap[normalizedName]) {
+                return nameToUserIdMap[normalizedName];
+            }
+        }
+        
+        return 'Guest';
+    };
 
     const handleUpdateStatus = async (id, type, newStatus) => {
         try {
@@ -168,11 +206,13 @@ const Reviews = () => {
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="font-bold text-[#011023]">{rev.name}</div>
-                                            <div className="text-xs text-center text-gray-500">{rev.designation || 'Customer'}</div>
+                                            <div className="text-xs text-center text-gray-500">
+                                                {getDisplayUserId(rev)}
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${rev.type === 'Business' ? 'bg-blue-100/50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
-                                                {rev.type}
+                                            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${rev.type === 'Business' ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                                                {rev.type === 'Website' ? 'Garage' : rev.type}
                                             </span>
                                         </td>
                                         <td className="p-4 text-sm text-center text-gray-600 whitespace-normal" title={rev.text}>{rev.text}</td>
@@ -185,7 +225,7 @@ const Reviews = () => {
                                                                 <Star key={i} size={14} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
                                                             ))}
                                                         </div>
-                                                        <span className="text-[10px] text-gray-400 font-bold lowercase">({rev.ratings?.length || 0} votes)</span>
+                                                        {/* <span className="text-[10px] text-gray-400 font-bold lowercase">({rev.ratings?.length || 0} votes)</span> */}
                                                     </>
                                                 ) : (
                                                     <span className="text-gray-300 font-black text-lg">-</span>
@@ -209,27 +249,30 @@ const Reviews = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 {rev.status === 'Pending' && (
                                                     <>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
+                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
                                                             <CheckCircle size={18} />
                                                         </button>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" title="Reject">
+                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Reject">
                                                             <XCircle size={18} />
                                                         </button>
                                                     </>
                                                 )}
 
                                                 {rev.status === 'Rejected' && (
-                                                    <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
-                                                        <CheckCircle size={18} />
-                                                    </button>
+                                                    <>
+                                                        <button className="text-red-500/50 p-1.5 rounded-lg cursor-default" title="Rejected">
+                                                            <XCircle size={18} />
+                                                        </button>
+                                                    </>
                                                 )}
 
                                                 {rev.status === 'Approved' && (
                                                     <>
-                                                        <button onClick={() => setSelectedReview(rev)} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Full Review">
+                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Full Review">
                                                             <Eye size={18} />
                                                         </button>
-                                                        <button onClick={() => handleDelete(rev._id, rev.type)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
+                                                        {/* User requested: 'the reject icon should not be there' for approved status */}
+                                                        <button onClick={() => handleDelete(rev._id, rev.type)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
                                                             <Trash2 size={16} />
                                                         </button>
                                                     </>
@@ -245,91 +288,97 @@ const Reviews = () => {
             </div>
 
             {/* View Full Review Modal */}
-            {
-                selectedReview && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all duration-300">
-                        <div className="bg-white/90 backdrop-blur-xl border border-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative transform transition-all pb-6">
-                            {/* Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                                <div>
-                                    <h3 className="text-xl font-bold text-[#011023] flex items-center gap-2">
-                                        Review Details
-                                        <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full tracking-wider ${selectedReview.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
-                                            selectedReview.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                                'bg-amber-100 text-amber-700'
-                                            }`}>
-                                            {selectedReview.status}
-                                        </span>
-                                    </h3>
-                                    <p className="text-xs text-gray-400 font-medium mt-1">ID: {selectedReview.reviewId || `RE${selectedReview._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}</p>
+            {selectedReview && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                    onClick={() => setSelectedReview(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Review Details</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedReview.reviewId || `RE${selectedReview._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}</span></p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedReview(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                            {/* Info Grid */}
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Reviewer Info */}
+                                <div className="space-y-4 w-full md:w-[40%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reviewer Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] pl-1 truncate">{selectedReview.name}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Type:</span> 
+                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${selectedReview.type === 'Business' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                {selectedReview.type === 'Website' ? 'Garage' : selectedReview.type}
+                                            </span>
+                                        </p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">User ID:</span> 
+                                            <span className="font-semibold text-gray-800 px-1 truncate">
+                                                {getDisplayUserId(selectedReview)}
+                                            </span>
+                                        </p>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={() => setSelectedReview(null)}
-                                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors"
-                                >
-                                    <XCircle size={24} />
-                                </button>
+
+                                {/* Review Stats */}
+                                <div className="space-y-4 w-full md:w-[60%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Review Metrics</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-3 border border-blue-50">
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-gray-500 w-24 shrink-0 text-sm">Rating:</span>
+                                            {selectedReview.type === 'Website' ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex text-yellow-400">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={16} className={i < getAverageForReview(selectedReview.ratings) ? "fill-yellow-400" : "text-gray-200"} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm font-bold text-gray-400">N/A</span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Status:</span>
+                                            <span className={`px-2.5 py-0.5 text-[10px] ml-4 font-bold uppercase rounded-full tracking-wider ${selectedReview.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                selectedReview.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                    'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                {selectedReview.status}
+                                            </span>
+                                        </p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Date:</span> <span className="font-semibold ml-4 text-gray-600">{new Date(selectedReview.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(selectedReview.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span></p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Content */}
-                            <div className="p-6 space-y-6">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <h4 className="text-lg font-bold text-[#011023]">{selectedReview.name}</h4>
-                                        <p className="text-sm text-gray-500 font-medium">{selectedReview.designation || 'Customer'}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-sm font-bold text-[#011023] mb-1">
-                                            {new Date(selectedReview.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </div>
-                                        {selectedReview.type === 'Website' ? (
-                                            <div className="flex items-center justify-end gap-1">
-                                                <div className="flex text-yellow-400">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <Star key={i} size={14} className={i < getAverageForReview(selectedReview.ratings) ? "fill-yellow-400" : "text-gray-200"} />
-                                                    ))}
-                                                </div>
-                                                <span className="text-[10px] text-gray-400 font-bold ml-1">({selectedReview.ratings?.length || 0} votes)</span>
-                                            </div>
-                                        ) : (
-                                            <span className={`px-2 py-1 inline-block text-[10px] font-bold uppercase tracking-wider rounded-md bg-blue-100/50 text-blue-600`}>
-                                                Business Review
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100/50">
-                                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
-                                        "{selectedReview.text}"
+                            {/* Review Text */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Review Content</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-4 rounded-2xl shadow-sm text-justify relative">
+                                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[16px] relative z-10">
+                                        {selectedReview.text}
                                     </p>
                                 </div>
                             </div>
-
-                            {/* Footer Actions */}
-                            <div className="px-6 flex justify-end gap-3 mt-2">
-                                <button
-                                    onClick={() => setSelectedReview(null)}
-                                    className="px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors text-sm"
-                                >
-                                    Close
-                                </button>
-                                {selectedReview.status === 'Pending' && (
-                                    <button
-                                        onClick={() => {
-                                            handleUpdateStatus(selectedReview._id, selectedReview.type, 'Approved');
-                                            setSelectedReview(null);
-                                        }}
-                                        className="px-5 py-2.5 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 transition-all text-sm flex items-center gap-2"
-                                    >
-                                        <CheckCircle size={16} /> Approve
-                                    </button>
-                                )}
-                            </div>
                         </div>
+
                     </div>
-                )
-            }
+                </div>,
+                document.body
+            )}
         </>
     );
 };
