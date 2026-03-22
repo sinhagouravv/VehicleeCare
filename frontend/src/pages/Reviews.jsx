@@ -110,7 +110,7 @@ const Reviews = () => {
         const formData = new FormData(e.target);
 
         const newReview = {
-            user: user ? user._id : null, // Optional, depending on backend model
+            user: user ? (user.id || user._id) : null, // Support both id and _id from current user object
             name: formData.get('name'), // Use custom name or auto-filled
             designation: "Customer",
             text: formData.get('text'),
