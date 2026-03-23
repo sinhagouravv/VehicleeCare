@@ -156,7 +156,6 @@ const Payments = () => {
                                 <th className="p-4.5 font-bold text-center w-[10%]">ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">User</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">User Type</th>
-                                {/* <th className="p-4.5 font-bold text-center w-[18%]">Details</th> */}
                                 <th className="p-4.5 font-bold text-center w-[15%]">Paid At</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Amount</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Method</th>
@@ -297,7 +296,7 @@ const Payments = () => {
                                     <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800">{selectedPayment.user?.userId || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate lowercase">{selectedPayment.user?.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedPayment.user?.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
 
