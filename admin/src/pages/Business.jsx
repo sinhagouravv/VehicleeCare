@@ -111,11 +111,11 @@ const Business = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[12%]">Request ID</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Business Name</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[20%]">Business Name</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
                             </tr>
                         </thead>
@@ -156,7 +156,7 @@ const Business = () => {
                                                 day: '2-digit', month: 'short', year: 'numeric'
                                             })}
                                         </span>
-                                        <span className="mx-3 text-gray-500">|</span>
+                                        <span className="mx-1 text-gray-500">|</span>
                                         <span className="text-xs font-semibold text-gray-800">
                                             {new Date(req.createdAt).toLocaleTimeString('en-IN', {
                                                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
@@ -197,17 +197,18 @@ const Business = () => {
             {/* View Details Modal */}
             {isViewModalOpen && selectedRequest && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] border border-white/50"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                        {/* Modal Header */}
+                        <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
-                                <h3 className="text-xl font-black text-[#052558] uppercase">Business Request</h3>
-                                <p className="text-sm text-gray-500 mt-1 uppercase font-bold tracking-widest">ID: <span className="text-gray-700">{selectedRequest.displayId}</span></p>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Business Request</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedRequest.displayId}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
@@ -217,68 +218,54 @@ const Business = () => {
                             </button>
                         </div>
 
-                        <div className="p-8 overflow-y-auto flex-1 space-y-8">
-
-                            {/* Header Overview */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200">
-                                        {getCategoryIcon(selectedRequest.businessCategory)}
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-black text-[#011023] uppercase">{selectedRequest.businessName}</h2>
-                                        <p className="text-sm text-gray-500 font-bold uppercase">{getCategoryName(selectedRequest.businessCategory)}</p>
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Owner Info */}
+                                <div className="space-y-2 w-full md:w-[50%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedRequest.ownerName || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedRequest.phone || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedRequest.email || '—'}</span></p>
                                     </div>
                                 </div>
-                                <span className={`px-4 py-1.5 text-sm font-black uppercase tracking-wider rounded-full ${getStatusColor(selectedRequest.status)}`}>
-                                    {selectedRequest.status}
-                                </span>
+
+                                {/* Business Info */}
+                                <div className="space-y-2 w-full md:w-[42%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Business Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{selectedRequest.businessName || '—'}</span></p>
+                                        <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Type:</span>
+                                            <span className="ml-2 text-xs font-bold text-gray-700">{getCategoryName(selectedRequest.businessCategory) || '—'}</span>
+                                        </p>
+                                        <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Status:</span>
+                                            <span className={`ml-2 inline-block px-3 py-0.5 text-[10px] font-bold uppercase rounded-full ${getStatusColor(selectedRequest.status)}`}>
+                                                {selectedRequest.status}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-2 gap-6 uppercase">
-                                {/* Owner Details */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider">Owner Details</h4>
-                                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-bold mb-1 tracking-widest">Name</div>
-                                            <div className="font-bold text-[#011023]">{selectedRequest.ownerName}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-bold mb-1 tracking-widest">Phone</div>
-                                            <div className="font-bold text-[#011023]">{selectedRequest.phone}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-bold mb-1 tracking-widest">Email</div>
-                                            <div className="font-bold text-[#011023] normal-case">{selectedRequest.email}</div>
-                                        </div>
+                            {/* Location Archive */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Location Archive</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase flex gap-4">
+                                    <div className="w-[60%]">
+                                        <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
+                                        <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedRequest.address || 'No Address Provided'}</h5>
                                     </div>
-                                </div>
-
-                                {/* Location Details */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider">Location & Registration</h4>
-                                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-bold mb-1 tracking-widest">State / District</div>
-                                            <div className="font-bold text-[#011023]">{selectedRequest.district}, {selectedRequest.state}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-bold mb-1 tracking-widest">Full Address</div>
-                                            <div className="font-bold text-[#011023]">{selectedRequest.address}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-bold mb-1 tracking-widest">Tax / GST Number</div>
-                                            <div className="font-bold text-[#011023] tracking-widest">{selectedRequest.taxId || 'NOT PROVIDED'}</div>
-                                        </div>
+                                    <div className="w-[40%] border-l border-[#e6f0fa] pl-4">
+                                        <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Region</p>
+                                        <h5 className="font-bold text-[#052558] text-[14px]">{selectedRequest.district ? `${selectedRequest.district}, ${selectedRequest.state}` : selectedRequest.state || '—'}</h5>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Action Buttons */}
                             {selectedRequest.status === 'Pending' && (
-                                <div className="border-t border-slate-100 pt-6 flex justify-end gap-3 uppercase">
+                                <div className="border-t border-slate-100 pt-4 flex justify-end gap-3 uppercase">
                                     <button
                                         onClick={() => { handleUpdateStatus(selectedRequest._id, 'Rejected'); setIsViewModalOpen(false); }}
                                         className="px-6 py-2.5 rounded-xl text-sm font-black text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
@@ -293,7 +280,6 @@ const Business = () => {
                                     </button>
                                 </div>
                             )}
-
                         </div>
                     </div>
                 </div>,
