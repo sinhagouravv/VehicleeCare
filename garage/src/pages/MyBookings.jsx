@@ -221,7 +221,7 @@ const MyBookings = () => {
                                             {booking.payment?.paymentId || '—'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[8%]">
+                                    <td className="p-4 text-center w-[12%]">
                                         <span className={`inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                             {booking.status || 'Pending'}
                                         </span>

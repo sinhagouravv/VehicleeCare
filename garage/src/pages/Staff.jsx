@@ -692,7 +692,7 @@ const Staff = () => {
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#011023]/180 backdrop-blur-sm transition-all duration-300" onClick={() => setIsHistoryModalOpen(false)}>
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[65vh] animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="p-6 flex justify-between items-center bg-white">
+                        <div className="pr-6 pl-6 pt-6 pb-1 flex justify-between items-center bg-white">
                             <div className="flex items-center gap-4">
                                 <div>
                                     <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Service History</h3>
@@ -715,41 +715,32 @@ const Staff = () => {
                                     <p className="text-xs text-gray-300 mt-2 uppercase font-medium">This employee hasn't been assigned any bookings yet.</p>
                                 </div>
                             ) : (
-                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[420px] shadow-sm bg-white hide-scrollbar">
+                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[570px] shadow-sm bg-white hide-scrollbar">
                                     <table className="w-full text-center border-collapse">
-                                        <thead className="bg-[#f8faff] text-[12px] uppercase font-black tracking-widest text-[#527FB0] border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
+                                        <thead className="bg-gray-50 text-[12px] uppercase text-gray-400 tracking-widest border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
                                             <tr>
-                                                <th className="p-4 px-6 text-left">Booking Details</th>
-                                                <th className="p-4">Customer</th>
-                                                <th className="p-4 text-center">Assignment</th>
-                                                <th className="p-4">Schedule</th>
-                                                <th className="p-4 text-right px-6">Status</th>
+                                                <th className="p-4 px-6 text-center w-[60%]">Booking Details</th>
+                                                <th className="p-4 w-[20%]">Schedule</th>
+                                                <th className="p-4 text-center px-6 w-[20%]">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[#e1ecf8]">
                                             {serviceHistory.map((booking) => (
                                                 <tr key={booking._id} className="hover:bg-gray-50/50 transition-all duration-300">
-                                                    <td className="p-4 px-6 text-left">
-                                                        <div className="font-black text-[#011023] text-sm uppercase tracking-tight">{booking.bookingId || '—'}</div>
-                                                        <div className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{booking.service?.title || 'General Service'}</div>
-                                                    </td>
-                                                    <td className="p-4 text-center">
-                                                        <div className="font-bold text-gray-700 text-xs uppercase">{booking.user?.name || 'Regular'}</div>
-                                                        <div className="text-[10px] text-gray-400 font-medium">UID: {booking.user?.userId || '—'}</div>
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-gray-50 text-gray-600 border border-gray-100 shadow-sm">
-                                                            {booking.assignedEmployees?.technician?.id === (selectedStaff?._id) ? 'Technician' : 'Support'}
-                                                        </span>
+                                                    <td className="p-4 px-6 text-center">
+                                                        <div className="text-xs text-[#011023] font-semibold uppercase">{booking.service?.title || 'General Service'}</div>
+                                                        <div className="font-semibold text-gray-400 text-[11px] uppercase mt-0.5 tracking-tight">{booking.bookingId || '—'}</div>
                                                     </td>
                                                     <td className="p-4 text-center uppercase">
-                                                        <div className="font-bold text-[#011023] text-xs">{formatDate(booking.schedule?.date, false)}</div>
-                                                        <div className="text-[10px] text-gray-400 font-bold">{booking.schedule?.time || '—'}</div>
+                                                        <div className="font-semibold text-[#011023] text-xs">{formatDate(booking.schedule?.date, false)}</div>
+                                                        <div className="text-[11px] text-gray-400 font-semibold">{booking.schedule?.time || '—'}</div>
                                                     </td>
-                                                    <td className="p-4 text-right px-6">
-                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                                booking.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' :
-                                                                    'bg-gray-50 text-gray-600 border border-gray-100'
+                                                    <td className="p-4 text-center">
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                booking.status === 'In Progress' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                                                                    booking.status === 'Pending' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                                                        booking.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                            'bg-gray-50 text-gray-600 border border-gray-100'
                                                             }`}>
                                                             {booking.status}
                                                         </span>
