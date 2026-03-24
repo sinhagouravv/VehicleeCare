@@ -45,6 +45,8 @@ const Bookings = () => {
         switch (status) {
             case 'Completed': return 'bg-emerald-100 text-emerald-700';
             case 'Confirmed': return 'bg-blue-100 text-blue-700'; // Or 'In Progress'
+            
+            case 'In Progress': return 'bg-purple-100 text-purple-700';
             case 'Scheduled': return 'bg-purple-100 text-purple-700';
             case 'Pending': return 'bg-amber-100 text-amber-700';
             case 'Cancelled': return 'bg-red-100 text-red-700';
@@ -193,12 +195,12 @@ const Bookings = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[11%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[22%]">Service</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Schedule At</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Schedule At</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]">Amount</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[5%]">Actions</th>
                             </tr>
                         </thead>
@@ -226,12 +228,12 @@ const Bookings = () => {
                                             <div className="text-xs font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
                                             <div className="text-xs text-gray-500">{booking.user?.userId || ""}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${booking.store ? 'bg-purple-100 text-purple-700' : booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                                                 {booking.store ? 'Store' : booking.parking ? 'Parking' : 'Garage'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[34%]">
+                                        <td className="p-4 text-center w-[32%]">
                                             <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
                                                 {booking.service?.title}
                                             </div>
@@ -239,7 +241,7 @@ const Bookings = () => {
                                                 {booking.vehicle?.make} {booking.vehicle?.model}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[12%]">
+                                        <td className="p-4 text-center w-[11%]">
                                             <span className="text-sm text-gray-600">
                                                 {booking.schedule?.date} <br />
                                                 {booking.schedule?.time}
@@ -255,12 +257,12 @@ const Bookings = () => {
                                                 {booking.payment?.paymentId || '—'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[7%]">
+                                        <td className="p-4 text-center w-[15%]">
                                             <span className={`inline-block px-3 py-1 text-[10px] text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                                 {booking.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[6%]">
+                                        <td className="p-4 text-center w-[5%]">
                                             <div className="flex items-center justify-center gap-1">
                                                 <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
                                                     <Eye size={18} />

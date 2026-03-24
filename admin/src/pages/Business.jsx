@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car } from 'lucide-react';
+import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2 } from 'lucide-react';
 
 const Business = () => {
     const [requests, setRequests] = useState([]);
@@ -55,6 +55,27 @@ const Business = () => {
         } catch (err) {
             console.error("Error updating status:", err);
             alert("Error updating status.");
+        }
+    };
+    const handleDeleteRequest = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this business request? This action cannot be undone.')) return;
+        try {
+            const res = await fetch(`http://localhost:5001/api/business-requests/${id}`, {
+                method: 'DELETE',
+            });
+            const data = await res.json();
+            if (data.success) {
+                setRequests(prev => prev.filter(r => r._id !== id));
+                if (selectedRequest && selectedRequest._id === id) {
+                    setIsViewModalOpen(false);
+                    setSelectedRequest(null);
+                }
+            } else {
+                alert('Failed to delete request.');
+            }
+        } catch (err) {
+            console.error('Error deleting business request:', err);
+            alert('Error deleting request.');
         }
     };
 
@@ -184,6 +205,11 @@ const Business = () => {
                                                         <X size={18} />
                                                     </button>
                                                 </>
+                                            )}
+                                            {req.status !== 'Pending' && (
+                                                <button onClick={() => handleDeleteRequest(req._id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Request">
+                                                    <Trash2 size={18} />
+                                                </button>
                                             )}
                                         </div>
                                     </td>
