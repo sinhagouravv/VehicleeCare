@@ -5,6 +5,16 @@ const UserNotification = require('../models/UserNotification');
 const Employee = require('../models/Employee');
 const { createAdminNotification } = require('./notificationController');
 const { generatePaymentId } = require('../utils/generateId');
+const nodemailer = require('nodemailer');
+
+// ── Mailer Setup ────────────────────────────────────────────
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // @desc    Create a new booking
 // @route   POST /api/bookings
@@ -206,7 +216,8 @@ exports.createBooking = async (req, res) => {
                 userName: savedBooking.user.name,
                 displayUserId, // This will be the 65... ID
                 service: service.title, 
-                vehicle: `${vehicle.make} ${vehicle.model}` 
+                vehicle: `${vehicle.make} ${vehicle.model}`,
+                garageId: garage?.id || null
             }
         });
 
@@ -324,16 +335,25 @@ exports.updateBookingStatus = async (req, res) => {
 exports.getEmployeeBookings = async (req, res) => {
     try {
         const { employeeId } = req.params;
-        // Search in both technician and support IDs
-        const bookings = await Booking.find({
+        
+        // Build query to search in both technician and support fields
+        const query = {
             $or: [
                 { 'assignedEmployees.technician.id': employeeId },
-                { 'assignedEmployees.support.id': employeeId }
+                { 'assignedEmployees.technician.employeeId': employeeId },
+                { 'assignedEmployees.support.id': employeeId },
+                { 'assignedEmployees.support.employeeId': employeeId }
             ]
-        }).sort({ createdAt: -1 });
+        };
+
+        // If employeeId is a valid MongoDB ObjectId, Mongoose handles it.
+        // If it's a 9-digit string, it will match the .employeeId fields.
+        
+        const bookings = await Booking.find(query).sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: bookings });
     } catch (error) {
+        console.error('[GetEmployeeBookings] Error:', error);
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 };
@@ -349,6 +369,141 @@ exports.deleteBooking = async (req, res) => {
         }
         await booking.deleteOne();
         res.status(200).json({ success: true, message: 'Booking deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+// @desc    Send OTP for "In Service" transition
+// @route   POST /api/bookings/:id/send-otp
+// @access  Private
+exports.sendInServiceOTP = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        booking.otp = otp;
+        booking.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+        await booking.save();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: booking.user.email,
+            subject: 'VehicleeCare - Service Verification OTP',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <h2 style="color: #011023; text-transform: uppercase; letter-spacing: 1px;">Service Verification</h2>
+                    <p style="color: #64748b;">Your vehicle service for booking <strong>#${booking.bookingId}</strong> is about to start. Please provide the following OTP to the technician:</p>
+                    <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #3b82f6;">${otp}</span>
+                    </div>
+                    <p style="font-size: 12px; color: #94a3b8;">This OTP is valid for 10 minutes. If you did not request this, please contact support.</p>
+                </div>
+            `
+        };
+
+        // Fire and forget email delivery for faster response
+        transporter.sendMail(mailOptions).catch(err => {
+            console.error("Delayed OTP email failure:", err);
+        });
+
+        // Return success immediately to UI
+        res.status(200).json({ success: true, message: 'OTP sending initiated' });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Verify OTP and transition to "In Service"
+// @route   POST /api/bookings/:id/verify-otp
+// @access  Private
+exports.verifyInServiceOTP = async (req, res) => {
+    try {
+        const { otp, duration } = req.body;
+        const booking = await Booking.findById(req.params.id);
+
+        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+        if (booking.otp !== otp || booking.otpExpires < Date.now()) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+        }
+
+        booking.status = 'In Service';
+        booking.serviceDuration = duration;
+        booking.otp = undefined;
+        booking.otpExpires = undefined;
+        await booking.save();
+
+        res.json({ success: true, message: 'Status updated to In Service', data: booking });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Send OTP for "Delivered" transition
+// @route   POST /api/bookings/:id/send-delivery-otp
+exports.sendDeliveryOTP = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        booking.otp = otp;
+        booking.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+        await booking.save();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: booking.user.email,
+            subject: 'VehicleeCare - Delivery Verification OTP',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <h2 style="color: #011023; text-transform: uppercase; letter-spacing: 1px;">Delivery Verification</h2>
+                    <p style="color: #64748b;">Your vehicle for booking <strong>#${booking.bookingId}</strong> is ready for delivery. Please provide the following OTP to the technician to complete the handover:</p>
+                    <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #10b981;">${otp}</span>
+                    </div>
+                    <p style="font-size: 12px; color: #94a3b8;">This OTP is valid for 10 minutes. If you did not request this, please contact support.</p>
+                </div>
+            `
+        };
+
+        // Fire and forget email delivery for faster response
+        transporter.sendMail(mailOptions).catch(err => {
+            console.error("Delayed delivery OTP email failure:", err);
+        });
+
+        // Return success immediately to UI
+        res.status(200).json({ success: true, message: 'Delivery OTP sending initiated' });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Verify Delivery OTP and transition to "Delivered"
+// @route   POST /api/bookings/:id/verify-delivery-otp
+exports.verifyDeliveryOTP = async (req, res) => {
+    try {
+        const { otp } = req.body;
+        const booking = await Booking.findById(req.params.id);
+
+        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+        if (booking.otp !== otp || booking.otpExpires < Date.now()) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+        }
+
+        booking.status = 'Delivered';
+        booking.isDelivered = true;
+        booking.otp = undefined;
+        booking.otpExpires = undefined;
+        await booking.save();
+
+        res.json({ success: true, message: 'Status updated to Delivered', data: booking });
+
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }

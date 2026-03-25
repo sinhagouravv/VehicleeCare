@@ -1,6 +1,16 @@
 const Employee = require('../models/Employee');
 const { generateEmployeeId } = require('../utils/generateId');
 const { createAdminNotification } = require('./notificationController');
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // @desc    Get all employees
 // @route   GET /api/employees
@@ -47,11 +57,39 @@ const deleteEmployee = async (req, res) => {
 const createEmployee = async (req, res) => {
     try {
         const employeeId = generateEmployeeId();
-        const employee = await Employee.create({ ...req.body, employeeId, isVerified: true });
+        const plainPassword = 'Pass@1234';
+        const salt = await bcrypt.genSalt(10);
+        const password = await bcrypt.hash(plainPassword, salt);
+
+        const employee = await Employee.create({ ...req.body, employeeId, password, isVerified: true });
         
         // Fetch garage name for better notification
+        const Garage = require('../models/Garage'); // Ensure Garage is available
         const garage = await Garage.findOne({ garageId: employee.garageId });
         const garageName = garage ? garage.name : 'Unknown Garage';
+
+        // Email the credentials
+        try {
+            await transporter.sendMail({
+                from: `"VehicleeCare" <${process.env.EMAIL_USER}>`,
+                to: employee.email,
+                subject: 'Welcome to VehicleeCare Employee Portal',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f0f6ff; border-radius: 16px;">
+                        <h2 style="color: #011023; margin-bottom: 4px;">VehicleeCare Employee Portal</h2>
+                        <p style="color: #527FB0; font-size: 13px; margin-bottom: 24px;">Account Credentials</p>
+                        <p style="color: #011023; font-size: 14px;">Hi <strong>${employee.name}</strong>, your account has been created. Use the credentials below to log in:</p>
+                        <div style="background: #011023; color: #fff; text-align: left; padding: 20px; border-radius: 12px; margin: 20px 0; font-size: 14px;">
+                            <p style="margin: 0 0 10px 0;"><strong>Employee ID:</strong> <span style="color: #C2E8FF;">${employee.employeeId}</span></p>
+                            <p style="margin: 0;"><strong>Password:</strong> <span style="color: #C2E8FF;">${plainPassword}</span></p>
+                        </div>
+                        <p style="color: #888; font-size: 12px;">For security, please do not share these credentials with anyone.</p>
+                    </div>
+                `
+            });
+        } catch (mailErr) {
+            console.error('Failed to send employee credentials email:', mailErr);
+        }
 
         // Fire admin notification
         createAdminNotification({
