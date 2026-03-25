@@ -57,10 +57,13 @@ const BookingSchema = new mongoose.Schema({
     status: {
         type: String,
         default: 'Pending',
-        enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled']
+        enum: ['Pending', 'Confirmed', 'In Progress', 'In Service', 'Completed', 'Delivered', 'Cancelled']
     },
     isPickedUp: { type: Boolean, default: false },
-    isDelivered: { type: Boolean, default: false }
+    isDelivered: { type: Boolean, default: false },
+    serviceDuration: { type: String },
+    otp: { type: String },
+    otpExpires: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Booking', BookingSchema);

@@ -69,6 +69,16 @@ const employeeSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    password: {
+        type: String,
+        default: ''
+    },
+    resetPasswordOtp: {
+        type: String
+    },
+    resetPasswordExpires: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now
