@@ -42,7 +42,7 @@ const Notifications = () => {
 
     useEffect(() => {
         fetchNotifications();
-        const interval = setInterval(() => fetchNotifications(true), 15000);
+        const interval = setInterval(() => fetchNotifications(true), 5000);
         return () => clearInterval(interval);
     }, [fetchNotifications]);
 
