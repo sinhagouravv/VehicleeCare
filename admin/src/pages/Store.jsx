@@ -186,8 +186,8 @@ const Store = () => {
                                 <th className="p-4 font-bold text-center">Store ID</th>
                                 <th className="p-4 font-bold text-center">Store Name</th>
                                 <th className="p-4 font-bold text-center">Location</th>
-                                {/* <th className="p-4 font-bold text-center">Ports</th> */}
                                 <th className="p-4 font-bold text-center">Store Type</th>
+                                <th className="p-4 font-bold text-center">Delivery</th>
                                 <th className="p-4 font-bold text-center">Status</th>
                                 <th className="p-4 font-bold text-center">Manage</th>
                             </tr>
@@ -349,42 +349,37 @@ const Store = () => {
                             {/* Row 4 — Ports, Status, Store Types */}
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Ports</label>
-                                    <select value={form.ports} onChange={e => setForm(p => ({ ...p, ports: parseInt(e.target.value) || 1 }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
-                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                                            <option key={num} value={num}>{num}</option>
-                                        ))}
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Store Type</label>
+                                    <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                        <option value=""></option>
+                                        <option value="Cafe">Cafe</option>
+                                        <option value="Grocery">Grocery</option>
+                                        <option value="Restaurant">Restaurant</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-[#011023] mb-1.5">Status</label>
                                     <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                        <option value=""></option>
                                         <option value="Operational">Operational</option>
                                         <option value="Maintenance">Maintenance</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Store Types</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {STORE_TYPES.map(t => (
-                                            <button
-                                                key={t}
-                                                type="button"
-                                                onClick={() => toggleType(t)}
-                                                className={`flex-1 py-2.5 uppercase rounded-lg text-xs font-bold border transition-all ${form.type.includes(t) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white/60 text-gray-500 border-gray-200 hover:border-emerald-400'}`}
-                                            >
-                                                {t}
-                                            </button>
-                                        ))}
-                                    </div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Delevery</label>
+                                    <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                        <option value=""></option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
 
                         {/* Footer */}
                         <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
+                            <button onClick={closeModal} className="px-5 py-2.5 uppercase text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 uppercase text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
                                 {saving ? 'Adding…' : 'Add Store'}
                             </button>
                         </div>
