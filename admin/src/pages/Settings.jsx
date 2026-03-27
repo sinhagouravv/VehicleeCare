@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car } from 'lucide-react';
+import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car, Database, FileText, Users, Zap, MapPin, Briefcase, Star, MessageSquare, Activity, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
+    const [activeRecordTab, setActiveRecordTab] = useState('booking');
     const [disabledServices, setDisabledServices] = useState([]);
     const [customServices, setCustomServices] = useState([]);
     const [billingSettings, setBillingSettings] = useState({
@@ -249,10 +250,12 @@ const Settings = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">System Settings</h1>
-                <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity disabled:opacity-75 disabled:cursor-not-allowed">
-                    <Save size={18} />
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
+                {!['records', 'log'].includes(activeTab) && (
+                    <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity disabled:opacity-75 disabled:cursor-not-allowed">
+                        <Save size={18} />
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                )}
             </div>
 
             <div className="flex flex-col lg:flex-row gap-5 items-start">
@@ -295,6 +298,18 @@ const Settings = () => {
                     >
                         <Wrench size={18} /> MAINTENANCE
                     </button>
+                    <button
+                        onClick={() => setActiveTab('records')}
+                        className={getTabClass('records')}
+                    >
+                        <Database size={18} /> RECORDS
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('log')}
+                        className={getTabClass('log')}
+                    >
+                        <FileText size={18} /> LOG
+                    </button>
                 </div>
 
                 {/* Main Settings Content */}
@@ -330,7 +345,7 @@ const Settings = () => {
                                     </div>
                                     <div className="space-y-2 mt-2">
                                         <label className="text-[14.5px] uppercase  font-semibold  text-gray-700">Message</label>
-                                        <textarea rows="2" value={generalSettings.message} onChange={e => handleGeneralChange('message', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] custom-scrollbar"></textarea>
+                                        <textarea rows="2" value={generalSettings.message} onChange={e => handleGeneralChange('message', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 text-justify uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] custom-scrollbar"></textarea>
                                     </div>
 
 
@@ -1134,6 +1149,85 @@ const Settings = () => {
                                         </div>
                                     )}
 
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/*Part 7: Records Tab */}
+                    {activeTab === 'records' && (
+                        <div className="bg-white/60 backdrop-blur-xl border border-white mt-1.5 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden min-h-[calc(100vh-230px)]">
+                            {/* Records Sub-tab Header */}
+                            <div className="px-6 pt-5 pb-3 border-b border-[#e6f0fa]">
+                                <div className="flex flex-wrap gap-2">
+                                    {['booking', 'business', 'user', 'employee', 'garage', 'store', 'station', 'payment', 'parking', 'vehicle'].map(tab => (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setActiveRecordTab(tab)}
+                                            className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                                activeRecordTab === tab
+                                                    ? 'bg-[#052558] text-white shadow-sm'
+                                                    : 'bg-blue-50 text-gray-500 hover:bg-blue-100 hover:text-[#052558]'
+                                            }`}
+                                        >
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Records Content Area */}
+                            <div className="p-6">
+                                <div className="flex flex-col items-center justify-center text-center py-16 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                                    <Database size={32} className="text-gray-300 mb-3" />
+                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">{activeRecordTab} Records</p>
+                                    <p className="text-xs text-gray-300 mt-1">Data will appear here once connected to the backend.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Log Tab */}
+                    {activeTab === 'log' && (
+                        <div className="space-y-4">
+                            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                                <div className="pt-6 pl-7 pb-4 flex items-center justify-between pr-7">
+                                    <div>
+                                        <h2 className="text-lg uppercase font-bold text-[#011023]">System Activity Log</h2>
+                                        <p className="text-xs text-gray-400 font-medium mt-0.5">Live record of platform events and system actions.</p>
+                                    </div>
+                                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                                        Live
+                                    </span>
+                                </div>
+                                <div className="divide-y divide-[#e6f0fa] max-h-[36rem] overflow-y-auto custom-scrollbar">
+                                    {[
+                                        { level: 'info', msg: 'Admin panel session started', time: 'Just now', icon: <Info size={14} /> },
+                                        { level: 'success', msg: 'Settings saved successfully', time: '2 min ago', icon: <CheckCircle size={14} /> },
+                                        { level: 'warning', msg: 'High memory usage detected on server', time: '15 min ago', icon: <AlertTriangle size={14} /> },
+                                        { level: 'info', msg: 'New user registration: user_0042', time: '32 min ago', icon: <Info size={14} /> },
+                                        { level: 'success', msg: 'Business request #BRQ-009 approved', time: '1 hr ago', icon: <CheckCircle size={14} /> },
+                                        { level: 'info', msg: 'Booking #BK-2201 completed', time: '1 hr ago', icon: <Info size={14} /> },
+                                        { level: 'warning', msg: 'Payment gateway timeout (retry #2)', time: '2 hrs ago', icon: <AlertTriangle size={14} /> },
+                                        { level: 'success', msg: 'Refund processed for booking #BK-2198', time: '3 hrs ago', icon: <CheckCircle size={14} /> },
+                                        { level: 'info', msg: 'Disabled service: Tyre Rotation (EV)', time: '4 hrs ago', icon: <Activity size={14} /> },
+                                        { level: 'warning', msg: 'Low rating alert: Garage #G-015 (2.8★)', time: '5 hrs ago', icon: <AlertTriangle size={14} /> },
+                                        { level: 'info', msg: 'System settings updated (billing)', time: '6 hrs ago', icon: <Info size={14} /> },
+                                        { level: 'success', msg: 'New garage onboarded: SpeedFix Auto', time: 'Yesterday', icon: <CheckCircle size={14} /> },
+                                    ].map((entry, i) => {
+                                        const colorMap = { info: 'text-blue-500 bg-blue-50', success: 'text-emerald-600 bg-emerald-50', warning: 'text-amber-600 bg-amber-50', error: 'text-red-600 bg-red-50' };
+                                        return (
+                                            <div key={i} className="flex items-start gap-3 px-7 py-3.5 hover:bg-blue-50/20 transition-colors">
+                                                <span className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${colorMap[entry.level]}`}>{entry.icon}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-[#011023]">{entry.msg}</p>
+                                                    <p className="text-[11px] text-gray-400 font-medium mt-0.5 uppercase tracking-wide">{entry.time}</p>
+                                                </div>
+                                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 mt-1 ${colorMap[entry.level]}`}>{entry.level}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
