@@ -236,11 +236,11 @@ const Services = () => {
                             {servicesList.map((service) => (
                                 <tr key={service.id} className="hover:bg-blue-50/30 text-center text-xs transition-colors">
                                     <td className="p-4">
-                                        <div className="font-bold text-[#011023]">{service.id}</div>
+                                        <div className="font-semibold text-[13px] text-[#011023]">{service.id}</div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-3">
-                                            <div className="font-bold text-[#011023]">{service.name}</div>
+                                            <div className="font-semibold text-[13px] text-[#011023]">{service.name}</div>
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -261,7 +261,7 @@ const Services = () => {
                                     </td>
                                     <td className="p-4 text-center">
                                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full border ${!disabledServices.includes(service.name) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${!disabledServices.includes(service.name) ? 'bg-emerald-500' : 'bg-gray-400'}`}></div>
+                                            {/* <div className={`w-1.5 h-1.5 rounded-full ${!disabledServices.includes(service.name) ? 'bg-emerald-500' : 'bg-gray-400'}`}></div> */}
                                             {!disabledServices.includes(service.name) ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
