@@ -6,6 +6,8 @@ import Payments from './pages/Payments';
 import MyBookings from './pages/MyBookings';
 import Customers from './pages/Customers';
 import Staff from './pages/Staff';
+import Attendance from './pages/Attendance';
+import Leave from './pages/Leave';
 import Vehicles from './pages/Vehicles';
 import Settings from './pages/Settings';
 import Services from './pages/Services';
@@ -28,6 +30,8 @@ const App = () => {
             <Route path="my-bookings" element={<MyBookings />} />
             <Route path="customers" element={<Customers />} />
             <Route path="staff" element={<Staff />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="leave" element={<Leave />} />
             <Route path="vehicles" element={<Vehicles />} />
             <Route path="services" element={<Services />} />
             <Route path="reviews" element={<Reviews />} />

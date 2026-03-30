@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Garage = require('../models/Garage');
+const Employee = require('../models/Employee');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
@@ -333,15 +334,139 @@ exports.garageLogin = async (req, res) => {
     }
 };
 
+// ── Employee Login ─────────────────────────────────────────────
+exports.employeeLogin = async (req, res) => {
+    try {
+        const { employeeId, password } = req.body;
+
+        const employee = await Employee.findOne({ employeeId });
+        if (!employee) {
+            return res.status(401).json({ msg: 'Invalid employee credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, employee.password || '');
+        if (!isMatch) {
+            return res.status(401).json({ msg: 'Invalid employee credentials' });
+        }
+
+        const payload = { employee: { id: employee.employeeId, dbId: employee._id, role: employee.role } };
+
+        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token, employee: { _id: employee._id, id: employee.employeeId, name: employee.name, role: employee.role, email: employee.email, garageId: employee.garageId } });
+        });
+
+    } catch (err) {
+        console.error("Employee login error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Employee Forgot Password (Send OTP - Step 1) ──────────────
+exports.employeeForgotPassword = async (req, res) => {
+    try {
+        const { employeeId, email } = req.body;
+        const employee = await Employee.findOne({ employeeId, email });
+
+        if (!employee) {
+            return res.status(404).json({ msg: 'No employee found with that ID and registered Email address.' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        employee.resetPasswordOtp = otp;
+        employee.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await employee.save();
+
+        // Send Email
+        const mailOptions = {
+            from: `"VehicleeCare" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Employee Portal - Password Reset OTP',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f0f6ff; border-radius: 16px;">
+                    <h2 style="color: #011023; margin-bottom: 4px;">VehicleeCare Employee</h2>
+                    <p style="color: #527FB0; font-size: 13px; margin-bottom: 24px;">Password Reset Request</p>
+                    <p style="color: #011023; font-size: 14px;">Hi <strong>${employee.name}</strong>, use the OTP below to reset your employee portal password:</p>
+                    <div style="background: #011023; color: #C2E8FF; font-size: 36px; font-weight: 900; letter-spacing: 10px; text-align: center; padding: 20px; border-radius: 12px; margin: 20px 0;">${otp}</div>
+                    <p style="color: #888; font-size: 12px;">This OTP is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
+                </div>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Email Error:", error);
+                return res.status(500).json({ msg: 'Failed to send OTP email' });
+            }
+            res.json({ msg: 'OTP sent to registered employee email' });
+        });
+
+    } catch (err) {
+        console.error("Employee forgot password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Employee Verify Reset OTP (Step 2) ─────────────────────────
+exports.employeeVerifyResetOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const employee = await Employee.findOne({ email });
+
+        if (!employee) {
+            return res.status(404).json({ msg: 'Employee account not found' });
+        }
+
+        if (employee.resetPasswordOtp !== otp || employee.resetPasswordExpires < Date.now()) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        res.json({ msg: 'OTP verified successfully' });
+
+    } catch (err) {
+        console.error("Employee verify reset OTP error:", err);
+        res.status(500).send('Server Error');
+    }
+};
+
+// ── Employee Reset Password (Verify & Update - Step 3) ────────
+exports.employeeResetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const employee = await Employee.findOne({ email });
+
+        if (!employee) {
+            return res.status(404).json({ msg: 'Employee account not found' });
+        }
+
+        if (employee.resetPasswordOtp !== otp || employee.resetPasswordExpires < Date.now()) {
+            return res.status(400).json({ msg: 'Invalid or expired OTP' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        employee.password = await bcrypt.hash(newPassword, salt);
+
+        employee.resetPasswordOtp = undefined;
+        employee.resetPasswordExpires = undefined;
+        await employee.save();
+
+        res.json({ msg: 'Password updated successfully. You can now log in.' });
+
+    } catch (err) {
+        console.error("Employee reset password error:", err);
+        res.status(500).send('Server Error');
+    }
+};
 
 // ── Garage Forgot Password (Send OTP - Step 1) ──────────────
 exports.garageForgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
-        const garage = await Garage.findOne({ ownerEmail: email });
+        const { garageId, email } = req.body;
+        const garage = await Garage.findOne({ garageId, ownerEmail: email });
 
         if (!garage) {
-            return res.status(404).json({ msg: 'The email you entered is not an Garage Owner Email, enter correct email address' });
+            return res.status(404).json({ msg: 'No garage found with that ID and registered Owner Email address.' });
         }
 
         // Generate 6-digit OTP
