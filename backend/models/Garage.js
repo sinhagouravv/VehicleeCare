@@ -20,6 +20,8 @@ const GarageSchema = new mongoose.Schema({
     workingDays: { type: String },
     services: { type: String },
     password: { type: String },
+    resetPasswordOtp: { type: String },
+    resetPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Garage', GarageSchema);
