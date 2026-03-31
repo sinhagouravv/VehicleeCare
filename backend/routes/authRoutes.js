@@ -16,6 +16,12 @@ router.post('/garage-forgot-password', authController.garageForgotPassword);
 router.post('/garage-verify-reset-otp', authController.garageVerifyResetOtp);
 router.post('/garage-reset-password', authController.garageResetPassword);
 
+// Employee Auth Routes
+router.post('/employee-login', authController.employeeLogin);
+router.post('/employee-forgot-password', authController.employeeForgotPassword);
+router.post('/employee-verify-reset-otp', authController.employeeVerifyResetOtp);
+router.post('/employee-reset-password', authController.employeeResetPassword);
+
 // Business Auth Routes
 router.post('/business-register', authController.businessRegister);
 router.post('/business-login', authController.businessLogin);
