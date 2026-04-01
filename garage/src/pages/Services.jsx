@@ -81,11 +81,13 @@ const Services = () => {
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'Completed': return 'bg-teal-100 text-teal-800 border-teal-200';
+            case 'Delivered': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'In Service': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+            case 'In Progress': return 'bg-purple-100 text-purple-700 border-purple-200';
             case 'Confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 'In Progress': return 'bg-purple-100 text-purple-800 border-purple-200';
             case 'Pending': return 'bg-amber-100 text-amber-800 border-amber-200';
-            case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
+            case 'Cancelled': return 'bg-rose-100 text-rose-800 border-rose-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
@@ -120,7 +122,7 @@ const Services = () => {
                                 <th className="p-4.5 font-bold text-center w-[37%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Assigned To</th>
                                 <th className="p-4.5 font-bold text-center w-[5%]">Duration</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
@@ -172,8 +174,8 @@ const Services = () => {
                                         </button>
                                     </td> */}
                                     <td className="p-4 text-center w-[8%]">
-                                        <span className={`px-3 py-1 text-[10px] uppercase font-bold rounded-full border ${getStatusStyle('Pending')}`}>
-                                            Pending
+                                        <span className={`px-3 py-1 text-[10px] uppercase font-bold rounded-full border ${getStatusStyle(booking.status || 'Pending')}`}>
+                                            {booking.status || 'Pending'}
                                         </span>
                                     </td>
                                     {/* <td className="p-4 text-center">
