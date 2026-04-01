@@ -1,43 +1,169 @@
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 
-// Helper: get today's date string YYYY-MM-DD in IST
-const getTodayIST = () => {
-    const now = new Date();
-    // IST = UTC+5:30
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const ist = new Date(now.getTime() + istOffset);
-    return ist.toISOString().split('T')[0];
+// ──────────────────────────────────────────────
+// Shift Rules (all times in IST HH:MM 24h)
+// ──────────────────────────────────────────────
+const SHIFT_RULES = {
+    Morning: {
+        start:      { h: 9,  m: 0  },   // 09:00 → on time
+        lateAfter:  { h: 9,  m: 5  },   // 09:05 → Late
+        absentAfter:{ h: 9,  m: 20 },   // 09:20 → can't check-in, mark Absent
+        end:        { h: 15, m: 0  },   // 15:00 → shift ends
+        overtimeAfter: { h: 15, m: 5 } // 15:05 → Overtime on check-out
+    },
+    Evening: {
+        start:      { h: 15, m: 0  },   // 15:00 → on time
+        lateAfter:  { h: 15, m: 5  },   // 15:05 → Late
+        absentAfter:{ h: 15, m: 20 },   // 15:20 → Absent
+        end:        { h: 21, m: 0  },   // 21:00 → shift ends
+        overtimeAfter: { h: 21, m: 5 } // 21:05 → Overtime
+    },
+    Night: {
+        start:      { h: 21, m: 0  },   // 21:00 → on time
+        lateAfter:  { h: 21, m: 5  },   // 21:05 → Late
+        absentAfter:{ h: 21, m: 20 },   // 21:20 → Absent
+        end:        { h: 3,  m: 0  },   // 03:00 next day → shift ends
+        overtimeAfter: { h: 3, m: 5 }  // 03:05 → Overtime
+    }
 };
 
-// @desc    Employee checks in
-// @route   POST /api/attendance/check-in
+// ──────────────────────────────────────────────
+// Helper: current IST time as { h, m, totalMinutes }
+// ──────────────────────────────────────────────
+const getISTTime = () => {
+    const now = new Date();
+    // IST = UTC + 5h 30m
+    const istMs = now.getTime() + (5.5 * 60 * 60 * 1000);
+    const ist = new Date(istMs);
+    const h = ist.getUTCHours();
+    const m = ist.getUTCMinutes();
+    return { h, m, total: h * 60 + m, date: ist };
+};
+
+// ──────────────────────────────────────────────
+// Helper: today's date string YYYY-MM-DD in IST
+// Handles business day rollover exactly 15 mins before shift start
+// ──────────────────────────────────────────────
+const getTodayIST = (shift = 'Morning') => {
+    const { h, m, date } = getISTTime();
+    const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
+    
+    const currentMins = h * 60 + m;
+    const startMins = rules.start.h * 60 + rules.start.m;
+    const windowStartMins = startMins - 15; // Reset UI exactly 15 mins before shift
+    
+    let isPreviousBusinessDay = false;
+
+    if (shift === 'Night') {
+        // Night shift starts at 21:00 (window 20:45)
+        // If current time is < 20:45 (e.g. 02:00 AM or 14:00 PM), it belongs to previous shift day
+        if (currentMins < windowStartMins) {
+            isPreviousBusinessDay = true;
+        }
+    } else {
+        // For Morning/Evening, if current time is before their window, 
+        // they are still viewing yesterday's shift summary.
+        if (currentMins < windowStartMins) {
+            isPreviousBusinessDay = true;
+        }
+    }
+
+    if (isPreviousBusinessDay) {
+        const yesterday = new Date(date);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().split('T')[0];
+    }
+    
+    return date.toISOString().split('T')[0];
+};
+
+// ──────────────────────────────────────────────
+// Helper: convert {h,m} to total minutes
+// ──────────────────────────────────────────────
+const toMin = ({ h, m }) => h * 60 + m;
+
+// ──────────────────────────────────────────────
+// Determine check-in status based on shift
+// ──────────────────────────────────────────────
+const getCheckInStatus = (shift) => {
+    const { total } = getISTTime();
+    const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
+
+    let adjustedTotal = total;
+    if (shift === 'Night' && total < 12 * 60) {
+        adjustedTotal += 24 * 60; // Push morning hours to "next day" for easy > comparison
+    }
+
+    if (adjustedTotal >= toMin(rules.absentAfter)) return 'Absent';   
+    if (adjustedTotal >= toMin(rules.lateAfter))   return 'Late';     
+    return 'Present';                                          
+};
+
+// ──────────────────────────────────────────────
+// Determine check-out status based on shift
+// ──────────────────────────────────────────────
+const getCheckOutStatus = (shift, currentStatus) => {
+    const { total } = getISTTime();
+    const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
+
+    let adjustedTotal = total;
+    let adjustedOvertimeThreshold = toMin(rules.overtimeAfter);
+
+    if (shift === 'Night') {
+        if (total < 12 * 60) {
+            adjustedTotal += 24 * 60;
+        }
+        adjustedOvertimeThreshold += 24 * 60;
+    }
+
+    if (adjustedTotal >= adjustedOvertimeThreshold) return 'Overtime';
+    return currentStatus; // Keep existing status (Present/Late)
+};
+
+// ──────────────────────────────────────────────
+// @desc  Employee checks in
+// @route POST /api/attendance/check-in
+// ──────────────────────────────────────────────
 const checkIn = async (req, res) => {
     try {
         const { employeeId } = req.body;
-
-        if (!employeeId) {
-            return res.status(400).json({ success: false, message: 'Employee ID is required' });
-        }
+        if (!employeeId) return res.status(400).json({ success: false, message: 'Employee ID is required' });
 
         const employee = await Employee.findOne({ employeeId });
-        if (!employee) {
-            return res.status(404).json({ success: false, message: 'Employee not found' });
-        }
+        if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
 
-        const today = getTodayIST();
+        const shift = employee.shift || 'Morning';
+        const today = getTodayIST(shift);
 
-        // Prevent duplicate check-in on the same day
+        // Prevent duplicate check-in
         const existing = await Attendance.findOne({ employeeId, date: today });
         if (existing) {
             return res.status(400).json({ success: false, message: 'Already checked in today', data: existing });
         }
 
-        // Determine status: if checked in after 9:30 AM IST, mark as Late
-        const now = new Date();
-        const istHour = (now.getUTCHours() + 5) % 24;
-        const istMinute = (now.getUTCMinutes() + 30) % 60;
-        const isLate = istHour > 9 || (istHour === 9 && istMinute > 30);
+        const status = getCheckInStatus(shift);
+
+        // If past absent threshold — create Absent record but do NOT allow a normal check-in
+        if (status === 'Absent') {
+            const absentRecord = await Attendance.create({
+                employeeId,
+                employeeName: employee.name,
+                contact: employee.phone || '',
+                email: employee.email || '',
+                role: employee.role || '',
+                shift: shift,
+                garageId: employee.garageId,
+                date: today,
+                checkIn: null,
+                status: 'Absent'
+            });
+            return res.status(403).json({
+                success: false,
+                message: `Check-in window has closed for ${shift} shift. Marked as Absent.`,
+                data: absentRecord
+            });
+        }
 
         const record = await Attendance.create({
             employeeId,
@@ -45,10 +171,11 @@ const checkIn = async (req, res) => {
             contact: employee.phone || '',
             email: employee.email || '',
             role: employee.role || '',
+            shift: shift,
             garageId: employee.garageId,
             date: today,
-            checkIn: now,
-            status: isLate ? 'Late' : 'Present'
+            checkIn: new Date(),
+            status
         });
 
         res.status(201).json({ success: true, data: record });
@@ -58,19 +185,21 @@ const checkIn = async (req, res) => {
     }
 };
 
-// @desc    Employee checks out
-// @route   PUT /api/attendance/check-out/:id
+// ──────────────────────────────────────────────
+// @desc  Employee checks out
+// @route PUT /api/attendance/check-out/:id
+// ──────────────────────────────────────────────
 const checkOut = async (req, res) => {
     try {
         const record = await Attendance.findById(req.params.id);
-        if (!record) {
-            return res.status(404).json({ success: false, message: 'Attendance record not found' });
-        }
-        if (record.checkOut) {
-            return res.status(400).json({ success: false, message: 'Already checked out', data: record });
-        }
+        if (!record) return res.status(404).json({ success: false, message: 'Attendance record not found' });
+        if (record.checkOut) return res.status(400).json({ success: false, message: 'Already checked out', data: record });
+
+        const employee = await Employee.findOne({ employeeId: record.employeeId });
+        const shift = employee?.shift || 'Morning';
 
         record.checkOut = new Date();
+        record.status = getCheckOutStatus(shift, record.status);
         await record.save();
 
         res.status(200).json({ success: true, data: record });
@@ -80,11 +209,15 @@ const checkOut = async (req, res) => {
     }
 };
 
-// @desc    Get today's attendance status for an employee
-// @route   GET /api/attendance/status/:employeeId
+// ──────────────────────────────────────────────
+// @desc  Get today's status for an employee
+// @route GET /api/attendance/status/:employeeId
+// ──────────────────────────────────────────────
 const getTodayStatus = async (req, res) => {
     try {
-        const today = getTodayIST();
+        const employee = await Employee.findOne({ employeeId: req.params.employeeId });
+        const shift = employee?.shift || 'Morning';
+        const today = getTodayIST(shift);
         const record = await Attendance.findOne({ employeeId: req.params.employeeId, date: today });
         res.status(200).json({ success: true, data: record || null });
     } catch (err) {
@@ -93,30 +226,111 @@ const getTodayStatus = async (req, res) => {
     }
 };
 
-// @desc    Get all attendance records for a garage (today or all)
-// @route   GET /api/attendance/garage/:garageId
+// ──────────────────────────────────────────────
+// Helper: Auto-mark absent employees
+// ──────────────────────────────────────────────
+const autoMarkAbsences = async (garageId) => {
+    try {
+        const { total } = getISTTime();
+        const employees = await Employee.find({ garageId });
+
+        for (const emp of employees) {
+            const shift = emp.shift || 'Morning';
+            const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
+            const today = getTodayIST(shift);
+
+            let adjustedTotal = total;
+            if (shift === 'Night' && total < 12 * 60) {
+                adjustedTotal += 24 * 60;
+            }
+
+            if (adjustedTotal >= toMin(rules.absentAfter)) {
+                const existing = await Attendance.findOne({ employeeId: emp.employeeId, date: today });
+                if (!existing) {
+                    await Attendance.create({
+                        employeeId: emp.employeeId,
+                        employeeName: emp.name,
+                        contact: emp.phone || '',
+                        email: emp.email || '',
+                        role: emp.role || '',
+                        shift: shift,
+                        garageId: emp.garageId,
+                        date: today,
+                        checkIn: null,
+                        status: 'Absent'
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error auto-marking absences:', err);
+    }
+};
+
+// ──────────────────────────────────────────────
+// @desc  Get all attendance records for a garage
+// @route GET /api/attendance/garage/:garageId
+// ──────────────────────────────────────────────
 const getGarageAttendance = async (req, res) => {
     try {
-        const { date } = req.query; // optional ?date=YYYY-MM-DD filter
+        await autoMarkAbsences(req.params.garageId);
+
+        const { date } = req.query;
         const query = { garageId: req.params.garageId };
         if (date) query.date = date;
 
-        const records = await Attendance.find(query).sort({ checkIn: -1 });
-        res.status(200).json({ success: true, count: records.length, data: records });
+        const records = await Attendance.find(query).sort({ createdAt: -1 }).lean();
+        
+        // Fetch employees to get their actual current shift
+        const employees = await Employee.find({ garageId: req.params.garageId }).select('employeeId shift');
+        const shiftMap = {};
+        employees.forEach(emp => {
+            shiftMap[emp.employeeId] = emp.shift || 'Morning';
+        });
+
+        const updatedRecords = records.map(record => ({
+            ...record,
+            shift: shiftMap[record.employeeId] || record.shift || 'Morning'
+        }));
+
+        res.status(200).json({ success: true, count: updatedRecords.length, data: updatedRecords });
     } catch (err) {
         console.error('Garage attendance fetch error:', err);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 
-// @desc    Delete an attendance record
-// @route   DELETE /api/attendance/:id
+// ──────────────────────────────────────────────
+// @desc  Get all attendance records for an employee
+// @route GET /api/attendance/employee/:employeeId
+// ──────────────────────────────────────────────
+const getEmployeeAttendance = async (req, res) => {
+    try {
+        const records = await Attendance.find({ employeeId: req.params.employeeId }).sort({ createdAt: -1 }).lean();
+        
+        const employee = await Employee.findOne({ employeeId: req.params.employeeId }).select('shift');
+        const shift = employee ? (employee.shift || 'Morning') : 'Morning';
+
+        const updatedRecords = records.map(record => ({
+            ...record,
+            shift: record.shift || shift
+        }));
+
+        res.status(200).json({ success: true, count: updatedRecords.length, data: updatedRecords });
+    } catch (err) {
+        console.error('Employee attendance fetch error:', err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// ──────────────────────────────────────────────
+// @desc  Delete an attendance record
+// @route DELETE /api/attendance/:id
+// ──────────────────────────────────────────────
 const deleteRecord = async (req, res) => {
     try {
         const record = await Attendance.findByIdAndDelete(req.params.id);
-        if (!record) {
-            return res.status(404).json({ success: false, message: 'Record not found' });
-        }
+        if (!record) return res.status(404).json({ success: false, message: 'Record not found' });
         res.status(200).json({ success: true, data: {} });
     } catch (err) {
         console.error('Delete record error:', err);
@@ -124,4 +338,4 @@ const deleteRecord = async (req, res) => {
     }
 };
 
-module.exports = { checkIn, checkOut, getTodayStatus, getGarageAttendance, deleteRecord };
+module.exports = { checkIn, checkOut, getTodayStatus, getGarageAttendance, getEmployeeAttendance, deleteRecord };
