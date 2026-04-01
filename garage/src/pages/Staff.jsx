@@ -285,7 +285,7 @@ const Staff = () => {
                     <table className="w-full text-center border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[12%]">Employee ID</th>
+                                <th className="p-4.5 font-bold w-[10%]">Employee ID</th>
                                 <th className="p-4.5 font-bold w-[15%]">Employee</th>
                                 <th className="p-4.5 font-bold w-[18%]">Contact</th>
                                 <th className="p-4.5 font-bold w-[8%]">Role</th>
@@ -314,16 +314,16 @@ const Staff = () => {
                             ) : staffMembers.map((staff) => (
                                 <tr key={staff._id} className="hover:bg-blue-50/30 transition-all duration-300">
                                     <td className="p-4">
-                                        <div className="font-bold text-[#011023] tracking-wider">{staff.employeeId || '—'}</div>
+                                        <div className="font-semibold text-[#011023] text-sm tracking-wider">{staff.employeeId || '—'}</div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-3 justify-center text-center">
-                                            <p className="font-bold text-[#011023] text-sm uppercase leading-tight">{staff.name}</p>
+                                            <p className="font-semibold text-[#011023] text-sm uppercase leading-tight">{staff.name}</p>
                                         </div>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="text-xs text-gray-500 mb-0.5">{staff.phone || '—'}</div>
-                                        <div className="font-medium text-gray-700 text-sm lowercase">{staff.email || '—'}</div>
+                                    <td className="p-4 text-center">
+                                        <div className="text-xs font-semibold text-gray-500">{staff.phone || '—'}</div>
+                                        <div className="font-medium lowercase text-sm mt-1">{staff.email || 'No email'}</div>
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="flex items-center uppercase justify-center gap-1.5 font-bold">
@@ -333,7 +333,7 @@ const Staff = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-1000'}`}>
                                             {staff.shift || '—'}
                                         </span>
                                     </td>
@@ -736,7 +736,9 @@ const Staff = () => {
                                                         <div className="text-[11px] text-gray-400 font-semibold">{booking.schedule?.time || '—'}</div>
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-teal-50 text-teal-600 border border-teal-100' :
+                                                                booking.status === 'Delivered' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                                                booking.status === 'In Service' ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' :
                                                                 booking.status === 'In Progress' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
                                                                     booking.status === 'Pending' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
                                                                         booking.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' :
