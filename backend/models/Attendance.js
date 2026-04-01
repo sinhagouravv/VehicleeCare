@@ -22,6 +22,10 @@ const attendanceSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    shift: {
+        type: String,
+        default: 'Morning'
+    },
     garageId: {
         type: String,
         required: true
@@ -40,7 +44,7 @@ const attendanceSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Present', 'Late', 'Absent', 'On Leave'],
+        enum: ['Present', 'Late', 'Absent', 'On Leave', 'Overtime'],
         default: 'Present'
     }
 }, { timestamps: true });
