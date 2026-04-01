@@ -265,12 +265,12 @@ const Staff = () => {
                             ) : staffMembers.map((staff) => (
                                 <tr key={staff._id} className="hover:bg-blue-50/30 transition-all duration-300">
                                     <td className="p-4">
-                                        <div className="font-bold text-[#011023] tracking-wider">{staff.employeeId || '—'}</div>
+                                        <div className="font-semibold text-[#011023] text-sm tracking-wider">{staff.employeeId || '—'}</div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-3 justify-center">
                                             <div className="text-left">
-                                                <p className="font-bold text-[#011023] text-sm uppercase truncate max-w-[140px] leading-tight">{staff.name}</p>
+                                                <p className="font-semibold text-[#011023] text-sm uppercase truncate max-w-[140px] leading-tight">{staff.name}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -286,12 +286,12 @@ const Staff = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600' : staff.shift === 'Evening' ? 'bg-indigo-50 text-indigo-600' : staff.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600' : staff.shift === 'Evening' ? 'bg-indigo-50 text-indigo-600' : staff.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
                                             {staff.shift || '—'}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center uppercase">
-                                        <div className="font-semibold text-[#011023]">
+                                        <div className="font-medium text-[#011023]">
                                             {formatDate(staff.createdAt)}
                                         </div>
                                     </td>
@@ -430,7 +430,6 @@ const Staff = () => {
                                 <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
                                     <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
                                     <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedStaff.address || 'No Address Provided'}</h5>
-                                    {/* <p className="text-sm text-gray-500 mt-1 uppercase">Physical Deployment Address Registry</p> */}
                                 </div>
                             </div>
                         </div>
