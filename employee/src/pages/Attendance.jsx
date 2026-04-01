@@ -8,17 +8,23 @@ const Attendance = () => {
     const [error, setError] = useState(null);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [employeeUser, setEmployeeUser] = useState(null);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
 
     const formatTime = (dateStr) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
-        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
     };
 
-    const formatDate = (dateStr) => {
+    const formatDateStr = (dateStr) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+        if (isNaN(d.getTime())) return '—';
+        
+        const day = d.toLocaleDateString('en-IN', { day: '2-digit' });
+        const month = d.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
     };
 
     const fetchTodayStatus = useCallback(async (silent = false) => {
@@ -34,15 +40,39 @@ const Attendance = () => {
 
             if (!silent) setLoading(true);
 
-            const res = await fetch(`http://localhost:5001/api/attendance/status/${user.id}`);
-            const data = await res.json();
+            // Fetch today's status & records simultaneously
+            const [statusRes, recordsRes] = await Promise.all([
+                fetch(`http://localhost:5001/api/attendance/status/${user.id}`),
+                fetch(`http://localhost:5001/api/attendance/employee/${user.id}`)
+            ]);
 
-            if (data.success) {
-                setTodayRecord(data.data);
+            const statusData = await statusRes.json();
+            const recordsData = await recordsRes.json();
+
+            if (statusData.success && recordsData.success) {
+                setTodayRecord(statusData.data);
+                
+                // Format records to match table expectations
+                const records = (recordsData.data || []).map(r => ({
+                    id: r._id,
+                    date: r.date,
+                    employeeId: r.employeeId,
+                    employeeName: r.employeeName,
+                    contact: r.contact || '—',
+                    email: r.email || '',
+                    role: r.role || '—',
+                    shift: r.shift || '—',
+                    checkIn: r.checkIn,
+                    checkOut: r.checkOut,
+                    status: r.status,
+                    _id: r._id
+                }));
+                setAttendanceRecords(records);
+                
                 setLastRefreshed(new Date());
                 setError(null);
             } else {
-                setError(data.message || 'Failed to fetch attendance status.');
+                setError(statusData.message || 'Failed to fetch attendance status.');
             }
         } catch (err) {
             setError('Connection failed. Please check your network.');
@@ -67,9 +97,8 @@ const Attendance = () => {
                 body: JSON.stringify({ employeeId: employeeUser.id })
             });
             const data = await res.json();
-            if (data.success) {
-                setTodayRecord(data.data);
-                setError(null);
+            if (data.success || data.message?.includes('Absent')) {
+                fetchTodayStatus(true);
             } else {
                 setError(data.message || 'Check-in failed. Please try again.');
             }
@@ -90,8 +119,7 @@ const Attendance = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setTodayRecord(data.data);
-                setError(null);
+                fetchTodayStatus(true);
             } else {
                 setError(data.message || 'Check-out failed. Please try again.');
             }
@@ -102,28 +130,105 @@ const Attendance = () => {
         }
     };
 
-    // Determine current state
     const isCheckedIn = todayRecord && todayRecord.checkIn;
     const isCheckedOut = todayRecord && todayRecord.checkOut;
     const isShiftComplete = isCheckedIn && isCheckedOut;
+    const isMarkedAbsent = todayRecord && todayRecord.status === 'Absent';
 
-    const getStatusColor = (status) => {
+    const getStatusBadge = (status) => {
         switch (status) {
-            case 'Present': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
-            case 'Late': return 'text-orange-600 bg-orange-50 border-orange-100';
-            case 'Absent': return 'text-red-600 bg-red-50 border-red-100';
-            default: return 'text-gray-600 bg-gray-50 border-gray-100';
+            case 'Present': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+            case 'Absent': return 'bg-red-50 text-red-600 border-red-100';
+            case 'Late': return 'bg-orange-50 text-orange-600 border-orange-100';
+            case 'On Leave': return 'bg-blue-50 text-blue-600 border-blue-100';
+            default: return 'bg-gray-50 text-gray-600 border-gray-100';
+        }
+    };
+
+    const getRoleBadge = (role) => {
+        switch (role) {
+            case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'Staff': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'Chef': return 'bg-orange-100 text-orange-700 font-bold';
+            case 'Waiter': return 'bg-pink-100 text-pink-700 font-bold';
+            case 'Cashier': return 'bg-cyan-100 text-cyan-700 font-bold';
+            case 'Delivery': return 'bg-lime-100 text-lime-700 font-bold';
+            default: return 'bg-gray-100 text-gray-700 font-bold';
+        }
+    };
+
+    const getShiftBadge = (shift) => {
+        const lowerShift = (shift || '').toLowerCase();
+        switch (lowerShift) {
+            case 'morning': return 'bg-orange-50 text-orange-600 border-orange-100';
+            case 'evening': return 'bg-purple-50 text-purple-600 border-purple-100';
+            case 'night': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+            default: return 'bg-gray-50 text-gray-600 border-gray-100';
         }
     };
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
+            {/* Header Area */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Attendance</h1>
-                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Attendance</h1>
+                
+                {/* Check In / Out Buttons replace the Last Refreshed area natively */}
+                <div className="flex items-center gap-4 w-56"> 
+                    {loading ? (
+                        <div className="w-full py-2.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center h-[38px]">
+                            <Loader2 size={16} className="animate-spin text-gray-400" />
+                        </div>
+                    ) : isShiftComplete ? (
+                        <div className="w-full py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 font-black text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                            {/* <CheckCircle size={16} /> */}
+                            Shift Completed
+                        </div>
+                    ) : isMarkedAbsent ? (
+                        <button
+                            disabled
+                            title="You cannot checkin for today as you are marked absent"
+                            className="w-full py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-500 font-black text-[10px] uppercase tracking-widest text-center flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                        >
+                            Marked Absent
+                        </button>
+                    ) : isCheckedIn ? (
+                        <button
+                            onClick={handleCheckOut}
+                            disabled={actionLoading}
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                            {actionLoading ? (
+                                <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                                <>
+                                    <LogOut size={16} />
+                                    Check Out
+                                </>
+                            )}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleCheckIn}
+                            disabled={actionLoading}
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                            {actionLoading ? (
+                                <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                                <>
+                                    <LogIn size={16} />
+                                    Check In
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -134,124 +239,81 @@ const Attendance = () => {
                 </div>
             )}
 
-            <div className="bg-white/70 backdrop-blur-md border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] p-8">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-4">
-                        <Loader2 size={32} className="animate-spin text-[#527FB0]" />
-                        <p className="text-sm font-bold uppercase tracking-widest text-gray-400">Loading attendance…</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-8">
-                        {/* Date Header */}
-                        <div className="text-center">
-                            <div className="flex items-center justify-center gap-2 text-gray-400 text-xs uppercase font-bold tracking-widest mb-1">
-                                <Calendar size={14} />
-                                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
-                            </div>
-                            <h2 className="text-2xl font-black text-[#011023] uppercase tracking-tight">
-                                Today's Attendance
-                            </h2>
-                        </div>
-
-                        {/* Status Indicator */}
-                        <div className="flex flex-col items-center gap-3">
-                            {isShiftComplete ? (
-                                <div className="w-28 h-28 rounded-full bg-emerald-50 border-4 border-emerald-200 flex items-center justify-center shadow-lg shadow-emerald-100">
-                                    <CheckCircle size={52} className="text-emerald-500" />
-                                </div>
-                            ) : isCheckedIn ? (
-                                <div className="w-28 h-28 rounded-full bg-blue-50 border-4 border-blue-200 flex items-center justify-center shadow-lg shadow-blue-100">
-                                    <Clock size={52} className="text-blue-500 animate-pulse" />
-                                </div>
-                            ) : (
-                                <div className="w-28 h-28 rounded-full bg-gray-50 border-4 border-gray-200 flex items-center justify-center shadow-inner">
-                                    <LogIn size={52} className="text-gray-300" />
-                                </div>
-                            )}
-
-                            {isShiftComplete ? (
-                                <span className={`px-4 py-1.5 rounded-xl text-xs font-black border uppercase tracking-wider ${getStatusColor(todayRecord.status)}`}>
-                                    {todayRecord.status} — Shift Complete
-                                </span>
-                            ) : isCheckedIn ? (
-                                <span className={`px-4 py-1.5 rounded-xl text-xs font-black border uppercase tracking-wider ${getStatusColor(todayRecord.status)}`}>
-                                    {todayRecord.status} — On Shift
-                                </span>
-                            ) : (
-                                <span className="px-4 py-1.5 rounded-xl text-xs font-black border uppercase tracking-wider text-gray-500 bg-gray-50 border-gray-100">
-                                    Not Checked In Yet
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Time Details */}
-                        {(isCheckedIn) && (
-                            <div className="grid grid-cols-2 gap-6 w-full max-w-sm">
-                                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 text-center">
-                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Check-in</p>
-                                    <p className="text-2xl font-black text-[#011023] tracking-tight">{formatTime(todayRecord.checkIn)}</p>
-                                    <p className="text-[11px] text-gray-400 mt-0.5 font-semibold">{formatDate(todayRecord.checkIn)}</p>
-                                </div>
-                                <div className={`border rounded-2xl p-5 text-center ${isCheckedOut ? 'bg-emerald-50/50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}>
-                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCheckedOut ? 'text-emerald-400' : 'text-gray-400'}`}>Check-out</p>
-                                    <p className="text-2xl font-black text-[#011023] tracking-tight">
-                                        {isCheckedOut ? formatTime(todayRecord.checkOut) : '—'}
-                                    </p>
-                                    <p className="text-[11px] text-gray-400 mt-0.5 font-semibold">
-                                        {isCheckedOut ? formatDate(todayRecord.checkOut) : 'Pending'}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Action Button */}
-                        <div className="w-full max-w-xs">
-                            {isShiftComplete ? (
-                                <div className="w-full py-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 font-black text-sm uppercase tracking-widest text-center flex items-center justify-center gap-2">
-                                    <CheckCircle size={18} />
-                                    Shift Completed
-                                </div>
-                            ) : isCheckedIn ? (
-                                <button
-                                    onClick={handleCheckOut}
-                                    disabled={actionLoading}
-                                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-red-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                                >
-                                    {actionLoading ? (
-                                        <Loader2 size={18} className="animate-spin" />
-                                    ) : (
-                                        <>
-                                            <LogOut size={18} />
-                                            Check Out
-                                        </>
-                                    )}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleCheckIn}
-                                    disabled={actionLoading}
-                                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                                >
-                                    {actionLoading ? (
-                                        <Loader2 size={18} className="animate-spin" />
-                                    ) : (
-                                        <>
-                                            <LogIn size={18} />
-                                            Check In
-                                        </>
-                                    )}
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Employee Info Footer */}
-                        {employeeUser && (
-                            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">
-                                {employeeUser.name} · {employeeUser.id} · {employeeUser.role || 'Employee'}
-                            </p>
-                        )}
-                    </div>
-                )}
+            {/* Main Table Area mapped from Garage Directory styling */}
+            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                
+                                <th className="p-4.5 font-bold text-center w-[12%]">Employee Id</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Employee Name</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Shift</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Check-in Time</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Check-out Time</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="8" className="p-8 text-center">
+                                        <div className="flex flex-col items-center justify-center gap-4 py-12">
+                                            <Loader2 size={24} className="animate-spin text-[#527FB0]" />
+                                            <span className="text-xs font-bold text-gray-400">LOADING RECORDS...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : attendanceRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" className="p-8 text-center py-20">
+                                        <span className="text-sm font-bold text-gray-400">NO ATTENDANCE RECORDS FOUND</span>
+                                    </td>
+                                </tr>
+                            ) : attendanceRecords.map((r) => (
+                                <tr key={r.id} className="text-center transition-all hover:bg-blue-50/30">
+                                    
+                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center">
+                                        {r.employeeId}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${getRoleBadge(r.role)}`}>
+                                            {r.role}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
+                                            {r.shift}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                        {formatDateStr(r.date)}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className="text-sm font-bold text-gray-600">
+                                            {formatTime(r.checkIn)}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className="text-[13px] font-bold text-gray-600">
+                                            {formatTime(r.checkOut)}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className={`px-3 py-1 rounded-xl text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
+                                            {r.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
