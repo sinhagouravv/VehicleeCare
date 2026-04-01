@@ -10,6 +10,25 @@ const Attendance = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ open: false, record: null });
 
+    const [employees, setEmployees] = useState([]);
+    const [isMarkModalOpen, setIsMarkModalOpen] = useState(false);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+    const [attendanceStatus, setAttendanceStatus] = useState(null);
+    const [statusLoading, setStatusLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
+
+    // Lock body scroll when any modal is open
+    useEffect(() => {
+        if (isViewModalOpen || isMarkModalOpen || deleteModal.open) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isViewModalOpen, isMarkModalOpen, deleteModal.open]);
+
     const fetchAttendance = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
@@ -30,6 +49,8 @@ const Attendance = () => {
                     contact: r.contact || '—',
                     email: r.email || '',
                     role: r.role || '—',
+                    shift: r.shift || '—',
+                    date: r.date,
                     checkIn: r.checkIn,
                     checkOut: r.checkOut,
                     status: r.status,
@@ -45,11 +66,95 @@ const Attendance = () => {
         }
     }, []);
 
+    const fetchEmployees = useCallback(async () => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (!storedUser) return;
+            const user = JSON.parse(storedUser);
+
+            const res = await fetch(`http://localhost:5001/api/employees/garage/${user.id}`);
+            const data = await res.json();
+            if (data.success) {
+                setEmployees(data.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch employees', error);
+        }
+    }, []);
+
+    const checkStatus = useCallback(async (empId) => {
+        if (!empId) {
+            setAttendanceStatus(null);
+            return;
+        }
+        setStatusLoading(true);
+        try {
+            const res = await fetch(`http://localhost:5001/api/attendance/status/${empId}`);
+            const data = await res.json();
+            if (data.success) {
+                setAttendanceStatus(data.data);
+            } else {
+                setAttendanceStatus(null);
+            }
+        } catch (error) {
+            console.error('Failed to check status', error);
+            setAttendanceStatus(null);
+        } finally {
+            setStatusLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isMarkModalOpen) {
+            checkStatus(selectedEmployeeId);
+        }
+    }, [selectedEmployeeId, isMarkModalOpen, checkStatus]);
+
+    const handleMarkAttendance = async (action) => {
+        if (!selectedEmployeeId) return;
+        setActionLoading(true);
+        try {
+            if (action === 'check-in') {
+                const res = await fetch(`http://localhost:5001/api/attendance/check-in`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: selectedEmployeeId })
+                });
+                const data = await res.json();
+                if (!data.success && !data.message?.includes('Absent')) {
+                    alert(data.message || 'Check-in failed');
+                    return;
+                }
+            } else if (action === 'check-out') {
+                if (!attendanceStatus || !attendanceStatus._id) return;
+                const res = await fetch(`http://localhost:5001/api/attendance/check-out/${attendanceStatus._id}`, {
+                    method: 'PUT'
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.message || 'Check-out failed');
+                    return;
+                }
+            }
+            await fetchAttendance();
+            await checkStatus(selectedEmployeeId);
+            setIsMarkModalOpen(false);
+            setSelectedEmployeeId('');
+            setAttendanceStatus(null);
+        } catch (error) {
+            console.error('Action failed', error);
+            alert('Something went wrong');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchAttendance();
+        fetchEmployees();
         const timer = setInterval(() => fetchAttendance(true), 5000);
         return () => clearInterval(timer);
-    }, [fetchAttendance]);
+    }, [fetchAttendance, fetchEmployees]);
 
     const handleViewDetails = (record) => {
         setSelectedRecord(record);
@@ -73,7 +178,25 @@ const Attendance = () => {
         }
     };
 
-    const formatDate = (dateStr) => {
+    const formatTime = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '—';
+        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+    };
+
+    // const formatDateStr = (dateStr) => {
+    //     if (!dateStr) return '—';
+    //     const d = new Date(dateStr);
+    //     if (isNaN(d.getTime())) return '—';
+        
+    //     const day = d.toLocaleDateString('en-IN', { day: '2-digit' });
+    //     const month = d.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+    //     const year = d.getFullYear();
+    //     return `${day} ${month} ${year}`;
+    // };
+
+    const formatDateTime = (dateStr) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return '—';
@@ -99,6 +222,17 @@ const Attendance = () => {
         }
     };
 
+    const formatDateStr = (dateStr) => {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '—';
+        
+        const day = d.toLocaleDateString('en-IN', { day: '2-digit' });
+        const month = d.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+    };
+
     const getRoleBadge = (role) => {
         switch (role) {
             case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
@@ -110,10 +244,28 @@ const Attendance = () => {
         }
     };
 
+    const getShiftBadge = (shift) => {
+        const lowerShift = (shift || '').toLowerCase();
+        switch (lowerShift) {
+            case 'morning': return 'bg-orange-50 text-orange-600 border-orange-100';
+            case 'evening': return 'bg-purple-50 text-purple-600 border-purple-100';
+            case 'night': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+            default: return 'bg-gray-50 text-gray-600 border-gray-100';
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Attendance Directory</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Attendance Directory</h1>
+                    {/* <button 
+                        onClick={() => setIsMarkModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
+                    >
+                        Mark Attendance
+                    </button> */}
+                </div>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -129,11 +281,13 @@ const Attendance = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Employee Id</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Employee Name</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Role</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Check-in Time</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Check-out Time</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Shift</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Check-in Time</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Check-out Time</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
@@ -144,29 +298,37 @@ const Attendance = () => {
                                         {r.employeeId}
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="font-bold text-[#011023] truncate px-2">{r.employeeName}</div>
+                                        <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="text-xs text-gray-500">{r.contact}</div>
-                                        <div className="font-medium text-sm lowercase mt-1">{r.email || '—'}</div>
+                                        <div className="text-sm text-[#052558] font-semibold">{r.contact}</div>
+                                        {/* <div className="font-medium text-sm lowercase mt-1">{r.email || '—'}</div> */}
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
                                             {r.role}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className="text-sm font-semibold text-gray-600">
-                                            {formatDate(r.checkIn)}
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
+                                            {r.shift}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                        {formatDateStr(r.checkIn || r.date)}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className="text-[13px] font-bold text-gray-600">
+                                            {formatTime(r.checkIn)}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className="text-sm font-semibold text-gray-600">
-                                            {formatDate(r.checkOut)}
+                                        <span className="text-[13px] font-bold text-gray-600">
+                                            {formatTime(r.checkOut)}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-3 py-1 rounded-xl text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
+                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
                                             {r.status}
                                         </span>
                                     </td>
@@ -198,49 +360,76 @@ const Attendance = () => {
             {/* View Details Modal */}
             {isViewModalOpen && selectedRecord && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[120vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                        <div className="p-6 border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Attendance Details</h3>
                                 <p className="text-sm text-gray-500 uppercase mt-1">ID: <span className="font-semibold text-gray-700">{selectedRecord.employeeId}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                className="p- text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto flex-1 space-y-6 hide-scrollbar uppercase">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Employee Info */}
-                                <div className="space-y-2">
-                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Staff Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 pb-4 rounded-xl space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Name:</span> <span className="font-bold text-[#011023] truncate">{selectedRecord.employeeName}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Role:</span> <span className="font-bold text-[#052558]">{selectedRecord.role}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Contact:</span> <span className="font-bold text-[#052558]">{selectedRecord.contact}</span></p>
-                                    </div>
-                                </div>
-
-                                {/* Status Info */}
-                                <div className="space-y-2">
-                                    <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Presence Details</h4>
-                                    <div className="bg-blue-50/30 pt-4 pb-4 rounded-xl space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Status:</span> <span className={`font-bold ${selectedRecord.status === 'Present' ? 'text-emerald-600' : 'text-red-500'}`}>{selectedRecord.status}</span></p>
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Check-in:</span> <span className="font-bold text-gray-800">{formatDate(selectedRecord.checkIn)}</span></p>
-                                            <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Check-out:</span> <span className="font-bold text-gray-800">{formatDate(selectedRecord.checkOut)}</span></p>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div className="pr-6 pl-6 pb-6 overflow-y-auto flex-1 space-y-8 hide-scrollbar uppercase bg-[#fafcff]/50">
+                           
+                            {/* Attendance Table */}
+                            <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto h-[500px] shadow-sm bg-white hide-scrollbar">
+                                <table className="w-full  text-center border-collapse">
+                                    <thead className="bg-gray-50 text-[12px] uppercase text-gray-400 tracking-widest  sticky top-0 z-20 shadow-sm">
+                                        <tr>
+                                            <th className="p-4 w-[15%] text-center">Date</th>
+                                            <th className="p-4 w-[15%] text-center">Role</th>
+                                            <th className="p-4 w-[13%] text-center">Shift</th>
+                                            <th className="p-4 w-[17%] text-center">Check-in Time</th>
+                                            <th className="p-4 w-[20%] text-center">Check-out Time</th>
+                                            <th className="p-4 w-[14%] text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#e1ecf8]">
+                                        <tr className="hover:bg-gray-50/50 transition-all duration-300 text-center">
+                                            <td className="p-4.5">
+                                                <div className="text-xs text-[#011023] font-semibold uppercase">
+                                                    {formatDateStr(selectedRecord.date)}
+                                                </div>
+                                            </td>
+                                            <td className="p-4.5">
+                                                <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider ${getRoleBadge(selectedRecord.role)}`}>
+                                                    {selectedRecord.role}
+                                                </div>
+                                            </td>
+                                            <td className="p-4.5">
+                                                <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border ${getShiftBadge(selectedRecord.shift)}`}>
+                                                    {selectedRecord.shift}
+                                                </div>
+                                            </td>
+                                            <td className="p-4.5 uppercase">
+                                                <div className="font-semibold text-[#011023] text-xs tracking-wide">
+                                                    {formatTime(selectedRecord.checkIn)}
+                                                </div>
+                                            </td>
+                                            <td className="p-4.5 uppercase">
+                                                <div className="font-semibold text-[#011023] text-xs tracking-wide">
+                                                    {formatTime(selectedRecord.checkOut)}
+                                                </div>
+                                            </td>
+                                            <td className="p-4.5">
+                                                <span className={`px-4 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm ${getStatusBadge(selectedRecord.status)}`}>
+                                                    {selectedRecord.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -250,7 +439,7 @@ const Attendance = () => {
 
             {/* Delete Confirmation Modal */}
             {deleteModal.open && createPortal(
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="p-6 text-center space-y-4">
                             <div className="space-y-2">
@@ -273,6 +462,91 @@ const Attendance = () => {
                             >
                                 Delete
                             </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Mark Attendance Modal */}
+            {isMarkModalOpen && createPortal(
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                     onClick={() => setIsMarkModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+                         onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Mark Attendance</h3>
+                                <p className="text-sm text-gray-500 uppercase mt-1">Select Employee to Check-in/out</p>
+                            </div>
+                            <button
+                                onClick={() => setIsMarkModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Select Employee</label>
+                                <select 
+                                    className="w-full bg-blue-50/30 border border-blue-100 rounded-xl p-3 text-sm font-semibold text-[#011023] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase"
+                                    value={selectedEmployeeId}
+                                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                                >
+                                    <option value="" disabled>-- Choose Employee --</option>
+                                    {employees.map(emp => (
+                                        <option key={emp._id} value={emp.employeeId}>
+                                            {emp.employeeId} - {emp.name} ({emp.role})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {selectedEmployeeId && (
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-gray-400 tracking-wider flex items-center gap-2 uppercase">Today's Status</h4>
+                                    {statusLoading ? (
+                                        <div className="text-sm text-gray-500 animate-pulse font-medium uppercase">Checking status...</div>
+                                    ) : attendanceStatus ? (
+                                        <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100 space-y-3">
+                                            <p className="text-sm flex items-center"><span className="text-gray-500 w-24 shrink-0 uppercase font-bold text-[11px]">Status:</span> <span className={`font-bold uppercase text-[11px] px-2 py-0.5 rounded-lg border tracking-wide ${getStatusBadge(attendanceStatus.status)}`}>{attendanceStatus.status}</span></p>
+                                            <p className="text-sm flex items-center"><span className="text-gray-500 w-24 shrink-0 uppercase font-bold text-xs">Check-in:</span> <span className="font-bold text-gray-800 uppercase text-xs truncate">{formatDateTime(attendanceStatus.checkIn)}</span></p>
+                                            {attendanceStatus.checkOut && (
+                                                <p className="text-sm flex items-center"><span className="text-gray-500 w-24 shrink-0 uppercase font-bold text-xs">Check-out:</span> <span className="font-bold text-gray-800 uppercase text-xs truncate">{formatDateTime(attendanceStatus.checkOut)}</span></p>
+                                            )}
+                                            
+                                            <div className="pt-4 border-t border-blue-100/50 mt-4 flex justify-end gap-3">
+                                                {!attendanceStatus.checkOut ? (
+                                                     <button
+                                                        onClick={() => handleMarkAttendance('check-out')}
+                                                        disabled={actionLoading}
+                                                        className="px-6 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all uppercase text-xs disabled:opacity-50"
+                                                    >
+                                                        {actionLoading ? 'Saving...' : 'Check Out'}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-emerald-600 font-bold uppercase text-xs flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                                                        <CheckCircle2 size={16} /> Completed for today
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100 space-y-3 flex flex-col items-center justify-center py-6">
+                                            <p className="text-sm font-bold text-gray-500 uppercase">Not Checked In Yet</p>
+                                            <button
+                                                onClick={() => handleMarkAttendance('check-in')}
+                                                disabled={actionLoading}
+                                                className="mt-2 px-8 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-200 transition-all uppercase text-xs disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                <CheckCircle2 size={18} />
+                                                {actionLoading ? 'Saving...' : 'Check In'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,
