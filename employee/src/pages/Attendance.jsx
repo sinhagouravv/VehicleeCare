@@ -152,8 +152,6 @@ const Attendance = () => {
             case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
             case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
             case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
-            case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
-            case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
             case 'Staff': return 'bg-emerald-100 text-emerald-700 font-bold';
             case 'Chef': return 'bg-orange-100 text-orange-700 font-bold';
             case 'Waiter': return 'bg-pink-100 text-pink-700 font-bold';
