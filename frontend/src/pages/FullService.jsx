@@ -1060,7 +1060,7 @@ const FullService = () => {
                                                 disabled={!selectedDistrict}
                                                 className={`${selectClass} text-center text-[10.5px] uppercase font-bold py-2 px-8 h-10`}
                                             >
-                                                <option value="">SELECT A GARAGE</option>
+                                                <option value=""></option>
                                                 {garageList.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
                                             </select>
                                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={14} />
@@ -1212,17 +1212,16 @@ const FullService = () => {
                             <div className="animate-[fadeIn_0.3s_ease-out] max-w-6xl mx-auto">
                                 <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Review Details</h2>
 
-                                <div className="grid md:grid-cols-[375px] gap-6">
+                                <div className="grid md:grid-cols-[325px] gap-6">
                                     {/* Left side – 5 review cards stacked */}
                                     <div className="flex flex-col gap-4">
                                         {/* Vehicle Card */}
                                         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center hover:border-blue-200 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Car size={18} /></div>
+                                                {/* <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Car size={18} /></div> */}
                                                 <div>
                                                     <p className="text-[12px] text-gray-400 pb-1 uppercase font-semibold">Vehicle</p>
-                                                    <p className="font-bold text-[#011023] pb-0.5 uppercase text-xs">{selectedBrand} {selectedModel} ({selectedYear})</p>
-                                                    <p className="text-[10px] text-gray-500">{vehicleNumber} • {transmission}</p>
+                                                    <p className="font-bold text-[#011023] pb-0.5 uppercase text-xs">{selectedBrand} {selectedModel} ({selectedYear}) &nbsp;•&nbsp; {vehicleNumber} &nbsp;•&nbsp; {transmission}</p>
                                                 </div>
                                             </div>
                                             <button onClick={() => setStep(1)} className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-[#527FB0] transition-colors"><Edit size={14} /></button>
@@ -1231,12 +1230,12 @@ const FullService = () => {
                                         {/* Service Card */}
                                         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center hover:border-blue-200 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Settings size={18} /></div>
+                                                {/* <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Settings size={18} /></div> */}
                                                 <div>
                                                     <p className="text-[12px] text-gray-400 pb-1 uppercase font-semibold">Service</p>
                                                     <p className="font-bold text-[#011023] pb-0.5 uppercase text-xs">
                                                         {Object.values(selectedServices).filter(s => s).length > 0
-                                                            ? Object.values(selectedServices).filter(s => s).map((s, i) => <span key={i} className="block">• {s}</span>)
+                                                            ? Object.values(selectedServices).filter(s => s).map((s, i) => <span key={i} className="block">{s}</span>)
                                                             : 'No service selected'}
                                                     </p>
                                                 </div>
@@ -1247,7 +1246,7 @@ const FullService = () => {
                                         {/* Garage Card */}
                                         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center hover:border-blue-200 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><MapPin size={18} /></div>
+                                                {/* <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><MapPin size={18} /></div> */}
                                                 <div>
                                                     <p className="text-[12px] text-gray-400 pb-1 uppercase font-semibold">Service Center</p>
                                                     <p className="font-bold pb-0.5 uppercase text-[#011023] text-xs">{selectedGarage?.name}</p>
@@ -1262,7 +1261,7 @@ const FullService = () => {
                                         {/* Schedule Card */}
                                         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center hover:border-blue-200 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Calendar size={18} /></div>
+                                                {/* <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Calendar size={18} /></div> */}
                                                 <div>
                                                     <p className="text-[12px] pb-1 text-gray-400 uppercase font-semibold">Date & Time</p>
                                                     <p className="font-bold text-[#011023] text-xs">
@@ -1276,7 +1275,7 @@ const FullService = () => {
                                         {/* Contact Card */}
                                         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center hover:border-blue-200 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><User size={18} /></div>
+                                                {/* <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><User size={18} /></div> */}
                                                 <div>
                                                     <p className="text-[12px] pb-1 text-gray-400 uppercase font-semibold">Customer</p>
                                                     <p className="font-bold pb-0.5 uppercase text-[#011023] text-xs">{details.name}</p>
