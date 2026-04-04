@@ -9,6 +9,8 @@ import Inventory from './pages/Inventory';
 import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
+import Customers from './pages/Customers';
+import Staff from './pages/Staff';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
@@ -32,6 +34,8 @@ const App = () => {
           <Route path="payments" element={<Payments />} />
           <Route path="products" element={<Products />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="staff" element={<Staff />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="notifications" element={<Notifications />} />
