@@ -292,66 +292,103 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                            {attendanceRecords.map((r) => (
-                                <tr key={r.id} className="text-center transition-all hover:bg-blue-50/30">
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
-                                        {r.employeeId}
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="text-sm text-[#052558] font-semibold">{r.contact}</div>
-                                        {/* <div className="font-medium text-sm lowercase mt-1">{r.email || '—'}</div> */}
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
-                                            {r.role}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
-                                            {r.shift}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
-                                        {formatDateStr(r.checkIn || r.date)}
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="text-[13px] font-bold text-gray-600">
-                                            {formatTime(r.checkIn)}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className="text-[13px] font-bold text-gray-600">
-                                            {formatTime(r.checkOut)}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
-                                            {r.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <button
-                                                onClick={() => handleViewDetails(r)}
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye size={17} />
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteModal({ open: true, record: r })}
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                title="Delete Record"
-                                            >
-                                                <Trash2 size={17} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                            {(() => {
+                                const today = new Date().toLocaleDateString('en-CA');
+                                const todayRecords = attendanceRecords.filter(r => r.date === today);
+                                
+                                // Create a list that includes every employee
+                                const displayData = employees.map(emp => {
+                                    const record = todayRecords.find(r => r.employeeId === emp.employeeId);
+                                    if (record) return record;
+
+                                    // If no record found, create a mock "Absent" record for display
+                                    return {
+                                        id: `temp-${emp.employeeId}`,
+                                        employeeId: emp.employeeId,
+                                        employeeName: emp.name,
+                                        contact: emp.phone || '—',
+                                        role: emp.role || '—',
+                                        shift: emp.shift || '—',
+                                        date: today,
+                                        checkIn: null,
+                                        checkOut: null,
+                                        status: 'Absent',
+                                        isMock: true
+                                    };
+                                });
+
+                                // Sort: Night -> Evening -> Morning, then by Name
+                                displayData.sort((a, b) => {
+                                    const shiftPriority = { 'morning': 1, 'evening': 2, 'night': 3 };
+                                    const pA = shiftPriority[(a.shift || '').toLowerCase()] || 99;
+                                    const pB = shiftPriority[(b.shift || '').toLowerCase()] || 99;
+                                    
+                                    if (pA !== pB) return pA - pB;
+                                    return (a.employeeName || '').localeCompare(b.employeeName || '');
+                                });
+
+                                return displayData.map((r) => (
+                                    <tr key={r.id} className="text-center transition-all hover:bg-blue-50/30">
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
+                                            {r.employeeId}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="text-sm text-[#052558] font-semibold">{r.contact}</div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
+                                                {r.role}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
+                                                {r.shift}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                            {formatDateStr(r.checkIn || r.date)}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="text-[13px] font-bold text-gray-600">
+                                                {formatTime(r.checkIn)}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className="text-[13px] font-bold text-gray-600">
+                                                {formatTime(r.checkOut)}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-3 py-1 rounded-lg text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
+                                                {r.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button
+                                                    onClick={() => handleViewDetails(r)}
+                                                    className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                    title="View Details History"
+                                                >
+                                                    <Eye size={17} />
+                                                </button>
+                                                {!r.isMock && (
+                                                <button
+                                                    onClick={() => setDeleteModal({ open: true, record: r })}
+                                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={17} />
+                                                </button>
+                                            )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ));
+                            })()}
                         </tbody>
                     </table>
                 </div>
@@ -396,38 +433,42 @@ const Attendance = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[#e1ecf8]">
-                                        <tr className="hover:bg-gray-50/50 transition-all duration-300 text-center">
-                                            <td className="p-4.5">
-                                                <div className="text-xs text-[#011023] font-semibold uppercase">
-                                                    {formatDateStr(selectedRecord.date)}
-                                                </div>
-                                            </td>
-                                            <td className="p-4.5">
-                                                <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider ${getRoleBadge(selectedRecord.role)}`}>
-                                                    {selectedRecord.role}
-                                                </div>
-                                            </td>
-                                            <td className="p-4.5">
-                                                <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border ${getShiftBadge(selectedRecord.shift)}`}>
-                                                    {selectedRecord.shift}
-                                                </div>
-                                            </td>
-                                            <td className="p-4.5 uppercase">
-                                                <div className="font-semibold text-[#011023] text-xs tracking-wide">
-                                                    {formatTime(selectedRecord.checkIn)}
-                                                </div>
-                                            </td>
-                                            <td className="p-4.5 uppercase">
-                                                <div className="font-semibold text-[#011023] text-xs tracking-wide">
-                                                    {formatTime(selectedRecord.checkOut)}
-                                                </div>
-                                            </td>
-                                            <td className="p-4.5">
-                                                <span className={`px-4 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm ${getStatusBadge(selectedRecord.status)}`}>
-                                                    {selectedRecord.status}
-                                                </span>
-                                            </td>
-                                        </tr>
+                                        {attendanceRecords
+                                            .filter((r) => r.employeeId === selectedRecord.employeeId)
+                                            .map((record) => (
+                                                <tr key={record.id} className="hover:bg-gray-50/50 transition-all duration-300 text-center">
+                                                    <td className="p-4.5">
+                                                        <div className="text-xs text-[#011023] font-semibold uppercase">
+                                                            {formatDateStr(record.date)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4.5">
+                                                        <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider ${getRoleBadge(record.role)}`}>
+                                                            {record.role}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4.5">
+                                                        <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border ${getShiftBadge(record.shift)}`}>
+                                                            {record.shift}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4.5 uppercase">
+                                                        <div className="font-semibold text-[#011023] text-xs tracking-wide">
+                                                            {formatTime(record.checkIn)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4.5 uppercase">
+                                                        <div className="font-semibold text-[#011023] text-xs tracking-wide">
+                                                            {formatTime(record.checkOut)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4.5">
+                                                        <span className={`px-4 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm ${getStatusBadge(record.status)}`}>
+                                                            {record.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>
