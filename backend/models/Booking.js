@@ -66,4 +66,10 @@ const BookingSchema = new mongoose.Schema({
     otpExpires: { type: Date }
 }, { timestamps: true });
 
+BookingSchema.index({ 'assignedEmployees.technician.id': 1 });
+BookingSchema.index({ 'assignedEmployees.technician.employeeId': 1 });
+BookingSchema.index({ 'assignedEmployees.support.id': 1 });
+BookingSchema.index({ 'assignedEmployees.support.employeeId': 1 });
+BookingSchema.index({ 'garage.id': 1 });
+
 module.exports = mongoose.model('Booking', BookingSchema);
