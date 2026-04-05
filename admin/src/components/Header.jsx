@@ -114,7 +114,7 @@ const Header = () => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <header className="h-20 bg-white/60 backdrop-blur-xl border-b border-[#e6f0fa] flex items-center sticky top-0 z-10 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
+        <header className="h-20 bg-white/60 backdrop-blur-xl border-b border-[#e6f0fa] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center justify-end transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[17rem]' : 'w-9.5'}`}>
@@ -154,7 +154,6 @@ const Header = () => {
                             }
                         }}
                         onKeyDown={handleKeyDown}
-                        // placeholder={isExpanded ? "Search pages, IDs, users..." : ""}
                         className={`w-full pl-10 pr-4 h-10 bg-[#f0f6ff] border border-transparent rounded-[22px] focus:outline-none focus:bg-white focus:border-blue-100 focus:ring-2 focus:ring-[#527FB0]/20 transition-all duration-500 text-sm font-semibold text-[#011023] placeholder-gray-400 ${isExpanded ? 'opacity-100' : 'opacity-0 cursor-pointer'}`}
                     />
 
@@ -182,18 +181,12 @@ const Header = () => {
                             )}
 
                             {/* Database Results */}
-                            {searchTerm.trim().length > 0 && (
+                            {searchTerm.trim().length > 0 && (dbResults.length > 0 || isSearching) && (
                                 <div>
                                     <div className="flex items-center justify-between px-4 py-1.5 bg-gray-50/50">
                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top Results</h4>
                                         {isSearching && <Loader2 size={12} className="animate-spin text-blue-400" />}
                                     </div>
-
-                                    {!isSearching && dbResults.length === 0 && (
-                                        <div className="px-4 py-4 text-sm text-gray-500 text-center flex flex-col items-center gap-1 opacity-70">
-                                            <span>No matches found.</span>
-                                        </div>
-                                    )}
 
                                     {dbResults.map((result, idx) => (
                                         <button

@@ -83,7 +83,9 @@ const Header = () => {
             }
             setIsSearching(true);
             try {
-                const res = await fetch(`http://localhost:5001/api/search?q=${encodeURIComponent(searchTerm)}`);
+                const storedUser = localStorage.getItem('garageUser');
+                const garageId = storedUser ? JSON.parse(storedUser).id : '';
+                const res = await fetch(`http://localhost:5001/api/search?q=${encodeURIComponent(searchTerm)}&portal=garage&garageId=${garageId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setDbResults(data.data || []);
@@ -108,7 +110,7 @@ const Header = () => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <header className="h-20 bg-white/60 backdrop-blur-xl border-b border-[#e6f0fa] flex items-center sticky top-0 z-10 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
+        <header className="h-20 bg-white/60 backdrop-blur-xl border-b border-[#e6f0fa] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center justify-end transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[17rem]' : 'w-9.5'}`}>
@@ -175,18 +177,12 @@ const Header = () => {
                             )}
 
                             {/* Database Results */}
-                            {searchTerm.trim().length > 0 && (
+                            {searchTerm.trim().length > 0 && (dbResults.length > 0 || isSearching) && (
                                 <div>
                                     <div className="flex items-center justify-between px-4 py-1.5 bg-gray-50/50">
                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Top Results</h4>
                                         {isSearching && <Loader2 size={12} className="animate-spin text-blue-400" />}
                                     </div>
-
-                                    {!isSearching && dbResults.length === 0 && (
-                                        <div className="px-4 py-4 text-sm text-gray-500 text-center flex flex-col items-center gap-1 opacity-70">
-                                            <span>No matches found.</span>
-                                        </div>
-                                    )}
 
                                     {dbResults.map((result, idx) => (
                                         <button
@@ -210,7 +206,7 @@ const Header = () => {
                             )}
 
                             {!isSearching && filteredPages.length === 0 && dbResults.length === 0 && (
-                                <div className="px-4 py-6 text-sm text-gray-500 text-center">
+                                <div className="px-4 py-6 text-sm text-gray-500 text-center uppercase tracking-wide font-medium">
                                     No results found for "{searchTerm}"
                                 </div>
                             )}
