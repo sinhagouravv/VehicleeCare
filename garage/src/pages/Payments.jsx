@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Eye, Download, X, Search, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import useHighlight from '../hooks/useHighlight';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
@@ -10,6 +11,7 @@ const Payments = () => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const highlightedRow = useHighlight(payments);
 
     const fetchPayments = useCallback(async (silent = false) => {
         try {
@@ -166,7 +168,15 @@ const Payments = () => {
                             ) : payments.map((payment) => {
                                 const rowId = payment.paymentId || payment._id;
                                 return (
-                                    <tr key={payment._id} className="text-center hover:bg-blue-50/30 transition-all duration-300">
+                                    <tr 
+                                        key={payment._id} 
+                                        id={`row-${rowId}`}
+                                        className={`text-center transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                         <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]" title={payment.paymentId || payment._id}>
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>

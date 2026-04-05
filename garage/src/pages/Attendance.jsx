@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Attendance = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -16,6 +17,57 @@ const Attendance = () => {
     const [attendanceStatus, setAttendanceStatus] = useState(null);
     const [statusLoading, setStatusLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+
+    // Compute display data for the table - moved from inline map to useMemo for stability
+    const displayData = React.useMemo(() => {
+        const today = new Date().toLocaleDateString('en-CA');
+        const todayRecords = attendanceRecords.filter(r => r.date === today);
+        
+        const data = employees.map(emp => {
+            const record = todayRecords.find(r => r.employeeId === emp.employeeId);
+            if (record) return record;
+
+            const now = new Date();
+            const currentMins = now.getHours() * 60 + now.getMinutes();
+            const shiftStr = (emp.shift || '').toLowerCase();
+            
+            const thresholds = {
+                morning: 9 * 60 + 20, // 09:20 AM
+                evening: 15 * 60 + 20, // 03:20 PM
+                night: 21 * 60 + 20    // 09:20 PM
+            };
+            
+            const threshold = thresholds[shiftStr] || thresholds.morning;
+            const isPastAbsentTime = currentMins > threshold;
+
+            return {
+                id: `temp-${emp.employeeId}`,
+                employeeId: emp.employeeId,
+                employeeName: emp.name,
+                contact: emp.phone || '—',
+                role: emp.role || '—',
+                shift: emp.shift || '—',
+                date: today,
+                checkIn: null,
+                checkOut: null,
+                status: isPastAbsentTime ? 'Absent' : '—',
+                isMock: true
+            };
+        });
+
+        // Sort: Morning -> Evening -> Night
+        data.sort((a, b) => {
+            const shiftPriority = { 'morning': 1, 'evening': 2, 'night': 3 };
+            const pA = shiftPriority[(a.shift || '').toLowerCase()] || 99;
+            const pB = shiftPriority[(b.shift || '').toLowerCase()] || 99;
+            if (pA !== pB) return pA - pB;
+            return (a.employeeName || '').localeCompare(b.employeeName || '');
+        });
+
+        return data;
+    }, [employees, attendanceRecords]);
+
+    const highlightedRow = useHighlight(displayData);
 
     // Lock body scroll when any modal is open
     useEffect(() => {
@@ -162,7 +214,10 @@ const Attendance = () => {
     };
 
     const handleDeleteRecord = async () => {
-        if (!deleteModal.record) return;
+        if (!deleteModal.record || deleteModal.record.isMock) {
+            setDeleteModal({ open: false, record: null });
+            return;
+        }
         try {
             const res = await fetch(`http://localhost:5001/api/attendance/${deleteModal.record._id}`, {
                 method: 'DELETE'
@@ -218,6 +273,7 @@ const Attendance = () => {
             case 'Absent': return 'bg-red-50 text-red-600 border-red-100';
             case 'Late': return 'bg-orange-50 text-orange-600 border-orange-100';
             case 'On Leave': return 'bg-blue-50 text-blue-600 border-blue-100';
+            case 'Overtime': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
             default: return 'bg-gray-50 text-gray-600 border-gray-100';
         }
     };
@@ -292,43 +348,18 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                            {(() => {
-                                const today = new Date().toLocaleDateString('en-CA');
-                                const todayRecords = attendanceRecords.filter(r => r.date === today);
-                                
-                                // Create a list that includes every employee
-                                const displayData = employees.map(emp => {
-                                    const record = todayRecords.find(r => r.employeeId === emp.employeeId);
-                                    if (record) return record;
-
-                                    // If no record found, create a mock "Absent" record for display
-                                    return {
-                                        id: `temp-${emp.employeeId}`,
-                                        employeeId: emp.employeeId,
-                                        employeeName: emp.name,
-                                        contact: emp.phone || '—',
-                                        role: emp.role || '—',
-                                        shift: emp.shift || '—',
-                                        date: today,
-                                        checkIn: null,
-                                        checkOut: null,
-                                        status: 'Absent',
-                                        isMock: true
-                                    };
-                                });
-
-                                // Sort: Night -> Evening -> Morning, then by Name
-                                displayData.sort((a, b) => {
-                                    const shiftPriority = { 'morning': 1, 'evening': 2, 'night': 3 };
-                                    const pA = shiftPriority[(a.shift || '').toLowerCase()] || 99;
-                                    const pB = shiftPriority[(b.shift || '').toLowerCase()] || 99;
-                                    
-                                    if (pA !== pB) return pA - pB;
-                                    return (a.employeeName || '').localeCompare(b.employeeName || '');
-                                });
-
-                                return displayData.map((r) => (
-                                    <tr key={r.id} className="text-center transition-all hover:bg-blue-50/30">
+                            {displayData.map((r) => {
+                                const rowId = r.isMock ? `temp-${r.employeeId}` : r._id;
+                                return (
+                                    <tr 
+                                        key={r.id} 
+                                        id={`row-${rowId}`}
+                                        className={`text-center transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                         <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
                                             {r.employeeId}
                                         </td>
@@ -375,20 +406,18 @@ const Attendance = () => {
                                                 >
                                                     <Eye size={17} />
                                                 </button>
-                                                {!r.isMock && (
-                                                <button
+                                                    <button
                                                     onClick={() => setDeleteModal({ open: true, record: r })}
                                                     className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                                                     title="Delete Record"
                                                 >
                                                     <Trash2 size={17} />
                                                 </button>
-                                            )}
                                             </div>
                                         </td>
                                     </tr>
-                                ));
-                            })()}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

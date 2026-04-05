@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Eye, Download, X, Users, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import useHighlight from '../hooks/useHighlight';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -10,6 +11,7 @@ const MyBookings = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const highlightedRow = useHighlight(bookings);
 
     const fetchBookings = useCallback(async (silent = false) => {
         try {
@@ -190,8 +192,18 @@ const MyBookings = () => {
                                 <tr>
                                     <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No bookings found for this garage.</td>
                                 </tr>
-                            ) : bookings.map((booking) => (
-                                <tr key={booking._id} className="text-center transition-all hover:bg-blue-50/30">
+                            ) : bookings.map((booking) => {
+                                const rowId = booking.bookingId || booking._id;
+                                return (
+                                    <tr 
+                                        key={booking._id} 
+                                        id={`row-${rowId}`}
+                                        className={`text-center transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                     <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
                                         {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
@@ -253,7 +265,7 @@ const MyBookings = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                     </tbody>
                 </table>
             </div>

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import useHighlight from '../hooks/useHighlight';
 
 const Leave = () => {
     const [lastRefreshed] = useState(new Date());
+    const highlightedRow = useHighlight([]); // Ready for data
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">

@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Star, MessageSquare } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Reviews = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setLastRefreshed(new Date());
-        }, 5000);
-        setLastRefreshed(new Date());
-        return () => clearInterval(timer);
-    }, []);
 
     // Mock Data
     const reviews = [
@@ -19,6 +12,16 @@ const Reviews = () => {
         { id: 3, customer: "Rahul S.", car: "Hyundai Creta", date: "Oct 20, 2023", rating: 5, comment: "I've been bringing my cars here for years. Always honest, transparent pricing and top-notch work. Highly recommend their AC servicing." },
         { id: 4, customer: "Priya P.", car: "Maruti Swift", date: "Oct 18, 2023", rating: 3, comment: "Service was okay. The alignment is fine now, but the waiting area could use some better coffee." },
     ];
+
+    const highlightedRow = useHighlight(reviews);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setLastRefreshed(new Date());
+        }, 5000);
+        setLastRefreshed(new Date());
+        return () => clearInterval(timer);
+    }, []);
 
     const renderStars = (rating) => {
         return (
@@ -47,7 +50,15 @@ const Reviews = () => {
 
             <div className="space-y-4">
                 {reviews.map((review) => (
-                    <div key={review.id} className="bg-white/70 backdrop-blur-md transform-gpu border border-white p-6 rounded-2xl shadow-[0_4px_20px_rgba(5,37,88,0.03)] hover:shadow-md transition-shadow">
+                    <div 
+                        key={review.id} 
+                        id={`row-${review.id}`}
+                        className={`backdrop-blur-md transform-gpu border p-6 rounded-2xl shadow-[0_4px_20px_rgba(5,37,88,0.03)] transition-all duration-1000 ${
+                            highlightedRow === review.id 
+                                ? 'bg-emerald-100/60 border-emerald-200 relative z-20 scale-[1.01]' 
+                                : 'bg-white/70 border-white hover:shadow-md'
+                        }`}
+                    >
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-[#052558] font-bold text-lg">

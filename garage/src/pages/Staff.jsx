@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { UserSquare2, Plus, Shield, Eye, Edit, Trash2, X, Wrench, Briefcase, UserCheck, ShieldCheck, Loader2, Download, Mail, Phone, MapPin, Calendar, UserX, FileText, CreditCard, Ban } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import useHighlight from '../hooks/useHighlight';
 
 const Staff = () => {
     const [staffMembers, setStaffMembers] = useState([]);
@@ -25,6 +26,8 @@ const Staff = () => {
     const [deleting, setDeleting] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [copySuccess, setCopySuccess] = useState('');
+
+    const highlightedRow = useHighlight(staffMembers);
 
     const [form, setForm] = useState({
         name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
@@ -311,8 +314,18 @@ const Staff = () => {
                                         No staff members found.
                                     </td>
                                 </tr>
-                            ) : staffMembers.map((staff) => (
-                                <tr key={staff._id} className="hover:bg-blue-50/30 transition-all duration-300">
+                            ) : staffMembers.map((staff) => {
+                                const rowId = staff.employeeId || staff._id;
+                                return (
+                                    <tr 
+                                        key={staff._id} 
+                                        id={`row-${rowId}`}
+                                        className={`transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                     <td className="p-4">
                                         <div className="font-semibold text-[#011023] text-sm tracking-wider">{staff.employeeId || '—'}</div>
                                     </td>
@@ -366,7 +379,7 @@ const Staff = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>
                 </div>

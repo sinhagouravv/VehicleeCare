@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Services = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const highlightedRow = useHighlight(bookings);
 
     const fetchBookings = async (silent = false) => {
         try {
@@ -135,8 +137,18 @@ const Services = () => {
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No bookings found.</td>
                                 </tr>
-                            ) : bookings.map((booking) => (
-                                <tr key={booking._id} className="text-center transition-all hover:bg-blue-50/30">
+                            ) : bookings.map((booking) => {
+                                const rowId = booking.bookingId || booking._id;
+                                return (
+                                    <tr 
+                                        key={booking._id} 
+                                        id={`row-${rowId}`}
+                                        className={`text-center transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                     <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[8%]">
                                         {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
@@ -205,7 +217,7 @@ const Services = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>
                 </div>

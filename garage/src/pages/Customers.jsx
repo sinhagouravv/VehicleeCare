@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Search, Trash2, Loader2 } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Customers = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -13,6 +14,7 @@ const Customers = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const highlightedRow = useHighlight(filteredCustomers);
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -177,8 +179,18 @@ const Customers = () => {
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No customers found.</td>
                                 </tr>
-                            ) : filteredCustomers.map((customer) => (
-                                <tr key={customer.id} className="text-center hover:bg-blue-50/30 transition-all duration-300">
+                            ) : filteredCustomers.map((customer) => {
+                                const rowId = customer.userId || customer.id;
+                                return (
+                                    <tr 
+                                        key={customer.id} 
+                                        id={`row-${rowId}`}
+                                        className={`text-center transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                     {/* Customer ID */}
                                     <td className="p-4 text-center w-[11%]">
                                         <span className="font-semibold text-[#052558] text-sm">
@@ -257,7 +269,7 @@ const Customers = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>
                 </div>

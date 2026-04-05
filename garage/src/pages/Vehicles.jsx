@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2 } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Vehicles = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -9,6 +10,7 @@ const Vehicles = () => {
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ open: false, vehicle: null });
+    const highlightedRow = useHighlight(vehicles);
 
     const fetchVehicles = useCallback(async (silent = false) => {
         try {
@@ -131,7 +133,15 @@ const Vehicles = () => {
                                     <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No vehicles found.</td>
                                 </tr>
                             ) : vehicles.map((v) => (
-                                <tr key={v.id} className="text-center transition-all hover:bg-blue-50/30">
+                                <tr 
+                                    key={v.id} 
+                                    id={`row-${v.id}`}
+                                    className={`text-center transition-all duration-1000 ${
+                                        highlightedRow === v.id 
+                                            ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                            : 'hover:bg-blue-50/30'
+                                    }`}
+                                >
                                     <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[11%]" title={v.customerId}>
                                         {v.customerId}
                                     </td>
