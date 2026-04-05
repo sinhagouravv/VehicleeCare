@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Search, 
     Filter, 
@@ -12,6 +12,8 @@ import {
     Car, Calendar,
     Clock } from 'lucide-react';
 
+import useHighlight from '../hooks/useHighlight';
+
 const Tasks = () => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,6 +21,8 @@ const Tasks = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    const highlightedRow = useHighlight(tasks);
 
     // Multi-step workflow state
     const [showDurationModal, setShowDurationModal] = useState(false);
@@ -179,18 +183,20 @@ const Tasks = () => {
         }
     };
 
-    const filteredTasks = tasks.filter(task => {
-        const matchesSearch = task.bookingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            task.service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            task.user.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filterStatus === 'All' || task.status === filterStatus;
-        return matchesSearch && matchesStatus;
-    });
+    const filteredTasks = useMemo(() => {
+        return tasks.filter(task => {
+            const matchesSearch = (task.bookingId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                                (task.service?.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                                (task.user?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+            const matchesStatus = filterStatus === 'All' || task.status === filterStatus;
+            return matchesSearch && matchesStatus;
+        });
+    }, [tasks, searchTerm, filterStatus]);
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto pb-12">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-extrabold text-[#011023] uppercase tracking-tight">My Tasks</h1>
+                <h1 className="text-3xl font-extrabold text-[#011023] uppercase tracking-tight">My Tasks</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -198,7 +204,7 @@ const Tasks = () => {
                 </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-md max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
                 <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
@@ -208,7 +214,7 @@ const Tasks = () => {
                                 <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[30%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Time Slot</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
                                 <th className="p-4.5 font-black text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
@@ -227,8 +233,18 @@ const Tasks = () => {
                                         No bookings found.
                                     </td>
                                 </tr>
-                            ) : filteredTasks.map((task) => (
-                                <tr key={task._id} className="text-center transition-all hover:bg-blue-50/30">
+                            ) : filteredTasks.map((task) => {
+                                const rowId = task.bookingId || task._id;
+                                return (
+                                    <tr 
+                                        key={task._id} 
+                                        id={`row-${rowId}`}
+                                        className={`text-center transition-all duration-1000 ${
+                                            highlightedRow === rowId 
+                                                ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                                : 'hover:bg-blue-50/30'
+                                        }`}
+                                    >
                                     <td className="p-4 font-semibold text-[#052558] text-sm text-center">
                                         {task.bookingId}
                                     </td>
@@ -314,7 +330,7 @@ const Tasks = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>
                 </div>

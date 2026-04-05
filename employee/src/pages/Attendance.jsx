@@ -141,6 +141,7 @@ const Attendance = () => {
             case 'Absent': return 'bg-red-50 text-red-600 border-red-100';
             case 'Late': return 'bg-orange-50 text-orange-600 border-orange-100';
             case 'On Leave': return 'bg-blue-50 text-blue-600 border-blue-100';
+            case 'Overtime': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
             default: return 'bg-gray-50 text-gray-600 border-gray-100';
         }
     };
