@@ -139,9 +139,9 @@ const Notifications = () => {
                     <table className="w-full text-center border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold" style={{ width: '6%' }}>Category</th>
-                                <th className="p-4.5 font-bold" style={{ width: '6%' }}>Type</th>
-                                <th className="p-4.5 font-bold" style={{ width: '12%' }}>Person</th>
+                                <th className="p-4.5 font-bold" style={{ width: '5%' }}>Category</th>
+                                <th className="p-4.5 font-bold" style={{ width: '5%' }}>Type</th>
+                                <th className="p-4.5 font-bold" style={{ width: '13%' }}>User</th>
                                 <th className="p-4.5 font-bold" style={{ width: '45%' }}>Content</th>
                                 <th className="p-4.5 font-bold" style={{ width: '10%' }}>Received On</th>
                                 <th className="p-4.5 font-bold" style={{ width: '3%' }}>Status</th>
@@ -188,7 +188,7 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.5">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
+                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate">
                                                         {notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A'}
                                                     </span>
                                                     <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
