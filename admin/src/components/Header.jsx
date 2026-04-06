@@ -211,7 +211,7 @@ const Header = () => {
 
                             {!isSearching && filteredPages.length === 0 && dbResults.length === 0 && (
                                 <div className="px-4 py-6 text-sm text-gray-500 text-center">
-                                    No results  for "{searchTerm}"
+                                    No results found for "{searchTerm}"
                                 </div>
                             )}
                         </div>
