@@ -153,7 +153,7 @@ const Header = () => {
                                 setIsExpanded(false);
                             }
                         }}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={handleKeyDown}   
                         className={`w-full pl-10 pr-4 h-10 bg-[#f0f6ff] border border-transparent rounded-[22px] focus:outline-none focus:bg-white focus:border-blue-100 focus:ring-2 focus:ring-[#527FB0]/20 transition-all duration-500 text-sm font-semibold text-[#011023] placeholder-gray-400 ${isExpanded ? 'opacity-100' : 'opacity-0 cursor-pointer'}`}
                     />
 
@@ -211,7 +211,7 @@ const Header = () => {
 
                             {!isSearching && filteredPages.length === 0 && dbResults.length === 0 && (
                                 <div className="px-4 py-6 text-sm text-gray-500 text-center">
-                                    No results found for "{searchTerm}"
+                                    No results  for "{searchTerm}"
                                 </div>
                             )}
                         </div>
