@@ -217,7 +217,8 @@ exports.createBooking = async (req, res) => {
                 displayUserId, // This will be the 65... ID
                 service: service.title, 
                 vehicle: `${vehicle.make} ${vehicle.model}`,
-                garageId: garage?.id || null
+                garageId: garage?.id || null,
+                assignedEmployees: savedBooking.assignedEmployees
             }
         });
 
