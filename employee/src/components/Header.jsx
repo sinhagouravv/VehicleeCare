@@ -5,8 +5,10 @@ import { useNavigate } from 'react-router-dom';
 const EMPLOYEE_PAGES = [
     { name: 'Dashboard', path: '/' },
     { name: 'Attendance', path: '/attendance' },
+    { name: 'Leave', path: '/leave' },
     { name: 'Tasks', path: '/tasks' },
     { name: 'Notifications', path: '/notifications' },
+    { name: 'Reviews', path: '/reviews' },
     { name: 'Settings', path: '/settings' }
 ];
 
