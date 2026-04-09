@@ -449,7 +449,7 @@ const Attendance = () => {
                         <div className="pr-6 pl-6 pb-6 overflow-y-auto flex-1 space-y-8 hide-scrollbar uppercase bg-[#fafcff]/50">
                            
                             {/* Attendance Table */}
-                            <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto h-[500px] shadow-sm bg-white hide-scrollbar">
+                            <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto h-[475px] shadow-sm bg-white hide-scrollbar">
                                 <table className="w-full  text-center border-collapse">
                                     <thead className="bg-gray-50 text-[12px] uppercase text-gray-400 tracking-widest  sticky top-0 z-20 shadow-sm">
                                         <tr>
