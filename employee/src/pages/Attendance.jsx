@@ -20,7 +20,7 @@ const Attendance = () => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return '—';
-        
+
         const day = d.toLocaleDateString('en-IN', { day: '2-digit' });
         const month = d.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
         const year = d.getFullYear();
@@ -51,7 +51,7 @@ const Attendance = () => {
 
             if (statusData.success && recordsData.success) {
                 setTodayRecord(statusData.data);
-                
+
                 // Format records to match table expectations
                 const records = (recordsData.data || []).map(r => ({
                     id: r._id,
@@ -68,7 +68,7 @@ const Attendance = () => {
                     _id: r._id
                 }));
                 setAttendanceRecords(records);
-                
+
                 setLastRefreshed(new Date());
                 setError(null);
             } else {
@@ -177,9 +177,9 @@ const Attendance = () => {
             {/* Header Area */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Attendance</h1>
-                
+
                 {/* Check In / Out Buttons replace the Last Refreshed area natively */}
-                <div className="flex items-center gap-4 w-56"> 
+                <div className="flex items-center gap-4 w-56">
                     {loading ? (
                         <div className="w-full py-2.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center h-[38px]">
                             <Loader2 size={16} className="animate-spin text-gray-400" />
@@ -244,7 +244,7 @@ const Attendance = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                
+
                                 <th className="p-4.5 font-bold text-center w-[12%]">Employee Id</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Employee Name</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
@@ -273,37 +273,37 @@ const Attendance = () => {
                                 </tr>
                             ) : attendanceRecords.map((r) => (
                                 <tr key={r.id} className="text-center transition-all hover:bg-blue-50/30">
-                                    
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center">
+
+                                    <td className="p-4.5 font-semibold text-[#052558] text-sm truncate text-center">
                                         {r.employeeId}
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4.5 text-center">
                                         <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4.5 text-center">
                                         <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${getRoleBadge(r.role)}`}>
                                             {r.role}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4.5 text-center">
                                         <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
                                             {r.shift}
                                         </span>
                                     </td>
-                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                    <td className="p-4.5 font-semibold text-[#011023] text-sm text-center">
                                         {formatDateStr(r.date)}
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4.5 text-center">
                                         <span className="text-sm font-bold text-gray-600">
                                             {formatTime(r.checkIn)}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4.5 text-center">
                                         <span className="text-[13px] font-bold text-gray-600">
                                             {formatTime(r.checkOut)}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4.5 text-center">
                                         <span className={`px-3 py-1 rounded-xl text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
                                             {r.status}
                                         </span>
