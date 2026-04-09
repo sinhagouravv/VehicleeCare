@@ -1,87 +1,8 @@
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
+const { SHIFT_RULES, getISTTime, getTodayIST, toMin } = require('../utils/attendanceHelpers');
 
-// ──────────────────────────────────────────────
-// Shift Rules (all times in IST HH:MM 24h)
-// ──────────────────────────────────────────────
-const SHIFT_RULES = {
-    Morning: {
-        start:      { h: 9,  m: 0  },   // 09:00 → on time
-        lateAfter:  { h: 9,  m: 5  },   // 09:05 → Late
-        absentAfter:{ h: 9,  m: 20 },   // 09:20 → can't check-in, mark Absent
-        end:        { h: 15, m: 0  },   // 15:00 → shift ends
-        overtimeAfter: { h: 15, m: 5 } // 15:05 → Overtime on check-out
-    },
-    Evening: {
-        start:      { h: 15, m: 0  },   // 15:00 → on time
-        lateAfter:  { h: 15, m: 5  },   // 15:05 → Late
-        absentAfter:{ h: 15, m: 20 },   // 15:20 → Absent
-        end:        { h: 21, m: 0  },   // 21:00 → shift ends
-        overtimeAfter: { h: 21, m: 5 } // 21:05 → Overtime
-    },
-    Night: {
-        start:      { h: 21, m: 0  },   // 21:00 → on time
-        lateAfter:  { h: 21, m: 5  },   // 21:05 → Late
-        absentAfter:{ h: 21, m: 20 },   // 21:20 → Absent
-        end:        { h: 3,  m: 0  },   // 03:00 next day → shift ends
-        overtimeAfter: { h: 3, m: 5 }  // 03:05 → Overtime
-    }
-};
 
-// ──────────────────────────────────────────────
-// Helper: current IST time as { h, m, totalMinutes }
-// ──────────────────────────────────────────────
-const getISTTime = () => {
-    const now = new Date();
-    // IST = UTC + 5h 30m
-    const istMs = now.getTime() + (5.5 * 60 * 60 * 1000);
-    const ist = new Date(istMs);
-    const h = ist.getUTCHours();
-    const m = ist.getUTCMinutes();
-    return { h, m, total: h * 60 + m, date: ist };
-};
-
-// ──────────────────────────────────────────────
-// Helper: today's date string YYYY-MM-DD in IST
-// Handles business day rollover exactly 15 mins before shift start
-// ──────────────────────────────────────────────
-const getTodayIST = (shift = 'Morning') => {
-    const { h, m, date } = getISTTime();
-    const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
-    
-    const currentMins = h * 60 + m;
-    const startMins = rules.start.h * 60 + rules.start.m;
-    const windowStartMins = startMins - 15; // Reset UI exactly 15 mins before shift
-    
-    let isPreviousBusinessDay = false;
-
-    if (shift === 'Night') {
-        // Night shift starts at 21:00 (window 20:45)
-        // If current time is < 20:45 (e.g. 02:00 AM or 14:00 PM), it belongs to previous shift day
-        if (currentMins < windowStartMins) {
-            isPreviousBusinessDay = true;
-        }
-    } else {
-        // For Morning/Evening, if current time is before their window, 
-        // they are still viewing yesterday's shift summary.
-        if (currentMins < windowStartMins) {
-            isPreviousBusinessDay = true;
-        }
-    }
-
-    if (isPreviousBusinessDay) {
-        const yesterday = new Date(date);
-        yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday.toISOString().split('T')[0];
-    }
-    
-    return date.toISOString().split('T')[0];
-};
-
-// ──────────────────────────────────────────────
-// Helper: convert {h,m} to total minutes
-// ──────────────────────────────────────────────
-const toMin = ({ h, m }) => h * 60 + m;
 
 // ──────────────────────────────────────────────
 // Determine check-in status based on shift
@@ -279,7 +200,7 @@ const getGarageAttendance = async (req, res) => {
         const query = { garageId: req.params.garageId };
         if (date) query.date = date;
 
-        const records = await Attendance.find(query).sort({ createdAt: -1 }).lean();
+        const records = await Attendance.find(query).sort({ date: -1 }).lean();
         
         // Fetch employees to get their actual current shift
         const employees = await Employee.find({ garageId: req.params.garageId }).select('employeeId shift');
@@ -306,7 +227,7 @@ const getGarageAttendance = async (req, res) => {
 // ──────────────────────────────────────────────
 const getEmployeeAttendance = async (req, res) => {
     try {
-        const records = await Attendance.find({ employeeId: req.params.employeeId }).sort({ createdAt: -1 }).lean();
+        const records = await Attendance.find({ employeeId: req.params.employeeId }).sort({ date: -1 }).lean();
         
         const employee = await Employee.findOne({ employeeId: req.params.employeeId }).select('shift');
         const shift = employee ? (employee.shift || 'Morning') : 'Morning';
