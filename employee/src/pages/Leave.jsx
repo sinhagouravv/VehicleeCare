@@ -12,6 +12,7 @@ const Leave = () => {
 
     const [formData, setFormData] = useState({
         type: 'Sick Leave',
+        leaveTime: 'Full Day',
         startDate: '',
         endDate: '',
         reason: ''
@@ -60,7 +61,7 @@ const Leave = () => {
             const data = await res.json();
             if (data.success) {
                 setSuccess("Leave request submitted successfully!");
-                setFormData({ type: 'Sick Leave', startDate: '', endDate: '', reason: '' });
+                setFormData({ type: 'Sick Leave', leaveTime: 'Full Day', startDate: '', endDate: '', reason: '' });
                 fetchLeaves(true);
                 // Close modal after a short delay
                 setTimeout(() => {
@@ -100,15 +101,18 @@ const Leave = () => {
             </div>
 
             {/* Past Leave Requests Table */}
-            <div className="bg-white/80 backdrop-blur-md border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[845px] relative hide-scrollbar">
+            <div className="bg-white/80 backdrop-blur-md h-[53rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[15%]">Date Applied</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Duration</th>
-                                <th className="p-4.5 font-bold text-center w-[30%]">Reason</th>
+                            <tr className="bg-[#f0f6ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[10%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Leave</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Leave Time</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Leave Start</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Leave End</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Duration</th>
+                                <th className="p-4.5 font-bold text-center w-[26%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                             </tr>
                         </thead>
@@ -127,20 +131,28 @@ const Leave = () => {
                                 </tr>
                             ) : leaves.map((leave) => (
                                 <tr key={leave._id} className="text-center hover:bg-blue-50/30 transition-all">
-                                    <td className="p-5 font-semibold text-[#052558] text-sm">
+                                    <td className="p-5 font-semibold text-[#052558] text-[13px]">
                                         {new Date(leave.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </td>
                                     <td className="p-5">
                                         <span className="font-bold text-[#011023] text-[13px]">{leave.type}</span>
                                     </td>
                                     <td className="p-5">
-                                        <div className="text-[13px] font-bold text-[#011023]">
-                                            {new Date(leave.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - {new Date(leave.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                        </div>
-                                        <div className="text-[10px] text-gray-500 font-black mt-0.5">{leave.totalDays} DAYS</div>
+                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${leave.leaveTime === 'Half Day' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                            {leave.leaveTime || 'Full Day'}
+                                        </span>
                                     </td>
-                                    <td className="p-5 text-gray-600 text-[12px] lowercase tracking-wide normal-case text-center">
-                                        <div className="max-w-[300px] mx-auto truncate prose prose-sm" title={leave.reason}>
+                                    <td className="p-5 font-bold text-[#011023] text-[13px]">
+                                        {new Date(leave.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </td>
+                                    <td className="p-5 font-bold text-[#011023] text-[13px]">
+                                        {new Date(leave.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </td>
+                                    <td className="p-5">
+                                        <div className="text-[13px] font-semibold text-[#011023]">{leave.totalDays} DAYS</div>
+                                    </td>
+                                    <td className="p-5 text-gray-600 text-[13px] normal-case">
+                                        <div className=" truncate" title={leave.reason}>
                                             {leave.reason}
                                         </div>
                                     </td>
@@ -191,6 +203,25 @@ const Leave = () => {
                                         <option>Emergency Leave</option>
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Leave Time</label>
+                                    <select
+                                        className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-[#011023]"
+                                        value={formData.leaveTime}
+                                        onChange={(e) => {
+                                            const newTime = e.target.value;
+                                            const updates = { ...formData, leaveTime: newTime };
+                                            // If half day, sync end date with start date
+                                            if (newTime === 'Half Day' && formData.startDate) {
+                                                updates.endDate = formData.startDate;
+                                            }
+                                            setFormData(updates);
+                                        }}
+                                    >
+                                        <option>Full Day</option>
+                                        <option>Half Day</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
@@ -200,7 +231,14 @@ const Leave = () => {
                                         type="date"
                                         className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-[#011023]"
                                         value={formData.startDate}
-                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                        onChange={(e) => {
+                                            const newStart = e.target.value;
+                                            const updates = { ...formData, startDate: newStart };
+                                            if (formData.leaveTime === 'Half Day') {
+                                                updates.endDate = newStart;
+                                            }
+                                            setFormData(updates);
+                                        }}
                                         required
                                     />
                                 </div>
