@@ -106,14 +106,14 @@ const Leave = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Leave</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Leave Time</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Leave Start</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Leave End</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Duration</th>
-                                <th className="p-4.5 font-bold text-center w-[26%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Leave</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Leave Type</th>
+                                <th className="p-4.5 font-bold text-center w-[32%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Leave Start</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Leave End</th>
+                                {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
@@ -135,27 +135,27 @@ const Leave = () => {
                                         {new Date(leave.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </td>
                                     <td className="p-5">
-                                        <span className="font-bold text-[#011023] text-[13px]">{leave.type}</span>
+                                        <span className="font-semibold text-[#011023] text-[13px]">{leave.type}</span>
                                     </td>
                                     <td className="p-5">
                                         <span className={`px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide ${leave.leaveTime === 'Half Day' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                                             {leave.leaveTime || 'Full Day'}
                                         </span>
                                     </td>
-                                    <td className="p-5 font-bold text-[#011023] text-[13px]">
-                                        {new Date(leave.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                    </td>
-                                    <td className="p-5 font-bold text-[#011023] text-[13px]">
-                                        {new Date(leave.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                    </td>
-                                    <td className="p-5">
-                                        <div className="text-[13px] font-semibold text-[#011023]">{leave.totalDays} DAYS</div>
-                                    </td>
-                                    <td className="p-5 text-gray-600 text-[13px] normal-case">
+                                    <td className="p-5 max-w-[250px] text-[13px] ">
                                         <div className=" truncate" title={leave.reason}>
                                             {leave.reason}
                                         </div>
                                     </td>
+                                    <td className="p-5 font-semibold text-[#011023] text-[13px]">
+                                        {new Date(leave.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </td>
+                                    <td className="p-5 font-semibold text-[#011023] text-[13px]">
+                                        {new Date(leave.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </td>
+                                    {/* <td className="p-5">
+                                        <div className="text-[13px] font-semibold text-[#011023]">{leave.totalDays} DAYS</div>
+                                    </td> */}
                                     <td className="p-5">
                                         <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyle(leave.status)}`}>
                                             {leave.status}
