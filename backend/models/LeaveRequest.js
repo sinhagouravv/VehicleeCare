@@ -14,6 +14,11 @@ const LeaveRequestSchema = new mongoose.Schema({
         enum: ['Sick Leave', 'Casual Leave', 'Planned Leave', 'Emergency Leave'],
         required: true
     },
+    leaveTime: {
+        type: String,
+        enum: ['Full Day', 'Half Day'],
+        default: 'Full Day'
+    },
     startDate: {
         type: String, // YYYY-MM-DD
         required: true
