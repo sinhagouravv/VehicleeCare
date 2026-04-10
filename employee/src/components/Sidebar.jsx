@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, Bell, ChevronLeft, LogOut, Star, Plane } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays } from 'lucide-react';
 
 import Logo from '../assets/logo.svg';
 
@@ -16,8 +16,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
-        { name: 'Leave', path: '/leave', icon: <Plane size={20} /> },
-        { name: 'Tasks', path: '/tasks', icon: <ClipboardList size={20} /> },
+        { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
+        { name: 'Tasks', path: '/tasks', icon: <ListTodo size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, CalendarCheck, Users, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail, Briefcase, Car, ShoppingBag, UserSquare2, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Building2, ClipboardList, Users, Settings, Star, TrendingUp, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail, Briefcase, Car, ShoppingBag, UserSquare2, CreditCard } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -16,7 +16,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Analytics', path: '/analytics', icon: <TrendingUp size={20} /> },
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'Business', path: '/business', icon: <Briefcase size={20} /> },
-        { name: 'Bookings', path: '/bookings', icon: <CalendarCheck size={20} /> },
+        { name: 'Bookings', path: '/bookings', icon: <ClipboardList size={20} /> },
         { name: 'Users', path: '/users', icon: <Users size={20} /> },
         { name: 'Employees', path: '/employees', icon: <UserSquare2 size={20} /> },
         { name: 'Garages', path: '/garages', icon: <Building2 size={20} /> },
