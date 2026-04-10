@@ -107,25 +107,25 @@ const Leave = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[8%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Leave</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Leave Type</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Leave</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave Type</th>
                                 <th className="p-4.5 font-bold text-center w-[32%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Leave Start</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Leave End</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && leaves.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="p-20 text-center">
+                                    <td colSpan="7" className="p-20 text-center">
                                         <Loader2 size={24} className="animate-spin text-gray-400 mx-auto" />
                                     </td>
                                 </tr>
                             ) : leaves.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="p-20 text-center text-gray-400 font-bold tracking-widest">
+                                    <td colSpan="7" className="p-20 text-center text-gray-400 font-bold tracking-widest">
                                         No past leave requests.
                                     </td>
                                 </tr>
@@ -142,8 +142,8 @@ const Leave = () => {
                                             {leave.leaveTime || 'Full Day'}
                                         </span>
                                     </td>
-                                    <td className="p-5 max-w-[250px] text-[13px] ">
-                                        <div className=" truncate" title={leave.reason}>
+                                    <td className="p-5 text-[13px] text-center">
+                                        <div className="whitespace-normal">
                                             {leave.reason}
                                         </div>
                                     </td>
@@ -157,7 +157,7 @@ const Leave = () => {
                                         <div className="text-[13px] font-semibold text-[#011023]">{leave.totalDays} DAYS</div>
                                     </td> */}
                                     <td className="p-5">
-                                        <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyle(leave.status)}`}>
+                                        <span className={`px-4 py-1.5 rounded-full border text-[10px] font-semibold uppercase tracking-widest ${getStatusStyle(leave.status)}`}>
                                             {leave.status}
                                         </span>
                                     </td>
