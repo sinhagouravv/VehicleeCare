@@ -4,22 +4,28 @@ const LeaveRequest = require('../models/LeaveRequest');
 // @route   POST /api/leaves/request
 exports.requestLeave = async (req, res) => {
     try {
-        const { employeeId, employeeName, type, startDate, endDate, reason } = req.body;
+        const { employeeId, employeeName, type, leaveTime, startDate, endDate, reason } = req.body;
 
-        if (!employeeId || !employeeName || !type || !startDate || !endDate || !reason) {
+        if (!employeeId || !employeeName || !type || !leaveTime || !startDate || !endDate || !reason) {
             return res.status(400).json({ success: false, message: 'All fields are required' });
         }
 
         // Calculate total days
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        let diffDays = 0;
+        if (leaveTime === 'Half Day') {
+            diffDays = 0.5;
+        } else {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
 
         const newLeave = new LeaveRequest({
             employeeId,
             employeeName,
             type,
+            leaveTime,
             startDate,
             endDate,
             reason,
