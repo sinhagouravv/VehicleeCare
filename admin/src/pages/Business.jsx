@@ -186,7 +186,7 @@ const Business = () => {
                                     </td>
 
                                     <td className="p-4 text-center w-[10%]">
-                                        <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(req.status)}`}>
+                                        <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(req.status)}`}>
                                             {req.status}
                                         </span>
                                     </td>

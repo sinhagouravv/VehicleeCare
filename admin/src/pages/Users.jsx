@@ -248,7 +248,7 @@ const Users = () => {
                                                 <div className="font-bold uppercase text-[#011023]">{user.name}</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block px-3 uppercase py-1 text-xs font-bold rounded-full ${user.role === 'vendor' || user.role === 'franchise' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                <span className={`inline-block px-3 uppercase py-1 text-xs font-semibold rounded-full ${user.role === 'vendor' || user.role === 'franchise' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-orange-100 text-orange-700'}`}>
                                                     {user.role === 'vendor' || user.role === 'franchise' ? 'Business' : 'Regular'}
                                                 </span>
                                             </td>
@@ -257,7 +257,7 @@ const Users = () => {
                                                 <div className="font-medium text-gray-700 text-sm">{user.email}</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block uppercase rounded-full ${getRoleBadge(user.role)}`}>
+                                                <span className={`inline-block uppercase font-semibold rounded-full ${getRoleBadge(user.role)}`}>
                                                     {formatRole(user.role)}
                                                 </span>
                                             </td>
@@ -267,7 +267,7 @@ const Users = () => {
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
                                                     user.isVerified 
                                                     ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
                                                     : 'bg-amber-100 text-amber-800 border-amber-200'

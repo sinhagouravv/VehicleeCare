@@ -185,11 +185,11 @@ const Payments = () => {
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
                                             {payment.type === 'Subscription' ? (
-                                                <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-fuchsia-100 text-fuchsia-700">
+                                                <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-fuchsia-100 text-fuchsia-700">
                                                     Business
                                                 </span>
                                             ) : payment.booking ? (
-                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${payment.booking.store ? 'bg-purple-100 text-purple-700' : payment.booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${payment.booking.store ? 'bg-purple-100 text-purple-700' : payment.booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                                                     {payment.booking.store ? 'Store' : payment.booking.parking ? 'Parking' : 'Garage'}
                                                 </span>
                                             ) : (
@@ -197,7 +197,7 @@ const Payments = () => {
                                             )}
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
-                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getTypeColor(payment.type)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getTypeColor(payment.type)}`}>
                                                 {payment.type || 'Booking'}
                                             </span>
                                         </td>
@@ -208,10 +208,10 @@ const Payments = () => {
                                         </td>
                                         <td className="p-4 text-center w-[18%]">
                                             <div className="font-bold text-[#011023]">{getCustomerName(payment)}</div>
-                                            <div className="text-xs text-gray-500 font-mono tracking-wide">{payment.user?.userId || ''}</div>
+                                            <div className="text-xs text-gray-500 tracking-wide">{payment.user?.userId || ''}</div>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
-                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${payment.type === 'Subscription' ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${payment.type === 'Subscription' ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
                                                 {payment.type === 'Subscription' ? 'Vendor' : 'Customer'}
                                             </span>
                                         </td>
@@ -234,7 +234,7 @@ const Payments = () => {
                                             <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
-                                            <span className={`inline-block px-3 py-1 text-xs text-center font-bold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
                                                 {payment.status || 'Pending'}
                                             </span>
                                         </td>

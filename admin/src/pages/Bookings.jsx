@@ -228,7 +228,7 @@ const Bookings = () => {
                                             <div className="text-xs text-gray-500">{booking.user?.userId || ""}</div>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
-                                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${booking.store ? 'bg-purple-100 text-purple-700' : booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${booking.store ? 'bg-purple-100 text-purple-700' : booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                                                 {booking.store ? 'Store' : booking.parking ? 'Parking' : 'Garage'}
                                             </span>
                                         </td>
@@ -257,7 +257,7 @@ const Bookings = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[15%]">
-                                            <span className={`inline-block px-3 py-1 text-[10px] text-center font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                                 {booking.status || 'Pending'}
                                             </span>
                                         </td>

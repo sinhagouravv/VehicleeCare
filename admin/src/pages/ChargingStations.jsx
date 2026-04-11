@@ -221,7 +221,7 @@ const ChargingStations = () => {
                                         <td className="p-4 text-center">
                                             <div className="flex flex-wrap gap-1.5 justify-center">
                                                 {(station.type || []).map(t => (
-                                                    <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                    <span key={t} className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
                                                         t.toLowerCase().includes('ac') ? 'bg-blue-100 text-blue-700' :
                                                         t.toLowerCase().includes('dc') ? 'bg-orange-100 text-orange-700' :
                                                         'bg-gray-100 text-gray-700'
@@ -230,7 +230,7 @@ const ChargingStations = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${getStatusColor(station.status)}`}>
+                                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getStatusColor(station.status)}`}>
                                                 {station.status}
                                             </span>
                                         </td>

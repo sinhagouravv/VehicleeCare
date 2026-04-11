@@ -211,7 +211,7 @@ const Reviews = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${rev.type === 'Business' ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                                            <span className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full border ${rev.type === 'Business' ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
                                                 {rev.type === 'Website' ? 'Garage' : rev.type}
                                             </span>
                                         </td>
@@ -237,7 +237,7 @@ const Reviews = () => {
                                         </td>
 
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 text-[11px] font-bold rounded-full ${rev.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${rev.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
                                                 rev.status === 'Rejected' ? 'bg-red-100 text-red-700' :
                                                     'bg-amber-100 text-amber-700'
                                                 }`}>

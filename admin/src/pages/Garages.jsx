@@ -208,7 +208,7 @@ const Garages = () => {
                                         <td className="p-4">
                                             <div className="flex flex-wrap gap-1.5 justify-center">
                                                 {(garage.type || []).map(t => (
-                                                    <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                    <span key={t} className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
                                                         t.toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
                                                         t.toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
                                                         t.toLowerCase() === 'diesel' ? 'bg-indigo-100 text-indigo-700' :
@@ -221,9 +221,9 @@ const Garages = () => {
                                         </td>
                                         <td className="p-4 text-center">
                                             {garage.pickupDrop ? (
-                                                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full text-xs uppercase">Yes</span>
+                                                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs uppercase">Yes</span>
                                             ) : (
-                                                <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-bold rounded-full text-xs uppercase">No</span>
+                                                <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs uppercase">No</span>
                                             )}
                                         </td>
                                         <td className="p-4 text-center">

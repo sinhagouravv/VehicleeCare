@@ -140,7 +140,7 @@ const Messages = () => {
                                             </div>
                                         </td>
                                         <td className="p-4.5 text-center uppercase">
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700 font-extrabold' : 'bg-emerald-100 text-emerald-700 font-extrabold'}`}>
+                                            <span className={`px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700 font-extrabold' : 'bg-emerald-100 text-emerald-700 font-extrabold'}`}>
                                                 {message.type || 'website'}
                                             </span>
                                         </td>
@@ -165,7 +165,7 @@ const Messages = () => {
                                             </div>
                                         </td>
                                         <td className="p-4.5 text-center">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${message.isRead
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${message.isRead
                                                 ? 'bg-gray-100 text-gray-600'
                                                 : 'bg-emerald-100 text-emerald-700'
                                                 }`}>

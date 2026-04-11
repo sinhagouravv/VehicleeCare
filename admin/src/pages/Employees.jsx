@@ -303,7 +303,7 @@ const Employees = () => {
                                                 <div className="font-bold uppercase text-[#011023]">{employee.name}</div>
                                             </td>
                                              <td className="p-4">
-                                                 <span className={`inline-block px-2.5 py-1 uppercase text-xs font-bold rounded-lg border ${
+                                                 <span className={`inline-block px-2.5 py-1 uppercase text-xs font-semibold rounded-lg border ${
                                                      employee.category === 'Store' ? 'bg-orange-50 text-orange-600 border-orange-200' : 
                                                      employee.category === 'Garage' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
                                                      employee.category === 'Station' ? 'bg-amber-50 text-amber-600 border-amber-200' :
@@ -323,7 +323,7 @@ const Employees = () => {
                                                 <div className="font-medium text-gray-700 text-sm">{employee.email}</div>
                                             </td>
                                              <td className="p-4">
-                                                <div className="flex items-center uppercase justify-center gap-1.5 font-bold">
+                                                <div className="flex items-center uppercase justify-center gap-1.5 font-semibold">
                                                     <span className={`px-2.5 py-1 text-[11px] rounded-lg ${getRoleBadge(employee.role)}`}>
                                                         {formatRole(employee.role)}
                                                     </span>
