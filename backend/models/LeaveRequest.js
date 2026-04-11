@@ -39,6 +39,10 @@ const LeaveRequestSchema = new mongoose.Schema({
     totalDays: {
         type: Number,
         required: true
+    },
+    garageId: {
+        type: String,
+        required: true
     }
 }, { timestamps: true });
 
