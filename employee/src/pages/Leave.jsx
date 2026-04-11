@@ -55,6 +55,7 @@ const Leave = () => {
                 body: JSON.stringify({
                     employeeId: empId,
                     employeeName: storedUser.name,
+                    garageId: storedUser.garageId,
                     ...formData
                 })
             });
