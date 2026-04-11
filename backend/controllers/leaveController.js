@@ -4,9 +4,9 @@ const LeaveRequest = require('../models/LeaveRequest');
 // @route   POST /api/leaves/request
 exports.requestLeave = async (req, res) => {
     try {
-        const { employeeId, employeeName, type, leaveTime, startDate, endDate, reason } = req.body;
+        const { employeeId, employeeName, type, leaveTime, startDate, endDate, reason, garageId } = req.body;
 
-        if (!employeeId || !employeeName || !type || !leaveTime || !startDate || !endDate || !reason) {
+        if (!employeeId || !employeeName || !type || !leaveTime || !startDate || !endDate || !reason || !garageId) {
             return res.status(400).json({ success: false, message: 'All fields are required' });
         }
 
@@ -29,7 +29,8 @@ exports.requestLeave = async (req, res) => {
             startDate,
             endDate,
             reason,
-            totalDays: diffDays
+            totalDays: diffDays,
+            garageId
         });
 
         await newLeave.save();
@@ -47,6 +48,18 @@ exports.getEmployeeLeaves = async (req, res) => {
     try {
         const { employeeId } = req.params;
         const leaves = await LeaveRequest.find({ employeeId }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: leaves });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Get leave requests for a specific garage
+// @route   GET /api/leaves/garage/:garageId
+exports.getGarageLeaves = async (req, res) => {
+    try {
+        const { garageId } = req.params;
+        const leaves = await LeaveRequest.find({ garageId }).sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: leaves });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
