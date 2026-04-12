@@ -134,6 +134,7 @@ const Attendance = () => {
     const isCheckedOut = todayRecord && todayRecord.checkOut;
     const isShiftComplete = isCheckedIn && isCheckedOut;
     const isMarkedAbsent = todayRecord && todayRecord.status === 'Absent';
+    const isOnLeave = todayRecord && todayRecord.status === 'On Leave';
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -188,6 +189,10 @@ const Attendance = () => {
                         <div className="w-full py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 font-black text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2">
                             {/* <CheckCircle size={16} /> */}
                             Shift Completed
+                        </div>
+                    ) : isOnLeave ? (
+                        <div className="w-full py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 font-black text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                            On Leave
                         </div>
                     ) : isMarkedAbsent ? (
                         <button

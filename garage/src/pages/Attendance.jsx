@@ -587,7 +587,11 @@ const Attendance = () => {
                                             )}
                                             
                                             <div className="pt-4 border-t border-blue-100/50 mt-4 flex justify-end gap-3">
-                                                {!attendanceStatus.checkOut ? (
+                                                {attendanceStatus.status === 'On Leave' ? (
+                                                    <span className="text-blue-600 font-bold uppercase text-xs flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 w-full justify-center">
+                                                        Employee is On Leave
+                                                    </span>
+                                                ) : !attendanceStatus.checkOut ? (
                                                      <button
                                                         onClick={() => handleMarkAttendance('check-out')}
                                                         disabled={actionLoading}
