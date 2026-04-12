@@ -1,5 +1,6 @@
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
+const LeaveRequest = require('../models/LeaveRequest');
 const { SHIFT_RULES, getISTTime, getTodayIST, toMin } = require('../utils/attendanceHelpers');
 
 
@@ -57,7 +58,22 @@ const checkIn = async (req, res) => {
         const shift = employee.shift || 'Morning';
         const today = getTodayIST(shift);
 
-        // Prevent duplicate check-in
+        // 1. Check if employee is on an approved leave for today
+        const activeLeave = await LeaveRequest.findOne({
+            employeeId: employeeId,
+            status: 'Approved',
+            startDate: { $lte: today },
+            endDate: { $gte: today }
+        });
+
+        if (activeLeave) {
+            return res.status(403).json({ 
+                success: false, 
+                message: `Cannot check-in. You are marked as 'On Leave' from ${activeLeave.startDate} to ${activeLeave.endDate}.` 
+            });
+        }
+
+        // 2. Prevent duplicate check-in
         const existing = await Attendance.findOne({ employeeId, date: today });
         if (existing) {
             return res.status(400).json({ success: false, message: 'Already checked in today', data: existing });
@@ -168,18 +184,43 @@ const autoMarkAbsences = async (garageId) => {
             if (adjustedTotal >= toMin(rules.absentAfter)) {
                 const existing = await Attendance.findOne({ employeeId: emp.employeeId, date: today });
                 if (!existing) {
-                    await Attendance.create({
+                    // Check if employee is on approved leave
+                    const activeLeave = await LeaveRequest.findOne({
                         employeeId: emp.employeeId,
-                        employeeName: emp.name,
-                        contact: emp.phone || '',
-                        email: emp.email || '',
-                        role: emp.role || '',
-                        shift: shift,
-                        garageId: emp.garageId,
-                        date: today,
-                        checkIn: null,
-                        status: 'Absent'
+                        status: 'Approved',
+                        startDate: { $lte: today },
+                        endDate: { $gte: today }
                     });
+
+                    if (activeLeave) {
+                        // Mark as On Leave
+                        await Attendance.create({
+                            employeeId: emp.employeeId,
+                            employeeName: emp.name,
+                            contact: emp.phone || '',
+                            email: emp.email || '',
+                            role: emp.role || '',
+                            shift: shift,
+                            garageId: emp.garageId,
+                            date: today,
+                            checkIn: null,
+                            status: 'On Leave'
+                        });
+                    } else {
+                        // Mark as Absent
+                        await Attendance.create({
+                            employeeId: emp.employeeId,
+                            employeeName: emp.name,
+                            contact: emp.phone || '',
+                            email: emp.email || '',
+                            role: emp.role || '',
+                            shift: shift,
+                            garageId: emp.garageId,
+                            date: today,
+                            checkIn: null,
+                            status: 'Absent'
+                        });
+                    }
                 }
             }
         }

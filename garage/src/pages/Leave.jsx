@@ -135,12 +135,12 @@ const Leave = () => {
                     <table className="w-full text-center border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[9.5%]">Employee ID</th>
-                                <th className="p-4.5 font-bold w-[10.5%]">Employee Name</th>
-                                <th className="p-4.5 font-bold w-[7%]">Leave</th>
+                                <th className="p-4.5 font-bold w-[8%]">Leave ID</th>
+                                <th className="p-4.5 font-bold w-[9%]">Employee ID</th>
+                                <th className="p-4.5 font-bold w-[8%]">Leave</th>
                                 {/* <th className="p-4.5 font-bold w-[8.5%]">Leave Type</th> */}
-                                <th className="p-4.5 font-bold w-[35%]">Reason</th>
-                                <th className="p-4.5 font-bold w-[9%]">Date Applied</th>
+                                <th className="p-4.5 font-bold w-[40%]">Reason</th>
+                                <th className="p-4.5 font-bold w-[10%]">Date Applied</th>
                                 {/* <th className="p-4.5 font-bold w-[7.5%]">Start</th>
                                 <th className="p-4.5 font-bold w-[7.5%]">End</th> */}
                                 <th className="p-4.5 font-bold w-[2%]">Status</th>
@@ -165,11 +165,11 @@ const Leave = () => {
                                 </tr>
                             ) : leaves.map((leave) => (
                                 <tr key={leave._id} className="hover:bg-blue-50/30 transition-all duration-300">
-                                    <td className="p-4 font-semibold text-[#011023] text-sm ">
-                                        {leave.employeeId}
+                                    <td className="p-4 font-semibold text-[#052558] text-sm">
+                                        {leave.leaveId || '—'}
                                     </td>
-                                    <td className="p-4 font-bold text-[#052558] text-sm ">
-                                        {leave.employeeName}
+                                    <td className="p-4 font-semibold text-[#011023] text-sm">
+                                        {leave.employeeId}
                                     </td>
                                     {/* <td className="p-4">
                                         <span className="font-semibold text-gray-700">{leave.type}</span>
@@ -269,7 +269,7 @@ const Leave = () => {
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Leave Details</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{selectedLeave.employeeId}</span></p>
+                                    <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{selectedLeave.leaveId}</span></p>
                                 </div>
                             </div>
                             <button
@@ -282,32 +282,30 @@ const Leave = () => {
                         
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
-                            <div className="flex flex-col md:flex-row mb-7 gap-6 w-full">
+                            <div className="flex flex-col md:flex-row gap-6 mb-7 w-full">
                                 {/* Employee Info */}
-                                <div className="space-y-2 w-full md:w-[43%]">
+                                <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employee Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011021] truncate">{selectedLeave.employeeName}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedLeave.employeePhone || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate lowercase">{selectedLeave.employeeEmail || '—'}</span></p>
+                                        <p className="text-sm text-gray-500"><span className="text-gray-500 w-24 shrink-0">ID:</span> <span className="font-semibold pl-19 text-gray-700">{selectedLeave.employeeId}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Leave Info */}
-                                <div className="space-y-2 w-full md:w-[28%]">
+                                <div className="space-y-1 w-full md:w-[35%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Leave Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[100px]">
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Type:</span> <span className="font-semibold text-[#011023]">{selectedLeave.type}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Date:</span> <span className="font-semibold text-gray-800 first-letter:uppercase">{formatDate(selectedLeave.createdAt)}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Time:</span> <span className="font-semibold text-gray-800 first-letter:uppercase">{formatTime(selectedLeave.createdAt)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Date:</span> <span className="font-semibold text-gray-800 uppercase">{formatDate(selectedLeave.createdAt)} | {formatTime(selectedLeave.createdAt)}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Status & Duration */}
                                 <div className="flex flex-col gap-4 w-full md:w-[30%]">
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
-                                        <div className="space-y-3 mt-5">
+                                        <div className="space-y-2 mt-4">
                                             <div className="flex items-center gap-6">
                                                 <p className="text-sm font-semibold text-gray-500 w-16 shrink-0 uppercase">Status</p>
                                                 <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg uppercase tracking-wider  ${getStatusStyle(selectedLeave.status)}`}>

@@ -9,6 +9,14 @@ const LeaveRequestSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    employeePhone: {
+        type: String,
+        required: false
+    },
+    employeeEmail: {
+        type: String,
+        required: false
+    },
     type: {
         type: String,
         enum: ['Sick Leave', 'Casual Leave', 'Planned Leave', 'Emergency Leave'],
@@ -23,9 +31,17 @@ const LeaveRequestSchema = new mongoose.Schema({
         type: String, // YYYY-MM-DD
         required: true
     },
+    startTime: {
+        type: String, // HH:mm
+        required: false // Optional for older records
+    },
     endDate: {
         type: String, // YYYY-MM-DD
         required: true
+    },
+    endTime: {
+        type: String, // HH:mm
+        required: false // Optional for older records
     },
     reason: {
         type: String,
@@ -39,6 +55,11 @@ const LeaveRequestSchema = new mongoose.Schema({
     totalDays: {
         type: Number,
         required: true
+    },
+    leaveId: {
+        type: String,
+        required: true,
+        unique: true
     },
     garageId: {
         type: String,

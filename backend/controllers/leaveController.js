@@ -1,14 +1,51 @@
+const mongoose = require('mongoose');
 const LeaveRequest = require('../models/LeaveRequest');
+const Employee = require('../models/Employee');
+
+// Helper: Generate unique 7-char Leave ID (LA + 5 unique non-zero digits)
+const generateLeaveId = async () => {
+    const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    let isUnique = false;
+    let newId = '';
+
+    while (!isUnique) {
+        newId = 'LA';
+        let tempDigits = [...digits];
+        for (let i = 0; i < 5; i++) {
+            const idx = Math.floor(Math.random() * tempDigits.length);
+            newId += tempDigits[idx];
+            tempDigits.splice(idx, 1);
+        }
+        const existing = await LeaveRequest.findOne({ leaveId: newId });
+        if (!existing) isUnique = true;
+    }
+    return newId;
+};
 
 // @desc    Request leave
 // @route   POST /api/leaves/request
 exports.requestLeave = async (req, res) => {
     try {
-        const { employeeId, employeeName, type, leaveTime, startDate, endDate, reason, garageId } = req.body;
+        const { 
+            employeeId, employeeName, employeePhone: reqPhone, employeeEmail: reqEmail, 
+            type, leaveTime, startDate, endDate, reason, garageId, startTime, endTime,
+            parentLeaveId // For extension
+        } = req.body;
 
         if (!employeeId || !employeeName || !type || !leaveTime || !startDate || !endDate || !reason || !garageId) {
             return res.status(400).json({ success: false, message: 'All fields are required' });
         }
+
+        // Fetch latest employee info for contact details (Source of Truth)
+        let employee = await Employee.findOne({ employeeId: employeeId });
+        
+        // If not found by custom ID, and it's a valid ObjectId, try finding by MongoDB _id
+        if (!employee && mongoose.Types.ObjectId.isValid(employeeId)) {
+            employee = await Employee.findById(employeeId);
+        }
+
+        const finalPhone = employee?.phone || reqPhone || '';
+        const finalEmail = employee?.email || reqEmail || '';
 
         // Calculate total days
         let diffDays = 0;
@@ -21,15 +58,27 @@ exports.requestLeave = async (req, res) => {
             diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         }
 
+        let leaveId = '';
+        if (parentLeaveId) {
+            leaveId = `${parentLeaveId}E`;
+        } else {
+            leaveId = await generateLeaveId();
+        }
+
         const newLeave = new LeaveRequest({
             employeeId,
             employeeName,
+            employeePhone: finalPhone,
+            employeeEmail: finalEmail,
             type,
             leaveTime,
             startDate,
+            startTime,
             endDate,
+            endTime,
             reason,
             totalDays: diffDays,
+            leaveId,
             garageId
         });
 
@@ -92,6 +141,20 @@ exports.updateLeaveStatus = async (req, res) => {
         }
 
         res.status(200).json({ success: true, data: leave });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Delete leave request
+// @route   DELETE /api/leaves/:id
+exports.deleteLeaveRequest = async (req, res) => {
+    try {
+        const leave = await LeaveRequest.findByIdAndDelete(req.params.id);
+        if (!leave) {
+            return res.status(404).json({ success: false, message: 'Leave request not found' });
+        }
+        res.status(200).json({ success: true, message: 'Leave request deleted successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
