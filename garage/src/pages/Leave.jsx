@@ -358,21 +358,17 @@ const Leave = () => {
                     onClick={() => setIsDeleteModalOpen(false)}
                 >
                     <div 
-                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300"
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="p-8 text-center space-y-4">
-                            <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-2 shadow-sm border border-rose-100/50">
-                                <Trash2 size={36} />
-                            </div>
-                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter">Delete Request?</h3>
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-                                This will permanently remove the leave record for <br/>
-                                <span className="text-[#052558] font-bold uppercase">{selectedLeave.employeeName}</span>. <br/>
+                                This will permanently remove the leave record for <span className="text-[#052558] font-bold uppercase">{selectedLeave.employeeName}</span>. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
-                        <div className="p-6 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
                             <button 
                                 onClick={() => setIsDeleteModalOpen(false)}
                                 className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
@@ -382,7 +378,7 @@ const Leave = () => {
                             <button 
                                 onClick={handleDelete}
                                 disabled={deleting}
-                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-0"
                             >
                                 {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
