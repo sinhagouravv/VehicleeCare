@@ -177,7 +177,7 @@ const MyBookings = () => {
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[29%]">Service & Vehicle</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Schedule At</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Price</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Price</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
@@ -235,7 +235,7 @@ const MyBookings = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center w-[12%]">
-                                        <span className={`inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
+                                        <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                             {booking.status || 'Pending'}
                                         </span>
                                     </td>

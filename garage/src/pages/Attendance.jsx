@@ -370,12 +370,12 @@ const Attendance = () => {
                                             <div className="text-sm text-[#052558] font-semibold">{r.contact}</div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
+                                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
                                                 {r.role}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
+                                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
                                                 {r.shift}
                                             </span>
                                         </td>
@@ -393,7 +393,7 @@ const Attendance = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 rounded-lg text-[11px] font-bold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
+                                            <span className={`px-3 py-1 rounded-lg text-xs font-semibold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
                                                 {r.status}
                                             </span>
                                         </td>

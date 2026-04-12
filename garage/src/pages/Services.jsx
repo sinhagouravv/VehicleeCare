@@ -156,7 +156,7 @@ const Services = () => {
                                         {booking.payment?.paymentId || '—'}
                                     </td> */}
                                     <td className="p-4 text-center w-[8%]">
-                                        <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${getCategoryStyle(booking.vehicle?.fuelType)}`}>
+                                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${getCategoryStyle(booking.vehicle?.fuelType)}`}>
                                             {booking.vehicle?.fuelType || 'N/A'}
                                         </span>
                                     </td>
@@ -186,7 +186,7 @@ const Services = () => {
                                         </button>
                                     </td> */}
                                     <td className="p-4 text-center w-[8%]">
-                                        <span className={`px-3 py-1 text-[10px] uppercase font-bold rounded-full border ${getStatusStyle(booking.status || 'Pending')}`}>
+                                        <span className={`px-3 py-1 text-xs uppercase font-semibold rounded-full border ${getStatusStyle(booking.status || 'Pending')}`}>
                                             {booking.status || 'Pending'}
                                         </span>
                                     </td>

@@ -340,13 +340,13 @@ const Staff = () => {
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="flex items-center uppercase justify-center gap-1.5 font-bold">
-                                            <span className={`px-2.5 py-1 text-[11px] rounded-lg ${getRoleBadge(staff.role)}`}>
+                                            <span className={`px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(staff.role)}`}>
                                                 {formatRole(staff.role)}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-1000'}`}>
+                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-1000'}`}>
                                             {staff.shift || '—'}
                                         </span>
                                     </td>

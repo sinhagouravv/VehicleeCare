@@ -158,15 +158,15 @@ const Vehicles = () => {
                                         {v.model}
                                     </td>
                                     <td className="p-4 text-center w-[9%]">
-                                        <span className="bg-[#fef3c7] text-[#92400e] font-bold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide">
+                                        <span className="bg-[#fef3c7] text-[#92400e] font-semibold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide">
                                             {v.number}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center w-[19%]">
                                         <div className="flex flex-wrap justify-center gap-1.5">
-                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold border border-blue-100">{v.year}</span>
-                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-bold border border-emerald-100">{v.type}</span>
-                                            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md font-bold border border-purple-100">{v.transmission}</span>
+                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-semibold border border-blue-100">{v.year}</span>
+                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-semibold border border-emerald-100">{v.type}</span>
+                                            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md font-semibold border border-purple-100">{v.transmission}</span>
                                         </div>
                                     </td>
                                     <td className="p-4 text-center w-[15%]">

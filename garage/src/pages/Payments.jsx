@@ -207,7 +207,7 @@ const Payments = () => {
                                             <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
                                         </td>
                                         <td className="p-4 text-center w-[7%]">
-                                            <span className={`inline-block px-3 py-1 text-[10px] text-center font-bold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
                                                 {payment.status || 'Pending'}
                                             </span>
                                         </td>
