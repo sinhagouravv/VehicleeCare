@@ -214,7 +214,7 @@ const Tasks = () => {
                                 <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[30%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Time Slot</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-black text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
@@ -283,7 +283,7 @@ const Tasks = () => {
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <span className={`px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(task.status)}`}>
+                                        <span className={`px-3 py-1 rounded-full border text-[10.5px] font-semibold uppercase tracking-wider ${getStatusStyle(task.status)}`}>
                                             {task.status}
                                         </span>
                                     </td>
