@@ -190,7 +190,7 @@ const Notifications = () => {
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
                                             <td className="p-4.5">
-                                                <span className={`px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                                <span className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
                                             </td>
@@ -222,7 +222,7 @@ const Notifications = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4.5">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${notif.isRead
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
                                                     ? 'bg-gray-100 text-gray-600'
                                                     : 'bg-blue-100 text-blue-700'
                                                     }`}>

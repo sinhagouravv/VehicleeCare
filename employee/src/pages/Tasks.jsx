@@ -283,7 +283,7 @@ const Tasks = () => {
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <span className={`px-3 py-1 rounded-full border text-[10.5px] font-semibold uppercase tracking-wider ${getStatusStyle(task.status)}`}>
+                                        <span className={`px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wider ${getStatusStyle(task.status)}`}>
                                             {task.status}
                                         </span>
                                     </td>
