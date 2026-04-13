@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Loader2, Trash2 } from 'lucide-react';
 
 const EVENT_MAPPING = {
@@ -11,6 +12,9 @@ const Notifications = () => {
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [unread, setUnread] = useState(0);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [notifToDelete, setNotifToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchNotifications = useCallback(async (silent = false) => {
         try {
@@ -80,12 +84,21 @@ const Notifications = () => {
         setUnread(prev => Math.max(0, prev - 1));
     };
 
-    const deleteNotif = async (id) => {
-        if (!window.confirm("Delete this notification?")) return;
-        await fetch(`http://localhost:5001/api/notifications/${id}`, { method: 'DELETE' });
-        const deleted = notifications.find(n => n._id === id);
-        setNotifications(prev => prev.filter(n => n._id !== id));
-        if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));
+    const confirmDeleteNotif = async () => {
+        if (!notifToDelete) return;
+        setDeleting(true);
+        try {
+            await fetch(`http://localhost:5001/api/notifications/${notifToDelete}`, { method: 'DELETE' });
+            const deleted = notifications.find(n => n._id === notifToDelete);
+            setNotifications(prev => prev.filter(n => n._id !== notifToDelete));
+            if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));
+            setIsDeleteModalOpen(false);
+            setNotifToDelete(null);
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     // Build a map of Name -> userId from all users AND notifications to fill in gaps
@@ -232,7 +245,7 @@ const Notifications = () => {
                                             <td className="p-4.5">
                                                 <div className="flex justify-center">
                                                     <button 
-                                                        onClick={(e) => { e.stopPropagation(); deleteNotif(notif._id); }}
+                                                        onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
                                                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                                                         title="Delete Notification"
                                                     >
@@ -248,6 +261,42 @@ const Notifications = () => {
                     </table>
                 </div>
             </div>
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setNotifToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Notification</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove this notification from your record. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setNotifToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteNotif}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
