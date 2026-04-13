@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Trash2 } from 'lucide-react';
+import { Eye, X, Trash2, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 
 const Vehicles = () => {
@@ -9,7 +9,9 @@ const Vehicles = () => {
     const [loading, setLoading] = useState(true);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [deleteModal, setDeleteModal] = useState({ open: false, vehicle: null });
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [vehicleToDelete, setVehicleToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const highlightedRow = useHighlight(vehicles);
 
     const fetchVehicles = useCallback(async (silent = false) => {
@@ -74,11 +76,16 @@ const Vehicles = () => {
         setIsViewModalOpen(true);
     };
 
-    const handleDeleteVehicle = () => {
-        if (!deleteModal.vehicle) return;
+    const confirmDeleteVehicle = () => {
+        if (!vehicleToDelete) return;
+        setDeleting(true);
         // Local state filtering for immediate UI feedback as per pattern
-        setVehicles(prev => prev.filter(v => v.id !== deleteModal.vehicle.id));
-        setDeleteModal({ open: false, vehicle: null });
+        setTimeout(() => {
+            setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+            setIsDeleteModalOpen(false);
+            setVehicleToDelete(null);
+            setDeleting(false);
+        }, 500); // Small delay for visual feedback
     };
 
     const formatDate = (date) => {
@@ -184,7 +191,7 @@ const Vehicles = () => {
                                                 <Eye size={17} />
                                             </button>
                                             <button
-                                                onClick={() => setDeleteModal({ open: true, vehicle: v })}
+                                                onClick={() => { setVehicleToDelete(v); setIsDeleteModalOpen(true); }}
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                                                 title="Delete Vehicle"
                                             >
@@ -269,29 +276,35 @@ const Vehicles = () => {
             )}
 
             {/* Delete Confirmation Modal */}
-            {deleteModal.open && createPortal(
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 text-center space-y-4">
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-bold text-[#052558] uppercase">Delete Vehicle?</h3>
-                                <p className="text-gray-500 text-sm">
-                                    Are you sure you want to remove <span className="font-bold text-gray-700">{deleteModal.vehicle?.number}</span> from the directory? This action cannot be undone.
-                                </p>
-                            </div>
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setVehicleToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Remove Vehicle</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the vehicle <span className="text-[#052558] font-bold uppercase">{vehicleToDelete?.brand} {vehicleToDelete?.model}</span> from the record. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
                         </div>
-                        <div className="flex p-4 gap-3 bg-gray-50/50">
-                            <button
-                                onClick={() => setDeleteModal({ open: false, vehicle: null })}
-                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors uppercase text-xs"
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setVehicleToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
                             >
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleDeleteVehicle}
-                                className="flex-1 px-4 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all uppercase text-xs"
+                            <button 
+                                onClick={confirmDeleteVehicle}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                             >
-                                Delete
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
                         </div>
                     </div>
@@ -303,4 +316,3 @@ const Vehicles = () => {
 };
 
 export default Vehicles;
-
