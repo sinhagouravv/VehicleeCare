@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 
 const Services = () => {
@@ -7,6 +8,9 @@ const Services = () => {
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const highlightedRow = useHighlight(bookings);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [bookingToDelete, setBookingToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchBookings = async (silent = false) => {
         try {
@@ -66,18 +70,23 @@ const Services = () => {
         }
     };
 
-    const handleDelete = async (bookingId) => {
-        if (!window.confirm("Are you sure you want to remove this booking?")) return;
+    const confirmDelete = async () => {
+        if (!bookingToDelete) return;
+        setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}`, {
+            const res = await fetch(`http://localhost:5001/api/bookings/${bookingToDelete}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
             if (data.success) {
-                setBookings(prev => prev.filter(b => b._id !== bookingId));
+                setBookings(prev => prev.filter(b => b._id !== bookingToDelete));
+                setIsDeleteModalOpen(false);
+                setBookingToDelete(null);
             }
         } catch (error) {
             console.error("Failed to delete booking", error);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -208,7 +217,7 @@ const Services = () => {
                                                 <Eye size={17} />
                                             </button>
                                             <button 
-                                                onClick={() => handleDelete(booking._id)}
+                                                onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }}
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" 
                                                 title="Remove"
                                             >
@@ -222,6 +231,41 @@ const Services = () => {
                     </table>
                 </div>
             </div>
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setBookingToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Cancel Service</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently cancel the booking for <span className="text-[#052558] font-bold uppercase">{bookings.find(b => b._id === bookingToDelete)?.user?.name || 'this customer'}</span>. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setBookingToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
