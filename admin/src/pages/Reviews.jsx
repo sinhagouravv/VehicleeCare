@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Trash2, Eye, CheckCircle, XCircle, X } from 'lucide-react';
+import { Star, Trash2, Eye, Check, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 
@@ -183,12 +183,12 @@ const Reviews = () => {
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center w-[10%]">Review ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[9%]">Review ID</th>
                                     <th className="p-4.5 font-bold text-center w-[10%]">Reviewer</th>
                                     <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
                                     <th className="p-4.5 font-bold text-center w-[35%]">Review Text</th>
                                     <th className="p-4.5 font-bold text-center w-[6%]">Rating</th>
-                                    <th className="p-4.5 font-bold text-center w-[12%]">Date</th>
+                                    <th className="p-4.5 font-bold text-center w-[14%]">Date</th>
                                     <th className="p-4.5 font-bold text-center w-[4%]">Status</th>
                                     <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
                                 </tr>
@@ -232,7 +232,7 @@ const Reviews = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center text-xs font-semibold text-[#011023]">
+                                        <td className="p-4 text-center text-sm font-semibold text-[#011023]">
                                             {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(rev.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                         </td>
 
@@ -250,18 +250,22 @@ const Reviews = () => {
                                                 {rev.status === 'Pending' && (
                                                     <>
                                                         <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
-                                                            <CheckCircle size={18} />
+                                                            <Check size={18} />
                                                         </button>
                                                         <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Reject">
-                                                            <XCircle size={18} />
+                                                            <X size={18} />
                                                         </button>
                                                     </>
                                                 )}
 
                                                 {rev.status === 'Rejected' && (
                                                     <>
-                                                        <button className="text-red-500/50 p-1.5 rounded-lg cursor-default" title="Rejected">
-                                                            <XCircle size={18} />
+                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Full Review">
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        {/* User requested: 'the reject icon should not be there' for approved status */}
+                                                        <button onClick={() => handleDelete(rev._id, rev.type)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </>
                                                 )}
@@ -368,13 +372,12 @@ const Reviews = () => {
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Review Content</h4>
                                 <div className="bg-white border border-[#e6f0fa] p-4 rounded-2xl shadow-sm text-justify relative">
-                                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[16px] relative z-10">
+                                    <p className="text-gray-700 leading-relaxed uppercase whitespace-pre-wrap text-sm relative z-10">
                                         {selectedReview.text}
                                     </p>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>,
                 document.body
