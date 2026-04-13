@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2 } from 'lucide-react';
+import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2 } from 'lucide-react';
 
 const Business = () => {
     const [requests, setRequests] = useState([]);
@@ -10,6 +10,9 @@ const Business = () => {
 
     const [refreshing, setRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [requestToDelete, setRequestToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchRequests = useCallback(async (silent = false) => {
         try {
@@ -57,25 +60,30 @@ const Business = () => {
             alert("Error updating status.");
         }
     };
-    const handleDeleteRequest = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this business request? This action cannot be undone.')) return;
+    const confirmDeleteRequest = async () => {
+        if (!requestToDelete) return;
+        setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/business-requests/${id}`, {
+            const res = await fetch(`http://localhost:5001/api/business-requests/${requestToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
             if (data.success) {
-                setRequests(prev => prev.filter(r => r._id !== id));
-                if (selectedRequest && selectedRequest._id === id) {
+                setRequests(prev => prev.filter(r => r._id !== requestToDelete));
+                if (selectedRequest && selectedRequest._id === requestToDelete) {
                     setIsViewModalOpen(false);
                     setSelectedRequest(null);
                 }
+                setIsDeleteModalOpen(false);
+                setRequestToDelete(null);
             } else {
                 alert('Failed to delete request.');
             }
         } catch (err) {
             console.error('Error deleting business request:', err);
             alert('Error deleting request.');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -207,7 +215,7 @@ const Business = () => {
                                                 </>
                                             )}
                                             {req.status !== 'Pending' && (
-                                                <button onClick={() => handleDeleteRequest(req._id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Request">
+                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Request">
                                                     <Trash2 size={18} />
                                                 </button>
                                             )}
@@ -306,6 +314,42 @@ const Business = () => {
                                     </button>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setRequestToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the business request from <span className="text-[#052558] font-bold uppercase">{requests.find(r => r._id === requestToDelete)?.businessName}</span>. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setRequestToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDelete}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>,
