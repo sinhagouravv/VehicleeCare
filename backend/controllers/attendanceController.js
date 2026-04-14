@@ -155,7 +155,27 @@ const getTodayStatus = async (req, res) => {
         const employee = await Employee.findOne({ employeeId: req.params.employeeId });
         const shift = employee?.shift || 'Morning';
         const today = getTodayIST(shift);
-        const record = await Attendance.findOne({ employeeId: req.params.employeeId, date: today });
+        let record = await Attendance.findOne({ employeeId: req.params.employeeId, date: today });
+        
+        if (!record) {
+            const activeLeave = await LeaveRequest.findOne({
+                employeeId: req.params.employeeId,
+                status: 'Approved',
+                startDate: { $lte: today },
+                endDate: { $gte: today }
+            });
+
+            if (activeLeave) {
+                record = {
+                    employeeId: req.params.employeeId,
+                    status: 'On Leave',
+                    leaveStartDate: activeLeave.startDate,
+                    leaveEndDate: activeLeave.endDate,
+                    date: today
+                };
+            }
+        }
+
         res.status(200).json({ success: true, data: record || null });
     } catch (err) {
         console.error('Status fetch error:', err);
@@ -204,7 +224,9 @@ const autoMarkAbsences = async (garageId) => {
                             garageId: emp.garageId,
                             date: today,
                             checkIn: null,
-                            status: 'On Leave'
+                            status: 'On Leave',
+                            leaveStartDate: activeLeave.startDate,
+                            leaveEndDate: activeLeave.endDate
                         });
                     } else {
                         // Mark as Absent
@@ -255,6 +277,23 @@ const getGarageAttendance = async (req, res) => {
             shift: shiftMap[record.employeeId] || record.shift || 'Morning'
         }));
 
+        // Fetch leave requests for "On Leave" records to ensure leave dates are present
+        const onLeaveRecords = updatedRecords.filter(r => r.status === 'On Leave' && (!r.leaveStartDate || !r.leaveEndDate));
+        if (onLeaveRecords.length > 0) {
+            for (const r of onLeaveRecords) {
+                const leave = await LeaveRequest.findOne({
+                    employeeId: r.employeeId,
+                    status: 'Approved',
+                    startDate: { $lte: r.date },
+                    endDate: { $gte: r.date }
+                });
+                if (leave) {
+                    r.leaveStartDate = leave.startDate;
+                    r.leaveEndDate = leave.endDate;
+                }
+            }
+        }
+
         res.status(200).json({ success: true, count: updatedRecords.length, data: updatedRecords });
     } catch (err) {
         console.error('Garage attendance fetch error:', err);
@@ -277,6 +316,23 @@ const getEmployeeAttendance = async (req, res) => {
             ...record,
             shift: record.shift || shift
         }));
+
+        // Fetch leave requests for "On Leave" records to ensure leave dates are present
+        const onLeaveRecords = updatedRecords.filter(r => r.status === 'On Leave' && (!r.leaveStartDate || !r.leaveEndDate));
+        if (onLeaveRecords.length > 0) {
+            for (const r of onLeaveRecords) {
+                const leave = await LeaveRequest.findOne({
+                    employeeId: r.employeeId,
+                    status: 'Approved',
+                    startDate: { $lte: r.date },
+                    endDate: { $gte: r.date }
+                });
+                if (leave) {
+                    r.leaveStartDate = leave.startDate;
+                    r.leaveEndDate = leave.endDate;
+                }
+            }
+        }
 
         res.status(200).json({ success: true, count: updatedRecords.length, data: updatedRecords });
     } catch (err) {

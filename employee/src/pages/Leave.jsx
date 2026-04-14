@@ -214,14 +214,14 @@ const Leave = () => {
                     <button
                         onClick={() => handleOpenModal()}
                         disabled={!!pendingLeave}
-                        className={`flex items-center gap-2 px-6 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 cursor-not-allowed opacity-75' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase tracking-tighter text-sm`}
+                        className={`flex items-center gap-2 px-14.5 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 opacity-75' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-black rounded-xl shadow-md transition-all uppercase text-xs`}
                     >
                         <Plus size={18} />
                         Apply Leave
                     </button>
 
                     {pendingLeave && (
-                        <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px]  font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-justify uppercase tracking-wider border border-white/10 shadow-2xl">
+                                <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
                             Kindly ask the admin to approve or reject the current leave to apply for a new leave
                         </div>
                     )}
@@ -603,7 +603,7 @@ const Leave = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
                                 This will permanently remove the leave. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.

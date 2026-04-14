@@ -46,6 +46,14 @@ const attendanceSchema = new mongoose.Schema({
         type: String,
         enum: ['Present', 'Late', 'Absent', 'On Leave', 'Overtime'],
         default: 'Present'
+    },
+    leaveStartDate: {
+        type: String, // YYYY-MM-DD
+        default: null
+    },
+    leaveEndDate: {
+        type: String, // YYYY-MM-DD
+        default: null
     }
 }, { timestamps: true });
 

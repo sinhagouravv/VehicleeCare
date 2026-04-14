@@ -190,18 +190,18 @@ const Attendance = () => {
                             {/* <CheckCircle size={16} /> */}
                             Shift Completed
                         </div>
-                    ) : isOnLeave ? (
-                        <div className="w-full py-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 font-black text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2">
-                            On Leave
-                        </div>
                     ) : isMarkedAbsent ? (
-                        <button
-                            disabled
-                            title="You cannot checkin for today as you are marked absent"
-                            className="w-full py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-500 font-black text-[10px] uppercase tracking-widest text-center flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-                        >
-                            Marked Absent
-                        </button>
+                        <div className="relative group w-full">
+                            <button
+                                disabled
+                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-500 font-black text-[10px] uppercase tracking-widest text-center flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                            >
+                                Marked Absent
+                            </button>
+                            <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
+                                You cannot checkin for today as you are marked absent
+                            </div>
+                        </div>
                     ) : isCheckedIn ? (
                         <button
                             onClick={handleCheckOut}
@@ -218,20 +218,27 @@ const Attendance = () => {
                             )}
                         </button>
                     ) : (
-                        <button
-                            onClick={handleCheckIn}
-                            disabled={actionLoading}
-                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                        >
-                            {actionLoading ? (
-                                <Loader2 size={16} className="animate-spin" />
-                            ) : (
-                                <>
-                                    <LogIn size={16} />
-                                    Check In
-                                </>
+                        <div className="relative group w-full">
+                            <button
+                                onClick={handleCheckIn}
+                                disabled={actionLoading || isOnLeave}
+                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                            >
+                                {actionLoading ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <>
+                                        <LogIn size={16} />
+                                        Check In
+                                    </>
+                                )}
+                            </button>
+                            {isOnLeave && (
+                                <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
+                                    You are on leave from {formatDateStr(todayRecord.leaveStartDate)} - {formatDateStr(todayRecord.leaveEndDate)} check in after your leave ends
+                                </div>
                             )}
-                        </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -310,7 +317,7 @@ const Attendance = () => {
                                     </td>
                                     <td className="p-4.5 text-center">
                                         <span className={`px-3 py-1 rounded-xl text-xs font-semibold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
-                                            {r.status}
+                                            {r.status === 'On Leave' ? 'On Leave' : r.status}
                                         </span>
                                     </td>
                                 </tr>
