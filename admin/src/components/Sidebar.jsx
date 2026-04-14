@@ -68,7 +68,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                     <NavLink
                         key={item.name}
                         to={item.path}
-                        title={isCollapsed ? item.name : ""}
                         className={({ isActive }) =>
                             `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-12 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
                                 ? 'bg-white text-[#011023] shadow-md'
@@ -86,7 +85,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                 <button
                     onClick={handleLogout}
                     className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
-                    title={isCollapsed ? "Sign Out" : ""}
                 >
                     <div className={`${isCollapsed ? '' : 'pl-1'} flex-shrink-0 group-hover:text-red-500 transition-colors`}>
                         <LogOut size={18} />
