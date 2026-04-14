@@ -56,7 +56,7 @@ const Reviews = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto pb-12">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Assignment Feedback</h1>
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Assignment Feedback</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`

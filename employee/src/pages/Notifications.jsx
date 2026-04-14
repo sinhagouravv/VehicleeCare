@@ -147,7 +147,7 @@ const Notifications = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-3xl font-extrabold text-[#011023] uppercase tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight flex items-center gap-3">
                         Notifications
                     </h1>
                 </div>

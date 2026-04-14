@@ -23,7 +23,7 @@ const Dashboard = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Dashboard</h1>
+                    <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Dashboard</h1>
                 </div>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
