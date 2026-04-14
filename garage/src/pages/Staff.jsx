@@ -666,33 +666,30 @@ const Staff = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && employeeToDelete && createPortal(
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
-                    <div className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
-                            <div className="w-16 h-16 rounded-3xl bg-red-100 flex items-center justify-center shadow-inner">
-                                <Trash2 size={24} className="text-red-600" />
-                            </div>
+                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+                    <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                        <div className="p-2 mt-7 mb-1 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
                             <div>
-                                <h3 className="text-xl uppercase font-black text-[#011023]">Remove Member</h3>
-                                <p className="text-xs text-red-500 font-bold uppercase tracking-widest mt-1">Permanent Removal</p>
+                                <h3 className="text-2xl uppercase font-bold text-[#011023]">Remove Member</h3>
                             </div>
                         </div>
 
-                        <div className="p-8 text-center uppercase tracking-tight">
-                            <h4 className="text-lg font-bold text-[#011023] mb-2">{employeeToDelete.name}</h4>
-                            <p className="text-gray-500 text-xs leading-relaxed">
-                                Are you sure you want to permanently delete this account? All performance records and credentials will be lost.
+                        <div className="p-5 text-center uppercase tracking-tight">
+                            <h4 className="font-bold text-[#011023] mb-5">{employeeToDelete.name}</h4>
+                            <p className="text-gray-500 text-[13px] leading-relaxed">
+                                Are you sure you want to permanently delete this account? All performance records and credentials will be lost. <br />
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
 
-                        <div className="p-6 bg-gray-50 flex gap-3">
-                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-xs font-bold text-gray-400 hover:bg-white rounded-2xl border-2 border-transparent hover:border-gray-200 transition-all uppercase">CANCEL</button>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95">CANCEL</button>
                             <button
                                 onClick={handleDelete}
                                 disabled={deleting}
-                                className="flex-1 py-3 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all text-xs uppercase disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-0"
                             >
-                                {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'CONFIRM DELETE'}
+                                {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
                             </button>
                         </div>
                     </div>

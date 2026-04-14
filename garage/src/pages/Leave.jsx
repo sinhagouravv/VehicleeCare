@@ -121,7 +121,7 @@ const Leave = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Leave Requests</h1>
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Leave Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -362,7 +362,7 @@ const Leave = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
                                 This will permanently remove the leave record for <span className="text-[#052558] font-bold uppercase">{selectedLeave.employeeName}</span>. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.

@@ -397,7 +397,6 @@ const MyBookings = () => {
             document.body
         )
     }
-</div>
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
@@ -409,7 +408,7 @@ const MyBookings = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Booking</h3>
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Booking</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
                                 This will permanently remove the booking record for <span className="text-[#052558] font-bold uppercase">{bookings.find(b => b._id === bookingToDelete)?.user?.name || 'this customer'}</span>. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.

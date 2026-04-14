@@ -147,7 +147,7 @@ const Customers = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold uppercase text-[#011023] tracking-tight">Customers</h1>
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Customers</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -375,30 +375,29 @@ const Customers = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && customerToDelete && createPortal(
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
-                    <div className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
+                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+                    <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                        <div className="p-2 mt-7 mb-1 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
                             <div>
-                                <h3 className="text-xl uppercase mt-3 font-black text-[#011023]">Remove Customer</h3>
-                                <p className="text-xs text-red-500 font-bold uppercase tracking-widest mt-1">Permanent Removal</p>
+                                <h3 className="text-2xl uppercase font-bold text-[#011023]">Remove Customer</h3>
                             </div>
                         </div>
 
-                        <div className="p-3 text-center uppercase tracking-tight">
-                            <h4 className="text-lg font-bold text-[#011023] mb-2">{customerToDelete.name}</h4>
+                        <div className="p-5 text-center uppercase tracking-tight">
+                            <h4 className="font-bold text-[#011023] mb-5">{customerToDelete.name}</h4>
                             <p className="text-gray-500 text-xs leading-relaxed">
-                                Are you sure you want to permanently delete this customer from your directory? This action cannot be undone.
+                                Are you sure you want to permanently delete this customer from your <br /> directory. This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
 
-                        <div className="p-6 bg-gray-50 flex gap-3">
-                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-xs font-bold text-gray-400 hover:bg-white rounded-2xl border-2 border-transparent hover:border-gray-200 transition-all uppercase">CANCEL</button>
-                            <button 
-                                onClick={handleDelete} 
-                                disabled={deleting}
-                                className="flex-1 py-3 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all text-xs uppercase disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'CONFIRM DELETE'}
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95">CANCEL</button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={deleting}
+                                    className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-0"
+                                >
+                                {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
                             </button>
                         </div>
                     </div>

@@ -125,7 +125,7 @@ const Payments = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-extrabold text-[#011023] uppercase tracking-tight">Payments</h1>
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Payments</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`

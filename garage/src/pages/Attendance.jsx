@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar } from 'lucide-react';
+import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 
 const Attendance = () => {
@@ -9,7 +9,9 @@ const Attendance = () => {
     const [loading, setLoading] = useState(true);
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [deleteModal, setDeleteModal] = useState({ open: false, record: null });
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [recordToDelete, setRecordToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const [employees, setEmployees] = useState([]);
     const [isMarkModalOpen, setIsMarkModalOpen] = useState(false);
@@ -71,7 +73,7 @@ const Attendance = () => {
 
     // Lock body scroll when any modal is open
     useEffect(() => {
-        if (isViewModalOpen || isMarkModalOpen || deleteModal.open) {
+        if (isViewModalOpen || isMarkModalOpen || isDeleteModalOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -79,7 +81,7 @@ const Attendance = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isViewModalOpen, isMarkModalOpen, deleteModal.open]);
+    }, [isViewModalOpen, isMarkModalOpen, isDeleteModalOpen]);
 
     const fetchAttendance = useCallback(async (silent = false) => {
         try {
@@ -213,23 +215,27 @@ const Attendance = () => {
         setIsViewModalOpen(true);
     };
 
-    const handleDeleteRecord = async () => {
-        if (!deleteModal.record || deleteModal.record.isMock) {
-            setDeleteModal({ open: false, record: null });
+    const confirmDeleteRecord = async () => {
+        if (!recordToDelete || recordToDelete.isMock) {
+            setIsDeleteModalOpen(false);
+            setRecordToDelete(null);
             return;
         }
+        setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/attendance/${deleteModal.record._id}`, {
+            const res = await fetch(`http://localhost:5001/api/attendance/${recordToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
             if (data.success) {
-                setAttendanceRecords(prev => prev.filter(r => r.id !== deleteModal.record.id));
+                setAttendanceRecords(prev => prev.filter(r => r.id !== recordToDelete.id));
+                setIsDeleteModalOpen(false);
+                setRecordToDelete(null);
             }
         } catch (err) {
             console.error('Failed to delete attendance record', err);
         } finally {
-            setDeleteModal({ open: false, record: null });
+            setDeleting(false);
         }
     };
 
@@ -394,7 +400,7 @@ const Attendance = () => {
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className={`px-3 py-1 rounded-lg text-xs font-semibold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
-                                                {r.status}
+                                                {r.status === 'On Leave' ? 'On Leave' : r.status}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
@@ -402,14 +408,12 @@ const Attendance = () => {
                                                 <button
                                                     onClick={() => handleViewDetails(r)}
                                                     className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                    title="View Details History"
                                                 >
                                                     <Eye size={17} />
                                                 </button>
                                                     <button
-                                                    onClick={() => setDeleteModal({ open: true, record: r })}
+                                                    onClick={() => { setRecordToDelete(r); setIsDeleteModalOpen(true); }}
                                                     className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                    title="Delete Record"
                                                 >
                                                     <Trash2 size={17} />
                                                 </button>
@@ -493,7 +497,7 @@ const Attendance = () => {
                                                     </td>
                                                     <td className="p-4.5">
                                                         <span className={`px-4 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm ${getStatusBadge(record.status)}`}>
-                                                            {record.status}
+                                                            {record.status === 'On Leave' ? 'On Leave' : record.status}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -508,29 +512,35 @@ const Attendance = () => {
             )}
 
             {/* Delete Confirmation Modal */}
-            {deleteModal.open && createPortal(
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-6 text-center space-y-4">
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-bold text-[#052558] uppercase">Delete Record?</h3>
-                                <p className="text-gray-500 text-sm">
-                                    Are you sure you want to remove the attendance record for <span className="font-bold text-gray-700">{deleteModal.record?.employeeName}</span>? This action cannot be undone.
-                                </p>
-                            </div>
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setRecordToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Record</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the attendance record for <span className="text-[#052558] font-bold uppercase">{recordToDelete?.employeeName}</span>. 
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
                         </div>
-                        <div className="flex p-4 gap-3 bg-gray-50/50">
-                            <button
-                                onClick={() => setDeleteModal({ open: false, record: null })}
-                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors uppercase text-xs"
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setRecordToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
                             >
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleDeleteRecord}
-                                className="flex-1 px-4 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all uppercase text-xs"
+                            <button 
+                                onClick={confirmDeleteRecord}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                             >
-                                Delete
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
                         </div>
                     </div>
@@ -589,7 +599,7 @@ const Attendance = () => {
                                             <div className="pt-4 border-t border-blue-100/50 mt-4 flex justify-end gap-3">
                                                 {attendanceStatus.status === 'On Leave' ? (
                                                     <span className="text-blue-600 font-bold uppercase text-xs flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 w-full justify-center">
-                                                        Employee is On Leave
+                                                        Employee is On Leave ({formatDateStr(attendanceStatus.leaveStartDate)} - {formatDateStr(attendanceStatus.leaveEndDate)})
                                                     </span>
                                                 ) : !attendanceStatus.checkOut ? (
                                                      <button

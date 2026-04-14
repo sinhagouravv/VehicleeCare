@@ -115,7 +115,7 @@ const Services = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-extrabold text-[#011023] uppercase tracking-tight">Service Management</h1>
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Service Management</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -231,6 +231,7 @@ const Services = () => {
                     </table>
                 </div>
             </div>
+
             {isDeleteModalOpen && createPortal(
                 <div 
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
@@ -241,7 +242,7 @@ const Services = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Cancel Service</h3>
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Cancel Service</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
                                 This will permanently cancel the booking for <span className="text-[#052558] font-bold uppercase">{bookings.find(b => b._id === bookingToDelete)?.user?.name || 'this customer'}</span>. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
