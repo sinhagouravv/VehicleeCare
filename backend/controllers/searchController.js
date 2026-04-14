@@ -9,6 +9,7 @@ const Employee = require('../models/Employee');
 const Payment = require('../models/Payment');
 const Message = require('../models/Message');
 const Attendance = require('../models/Attendance');
+const LeaveRequest = require('../models/LeaveRequest');
 
 // Hardcoded store locations since they are stored in JSON
 // In this specific system, the Store page manages charging stations, which use the ChargingStation model.
@@ -100,6 +101,58 @@ exports.globalSearch = async (req, res) => {
                 path: portal === 'employee' ? '/tasks' : (portal === 'garage' ? '/my-bookings' : '/bookings')
             });
         });
+
+        // 3. Search Leave Requests
+        let leaveFilter = {
+            $or: [
+                { leaveId: regexQuery },
+                { employeeName: regexQuery },
+                { type: regexQuery },
+                { status: regexQuery }
+            ]
+        };
+
+        if (portal === 'employee' && empId) {
+            // LeaveRequest.employeeId can be stored as either the MongoDB _id string
+            // or the formatted EMP-xxx string depending on how the frontend submitted.
+            // Build an $or covering both possibilities.
+            let empIdConditions = [{ employeeId: empId }];
+            try {
+                const empRecord = await Employee.findById(empId).select('employeeId');
+                if (empRecord && empRecord.employeeId && empRecord.employeeId !== empId) {
+                    empIdConditions.push({ employeeId: empRecord.employeeId });
+                }
+            } catch (e) { /* invalid ObjectId — skip formatted ID lookup */ }
+
+            leaveFilter = {
+                $and: [
+                    { $or: empIdConditions },
+                    leaveFilter
+                ]
+            };
+        }
+
+        if (portal === 'garage' && garageId) {
+            leaveFilter = {
+                $and: [
+                    { garageId: garageId },
+                    leaveFilter
+                ]
+            };
+        }
+
+        const leaves = await LeaveRequest.find(leaveFilter).limit(5);
+        leaves.forEach(l => {
+            results.push({
+                type: 'Leave',
+                id: l.leaveId,
+                name: l.type,
+                subtitle: `${l.status} | ${l.startDate} to ${l.endDate}`,
+                path: portal === 'admin' ? '/employees' : '/leave'
+            });
+        });
+
+
 
         // Search Employees for Garage Portal
         if (portal === 'garage' && garageId) {

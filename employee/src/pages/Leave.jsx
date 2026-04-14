@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+
 import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Leave = () => {
     const [showModal, setShowModal] = useState(false);
@@ -15,6 +17,8 @@ const Leave = () => {
     const [parentLeaveId, setParentLeaveId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    
+    const highlightedRow = useHighlight(leaves);
 
     const pendingLeave = leaves.find(l => l.status === 'Pending');
     const approvedLeave = leaves.find(l => l.status === 'Approved');
@@ -132,6 +136,7 @@ const Leave = () => {
         }
     };
 
+    // Modal for Applying Leave
     const handleOpenModal = (leaveToExtend = null) => {
         if (leaveToExtend) {
             // Extension mode logic for specific leave
@@ -260,7 +265,11 @@ const Leave = () => {
                                     </td>
                                 </tr>
                             ) : leaves.map((leave) => (
-                                <tr key={leave._id} className="text-center hover:bg-blue-50/30 transition-all">
+                                <tr 
+                                    key={leave._id} 
+                                    id={`row-${leave.leaveId}`}
+                                    className={`text-center transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                >
                                     <td className="p-5 font-bold text-[#052558] text-[13px]">
                                         {leave.leaveId || '—'}
                                     </td>

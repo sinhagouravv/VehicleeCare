@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, CheckCircle2, XCircle, Check, X,  Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
+import useHighlight from '../hooks/useHighlight';
 
 const Leave = () => {
     const [leaves, setLeaves] = useState([]);
@@ -13,6 +14,8 @@ const Leave = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    const highlightedRow = useHighlight(leaves);
 
     const storedUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
     const garageId = storedUser.id || storedUser._id;
@@ -164,7 +167,11 @@ const Leave = () => {
                                     </td>
                                 </tr>
                             ) : leaves.map((leave) => (
-                                <tr key={leave._id} className="hover:bg-blue-50/30 transition-all duration-300">
+                                <tr 
+                                    key={leave._id} 
+                                    id={`row-${leave.leaveId}`}
+                                    className={`transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                >
                                     <td className="p-4 font-semibold text-[#052558] text-sm">
                                         {leave.leaveId || '—'}
                                     </td>
