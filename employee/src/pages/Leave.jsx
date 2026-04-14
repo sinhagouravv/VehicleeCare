@@ -214,7 +214,7 @@ const Leave = () => {
                     <button
                         onClick={() => handleOpenModal()}
                         disabled={!!pendingLeave}
-                        className={`flex items-center gap-2 px-14.5 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 opacity-75' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-black rounded-xl shadow-md transition-all uppercase text-xs`}
+                        className={`flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 opacity-75' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase text-xs`}
                     >
                         <Plus size={18} />
                         Apply Leave
@@ -303,7 +303,6 @@ const Leave = () => {
                                                 <button
                                                     onClick={() => handleOpenModal(leave)}
                                                     className="text-gray-400 hover:text-[#527FB0] hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                    title="Extend Leave"
                                                 >
                                                     <History size={18} />
                                                 </button>
@@ -311,14 +310,12 @@ const Leave = () => {
                                             <button
                                                 onClick={() => handleView(leave)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                title="View Details"
                                             >
                                                 <Eye size={18} />
                                             </button>
                                             <button 
                                                 onClick={() => openDeleteModal(leave)}
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                title="Delete Leave"
                                             >
                                                 <Trash2 size={18} />
                                             </button>
@@ -334,7 +331,7 @@ const Leave = () => {
             {/* Modal for Applying Leave */}
             {showModal && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setShowModal(false)} />
                     <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/60 to-transparent">
@@ -508,7 +505,7 @@ const Leave = () => {
             {/* Modal for Viewing Leave */}
             {isViewModalOpen && selectedLeave && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
@@ -595,7 +592,7 @@ const Leave = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && selectedLeave && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setIsDeleteModalOpen(false)}
                 >
                     <div 

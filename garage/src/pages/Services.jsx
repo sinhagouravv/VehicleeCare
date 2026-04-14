@@ -234,7 +234,7 @@ const Services = () => {
 
             {isDeleteModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => { setIsDeleteModalOpen(false); setBookingToDelete(null); }}
                 >
                     <div 

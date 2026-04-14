@@ -247,7 +247,6 @@ const Notifications = () => {
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
                                                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                                                        title="Delete Notification"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
@@ -264,7 +263,7 @@ const Notifications = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => { setIsDeleteModalOpen(false); setNotifToDelete(null); }}
                 >
                     <div 

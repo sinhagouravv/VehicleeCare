@@ -216,8 +216,8 @@ const MyBookings = () => {
                                         {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
                                     <td className="p-4 text-center w-[12%]">
-                                        <div className="font-bold text-[#011023] truncate px-2" title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
-                                        <div className="text-[11.5px] text-gray-400">{booking.user?.userId || ''}</div>
+                                        <div className="font-semibold text-[13px] truncate px-2" title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
+                                        <div className="text-xs text-gray-400">{booking.user?.userId || ''}</div>
                                     </td>
                                     <td className="p-4 text-center w-[29%]">
                                         <div className="font-bold text-[#0f172a] text-[13px] uppercase whitespace-normal leading-snug mx-auto">
@@ -283,7 +283,7 @@ const MyBookings = () => {
     {
         isViewModalOpen && selectedBooking && createPortal(
             <div
-                className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                 onClick={() => setIsViewModalOpen(false)}
             >
                 <div
@@ -400,7 +400,7 @@ const MyBookings = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => { setIsDeleteModalOpen(false); setBookingToDelete(null); }}
                 >
                     <div 

@@ -231,7 +231,7 @@ const Payments = () => {
 
             {isViewModalOpen && selectedPayment && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
@@ -258,7 +258,7 @@ const Payments = () => {
                                 {/* Customer Info */}
                                 <div className="space-y-3 w-full md:w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="bg-blue-50/30 pt-4 pb-2 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800 ">{selectedPayment.user?.userId || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate lowercase">{selectedPayment.user?.email || 'N/A'}</span></p>

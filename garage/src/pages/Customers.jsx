@@ -239,7 +239,7 @@ const Customers = () => {
 
                                     {/* Amount */}
                                     <td className="p-4 text-center w-[9%]">
-                                        <span className="text-sm font-bold text-[#011023]">
+                                        <span className="text-sm font-semibold text-[#011023]">
                                             ₹{customer.totalSpent.toLocaleString()}
                                         </span>
                                     </td>
@@ -278,7 +278,7 @@ const Customers = () => {
             {/* View Details Modal */}
             {isViewModalOpen && selectedCustomer && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
@@ -375,7 +375,7 @@ const Customers = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && customerToDelete && createPortal(
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
                     <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
                         <div className="p-2 mt-7 mb-1 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
                             <div>

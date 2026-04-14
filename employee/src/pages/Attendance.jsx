@@ -186,7 +186,7 @@ const Attendance = () => {
                             <Loader2 size={16} className="animate-spin text-gray-400" />
                         </div>
                     ) : isShiftComplete ? (
-                        <div className="w-full py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 font-black text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                        <div className="w-full py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 font-bold text-[12px] uppercase tracking-widest text-center flex items-center justify-center gap-2">
                             {/* <CheckCircle size={16} /> */}
                             Shift Completed
                         </div>
@@ -194,7 +194,7 @@ const Attendance = () => {
                         <div className="relative group w-full">
                             <button
                                 disabled
-                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-500 font-black text-[10px] uppercase tracking-widest text-center flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-100 text-red-500 font-bold text-[12px] uppercase tracking-widest text-center flex items-center justify-center gap-2 opacity-80"
                             >
                                 Marked Absent
                             </button>
@@ -206,7 +206,7 @@ const Attendance = () => {
                         <button
                             onClick={handleCheckOut}
                             disabled={actionLoading}
-                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-red-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                         >
                             {actionLoading ? (
                                 <Loader2 size={16} className="animate-spin" />
@@ -222,7 +222,7 @@ const Attendance = () => {
                             <button
                                 onClick={handleCheckIn}
                                 disabled={actionLoading || isOnLeave}
-                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                             >
                                 {actionLoading ? (
                                     <Loader2 size={16} className="animate-spin" />
