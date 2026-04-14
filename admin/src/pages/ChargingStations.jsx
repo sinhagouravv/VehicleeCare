@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check } from 'lucide-react';
+import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check, Loader2 } from 'lucide-react';
 import punjabData from '../../../backend/chargingdata/punjab.json';
 import haryanaData from '../../../backend/chargingdata/haryana.json';
 import delhiData from '../../../backend/chargingdata/delhi.json';
@@ -38,6 +38,9 @@ const ChargingStations = () => {
     const [viewTarget, setViewTarget] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [stationToDelete, setStationToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchStations = async () => {
         setLoading(true);
@@ -142,16 +145,21 @@ const ChargingStations = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Delete this charging station?')) return;
+    const confirmDeleteStation = async () => {
+        if (!stationToDelete) return;
+        setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/charging-stations/${id}`, { method: 'DELETE' });
+            const res = await fetch(`http://localhost:5001/api/charging-stations/${stationToDelete}`, { method: 'DELETE' });
             if (res.ok) {
-                setStations(prev => prev.filter(s => s.id !== id));
+                setStations(prev => prev.filter(s => s.id !== stationToDelete));
+                setIsDeleteModalOpen(false);
+                setStationToDelete(null);
             }
         } catch (err) {
             console.error(err);
             alert('Failed to delete charging station');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -172,7 +180,7 @@ const ChargingStations = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Charging Stations</h1>
                 <div className="flex items-center gap-3">
-                    <button onClick={openAdd} className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                    <button onClick={openAdd} className="flex items-center text-[13px] gap-2 uppercase px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
                         <Plus size={18} /> Add Station
                     </button>
                 </div>
@@ -182,7 +190,7 @@ const ChargingStations = () => {
                 <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
                     <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-[#f0f6ff] text-[13px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10%]">Station ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Station Name</th>
                                 <th className="p-4 font-bold text-center w-[30%]">Location</th>
@@ -200,10 +208,10 @@ const ChargingStations = () => {
                                 return (
                                     <tr key={station.id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
                                         <td className="p-4 text-center">
-                                            <span className="font-bold text-[#011023] tracking-widest">{station.id}</span>
+                                            <span className="font-semibold text-sm">{station.id}</span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="font-bold text-[#011023]">{station.name}</span>
+                                            <span className="font-semibold text-sm">{station.name}</span>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex items-start justify-center gap-1.5">
@@ -214,7 +222,7 @@ const ChargingStations = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="font-black text-[#052558] text-[14px] ">
+                                            <span className="font-semibold text-sm">
                                                 {station.ports}
                                             </span>
                                         </td>
@@ -236,13 +244,13 @@ const ChargingStations = () => {
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Station">
+                                                <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                     <Eye size={16} />
                                                 </button>
-                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="Edit Station">
+                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                     <Edit size={16} />
                                                 </button>
-                                                <button onClick={() => handleDelete(station.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
+                                                <button onClick={() => { setStationToDelete(station.id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -258,7 +266,7 @@ const ChargingStations = () => {
             {/* ─── ADD STATION MODAL (emerald) ─── */}
             {showModal && !editTarget && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={closeModal} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={closeModal} />
                     <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 to-transparent">
@@ -400,7 +408,7 @@ const ChargingStations = () => {
             {/* ─── EDIT STATION MODAL (blue) ─── */}
             {showModal && editTarget && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={closeModal} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={closeModal} />
                     <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/60 to-transparent">
@@ -509,7 +517,7 @@ const ChargingStations = () => {
             {/* ── View Modal ── */}
             {viewTarget && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={closeView}
                 >
                     <div
@@ -582,6 +590,42 @@ const ChargingStations = () => {
                                     <h5 className="font-bold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setStationToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Remove Station</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the charging station <span className="text-[#052558] font-bold uppercase">{stations.find(s => s.id === stationToDelete)?.name}</span>. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setStationToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteStation}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>,

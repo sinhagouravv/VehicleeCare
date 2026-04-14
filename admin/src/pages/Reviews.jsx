@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Trash2, Eye, Check, X } from 'lucide-react';
+import { Star, Trash2, Eye, Check, X, Loader2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 
@@ -8,6 +8,9 @@ const Reviews = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedReview, setSelectedReview] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [reviewToDelete, setReviewToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -99,18 +102,24 @@ const Reviews = () => {
         }
     };
 
-    const handleDelete = async (id, type) => {
-        if (!window.confirm("Are you sure you want to permanently delete this review?")) return;
+    const confirmDeleteReview = async () => {
+        if (!reviewToDelete) return;
+        setDeleting(true);
         try {
+            const { id, type } = reviewToDelete;
             if (type === 'Website') {
                 await axios.delete(`${API_URL}/api/website-reviews/${id}`);
             } else {
                 await axios.delete(`${API_URL}/api/business-reviews/${id}`);
             }
             setReviews(prev => prev.filter(rev => rev._id !== id));
+            setIsDeleteModalOpen(false);
+            setReviewToDelete(null);
         } catch (error) {
             console.error("Failed to delete review", error);
             alert("Failed to delete review.");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -160,20 +169,20 @@ const Reviews = () => {
                     <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Live Average Rating</p>
                         <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-[#011023]">{avgRating}</span>
+                            <span className="text-2xl font-bold text-[#011023]">{avgRating}</span>
                         </div>
                     </div>
                     <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Total Submission</p>
-                        <p className="text-2xl font-black text-[#011023]">{reviews.length}</p>
+                        <p className="text-2xl font-bold text-[#011023]">{reviews.length}</p>
                     </div>
                     <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Pending Approval</p>
-                        <p className="text-2xl font-black text-amber-500">{pendingReviews}</p>
+                        <p className="text-2xl font-bold text-amber-500">{pendingReviews}</p>
                     </div>
                     <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Rejected Reviews</p>
-                        <p className="text-2xl font-black text-red-500">{rejectedReviews}</p>
+                        <p className="text-2xl font-bold text-red-500">{rejectedReviews}</p>
                     </div>
                 </div>
 
@@ -201,7 +210,7 @@ const Reviews = () => {
                                 )}
                                 {reviews.map((rev) => (
                                     <tr key={rev._id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="p-4 text-center font-semibold text-[#052558] text-[13px] tracking-wide">
+                                        <td className="p-4 text-center font-semibold text-[#052558] text-sm tracking-wide">
                                             {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
                                         </td>
                                         <td className="p-4 text-center">
@@ -215,7 +224,7 @@ const Reviews = () => {
                                                 {rev.type === 'Website' ? 'Garage' : rev.type}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-sm text-center text-gray-600 whitespace-normal" title={rev.text}>{rev.text}</td>
+                                        <td className="p-4 text-sm text-center text-gray-600 whitespace-normal" >{rev.text}</td>
                                         <td className="p-4">
                                             <div className="flex flex-col items-center justify-center gap-1">
                                                 {rev.type === 'Website' ? (
@@ -249,10 +258,10 @@ const Reviews = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 {rev.status === 'Pending' && (
                                                     <>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve">
+                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
                                                             <Check size={18} />
                                                         </button>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Reject">
+                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                             <X size={18} />
                                                         </button>
                                                     </>
@@ -260,11 +269,11 @@ const Reviews = () => {
 
                                                 {rev.status === 'Rejected' && (
                                                     <>
-                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Full Review">
+                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                             <Eye size={18} />
                                                         </button>
                                                         {/* User requested: 'the reject icon should not be there' for approved status */}
-                                                        <button onClick={() => handleDelete(rev._id, rev.type)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
+                                                        <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                             <Trash2 size={16} />
                                                         </button>
                                                     </>
@@ -272,11 +281,11 @@ const Reviews = () => {
 
                                                 {rev.status === 'Approved' && (
                                                     <>
-                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Full Review">
+                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                             <Eye size={18} />
                                                         </button>
                                                         {/* User requested: 'the reject icon should not be there' for approved status */}
-                                                        <button onClick={() => handleDelete(rev._id, rev.type)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Permanently Delete">
+                                                        <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                             <Trash2 size={16} />
                                                         </button>
                                                     </>
@@ -294,7 +303,7 @@ const Reviews = () => {
             {/* View Full Review Modal */}
             {selectedReview && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                     onClick={() => setSelectedReview(null)}
                 >
                     <div
@@ -377,6 +386,42 @@ const Reviews = () => {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setReviewToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Review</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the review from <span className="text-[#052558] font-bold uppercase">{reviews.find(r => r._id === reviewToDelete)?.userName}</span> for <span className="text-[#052558] font-bold uppercase">{reviews.find(r => r._id === reviewToDelete)?.garageName}</span>. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setReviewToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteReview}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>,

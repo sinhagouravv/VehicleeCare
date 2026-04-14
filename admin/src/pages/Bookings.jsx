@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, MoreVertical, Eye, Download, X, Trash2, RefreshCw } from 'lucide-react';
+import { Search, MoreVertical, Eye, Download, X, Trash2, RefreshCw, Loader2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
@@ -14,6 +14,9 @@ const Bookings = () => {
 
     const [refreshing, setRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [bookingToDelete, setBookingToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchBookings = useCallback(async (silent = false) => {
         try {
@@ -53,21 +56,26 @@ const Bookings = () => {
         }
     };
 
-    const handleDeleteBooking = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this booking?")) return;
+    const confirmDeleteBooking = async () => {
+        if (!bookingToDelete) return;
+        setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${id}`, {
+            const res = await fetch(`http://localhost:5001/api/bookings/${bookingToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
             if (data.success) {
-                setBookings(bookings.filter(b => b._id !== id));
+                setBookings(bookings.filter(b => b._id !== bookingToDelete));
+                setIsDeleteModalOpen(false);
+                setBookingToDelete(null);
             } else {
                 alert("Failed to delete booking.");
             }
         } catch (err) {
             console.error("Error deleting booking:", err);
             alert("Error deleting booking.");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -192,15 +200,15 @@ const Bookings = () => {
                     <table className="w-full text-left  border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[11%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[22%]">Service</th>
                                 <th className="p-4.5 font-bold text-center w-[14%]">Schedule At</th>
-                                <th className="p-4.5 font-bold text-center w-[5%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[5%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[4%]">Amount</th>
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -220,11 +228,11 @@ const Bookings = () => {
                                 const rowId = booking.bookingId || booking._id;
                                 return (
                                     <tr key={booking._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
                                             {booking.bookingId || booking._id.substring(0, 8).toUpperCase()}
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
-                                            <div className="text-xs font-bold text-[#011023]">{booking.user?.name || "Unknown"}</div>
+                                            <div className="text-[13px] font-semibold text-[#011023]">{booking.user?.name || "Unknown"}</div>
                                             <div className="text-xs text-gray-500">{booking.user?.userId || ""}</div>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
@@ -233,7 +241,7 @@ const Bookings = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[32%]">
-                                            <div className="font-semibold text-gray-800 text-sm " title={booking.service?.title}>
+                                            <div className="font-semibold text-gray-800 text-sm ">
                                                 {booking.service?.title}
                                             </div>
                                             <div className="text-xs text-gray-500">
@@ -241,13 +249,15 @@ const Bookings = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center w-[11%]">
-                                            <span className="text-sm text-gray-600">
-                                                {booking.schedule?.date} <br />
+                                            <div className="font-semibold text-gray-800 text-sm ">
+                                                {booking.schedule?.date}
+                                            </div>
+                                            <div className="text-[13px] text-gray-600">
                                                 {booking.schedule?.time}
-                                            </span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center w-[5%]">
-                                            <span className="text-sm font-bold text-gray-800">
+                                            <span className="text-sm font-semibold text-gray-800">
                                                 ₹{booking.payment?.amount || booking.service?.price || '0'}
                                             </span>
                                         </td>
@@ -262,14 +272,14 @@ const Bookings = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[5%]">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
+                                            <div className="flex items-center justify-center gap-">
+                                                <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => handleDownloadInvoice(booking)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Invoice">
+                                                <button onClick={() => handleDownloadInvoice(booking)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
                                                     <Download size={18} />
                                                 </button>
-                                                <button onClick={() => handleDeleteBooking(booking._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Booking">
+                                                <button onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
@@ -285,7 +295,7 @@ const Bookings = () => {
             {/* View Details Modal */}
             {isViewModalOpen && selectedBooking && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
@@ -405,6 +415,42 @@ const Bookings = () => {
 
 
 
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setBookingToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Booking</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the booking record for <span className="text-[#052558] font-bold uppercase">{bookings.find(b => b._id === bookingToDelete)?.user?.name || 'this customer'}</span>. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setBookingToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteBooking}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>,

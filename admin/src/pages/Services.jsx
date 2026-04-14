@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Wrench, Plus, Edit, Trash2, SwitchCamera, X } from 'lucide-react';
+import { Search, Wrench, Plus, Edit, Trash2, SwitchCamera, X, Loader2 } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
 
 const Services = () => {
@@ -17,6 +17,9 @@ const Services = () => {
         name: '', category: '', fuelType: '', price: '', duration: '', active: true
     });
     const [customServices, setCustomServices] = useState([]);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [serviceToDelete, setServiceToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -175,19 +178,19 @@ const Services = () => {
         }
     };
 
-    const handleDeleteService = async (serviceToDelete) => {
-        if (!window.confirm(`Are you sure you want to delete the service: ${serviceToDelete.name}?`)) return;
+    const confirmDeleteService = async () => {
+        if (!serviceToDelete) return;
 
         const isCustom = customServices.some(s => s.id === serviceToDelete.id);
         if (!isCustom) {
             alert("Cannot delete default system services. To hide them, toggle their status to Inactive.");
+            setIsDeleteModalOpen(false);
+            setServiceToDelete(null);
             return;
         }
 
+        setDeleting(true);
         const updatedCustomServices = customServices.filter(s => s.id !== serviceToDelete.id);
-
-        setCustomServices(updatedCustomServices);
-        setServicesList(prev => prev.filter(s => s.id !== serviceToDelete.id));
 
         try {
             await fetch('http://localhost:5001/api/settings', {
@@ -195,9 +198,15 @@ const Services = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'customServices', value: updatedCustomServices })
             });
+            setCustomServices(updatedCustomServices);
+            setServicesList(prev => prev.filter(s => s.id !== serviceToDelete.id));
+            setIsDeleteModalOpen(false);
+            setServiceToDelete(null);
         } catch (err) {
             console.error("Failed to delete custom service:", err);
             alert("Failed to delete service. Please try again.");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -211,7 +220,7 @@ const Services = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Services</h1>
-                <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
+                <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-12 uppercase text-[13px] py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
                     <Plus size={18} />
                     Add Service
                 </button>
@@ -236,11 +245,11 @@ const Services = () => {
                             {servicesList.map((service) => (
                                 <tr key={service.id} className="hover:bg-blue-50/30 text-center text-xs transition-colors">
                                     <td className="p-4">
-                                        <div className="font-semibold text-[13px] text-[#011023]">{service.id}</div>
+                                        <div className="font-semibold text-sm">{service.id}</div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-3">
-                                            <div className="font-semibold text-[13px] text-[#011023]">{service.name}</div>
+                                            <div className="font-semibold text-sm">{service.name}</div>
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -254,9 +263,9 @@ const Services = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <span className="font-bold text-[#011023]">{service.price}</span>
+                                        <span className="font-semibold text-sm">{service.price}</span>
                                     </td>
-                                    <td className="p-4 text-sm text-gray-600 font-medium">
+                                    <td className="p-4 text-sm text-gray-600 font-semibold">
                                         {service.duration}
                                     </td>
                                     <td className="p-4 text-center">
@@ -269,15 +278,13 @@ const Services = () => {
                                         <div className="flex items-center justify-center gap-1">
                                             <button
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                title="Edit Service"
                                                 onClick={() => { setSelectedService(service); setIsEditModalOpen(true); }}
                                             >
                                                 <Edit size={16} />
                                             </button>
                                             <button
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                title="Delete"
-                                                onClick={() => handleDeleteService(service)}
+                                                onClick={() => { setServiceToDelete(service); setIsDeleteModalOpen(true); }}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -293,7 +300,7 @@ const Services = () => {
             {/* Edit Service Modal via createPortal */}
             {isEditModalOpen && selectedService && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
                     <div className="relative w-full max-w-md bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/50 to-transparent">
@@ -357,7 +364,7 @@ const Services = () => {
             {/* Add Service Modal via createPortal */}
             {isAddModalOpen && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/20 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
                     <div className="relative w-full uppercase max-w-xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         {/* Header */}
                         <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/50 to-transparent">
@@ -421,6 +428,42 @@ const Services = () => {
                         <div className="p-6 bg-white/30 border-t border-white/40 flex align-items-center justify-end gap-3">
                             <button onClick={() => setIsAddModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
                             <button onClick={handleAddNewService} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25">Add Service</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setServiceToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Remove Service</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the <span className="text-[#052558] font-bold uppercase">{serviceToDelete?.title}</span> service from the list. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setServiceToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteService}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>,

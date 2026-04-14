@@ -242,10 +242,10 @@ const Users = () => {
                                     return (
                                         <tr key={user._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
                                             <td className="p-4">
-                                                <div className="font-bold text-[#011023] tracking-wider">{user.userId || '—'}</div>
+                                                <div className="font-semibold text-sm">{user.userId || '—'}</div>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-bold uppercase text-[#011023]">{user.name}</div>
+                                                <div className="font-semibold text-sm uppercase">{user.name}</div>
                                             </td>
                                             <td className="p-4">
                                                 <span className={`inline-block px-3 uppercase py-1 text-xs font-semibold rounded-full ${user.role === 'vendor' || user.role === 'franchise' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -262,7 +262,7 @@ const Users = () => {
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm uppercase text-gray-600">
+                                                <span className="text-sm uppercase font-semibold text-gray-600">
                                                     {formatDate(user.createdAt, true)}
                                                 </span>
                                             </td>
@@ -277,13 +277,13 @@ const Users = () => {
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <button onClick={() => handleViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View User">
+                                                    <button onClick={() => handleViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                         <Eye size={17} />
                                                     </button>
-                                                    <button onClick={() => handleDownloadPDF(user)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download PDF">
+                                                    <button onClick={() => handleDownloadPDF(user)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
                                                         <Download size={17} />
                                                     </button>
-                                                    <button onClick={() => { setBanUser(user); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Ban User">
+                                                    <button onClick={() => { setBanUser(user); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                         <UserX size={17} />
                                                     </button>
                                                 </div>
@@ -300,7 +300,7 @@ const Users = () => {
             {/* ── VIEW USER MODAL ───────────────────────── */}
             {viewUser && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setViewUser(null)}
                 >
                     <div 
@@ -330,7 +330,7 @@ const Users = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 {/* Personal Info */}
-                                <div className="space-y-2 w-full md:w-[42%]">
+                                <div className="space-y-2 w-full md:w-[35%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewUser.name || '—'}</span></p>
@@ -340,7 +340,7 @@ const Users = () => {
                                 </div>
 
                                 {/* Account Info */}
-                                <div className="space-y-2 w-full md:w-[22%]">
+                                <div className="space-y-2 w-full md:w-[25%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Account Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="font-semibold ml-2 text-[#011023]">{formatRole(viewUser.role)}</span></p>
@@ -349,7 +349,7 @@ const Users = () => {
                                 </div>
 
                                 {/* Status & Join Info */}
-                                <div className="flex flex-col gap-4.5 w-full md:w-[32%]">
+                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
                                     <div className="space-y-1.25">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                         <div className="flex items-center gap-3">
@@ -388,7 +388,7 @@ const Users = () => {
             {/* ── BAN USER MODAL ────────────────────────── */}
             {banUser && createPortal(
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setBanUser(null)} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setBanUser(null)} />
                     <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         {/* Red Header */}
                         <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-5 flex items-center justify-between">

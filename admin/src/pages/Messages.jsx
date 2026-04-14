@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Mail, Eye, Trash2, X } from 'lucide-react';
+import { Mail, Eye, Trash2, X, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 
 const Messages = () => {
@@ -10,6 +10,9 @@ const Messages = () => {
     const [selectedMessage, setSelectedMessage] = useState(null);
 
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [messageToDelete, setMessageToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchMessages = useCallback(async (silent = false) => {
         try {
@@ -33,21 +36,26 @@ const Messages = () => {
         return () => clearInterval(interval);
     }, [fetchMessages]);
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this message?")) return;
+    const confirmDeleteMessage = async () => {
+        if (!messageToDelete) return;
+        setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/messages/${id}`, {
+            const res = await fetch(`http://localhost:5001/api/messages/${messageToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
             if (data.success) {
-                setMessages(messages.filter(m => m._id !== id));
+                setMessages(messages.filter(m => m._id !== messageToDelete));
+                setIsDeleteModalOpen(false);
+                setMessageToDelete(null);
             } else {
                 alert("Failed to delete message.");
             }
         } catch (err) {
             console.error("Error deleting message:", err);
             alert("Error deleting message.");
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -90,19 +98,19 @@ const Messages = () => {
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Total Messages</p>
-                        <p className="text-3xl font-black text-[#011023]">{totalMessages}</p>
+                        <p className="text-3xl font-bold text-[#011023]">{totalMessages}</p>
                     </div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Read Messages</p>
-                        <p className="text-3xl font-black text-emerald-500">{readMessages}</p>
+                        <p className="text-3xl font-bold text-emerald-500">{readMessages}</p>
                     </div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Unread Messages</p>
-                        <p className="text-3xl font-black text-blue-500">{unreadMessages}</p>
+                        <p className="text-3xl font-bold text-blue-500">{unreadMessages}</p>
                     </div>
                 </div>
             </div>
@@ -130,7 +138,7 @@ const Messages = () => {
                                     <tr key={message._id} id={`row-${rowId}`} className={`transition-all duration-1000 group ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-white/50'}`}>
                                         <td className="p-4.5">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-[#011023] text-[13px]">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
+                                                <span className="font-semibold text-[#011023] text-sm">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
                                             </div>
                                         </td>
                                         <td className="p-4.5">
@@ -150,7 +158,7 @@ const Messages = () => {
                                             </span>
                                         </td>
                                         <td className="p-4.5 max-w-xs truncate text-center uppercase">
-                                            <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} title={message.message}>
+                                            <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} >
                                                 {message.message}
                                             </span>
                                         </td>
@@ -177,11 +185,10 @@ const Messages = () => {
                                                 <button
                                                     onClick={() => handleViewMessage(message)}
                                                     className={`p-1.5 rounded-lg transition-colors text-gray-400 hover:text-blue-600 hover:bg-blue-50`}
-                                                    title="View Message"
                                                 >
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => handleDelete(message._id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete">
+                                                <button onClick={() => { setMessageToDelete(message._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
@@ -204,7 +211,7 @@ const Messages = () => {
             {/* View Details Modal */}
             {selectedMessage && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                     onClick={() => setSelectedMessage(null)}
                 >
                     <div
@@ -263,6 +270,42 @@ const Messages = () => {
                         </div>
                     </div>
                 </div>, document.body
+            )}
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => { setIsDeleteModalOpen(false); setMessageToDelete(null); }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 text-center uppercase space-y-4">
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Message</h3>
+                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
+                                This will permanently remove the message from <span className="text-[#052558] font-bold uppercase">{messages.find(m => m._id === messageToDelete)?.name}</span>. <br/>
+                                This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                            </p>
+                        </div>
+                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                            <button 
+                                onClick={() => { setIsDeleteModalOpen(false); setMessageToDelete(null); }}
+                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmDeleteMessage}
+                                disabled={deleting}
+                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

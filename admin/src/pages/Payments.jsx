@@ -202,13 +202,13 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
-                                            <span className="font-semibold text-[#052558] text-sm">
+                                            <span className="font-semibold text-sm">
                                                 {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[18%]">
-                                            <div className="font-bold text-[#011023]">{getCustomerName(payment)}</div>
-                                            <div className="text-xs text-gray-500 tracking-wide">{payment.user?.userId || ''}</div>
+                                            <div className="font-semibold text-[13px">{getCustomerName(payment)}</div>
+                                            <div className="text-xs text-gray-500">{payment.user?.userId || ''}</div>
                                         </td>
                                         <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${payment.type === 'Subscription' ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
@@ -226,7 +226,7 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[9%]">
-                                            <span className="text-sm font-bold text-gray-800">
+                                            <span className="text-sm font-semibold text-gray-800">
                                                 ₹{payment.amount}
                                             </span>
                                         </td>
@@ -243,14 +243,12 @@ const Payments = () => {
                                                 <button
                                                     onClick={() => handleViewDetails(payment)}
                                                     className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                    title="View Details"
                                                 >
                                                     <Eye size={18} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDownloadInvoice(payment)}
                                                     className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" 
-                                                    title="Download Invoice"
                                                 >
                                                     <Download size={18} />
                                                 </button>

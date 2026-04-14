@@ -140,7 +140,7 @@ const Business = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[12%]">Request ID</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Business Name</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Business Name</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Date</th>
@@ -163,30 +163,30 @@ const Business = () => {
                                 </tr>
                             ) : requests.map((req) => (
                                 <tr key={req._id} className="hover:bg-blue-50/30 text-center mt-2 transition-colors">
-                                    <td className="p-4 font-semibold tracking-widest text-[#052558] text-sm text-center w-[12%]">
+                                    <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[12%]">
                                         {req.displayId}
                                     </td>
                                     <td className="p-4 text-center w-[18%]">
-                                        <div className="font-bold text-[#011023] text-sm">{req.businessName}</div>
+                                        <div className="font-semibold text-[#011023] text-sm">{req.businessName}</div>
                                         <div className="text-xs text-gray-500 mt-1">{req.district}, {req.state}</div>
                                     </td>
                                     <td className="p-4 text-center w-[10%]">
-                                        <div className="flex items-center justify-center gap-2">
+                                        <div className="flex items-center text-sm font-semibold justify-center gap-2">
                                             {(req.businessCategory)}
                                         </div>
                                     </td>
                                     <td className="p-4 text-center w-[15%]">
-                                        <div className="font-semibold text-gray-800">{req.ownerName}</div>
+                                        <div className="font-semibold text-sm text-gray-800">{req.ownerName}</div>
                                         <div className="text-xs text-gray-500 lowercase mt-0.5">{req.email}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[20%] whitespace-nowrap ">
+                                    <td className="p-4 text-center w-[20%] text-sm whitespace-nowrap ">
                                         <span className="font-semibold text-gray-800">
                                             {new Date(req.createdAt).toLocaleDateString('en-IN', {
                                                 day: '2-digit', month: 'short', year: 'numeric'
                                             })}
                                         </span>
                                         <span className="mx-1 text-gray-500">|</span>
-                                        <span className="text-xs font-semibold text-gray-800">
+                                        <span className="font-semibold text-gray-800">
                                             {new Date(req.createdAt).toLocaleTimeString('en-IN', {
                                                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
                                             })}
@@ -200,22 +200,22 @@ const Business = () => {
                                     </td>
                                     <td className="p-4 text-center w-[10%]">
                                         <div className="flex items-center justify-center gap-2">
-                                            <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
+                                            <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                 <Eye size={18} />
                                             </button>
 
                                             {req.status === 'Pending' && (
                                                 <>
-                                                    <button onClick={() => handleUpdateStatus(req._id, 'Approved')} className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Approve Request">
+                                                    <button onClick={() => handleUpdateStatus(req._id, 'Approved')} className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
                                                         <Check size={18} />
                                                     </button>
-                                                    <button onClick={() => handleUpdateStatus(req._id, 'Rejected')} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Reject Request">
+                                                    <button onClick={() => handleUpdateStatus(req._id, 'Rejected')} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                         <X size={18} />
                                                     </button>
                                                 </>
                                             )}
                                             {req.status !== 'Pending' && (
-                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Request">
+                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                     <Trash2 size={18} />
                                                 </button>
                                             )}
@@ -231,7 +231,7 @@ const Business = () => {
             {/* View Details Modal */}
             {isViewModalOpen && selectedRequest && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
@@ -322,7 +322,7 @@ const Business = () => {
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/30 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => { setIsDeleteModalOpen(false); setRequestToDelete(null); }}
                 >
                     <div 
@@ -330,9 +330,9 @@ const Business = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-black text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
+                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Request</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-                                This will permanently remove the business request from <span className="text-[#052558] font-bold uppercase">{requests.find(r => r._id === requestToDelete)?.businessName}</span>. <br/>
+                                This will permanently remove the business request from <span className="text-[#052558] font-bold uppercase">{requests.find(r => r._id === requestToDelete)?.businessName}</span>. 
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
@@ -344,7 +344,7 @@ const Business = () => {
                                 Cancel
                             </button>
                             <button 
-                                onClick={confirmDelete}
+                                onClick={confirmDeleteRequest}
                                 disabled={deleting}
                                 className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                             >

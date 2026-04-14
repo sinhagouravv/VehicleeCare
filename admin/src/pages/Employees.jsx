@@ -276,14 +276,14 @@ const Employees = () => {
                         <table className="w-full text-center border-collapse">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold w-[11%]">Employee ID</th>
+                                    <th className="p-4.5 font-bold w-[10.5%]">Employee ID</th>
                                     <th className="p-4.5 font-bold w-[15%]">Employee</th>
-                                    <th className="p-4.5 font-bold w-[9%]">Category</th>
+                                    <th className="p-4.5 font-bold w-[8%]">Category</th>
                                     <th className="p-4.5 font-bold w-[11%]">Category ID</th>
                                     <th className="p-4.5 font-bold w-[15%]">Contact</th>
                                     <th className="p-4.5 font-bold w-[10%]">Role</th>
                                     <th className="p-4.5 font-bold w-[17%]">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold w-[7%]">Status</th>
+                                    <th className="p-4.5 font-bold w-[8.5%]">Status</th>
                                     <th className="p-4.5 font-bold w-[6%]">Actions</th>
                                 </tr>
                             </thead>
@@ -297,10 +297,10 @@ const Employees = () => {
                                     return (
                                         <tr key={employee._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
                                             <td className="p-4">
-                                                <div className="font-bold text-[#011023] tracking-wider">{employee.userId || employee.employeeId || '—'}</div>
+                                                <div className="font-semibold text-sm">{employee.userId || employee.employeeId || '—'}</div>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-bold uppercase text-[#011023]">{employee.name}</div>
+                                                <div className="font-semibold uppercase text-sm">{employee.name}</div>
                                             </td>
                                              <td className="p-4">
                                                  <span className={`inline-block px-2.5 py-1 uppercase text-xs font-semibold rounded-lg border ${
@@ -314,13 +314,13 @@ const Employees = () => {
                                                  </span>
                                              </td>
                                             <td className="p-4">
-                                                <div className="font-bold text-[#052558] uppercase">
+                                                <div className="font-semibold text-sm uppercase">
                                                     {employee.category === 'Garage' ? (employee.garageId || '—') : '—'}
                                                 </div>
                                             </td>
                                             <td className="p-4">
                                                 <div className="text-xs text-gray-500 mt-0.5">{employee.phone || '—'}</div>
-                                                <div className="font-medium text-gray-700 text-sm">{employee.email}</div>
+                                                <div className="font-semibold text-gray-700 text-sm">{employee.email}</div>
                                             </td>
                                              <td className="p-4">
                                                 <div className="flex items-center uppercase justify-center gap-1.5 font-semibold">
@@ -335,7 +335,7 @@ const Employees = () => {
                                                 </span>
                                             </td> */}
                                             <td className="p-4 text-center uppercase">
-                                                <div className="font-semibold text-[#011023]">
+                                                <div className="font-semibold text-[13px]">
                                                     {formatDate(employee.createdAt)}
                                                 </div>
                                             </td>
@@ -344,16 +344,16 @@ const Employees = () => {
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-center gap-1.5">
-                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Employee">
+                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                         <Eye size={17} />
                                                     </button>
-                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download Action History">
+                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
                                                         <Download size={17} />
                                                     </button>
-                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable Employee">
+                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                         <UserX size={17} />
                                                     </button>
-                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Employee">
+                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                         <Trash2 size={17} />
                                                     </button>
                                                 </div>
@@ -370,7 +370,7 @@ const Employees = () => {
             {/* VIEW EMPLOYEE MODAL (Refined Alignment) */}
             {viewEmployee && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/20 backdrop-blur-sm transition-all duration-300"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
                     onClick={() => setViewEmployee(null)}
                 >
                     <div 
@@ -490,7 +490,7 @@ const Employees = () => {
             {/* ── DISABLE EMPLOYEE MODAL ────────────────────────── */}
             {banEmployee && createPortal(
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/30 backdrop-blur-sm" onClick={() => setBanEmployee(null)} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setBanEmployee(null)} />
                     <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50">
                         {/* Red Header */}
                         <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-5 flex items-center justify-between">
@@ -550,48 +550,37 @@ const Employees = () => {
 
             {/* ── DELETE EMPLOYEE CONFIRMATION MODAL ────────────────── */}
             {isDeleteModalOpen && employeeToDelete && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
-                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                        {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                                    <Trash2 size={18} className="text-red-600" />
+                            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                                <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+                                <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                                    <div className="p-2 mt-7 mb-1 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
+                                        <div>
+                                            <h3 className="text-2xl uppercase font-bold text-[#011023]">Remove Member</h3>
+                                        </div>
+                                    </div>
+            
+                                    <div className="p-5 text-center uppercase tracking-tight">
+                                        <h4 className="font-bold text-[#011023] mb-5">{employeeToDelete.name}</h4>
+                                        <p className="text-gray-500 text-[13px] leading-relaxed">
+                                            Are you sure you want to permanently delete this account? All performance records and credentials will be lost. <br />
+                                            This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
+                                        </p>
+                                    </div>
+            
+                                    <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
+                                        <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95">CANCEL</button>
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                            className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-0"
+                                        >
+                                            {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-lg uppercase font-bold text-[#011023]">Delete Employee</h3>
-                                    <p className="text-xs text-red-500 font-bold uppercase tracking-tight">Serious Action Required</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsDeleteModalOpen(false)} className="p-2 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-gray-700">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        {/* Body */}
-                        <div className="p-8 text-center">
-                            <h4 className="text-xl font-black text-[#011023] mb-2 uppercase">{employeeToDelete.name}</h4>
-                            <p className="text-gray-500 text-sm leading-relaxed">
-                                Are you sure you want to permanently delete this employee? This action <span className="text-red-600 font-bold">CANNOT</span> be undone and all associated records will be orphaned.
-                            </p>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="p-6 bg-gray-50 flex gap-3">
-                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 text-sm font-bold text-gray-400 hover:bg-white rounded-2xl border-2 border-transparent hover:border-gray-200 transition-all uppercase tracking-tight">Cancel</button>
-                            <button 
-                                onClick={handleDelete} 
-                                disabled={deleting}
-                                className="flex-1 py-3 bg-red-600 text-white font-black rounded-2xl shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all text-sm uppercase tracking-tight disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {deleting ? <><Loader2 size={16} className="animate-spin" /> Deleting...</> : 'Delete Member'}
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+                            </div>,
+                            document.body
+                        )}
 
             {/* Service History Modal */}
             {isHistoryModalOpen && createPortal(
