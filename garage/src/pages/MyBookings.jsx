@@ -183,11 +183,11 @@ const MyBookings = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[29%]">Service & Vehicle</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Schedule At</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Price</th>
+                                <th className="p-4.5 font-bold text-center w-[30%]">Service & Vehicle</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]">Schedule At</th>
+                                <th className="p-4.5 font-bold text-center w-[6.5%]">Price</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
                             </tr>
                         </thead>
@@ -219,7 +219,7 @@ const MyBookings = () => {
                                         <div className="font-semibold text-[13px] truncate px-2" title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
                                         <div className="text-xs text-gray-400">{booking.user?.userId || ''}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[29%]">
+                                    <td className="p-4 text-center w-[36%]">
                                         <div className="font-bold text-[#0f172a] text-[13px] uppercase whitespace-normal leading-snug mx-auto">
                                             {booking.service?.title}
                                         </div>
@@ -227,9 +227,10 @@ const MyBookings = () => {
                                             {booking.vehicle?.make} {booking.vehicle?.model}
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center w-[20%]">
-                                        <span className="text-sm font-semibold text-gray-600">
-                                            {booking.schedule?.date} | {booking.schedule?.time}
+                                    <td className="p-4 text-center w-[15%]">
+                                        <span className="text-sm font-semibold text-gray-600 flex flex-col items-center">
+                                            <span>{booking.schedule?.date}</span>
+                                            <span>{booking.schedule?.time}</span>
                                         </span>
                                     </td>
                                     <td className="p-4 text-center w-[3%]">
@@ -242,7 +243,7 @@ const MyBookings = () => {
                                             {booking.payment?.paymentId || '—'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[12%]">
+                                    <td className="p-4 text-center w-[8%]">
                                         <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                             {booking.status || 'Pending'}
                                         </span>
