@@ -624,7 +624,7 @@ const Attendance = () => {
                                                 disabled={actionLoading}
                                                 className="mt-2 px-8 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-200 transition-all uppercase text-xs disabled:opacity-50 flex items-center gap-2"
                                             >
-                                                <CheckCircle2 size={13} />
+                                                <CheckCircle2 size={12} />
                                                 {actionLoading ? 'Saving...' : 'Check In'}
                                             </button>
                                         </div>
