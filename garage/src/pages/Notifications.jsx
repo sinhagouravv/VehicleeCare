@@ -217,7 +217,7 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.5">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
+                                                    <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
                                                         {notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A'}
                                                     </span>
                                                     <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
@@ -226,7 +226,7 @@ const Notifications = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4.5">
-                                                <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'}`}>
+                                                <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'}`}>
                                                     {notif.eventType === 'booking_created' 
                                                         ? notif.message.replace(/^.*booked/i, 'Booked') 
                                                         : notif.eventType === 'employee_added'
