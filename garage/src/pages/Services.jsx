@@ -170,12 +170,12 @@ const Services = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center w-[45%]">
-                                        <div className="font-bold text-[#0f172a] text-[13px] uppercase leading-snug">{booking.service?.title}</div>
+                                        <div className="font-semibold text-[#0f172a] text-[13.5px] uppercase leading-snug">{booking.service?.title}</div>
                                         <div className="text-[11.5px] text-slate-500 uppercase mt-1 tracking-wide">{booking.service?.id || '—'}</div>
                                     </td>
 
                                     <td className="p-4 text-center w-[11%]">
-                                        <div className="font-bold text-[#011023]">
+                                        <div className="font-semibold text-[13px]">
                                             {booking.assignedEmployees?.technician?.name || 'Waiting...'}
                                         </div>
                                         <div className="text-[11.5px] text-gray-500">
