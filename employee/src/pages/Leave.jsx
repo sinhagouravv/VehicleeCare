@@ -270,15 +270,15 @@ const Leave = () => {
                                     id={`row-${leave.leaveId}`}
                                     className={`text-center transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                 >
-                                    <td className="p-5 font-bold text-[#052558] text-[13px]">
+                                    <td className="p-5 font-semibold text-[13px]">
                                         {leave.leaveId || '—'}
                                     </td>
-                                    <td className="p-5 font-semibold text-[#052558] text-[13px]">
+                                    <td className="p-5 font-semibold text-[13px]">
                                         <div className="text-[#052558]">{new Date(leave.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                                         <div className="text-gray-500 mt-0.5 text-xs">{new Date(leave.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
                                     </td>
                                     <td className="p-5">
-                                        <span className="font-semibold text-[#011023] text-[13px]">{leave.type}</span>
+                                        <span className="font-semibold text-[13px]">{leave.type}</span>
                                     </td>
                                     <td className="p-5">
                                         <span className={`px-3 py-1 rounded-lg text-xs border font-semibold uppercase tracking-wide ${leave.leaveTime === 'Half Day' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
