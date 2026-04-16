@@ -214,7 +214,7 @@ const Reviews = () => {
                                             {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="font-bold text-[#011023]">{rev.name}</div>
+                                            <div className="font-semibold text-[#011023]">{rev.name}</div>
                                             <div className="text-xs text-center text-gray-500">
                                                 {getDisplayUserId(rev)}
                                             </div>
@@ -404,7 +404,7 @@ const Reviews = () => {
                         <div className="p-8 text-center uppercase space-y-4">
                             <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Review</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-                                This will permanently remove the review from <span className="text-[#052558] font-bold uppercase">{reviews.find(r => r._id === reviewToDelete)?.userName}</span> for <span className="text-[#052558] font-bold uppercase">{reviews.find(r => r._id === reviewToDelete)?.garageName}</span>. <br/>
+                                This will permanently remove the selected review. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
