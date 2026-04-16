@@ -220,7 +220,7 @@ const MyBookings = () => {
                                         <div className="text-xs text-gray-400">{booking.user?.userId || ''}</div>
                                     </td>
                                     <td className="p-4 text-center w-[36%]">
-                                        <div className="font-bold text-[#0f172a] text-[13px] uppercase whitespace-normal leading-snug mx-auto">
+                                        <div className="font-semibold text-[#0f172a] text-[13px] uppercase whitespace-normal leading-snug mx-auto">
                                             {booking.service?.title}
                                         </div>
                                         <div className="text-[11.5px] font-medium text-slate-500 uppercase mt-1 tracking-wide">
