@@ -123,9 +123,9 @@ const Vehicles = () => {
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Brand</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Model</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Number</th>
-                                <th className="p-4.5 font-bold text-center w-[22%]">Other Details</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Model</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Number</th>
+                                <th className="p-4.5 font-bold text-center w-[20%]">Other Details</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Visit At</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Action</th>
                             </tr>
@@ -153,23 +153,23 @@ const Vehicles = () => {
                                         {v.customerId}
                                     </td>
                                     <td className="p-4 text-center w-[10%]">
-                                        <div className="font-bold text-[#011023] truncate px-2" title={v.ownerName}>{v.ownerName}</div>
+                                        <div className="font-semibold text-[13.5px] truncate px-2" title={v.ownerName}>{v.ownerName}</div>
                                     </td>
                                     <td className="p-4 text-center w-[10%]">
-                                        <div className="font-bold text-[#052558] truncate px-1" title={v.bookingId}>{v.bookingId}</div>
+                                        <div className="font-semibold text-[13.5px] truncate px-1" title={v.bookingId}>{v.bookingId}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[10%] font-bold text-[#011023]">
+                                    <td className="p-4 text-center w-[10%] font-semibold text-[13.5px]">
                                         {v.brand}
                                     </td>
-                                    <td className="p-4 text-center w-[9%] font-bold text-[#0f172a]">
+                                    <td className="p-4 text-center w-[9%] font-semibold text-[13.5px]">
                                         {v.model}
                                     </td>
-                                    <td className="p-4 text-center w-[9%]">
+                                    <td className="p-4 text-center w-[7%]">
                                         <span className="bg-[#fef3c7] text-[#92400e] font-semibold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide">
                                             {v.number}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[19%]">
+                                    <td className="p-4 text-center w-[15%]">
                                         <div className="flex flex-wrap justify-center gap-1.5">
                                             <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-semibold border border-blue-100">{v.year}</span>
                                             <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-semibold border border-emerald-100">{v.type}</span>
