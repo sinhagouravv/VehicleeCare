@@ -52,6 +52,11 @@ const BookingSchema = new mongoose.Schema({
             id: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
             employeeId: { type: String },
             name: { type: String }
+        },
+        mechanic: {
+            id: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+            employeeId: { type: String },
+            name: { type: String }
         }
     },
     status: {
