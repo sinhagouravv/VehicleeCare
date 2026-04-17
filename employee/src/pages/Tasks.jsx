@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     Search, 
     Filter, 
@@ -10,7 +11,8 @@ import {
     Phone, 
     MapPin, 
     Car, Calendar,
-    Clock } from 'lucide-react';
+    Clock,
+    X } from 'lucide-react';
 
 import useHighlight from '../hooks/useHighlight';
 
@@ -27,7 +29,9 @@ const Tasks = () => {
     // Multi-step workflow state
     const [showDurationModal, setShowDurationModal] = useState(false);
     const [showOTPModal, setShowOTPModal] = useState(false);
-    const [duration, setDuration] = useState('');
+    const [durationDays, setDurationDays] = useState('');
+    const [durationHours, setDurationHours] = useState('');
+    const duration = (durationDays !== '' && durationHours !== '') ? `${durationDays} Day${durationDays !== '1' ? 's' : ''}, ${durationHours} Hour${durationHours !== '1' ? 's' : ''}` : '';
     const [otpInput, setOtpInput] = useState('');
     const [selectedTaskId, setSelectedTaskId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,8 +139,53 @@ const Tasks = () => {
         }
     };
 
+    // OTP Input Helpers
+    const handleOtpBoxChange = (value, index) => {
+        if (value && !/^\d+$/.test(value)) return;
+        const paddedOtp = otpInput.padEnd(6, ' ');
+        const otpArray = paddedOtp.split('');
+        otpArray[index] = value || ' ';
+        const finalOtp = otpArray.join('');
+        setOtpInput(finalOtp);
+
+        if (value && index < 5) {
+            const nextInput = document.getElementById(`otp-box-${index + 1}`);
+            nextInput?.focus();
+        }
+    };
+
+    const handleOtpBoxKeyDown = (e, index) => {
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+            const paddedOtp = otpInput.padEnd(6, ' ');
+            const otpArray = paddedOtp.split('');
+            
+            if (otpArray[index] !== ' ') {
+                // If there's a character, just clear it directly. Bypasses cursor position issues.
+                e.preventDefault();
+                otpArray[index] = ' ';
+                setOtpInput(otpArray.join(''));
+            } else if (index > 0) {
+                // If already empty, jump back one box and clear it simultaneously
+                e.preventDefault();
+                otpArray[index - 1] = ' ';
+                setOtpInput(otpArray.join(''));
+                const prevInput = document.getElementById(`otp-box-${index - 1}`);
+                prevInput?.focus();
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            e.preventDefault();
+            const prevInput = document.getElementById(`otp-box-${index - 1}`);
+            prevInput?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            e.preventDefault();
+            const nextInput = document.getElementById(`otp-box-${index + 1}`);
+            nextInput?.focus();
+        }
+    };
+
     const handleVerifyOTP = async () => {
-        if (!otpInput || otpInput.length !== 6 || !selectedTaskId) {
+        const cleanOtp = otpInput.replace(/\s+/g, '');
+        if (!cleanOtp || cleanOtp.length !== 6 || !selectedTaskId) {
             alert("Please enter a valid 6-digit OTP");
             return;
         }
@@ -145,7 +194,7 @@ const Tasks = () => {
             const currentTask = tasks.find(t => t._id === selectedTaskId);
             const currentStatus = currentTask?.status;
             const endpoint = currentStatus === 'Completed' ? 'verify-delivery-otp' : 'verify-otp';
-            const body = currentStatus === 'Completed' ? { otp: otpInput } : { otp: otpInput, duration };
+            const body = currentStatus === 'Completed' ? { otp: cleanOtp } : { otp: cleanOtp, duration };
 
             const res = await fetch(`http://localhost:5001/api/bookings/${selectedTaskId}/${endpoint}`, {
                 method: 'POST',
@@ -158,7 +207,8 @@ const Tasks = () => {
                 setTasks(prev => prev.map(t => t._id === selectedTaskId ? { ...t, status: nextStatus, serviceDuration: duration || t.serviceDuration } : t));
                 setShowOTPModal(false);
                 setShowDurationModal(false);
-                setDuration('');
+                setDurationDays('');
+                setDurationHours('');
                 setOtpInput('');
                 setSelectedTaskId(null);
             } else {
@@ -250,16 +300,16 @@ const Tasks = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex flex-col items-center">
-                                            <div className="font-bold text-[#011023] text-[13px] uppercase leading-snug">
+                                            <div className="font-semibold text-[13px] uppercase">
                                                 {task.user.name}
                                             </div>
-                                            <div className="text-[11px] text-slate-500 uppercase tracking-tight">
+                                            <div className="text-[11.5px] text-slate-500 uppercase">
                                                 {task.user.userId}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="font-bold text-[#011023] text-[13px] uppercase truncate max-w-[150px] mx-auto">
+                                        <div className="font-semibold text-[13px] uppercase truncate max-w-[150px] mx-auto">
                                             {task.user.phone}
                                         </div>
                                         <div className="text-[11.5px] text-slate-500 lowercase tracking-wide">
@@ -267,7 +317,7 @@ const Tasks = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="font-bold text-[#011023] text-[13px] uppercase leading-snug">
+                                        <div className="font-semibold text-[13px] uppercase leading-snug">
                                             {task.service.title}
                                         </div>
                                         <div className="text-[11.5px] text-slate-500 uppercase tracking-wide">
@@ -275,7 +325,7 @@ const Tasks = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="text-[14px] font-bold uppercase tracking-tighter">
+                                        <div className="text-[14px] font-semibold uppercase">
                                             {task.schedule.date}
                                         </div>
                                         <div className="font-normal text-slate-500 text-[13px] uppercase">
@@ -289,7 +339,7 @@ const Tasks = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-1">
-                                            <button className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Details">
+                                            <button className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                 <Eye size={17} />
                                             </button>
                                              {task.status !== 'Delivered' && (
@@ -313,12 +363,6 @@ const Tasks = () => {
                                                         task.status === 'In Progress' ? 'text-purple-600 bg-purple-50' : 
                                                         'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50'
                                                     } ${isSubmitting && selectedTaskId === task._id ? 'opacity-50' : ''}`}
-                                                    title={
-                                                        task.status === 'Completed' ? "Mark as Delivered (Verify OTP)" : 
-                                                        task.status === 'In Service' ? "Mark as Completed" : 
-                                                        task.status === 'In Progress' ? "Start Service (Verify OTP)" : 
-                                                        "Mark as In Progress"
-                                                    }
                                                 >
                                                     {isSubmitting && selectedTaskId === task._id ? (
                                                         <Loader2 size={17} className="animate-spin" />
@@ -337,97 +381,142 @@ const Tasks = () => {
             </div>
 
             {/* Duration Modal */}
-            {showDurationModal && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
-                        <div className="p-6">
-                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-tight mb-2">Service Duration</h3>
-                            <p className="text-sm text-gray-500 mb-6">Enter the estimated time required for this service.</p>
-                            
-                            <div className="space-y-4">
+            {showDurationModal && createPortal(
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setShowDurationModal(false); setDurationDays(''); setDurationHours(''); }} />
+                    <div className="relative w-full max-w-xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between relative">
+                            <div className="w-8"></div>
+                            <div className="text-center absolute left-1/2 -translate-x-1/2 uppercase">
+                                <h2 className="text-xl mt-2 font-bold text-[#011023]">Service Duration</h2>
+                                <p className="text-[13px] text-gray-500 font-bold mt-1">Enter the estimated time required</p>
+                            </div>
+                            <button onClick={() => { setShowDurationModal(false); setDurationDays(''); setDurationHours(''); }} className="p-2 rounded-full transition-colors text-gray-400 hover:text-gray-700 relative z-10">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4 uppercase overflow-y-auto hide-scrollbar">
+                            <div className="grid grid-cols-2 gap-4 px-5">
                                 <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5 ml-1">Estimated Duration</label>
-                                    <input 
-                                        type="text"
-                                        placeholder="e.g. 45 Mins, 2 Hours"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-semibold"
-                                        value={duration}
-                                        onChange={(e) => setDuration(e.target.value)}
-                                        autoFocus
-                                    />
+                                    <label className="block text-sm text-center font-semibold text-[#011023] mb-2">Days</label>
+                                    <select 
+                                        className="w-full uppercase px-4 font-semibold text-center text-xs py-3 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                        value={durationDays}
+                                        onChange={(e) => setDurationDays(e.target.value)}
+                                    >
+                                        <option value=""></option>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((h) => (
+                                            <option key={h} value={h}>{h} {h === 1 ? 'Day' : 'Days'}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div className="flex gap-3 pt-2">
-                                    <button 
-                                        onClick={() => setShowDurationModal(false)}
-                                        className="flex-1 px-4 py-3 rounded-xl border border-gray-100 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-all uppercase tracking-wider"
+                                <div>
+                                    <label className="block text-sm text-center font-semibold text-[#011023] mb-2">Hours</label>
+                                    <select 
+                                        className="w-full uppercase px-4 font-semibold text-center text-xs py-3 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                        value={durationHours}
+                                        onChange={(e) => setDurationHours(e.target.value)}
                                     >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        onClick={() => handleSendOTP(selectedTaskId)}
-                                        disabled={isSubmitting || !duration}
-                                        className="flex-1 px-4 py-3 rounded-xl bg-[#011023] text-white text-sm font-bold hover:bg-indigo-600 transition-all uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : "Next"}
-                                    </button>
+                                        <option value=""></option>
+                                        {[3, 6, 9, 12, 15, 18, 24].map((h) => (
+                                            <option key={h} value={h}>{h} {h === 1 ? 'Hour' : 'Hours'}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Footer */}
+                        <div className="p-2 grid grid-cols-2 gap-3 pb-8 px-11">
+                            <button onClick={() => { setShowDurationModal(false); setDurationDays(''); setDurationHours(''); }} className="px-4 py-3 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95">CANCEL</button>
+                            <button 
+                                onClick={() => handleSendOTP(selectedTaskId)} 
+                                disabled={isSubmitting || !duration} 
+                                className="px-4 py-3 bg-emerald-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> NEXT...</> : 'NEXT'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* OTP Modal */}
-            {showOTPModal && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
-                        <div className="p-6">
-                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-tight mb-2">
-                                {tasks.find(t => t._id === selectedTaskId)?.status === 'Completed' ? 'Verify Delivery' : 'Verify Service'}
-                            </h3>
-                            <div className="flex items-center gap-2 mb-6">
-                                <p className="text-sm text-gray-500">
-                                    {isSubmitting && !otpInput ? "Sending OTP to customer email..." : "Enter the 6-digit OTP sent to the customer's registered email address."}
+            {showOTPModal && createPortal(
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setShowOTPModal(false); setOtpInput(''); }} />
+                    <div className="relative w-full max-w-xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between relative">
+                            <div className="w-9"></div>
+                            <div className="text-center absolute left-1/2 -translate-x-1/2 uppercase">
+                                <h3 className="text-xl mt-2 font-bold text-[#011023] whitespace-nowrap">
+                                    {/* {tasks.find(t => t._id === selectedTaskId)?.status === 'Completed' ? 'Verify Delivery' : 'Verify Service'} */}
+
+                                <h2 className="text-xl mt-2 font-bold text-[#011023]">Service Duration</h2>
+                                </h3>
+                                <p className="text-[13px] uppercase text-gray-500 font-bold mt-1 lowercase first-letter:uppercase">
+                                    {/* {isSubmitting && !otpInput ? "Sending OTP to customer..." : "Enter the 6-digit code sent to customer"} */}
+                                <p className="text-[13px] text-gray-500 font-bold mt-1">Enter the OTP sent to customer</p>
                                 </p>
-                                {isSubmitting && !otpInput && <Loader2 className="animate-spin text-indigo-600" size={14} />}
                             </div>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5 ml-1">6-Digit OTP</label>
-                                    <input 
-                                        type="text"
-                                        maxLength="6"
-                                        placeholder="Enter OTP"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-4 text-center text-2xl tracking-[10px] font-black focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                                        value={otpInput}
-                                        onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                                        autoFocus
-                                    />
-                                </div>
-                                <div className="flex gap-3 pt-2">
-                                    <button 
-                                        onClick={() => setShowOTPModal(false)}
-                                        className="flex-1 px-4 py-3 rounded-xl border border-gray-100 text-sm font-bold text-gray-500 hover:bg-gray-50 transition-all uppercase tracking-wider"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        onClick={handleVerifyOTP}
-                                        disabled={isSubmitting || otpInput.length !== 6}
-                                        className="flex-1 px-4 py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-all uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {isSubmitting ? (
-                                            <Loader2 className="animate-spin" size={16} />
-                                        ) : (
-                                            tasks.find(t => t._id === selectedTaskId)?.status === 'Completed' ? "Verify & Deliver" : "Verify & Start Service"
-                                        )}
-                                    </button>
+                            <button onClick={() => { setShowOTPModal(false); setOtpInput(''); }} className="p-2 rounded-full transition-colors text-gray-400 hover:text-gray-700 relative z-10">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        {/* Body */}
+                        <div className="p-10 space-y-8 flex flex-col items-center overflow-y-auto hide-scrollbar">
+                            <div className="text-center">
+                                <label className="block text-[12px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6">
+                                    6-Digit Verification Code
+                                </label>
+                                <div className="flex justify-center gap-2 sm:gap-3 w-full px-2">
+                                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                                        <input
+                                            key={index}
+                                            id={`otp-box-${index}`}
+                                            type="text"
+                                            maxLength="1"
+                                            value={otpInput[index]?.trim() || ''}
+                                            onChange={(e) => handleOtpBoxChange(e.target.value, index)}
+                                            onKeyDown={(e) => handleOtpBoxKeyDown(e, index)}
+                                            onFocus={(e) => e.target.select()}
+                                            autoComplete="off"
+                                            className="w-10 h-12 text-center text-xl text-[#011023] bg-white/50 border border-white/60 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/30 transition-all shadow-sm outline-none caret-transparent selection:bg-transparent selection:text-[#011023]"
+                                            autoFocus={index === 0}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         </div>
+
+                        {/* Footer */}
+                        <div className="p-2 grid grid-cols-2 gap-3 pb-8 px-11">
+                            <button 
+                                onClick={() => { setShowOTPModal(false); setOtpInput(''); }}
+                                className="px-4 py-3 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
+                            >
+                                CANCEL
+                            </button>
+                            <button 
+                                onClick={handleVerifyOTP}
+                                disabled={isSubmitting || otpInput.replace(/\s+/g, '').length !== 6}
+                                className="px-4 py-3 bg-emerald-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                            >
+                                {isSubmitting ? (
+                                    <><Loader2 size={16} className="animate-spin" /> VERIFYING...</>
+                                ) : (
+                                    tasks.find(t => t._id === selectedTaskId)?.status === 'Completed' ? "VERIFY & DELIVER" : "VERIFY & START"
+                                )}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
