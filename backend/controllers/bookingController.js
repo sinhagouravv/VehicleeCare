@@ -307,6 +307,23 @@ exports.getGarageBookings = async (req, res) => {
     }
 };
 
+const autoAssignMechanic = async (booking) => {
+    if (!booking.assignedEmployees) booking.assignedEmployees = {};
+    if (!booking.assignedEmployees.mechanic || !booking.assignedEmployees.mechanic.id) {
+        const garageId = booking.garage?.id ? String(booking.garage.id).trim() : null;
+        const mechanics = await Employee.find({ garageId, isVerified: true, role: 'Mechanic' });
+        if (mechanics.length > 0) {
+            const mech = mechanics[Math.floor(Math.random() * mechanics.length)];
+            booking.assignedEmployees.mechanic = {
+                id: mech._id,
+                employeeId: mech.employeeId,
+                name: mech.name
+            };
+            booking.markModified('assignedEmployees');
+        }
+    }
+};
+
 // @desc    Update booking status
 // @route   PUT /api/bookings/:id/status
 // @access  Private
@@ -317,6 +334,10 @@ exports.updateBookingStatus = async (req, res) => {
 
         if (!booking) {
             return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+
+        if (status === 'In Service' && booking.status !== 'In Service') {
+            await autoAssignMechanic(booking);
         }
 
         if (status) booking.status = status;
@@ -434,6 +455,9 @@ exports.verifyInServiceOTP = async (req, res) => {
         booking.serviceDuration = duration;
         booking.otp = undefined;
         booking.otpExpires = undefined;
+
+        await autoAssignMechanic(booking);
+
         await booking.save();
 
         res.json({ success: true, message: 'Status updated to In Service', data: booking });
