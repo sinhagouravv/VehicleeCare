@@ -357,12 +357,12 @@ const MyBookings = () => {
                             </div>
 
                             {/* Payment & Status */}
-                            <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                            <div className="flex flex-col gap-4.5 w-full md:w-[37%]">
                                 <div className="space-y-1.5">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                     <div className="flex items-center mt-7 gap-3">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
-                                        <div className="flex uppercase items-center gap-2 pl-3">
+                                        <div className="flex uppercase items-center gap-2 pl-4">
                                             <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
                                                 {selectedBooking.status}
                                             </span>
@@ -370,14 +370,14 @@ const MyBookings = () => {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Duration</h4>
-                                        <div className="flex uppercase items-center gap-2 pl-5">
+                                        <div className="flex uppercase items-center gap-2 pl-1.5">
                                             <span className="inline-block px-3 py-1 text-xs font-bold rounded-md uppercase text-gray-800">{selectedBooking.serviceDuration || '—'}</span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <h4 className="text-sm font-bold mb-2 text-gray-400 uppercase tracking-wider w-29">Delivery Due</h4>
-                                        <div className="flex uppercase items-center mb-2 gap-2 pl-2">
+                                        <h4 className="text-sm font-bold mb-2 text-gray-400 uppercase tracking-wider">Delivery Due</h4>
+                                        <div className="flex uppercase items-center mb-2 gap-2">
                                             <span className="inline-block px-1 py-1 text-xs font-bold rounded-md uppercase text-gray-800">
                                                 {getDeliveryDue(selectedBooking)}
                                             </span>
