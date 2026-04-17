@@ -90,6 +90,36 @@ const MyBookings = () => {
         });
     };
 
+    const getDeliveryDue = (booking) => {
+        if (!booking?.serviceDuration || booking.serviceDuration === '—') return '—';
+        const str = booking.serviceDuration.toLowerCase();
+        let days = 0;
+        let hours = 0;
+        
+        const dMatch = str.match(/(\d+)\s*day/);
+        if (dMatch) days = parseInt(dMatch[1], 10);
+        
+        const hMatch = str.match(/(\d+)\s*hour/);
+        if (hMatch) hours = parseInt(hMatch[1], 10);
+        
+        // Use the explicitly scheduled service time as the baseline, falling back to booking creation time, to ensure the deadline remains statically fixed
+        let baseTime = new Date(booking.createdAt || Date.now());
+        if (booking.schedule?.date) {
+            const parsedSchedule = new Date(`${booking.schedule.date} ${booking.schedule.time || ''}`.trim());
+            if (!isNaN(parsedSchedule.getTime())) {
+                baseTime = parsedSchedule;
+            }
+        }
+        
+        baseTime.setDate(baseTime.getDate() + days);
+        baseTime.setHours(baseTime.getHours() + hours);
+        
+        return baseTime.toLocaleDateString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    };
+
     const handleDownloadInvoice = (booking) => {
         try {
             const doc = new jsPDF();
@@ -332,27 +362,26 @@ const MyBookings = () => {
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                     <div className="flex items-center mt-7 gap-3">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
-                                        <div className="flex uppercase items-center gap-2">
+                                        <div className="flex uppercase items-center gap-2 pl-3">
                                             <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
                                                 {selectedBooking.status}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="bg-blue-50/30 rounded-xl border border-blue-50 flex items-center gap-4">
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
-                                        <span className="text-base ml-5 font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
-                                        {selectedBooking.payment?.status === 'Partially Paid' ? (
-                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">Advance</span>
-                                        ) : (
-                                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded uppercase">{selectedBooking.payment?.status || 'Paid'}</span>
-                                        )}
+                                    <div className="flex items-center gap-3">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Duration</h4>
+                                        <div className="flex uppercase items-center gap-2 pl-5">
+                                            <span className="inline-block px-3 py-1 text-xs font-bold rounded-md uppercase text-gray-800">{selectedBooking.serviceDuration || '—'}</span>
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Booked At</h4>
-                                        <span className="text-xs ml-2 font-bold text-gray-600 uppercase">
-                                            {formatDate(selectedBooking.createdAt)}
-                                        </span>
+                                        <h4 className="text-sm font-bold mb-2 text-gray-400 uppercase tracking-wider w-29">Delivery Due</h4>
+                                        <div className="flex uppercase items-center mb-2 gap-2 pl-2">
+                                            <span className="inline-block px-1 py-1 text-xs font-bold rounded-md uppercase text-gray-800">
+                                                {getDeliveryDue(selectedBooking)}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -372,23 +401,21 @@ const MyBookings = () => {
 
                         {/* Garage & Employees Info */}
                         <div className="flex gap-5 -mt-1">
-                            {/* Garage Info - 30% */}
-                            <div className="w-[40%] bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm uppercase">
-                                <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Garage</p>
-                                <h5 className="font-bold text-[#052558] text-[15.5px] truncate" title={selectedBooking.garage?.name}>{selectedBooking.garage?.name || 'No Garage Assigned'}</h5>
-                                <p className="text-sm text-gray-500 mt-0.5 truncate">{selectedBooking.garage?.district}, {selectedBooking.garage?.state} | {selectedBooking.garage?.id || 'N/A'}</p>
-                            </div>
 
-                            {/* Employees Info - 70% */}
-                            <div className="w-[70%] bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm flex divide-x divide-[#e6f0fa]">
-                                <div className="w-1/2 pr-4 uppercase">
+                            {/* Employees Info - 60% */}
+                            <div className="w-full bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm flex divide-x divide-[#e6f0fa]">
+                                <div className="w-1/3 pr-4 uppercase">
                                     <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee's</p>
                                     <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
                                     <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedBooking.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
                                 </div>
-                                <div className="w-1/2 pl-4 uppercase">
+                                <div className="w-1/3 px-4 uppercase">
                                     <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
                                     <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedBooking.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
+                                </div>
+                                <div className="w-1/3 pl-4 uppercase">
+                                    <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.mechanic?.name || '—'}</h5>
+                                    <p className="text-sm text-gray-500 mt-0.5">Mechanic | {selectedBooking.assignedEmployees?.mechanic?.employeeId || '—'}</p>
                                 </div>
                             </div>
                         </div>
