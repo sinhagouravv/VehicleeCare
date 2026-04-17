@@ -37,8 +37,10 @@ const Login = () => {
 
     // Helper for 6-digit OTP boxes (Recovery)
     const handleResetOtpChange = (value, index) => {
-        const newOtpArray = resetOtp.split('');
-        newOtpArray[index] = value.slice(-1);
+        if (value && !/^\d+$/.test(value)) return;
+        const paddedOtp = resetOtp.padEnd(6, ' ');
+        const newOtpArray = paddedOtp.split('');
+        newOtpArray[index] = value || ' ';
         const finalOtp = newOtpArray.join('');
         setResetOtp(finalOtp);
 
@@ -49,16 +51,37 @@ const Login = () => {
     };
 
     const handleResetOtpKeyDown = (e, index) => {
-        if (e.key === 'Backspace' && !resetOtp[index] && index > 0) {
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+            const paddedOtp = resetOtp.padEnd(6, ' ');
+            const otpArray = paddedOtp.split('');
+            if (otpArray[index] !== ' ') {
+                e.preventDefault();
+                otpArray[index] = ' ';
+                setResetOtp(otpArray.join(''));
+            } else if (index > 0) {
+                e.preventDefault();
+                otpArray[index - 1] = ' ';
+                setResetOtp(otpArray.join(''));
+                const prevInput = document.getElementById(`reset-otp-${index - 1}`);
+                prevInput?.focus();
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            e.preventDefault();
             const prevInput = document.getElementById(`reset-otp-${index - 1}`);
             prevInput?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            e.preventDefault();
+            const nextInput = document.getElementById(`reset-otp-${index + 1}`);
+            nextInput?.focus();
         }
     };
 
     // Helper for 2FA OTP boxes
     const handle2FAOtpChange = (value, index) => {
-        const newOtpArray = otp.split('');
-        newOtpArray[index] = value.slice(-1);
+        if (value && !/^\d+$/.test(value)) return;
+        const paddedOtp = otp.padEnd(6, ' ');
+        const newOtpArray = paddedOtp.split('');
+        newOtpArray[index] = value || ' ';
         const finalOtp = newOtpArray.join('');
         setOtp(finalOtp);
 
@@ -69,9 +92,28 @@ const Login = () => {
     };
 
     const handle2FAOtpKeyDown = (e, index) => {
-        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+            const paddedOtp = otp.padEnd(6, ' ');
+            const otpArray = paddedOtp.split('');
+            if (otpArray[index] !== ' ') {
+                e.preventDefault();
+                otpArray[index] = ' ';
+                setOtp(otpArray.join(''));
+            } else if (index > 0) {
+                e.preventDefault();
+                otpArray[index - 1] = ' ';
+                setOtp(otpArray.join(''));
+                const prevInput = document.getElementById(`2fa-otp-${index - 1}`);
+                prevInput?.focus();
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            e.preventDefault();
             const prevInput = document.getElementById(`2fa-otp-${index - 1}`);
             prevInput?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            e.preventDefault();
+            const nextInput = document.getElementById(`2fa-otp-${index + 1}`);
+            nextInput?.focus();
         }
     };
 
@@ -344,15 +386,17 @@ const Login = () => {
                                                     id={`reset-otp-${index}`}
                                                     type="text"
                                                     maxLength="1"
-                                                    value={resetOtp[index] || ''}
+                                                    value={resetOtp[index]?.trim() || ''}
                                                     onChange={(e) => handleResetOtpChange(e.target.value, index)}
                                                     onKeyDown={(e) => handleResetOtpKeyDown(e, index)}
-                                                    className="w-10 h-12 text-center text-lg font-bold text-[#011023] bg-white border border-slate-200 rounded-xl focus:outline-none shadow-sm"
+                                                    onFocus={(e) => e.target.select()}
+                                                    autoComplete="off"
+                                                    className="w-10 h-12 text-center text-lg font-bold text-[#011023] bg-white border border-slate-200 rounded-xl focus:outline-none shadow-sm caret-transparent selection:bg-transparent selection:text-[#011023]"
                                                 />
                                             ))}
                                         </div>
                                     </div>
-                                    <button type="submit" disabled={loading || resetOtp.length !== 6} className="w-full max-w-sm bg-[#052558] text-white py-5 rounded-2xl font-black tracking-[0.2em] uppercase text-xs shadow-xl transition-all hover:scale-[1.02]">
+                                    <button type="submit" disabled={loading || resetOtp.replace(/\s+/g, '').length !== 6} className="w-full max-w-sm bg-[#052558] text-white py-5 rounded-2xl font-black tracking-[0.2em] uppercase text-xs shadow-xl transition-all hover:scale-[1.02]">
                                         {loading ? <Loader className="animate-spin mx-auto" size={20} /> : 'Verify & Continue'}
                                     </button>
                                 </form>
@@ -400,14 +444,16 @@ const Login = () => {
                                         id={`2fa-otp-${index}`}
                                         type="text"
                                         maxLength="1"
-                                        value={otp[index] || ''}
+                                        value={otp[index]?.trim() || ''}
                                         onChange={(e) => handle2FAOtpChange(e.target.value, index)}
                                         onKeyDown={(e) => handle2FAOtpKeyDown(e, index)}
-                                        className="w-10 h-12 text-center text-lg font-bold text-[#011023] bg-white border border-slate-200 rounded-xl focus:outline-none shadow-sm"
+                                        onFocus={(e) => e.target.select()}
+                                        autoComplete="off"
+                                        className="w-10 h-12 text-center text-lg font-bold text-[#011023] bg-white border border-slate-200 rounded-xl focus:outline-none shadow-sm caret-transparent selection:bg-transparent selection:text-[#011023]"
                                     />
                                 ))}
                             </div>
-                            <button type="submit" disabled={loading} className="w-full bg-[#052558] text-white py-5 rounded-2xl font-black tracking-[0.2em] uppercase text-xs shadow-xl transition-all hover:scale-[1.02]">
+                            <button type="submit" disabled={loading || otp.replace(/\s+/g, '').length !== 6} className="w-full bg-[#052558] text-white py-5 rounded-2xl font-black tracking-[0.2em] uppercase text-xs shadow-xl transition-all hover:scale-[1.02]">
                                 {loading ? <Loader className="animate-spin mx-auto" size={20} /> : 'Verify & Login'}
                             </button>
                             <button type="button" onClick={() => setShowOTPModal(false)} className="w-full text-center text-xs font-bold text-gray-400 hover:text-gray-600 uppercase pt-4 transition-colors">Cancel</button>
