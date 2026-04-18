@@ -50,7 +50,9 @@ const Notifications = () => {
                     assignment.technician?.id === empId ||
                     assignment.technician?.employeeId === empId ||
                     assignment.support?.id === empId ||
-                    assignment.support?.employeeId === empId;
+                    assignment.support?.employeeId === empId ||
+                    assignment.mechanic?.id === empId ||
+                    assignment.mechanic?.employeeId === empId;
                 
                 return isAssigned;
             });
