@@ -384,11 +384,11 @@ const Services = () => {
                                         <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
                                         <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedBooking.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
                                     </div>
-                                    <div className="w-1/3 pl-4 pr-4 uppercase">
+                                    <div className="w-1/3 pl-3 uppercase">
                                         <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
                                         <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedBooking.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
                                     </div>
-                                    <div className="w-1/3 pl-4 uppercase">
+                                    <div className="w-1/3 pl-8 uppercase">
                                         <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.mechanic?.name || '—'}</h5>
                                         <p className="text-sm text-gray-500 mt-0.5">Mechanic | {selectedBooking.assignedEmployees?.mechanic?.employeeId || '—'}</p>
                                     </div>
