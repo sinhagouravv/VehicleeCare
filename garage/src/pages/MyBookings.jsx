@@ -337,7 +337,7 @@ const MyBookings = () => {
                     <div className="p-6 overflow-y-auto flex-1 space-y-6 hide-scrollbar">
                         <div className="flex flex-col md:flex-row gap-6 w-full">
                             {/* Customer Info */}
-                            <div className="space-y-4 w-full md:w-[46%]">
+                            <div className="space-y-4 w-full md:w-[40%]">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
                                 <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                     <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
@@ -409,11 +409,11 @@ const MyBookings = () => {
                                     <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
                                     <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedBooking.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
                                 </div>
-                                <div className="w-1/3 px-4 uppercase">
+                                <div className="w-1/3 px-3 uppercase">
                                     <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
                                     <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedBooking.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
                                 </div>
-                                <div className="w-1/3 pl-4 uppercase">
+                                <div className="w-1/3 pl-8 uppercase">
                                     <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.mechanic?.name || '—'}</h5>
                                     <p className="text-sm text-gray-500 mt-0.5">Mechanic | {selectedBooking.assignedEmployees?.mechanic?.employeeId || '—'}</p>
                                 </div>
