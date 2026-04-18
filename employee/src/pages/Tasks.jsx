@@ -23,12 +23,23 @@ const Tasks = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [userRole, setUserRole] = useState('');
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem('employeeUser');
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            setUserRole(user.role || '');
+        }
+    }, []);
 
     const highlightedRow = useHighlight(tasks);
 
     // Multi-step workflow state
     const [showDurationModal, setShowDurationModal] = useState(false);
     const [showOTPModal, setShowOTPModal] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState(null);
     const [durationDays, setDurationDays] = useState('');
     const [durationHours, setDurationHours] = useState('');
     const duration = (durationDays !== '' && durationHours !== '') ? `${durationDays} Day${durationDays !== '1' ? 's' : ''}, ${durationHours} Hour${durationHours !== '1' ? 's' : ''}` : '';
@@ -97,6 +108,41 @@ const Tasks = () => {
             console.error("Update failed:", err);
         }
     };
+    const handleViewDetails = (task) => {
+        setSelectedTask(task);
+        setIsViewModalOpen(true);
+    };
+
+    const getDeliveryDue = (booking) => {
+        if (!booking?.serviceDuration || booking.serviceDuration === '—') return '—';
+        const str = booking.serviceDuration.toLowerCase();
+        let days = 0;
+        let hours = 0;
+        
+        const dMatch = str.match(/(\d+)\s*day/);
+        if (dMatch) days = parseInt(dMatch[1], 10);
+        
+        const hMatch = str.match(/(\d+)\s*hour/);
+        if (hMatch) hours = parseInt(hMatch[1], 10);
+        
+        // Use the explicitly scheduled service time as the baseline
+        let baseTime = new Date(booking.createdAt || Date.now());
+        if (booking.schedule?.date) {
+            const parsedSchedule = new Date(`${booking.schedule.date} ${booking.schedule.time || ''}`.trim());
+            if (!isNaN(parsedSchedule.getTime())) {
+                baseTime = parsedSchedule;
+            }
+        }
+        
+        baseTime.setDate(baseTime.getDate() + days);
+        baseTime.setHours(baseTime.getHours() + hours);
+        
+        return baseTime.toLocaleDateString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    };
+
     const handleSendOTP = async (taskId) => {
         if (!taskId) return;
         const currentTask = tasks.find(t => t._id === taskId);
@@ -265,7 +311,7 @@ const Tasks = () => {
                                 <th className="p-4.5 font-bold text-center w-[30%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Time Slot</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-black text-center w-[7%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
@@ -339,10 +385,13 @@ const Tasks = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-1">
-                                            <button className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                            <button 
+                                                onClick={() => handleViewDetails(task)}
+                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                            >
                                                 <Eye size={17} />
                                             </button>
-                                             {task.status !== 'Delivered' && (
+                                             {task.status !== 'Delivered' && userRole === 'Technician' && (
                                                 <button
                                                     onClick={() => {
                                                         if (task.status === 'In Progress') {
@@ -379,6 +428,116 @@ const Tasks = () => {
                     </table>
                 </div>
             </div>
+
+            {isViewModalOpen && selectedTask && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
+                    onClick={() => setIsViewModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Task Details</h3>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedTask.bookingId || selectedTask._id}</span></p>
+                            </div>
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Customer Info */}
+                                <div className="space-y-4 w-full md:w-[40%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedTask.user?.name}>{selectedTask.user?.name || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedTask.user?.phone || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedTask.user?.email}>{selectedTask.user?.email || 'N/A'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Vehicle Info */}
+                                <div className="space-y-4 w-full md:w-[24%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedTask.vehicle?.make || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedTask.vehicle?.model || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedTask.vehicle?.year || 'N/A'}</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Payment & Status */}
+                                <div className="flex flex-col gap-4.5 w-full md:w-[37%]">
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center mt-7 gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
+                                            <div className="flex uppercase items-center gap-2 pl-3">
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusStyle(selectedTask.status)}`}>
+                                                    {selectedTask.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Duration</h4>
+                                            <div className="flex uppercase items-center gap-2 pl-3">
+                                                <span className="inline-block px-3 py-1 text-xs font-bold rounded-md uppercase text-gray-800">{selectedTask.serviceDuration || '—'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center mt-2.5 gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Delivery Due</h4>
+                                            <div className="flex uppercase items-center gap-2 pl-3">
+                                                <span className="inline-block px-1 py-1 text-xs font-bold rounded-md uppercase text-gray-800">
+                                                    {getDeliveryDue(selectedTask)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Service Details */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Service Details</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-4 gap-4 rounded-xl flex justify-between items-center shadow-sm">
+                                    <div>
+                                        <h5 className="font-bold text-[#052558] uppercase text-[15.5px]">{selectedTask.service?.title || 'General Service'}</h5>
+                                        <p className="text-sm uppercase text-gray-500 mt-1">Scheduled for: <span className="font-semibold text-gray-700">{selectedTask.schedule?.date} at {selectedTask.schedule?.time}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Garage & Employees Info */}
+                            <div className="flex gap-5 -mt-1">
+                                {/* Employees Info - 100% */}
+                                <div className="w-full bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm flex divide-x divide-[#e6f0fa]">
+                                    <div className="w-1/3 pr-4 uppercase">
+                                        <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee's</p>
+                                        <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedTask.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
+                                        <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedTask.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
+                                    </div>
+                                    <div className="w-1/3 px-4 uppercase">
+                                        <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedTask.assignedEmployees?.support?.name || 'Waiting...'}</h5>
+                                        <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedTask.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
+                                    </div>
+                                    <div className="w-1/3 pl-4 uppercase">
+                                        <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedTask.assignedEmployees?.mechanic?.name || '—'}</h5>
+                                        <p className="text-sm text-gray-500 mt-0.5">Mechanic | {selectedTask.assignedEmployees?.mechanic?.employeeId || '—'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {/* Duration Modal */}
             {showDurationModal && createPortal(
