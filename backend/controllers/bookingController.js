@@ -320,6 +320,22 @@ const autoAssignMechanic = async (booking) => {
                 name: mech.name
             };
             booking.markModified('assignedEmployees');
+
+            // Notify the mechanic
+            createAdminNotification({
+                eventType: 'booking_created',
+                title: 'New Mechanic Assignment',
+                message: `You have been assigned as Mechanic for ${booking.vehicle?.make} ${booking.vehicle?.model}.`,
+                meta: {
+                    bookingId: booking.bookingId,
+                    userId: booking.user?.id,
+                    userName: booking.user?.name,
+                    service: booking.service?.title,
+                    vehicle: `${booking.vehicle?.make} ${booking.vehicle?.model}`,
+                    garageId: booking.garage?.id,
+                    assignedEmployees: booking.assignedEmployees
+                }
+            });
         }
     }
 };
@@ -358,13 +374,15 @@ exports.getEmployeeBookings = async (req, res) => {
     try {
         const { employeeId } = req.params;
         
-        // Build query to search in both technician and support fields
+        // Build query to search in technician, support, and mechanic fields
         const query = {
             $or: [
                 { 'assignedEmployees.technician.id': employeeId },
                 { 'assignedEmployees.technician.employeeId': employeeId },
                 { 'assignedEmployees.support.id': employeeId },
-                { 'assignedEmployees.support.employeeId': employeeId }
+                { 'assignedEmployees.support.employeeId': employeeId },
+                { 'assignedEmployees.mechanic.id': employeeId },
+                { 'assignedEmployees.mechanic.employeeId': employeeId }
             ]
         };
 
