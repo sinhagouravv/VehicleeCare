@@ -8,6 +8,7 @@ const GARAGE_PAGES = [
     { name: 'My Bookings', path: '/my-bookings' },
     { name: 'Customers', path: '/customers' },
     { name: 'Staff', path: '/staff' },
+    { name: 'Progress', path: '/progress' },
     { name: 'Vehicles', path: '/vehicles' },
     { name: 'Services', path: '/services' },
     { name: 'Reviews', path: '/reviews' },
