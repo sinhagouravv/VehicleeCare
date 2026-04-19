@@ -222,7 +222,7 @@ const Notifications = () => {
                                             <td className="p-4.5">
                                                 <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'}`}>
                                                     {notif.eventType === 'booking_created' 
-                                                        ? `Assigned to you: ${notif.message.replace(/^.*booked/i, 'Booked')}`
+                                                        ? `Assigned to you, ${notif.message.replace(/^.*booked/i, 'Booked')}`
                                                         : notif.message}
                                                 </p>
                                             </td>
