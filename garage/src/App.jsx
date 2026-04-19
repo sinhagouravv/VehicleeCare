@@ -6,6 +6,7 @@ import Payments from './pages/Payments';
 import MyBookings from './pages/MyBookings';
 import Customers from './pages/Customers';
 import Staff from './pages/Staff';
+import Progress from './pages/Progress';
 import Attendance from './pages/Attendance';
 import Leave from './pages/Leave';
 import Vehicles from './pages/Vehicles';
@@ -30,6 +31,7 @@ const App = () => {
             <Route path="my-bookings" element={<MyBookings />} />
             <Route path="customers" element={<Customers />} />
             <Route path="staff" element={<Staff />} />
+            <Route path="progress" element={<Progress />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="leave" element={<Leave />} />
             <Route path="vehicles" element={<Vehicles />} />
