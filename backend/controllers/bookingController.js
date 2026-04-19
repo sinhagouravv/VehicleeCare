@@ -287,7 +287,11 @@ exports.getUserBookings = async (req, res) => {
 // @route   GET /api/bookings/garage/:garageId
 exports.getGarageBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({ 'garage.id': req.params.garageId }).sort({ createdAt: -1 }).lean();
+        const bookings = await Booking.find({ 'garage.id': req.params.garageId })
+            .populate('assignedEmployees.technician.id', 'role')
+            .populate('assignedEmployees.mechanic.id', 'role')
+            .sort({ createdAt: -1 })
+            .lean();
         
         // Populate missing paymentId for existing bookings
         const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
