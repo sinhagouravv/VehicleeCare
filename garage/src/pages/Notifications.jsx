@@ -259,7 +259,6 @@ const Notifications = () => {
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
                                                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                                                        title="Delete Notification"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
