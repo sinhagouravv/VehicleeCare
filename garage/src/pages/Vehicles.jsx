@@ -186,14 +186,12 @@ const Vehicles = () => {
                                             <button
                                                 onClick={() => handleViewDetails(v)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                title="View Details"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => { setVehicleToDelete(v); setIsDeleteModalOpen(true); }}
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                title="Delete Vehicle"
                                             >
                                                 <Trash2 size={17} />
                                             </button>
