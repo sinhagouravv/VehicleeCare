@@ -177,7 +177,7 @@ const Payments = () => {
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]" title={payment.paymentId || payment._id}>
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]">
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
@@ -213,10 +213,10 @@ const Payments = () => {
                                         </td>
                                         <td className="p-4 text-center w-[6%]">
                                             <div className="flex justify-center gap-1.5">
-                                                <button onClick={() => handleViewDetails(payment)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details">
+                                                <button onClick={() => handleViewDetails(payment)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => handleDownloadInvoice(payment)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Download Invoice">
+                                                <button onClick={() => handleDownloadInvoice(payment)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
                                                     <Download size={18} />
                                                 </button>
                                             </div>
