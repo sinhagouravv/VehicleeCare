@@ -213,7 +213,6 @@ const Leave = () => {
                                                     <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
                                                         className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                        title="View Details"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
@@ -221,7 +220,6 @@ const Leave = () => {
                                                         onClick={() => handleStatusUpdate(leave._id, 'Approved')}
                                                         disabled={updatingId === leave._id}
                                                         className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
-                                                        title="Approve"
                                                     >
                                                         <Check size={18} />
                                                     </button>
@@ -229,7 +227,6 @@ const Leave = () => {
                                                         onClick={() => handleStatusUpdate(leave._id, 'Rejected')}
                                                         disabled={updatingId === leave._id}
                                                         className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                        title="Reject"
                                                     >
                                                         <X size={18} />
                                                     </button>
@@ -239,14 +236,12 @@ const Leave = () => {
                                                     <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
                                                         className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                        title="View Details"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsDeleteModalOpen(true); }}
                                                         className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                        title="Delete Request"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
