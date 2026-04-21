@@ -360,20 +360,20 @@ const Staff = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-1.5">
-                                            <button onClick={() => handleViewDetails(staff)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors" title="View Staff">
+                                            <button onClick={() => handleViewDetails(staff)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                 <Eye size={17} />
                                             </button>
 
-                                            <button onClick={() => handleEdit(staff)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" title="Edit Staff">
+                                            <button onClick={() => handleEdit(staff)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors">
                                                 <Edit size={17} />
                                             </button>
-                                            <button onClick={() => { setBanEmployee(staff); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Disable Staff">
+                                            <button onClick={() => { setBanEmployee(staff); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                 <UserX size={17} />
                                             </button>
-                                            <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" title="Download Report">
+                                            <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
                                                 <Download size={17} />
                                             </button>
-                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors" title="Delete Staff">
+                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
                                                 <Trash2 size={17} />
                                             </button>
                                         </div>
