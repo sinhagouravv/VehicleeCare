@@ -242,7 +242,7 @@ const MyBookings = () => {
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]" title={booking.bookingId || booking._id}>
+                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
                                         {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
                                     <td className="p-4 text-center w-[12%]">
@@ -269,7 +269,7 @@ const MyBookings = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center w-[11%]">
-                                        <span className="font-semibold text-[#052558] text-sm truncate block px-1" title={booking.payment?.paymentId}>
+                                        <span className="font-semibold text-[#052558] text-sm truncate block px-1">
                                             {booking.payment?.paymentId || '—'}
                                         </span>
                                     </td>
@@ -283,21 +283,18 @@ const MyBookings = () => {
                                             <button
                                                 onClick={() => handleViewDetails(booking)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                title="View Details"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => handleDownloadInvoice(booking)}
                                                 className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
-                                                title="Download Invoice"
                                             >
                                                 <Download size={17} />
                                             </button>
                                             <button
                                                 onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }}
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                title="Remove"
                                             >
                                                 <Trash2 size={17} />
                                             </button>
@@ -339,7 +336,7 @@ const MyBookings = () => {
                             {/* Customer Info */}
                             <div className="space-y-4 w-full md:w-[40%]">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                <div className="pt-4 rounded-xl uppercase space-y-2">
                                     <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
                                     <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
                                     <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
@@ -349,7 +346,7 @@ const MyBookings = () => {
                             {/* Vehicle Info */}
                             <div className="space-y-4 w-full md:w-[24%]">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
-                                <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
                                     <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
                                     <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
                                     <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
@@ -357,7 +354,7 @@ const MyBookings = () => {
                             </div>
 
                             {/* Payment & Status */}
-                            <div className="flex flex-col gap-4.5 w-full md:w-[37%]">
+                            <div className="flex flex-col gap-4.5 w-full md:w-[34%]">
                                 <div className="space-y-1.5">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                     <div className="flex items-center mt-7 gap-3">
