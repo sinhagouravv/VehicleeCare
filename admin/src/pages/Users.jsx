@@ -54,6 +54,19 @@ const Users = () => {
         }
     };
 
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Delivered': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'Completed': return 'bg-teal-100 text-teal-800 border-teal-200';
+            case 'In Service': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+            case 'In Progress': return 'bg-purple-100 text-purple-700 border-purple-200';
+            case 'Pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+            case 'Cancelled': return 'bg-rose-100 text-rose-800 border-rose-200';
+            case 'Verified': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            default: return 'bg-gray-100 text-gray-700';
+        }
+    };
+
     const formatRole = (role) => {
         if (role === 'admin') return 'Admin';
         if (role === 'franchise') return 'Franchise Owner';
@@ -267,11 +280,7 @@ const Users = () => {
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
-                                                    user.isVerified 
-                                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
-                                                    : 'bg-amber-100 text-amber-800 border-amber-200'
-                                                }`}>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase border ${getStatusColor(user.isVerified ? 'Verified' : 'Pending')}`}>
                                                     {user.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </td>
@@ -332,7 +341,7 @@ const Users = () => {
                                 {/* Personal Info */}
                                 <div className="space-y-2 w-full md:w-[35%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewUser.name || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewUser.phone || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewUser.email || '—'}</span></p>
@@ -342,7 +351,7 @@ const Users = () => {
                                 {/* Account Info */}
                                 <div className="space-y-2 w-full md:w-[25%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Account Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="font-semibold ml-2 text-[#011023]">{formatRole(viewUser.role)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Type:</span> <span className="font-semibold ml-2 text-gray-800">{viewUser.role === 'vendor' || viewUser.role === 'franchise' ? 'Business' : 'Regular'}</span></p>
                                     </div>
@@ -355,7 +364,7 @@ const Users = () => {
                                         <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
                                             <div className="flex uppercase items-center gap-2">
-                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${viewUser.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-bold rounded-lg uppercase tracking-wider border ${getStatusColor(viewUser.isVerified ? 'Verified' : 'Pending')}`}>
                                                     {viewUser.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </div>
@@ -376,7 +385,7 @@ const Users = () => {
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
                                 <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
                                     <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
-                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewUser.address || 'No Address Provided'}</h5>
+                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewUser.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
@@ -455,7 +464,7 @@ const Users = () => {
                             <div className="flex items-center gap-4">
                                 <div>
                                     <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Booking History</h3>
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-black">{serviceHistory.length}</span></p>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-bold">{serviceHistory.length}</span></p>
                                 </div>
                             </div>
                             <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
@@ -478,9 +487,9 @@ const Users = () => {
                                     <table className="w-full text-center border-collapse">
                                         <thead className="bg-gray-50 text-[12px] uppercase font-black tracking-widest text-gray-400 border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
                                             <tr>
-                                                <th className="p-4 w-[70%] text-center">Booking Details</th>
+                                                <th className="p-4 w-[60%] text-center">Booking Details</th>
                                                 <th className="p-4 w-[20%] text-center">Schedule</th>
-                                                <th className="p-4 w-[10%] text-center">Status</th>
+                                                <th className="p-4 w-[20%] text-center">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[#e1ecf8]">
@@ -495,10 +504,7 @@ const Users = () => {
                                                         <div className="text-[11px] text-gray-400 font-semibold">{booking.schedule?.time || '—'}</div>
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${booking.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                                booking.status === 'Cancelled' ? 'bg-red-50 text-red-600 border border-red-100' :
-                                                                    'bg-gray-50 text-gray-600 border border-gray-100'
-                                                            }`}>
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
                                                             {booking.status}
                                                         </span>
                                                     </td>

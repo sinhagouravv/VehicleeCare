@@ -541,7 +541,7 @@ const ChargingStations = () => {
                                 {/* Owner Info */}
                                 <div className="space-y-2 w-full md:w-[38%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
@@ -551,7 +551,7 @@ const ChargingStations = () => {
                                 {/* Station Info */}
                                 <div className="space-y-2 w-full md:w-[26%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Station Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Ports:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.ports ?? '—'}</span></p>
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Status:</span>
@@ -587,7 +587,7 @@ const ChargingStations = () => {
                                         <span>Geographic Allocation</span>
                                         <span className="text-[10px] text-gray-400 font-semibold normal-case"></span>
                                     </p>
-                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
+                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>

@@ -520,7 +520,7 @@ const Garages = () => {
                                 {/* Owner Info */}
                                 <div className="space-y-2 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
@@ -530,7 +530,7 @@ const Garages = () => {
                                 {/* Garage Info */}
                                 <div className="space-y-2 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Garage Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Rating:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.rating ? `${viewTarget.rating} ★` : 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Pickup:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.pickupDrop ? 'Yes' : 'No'}</span></p>
@@ -581,7 +581,7 @@ const Garages = () => {
                                         <span>Geographic Allocation</span>
                                         {/* <span className="text-[10px] text-gray-400 font-semibold">{viewTarget.district || '—'}, {viewTarget.state || '—'} &bull; {viewTarget.coordinates || '—'}</span> */}
                                     </p>
-                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
+                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
@@ -601,7 +601,7 @@ const Garages = () => {
                             <div className="flex items-center gap-4">
                                 <div>
                                     <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Garage Staff List</h3>
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Employee: <span className="text-[#011023] font-black">{garageEmployees.length}</span></p>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Employee: <span className="text-[#011023] font-bold">{garageEmployees.length}</span></p>
                                 </div>
                             </div>
                             <button onClick={() => setIsEmployeesModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
@@ -634,16 +634,16 @@ const Garages = () => {
                                             {garageEmployees.map((employee) => (
                                                 <tr key={employee._id} className="hover:bg-gray-50/50 transition-all duration-300">
                                                     <td className="p-4 text-center px-6">
-                                                        <div className="font-semibold text-gray-500 text-xs uppercase tracking-tight">{employee.userId || employee.employeeId || '—'}</div>
+                                                        <div className="font-semibold text-xs uppercase tracking-tight">{employee.userId || employee.employeeId || '—'}</div>
                                                     </td>
                                                     <td className="p-4 text-center">
                                                         <div className="text-xs font-semibold text-[#011023] uppercase tracking-tight">{employee.name}</div>
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        <div className="text-xs font-semibold text-gray-600 tracking-wider whitespace-nowrap">{employee.phone || '—'}</div>
+                                                        <div className="text-xs font-semibold tracking-wider whitespace-nowrap">{employee.phone || '—'}</div>
                                                     </td>
                                                     <td className="p-4 text-center px-6">
-                                                        <span className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                        <span className={`inline-block px-3 py-1 text-[11px] font-bold uppercase rounded-full ${
                                                             employee.role === 'Technician' ? 'bg-amber-100 text-amber-700' :
                                                             employee.role === 'Support' ? 'bg-indigo-100 text-indigo-700' :
                                                             employee.role === 'Mechanic' ? 'bg-emerald-100 text-emerald-700' :

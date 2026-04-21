@@ -320,15 +320,15 @@ const Bookings = () => {
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 <div className="space-y-4 w-full md:w-[46%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
-                                <div className="space-y-4 w-full md:w-[24%]">
+                                <div className="space-y-4 w-full md:w-[28%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
@@ -345,9 +345,9 @@ const Bookings = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="bg-blue-50/30rounded-xl border border-blue-50 flex items-center gap-4">
+                                        <div className="rounded-xl flex items-center gap-4">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
-                                            <span className="text-base ml-5 font-black text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
+                                            <span className="text-base ml-5 font-bold text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
                                             {selectedBooking.payment?.status === 'Partially Paid' ? (
                                                 <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">Partially Paid</span>
                                             ) : selectedBooking.payment?.status === 'Completed' ? (

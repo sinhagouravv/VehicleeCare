@@ -258,7 +258,7 @@ const Business = () => {
                                 {/* Owner Info */}
                                 <div className="space-y-2 w-full md:w-[50%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedRequest.ownerName || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedRequest.phone || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedRequest.email || '—'}</span></p>
@@ -268,7 +268,7 @@ const Business = () => {
                                 {/* Business Info */}
                                 <div className="space-y-2 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Business Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{selectedRequest.businessName || '—'}</span></p>
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Type:</span>
                                             <span className="ml-2 text-xs font-bold text-gray-700">{getCategoryName(selectedRequest.businessCategory) || '—'}</span>
@@ -288,32 +288,14 @@ const Business = () => {
                                 <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase flex gap-4">
                                     <div className="w-[60%]">
                                         <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
-                                        <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedRequest.address || 'No Address Provided'}</h5>
+                                        <h5 className="font-semibold text-[#052558] text-[15.5px]">{selectedRequest.address || 'No Address Provided'}</h5>
                                     </div>
                                     <div className="w-[40%] border-l border-[#e6f0fa] pl-4">
                                         <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Region</p>
-                                        <h5 className="font-bold text-[#052558] text-[14px]">{selectedRequest.district ? `${selectedRequest.district}, ${selectedRequest.state}` : selectedRequest.state || '—'}</h5>
+                                        <h5 className="font-semibold text-[#052558] text-[14px]">{selectedRequest.district ? `${selectedRequest.district}, ${selectedRequest.state}` : selectedRequest.state || '—'}</h5>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Action Buttons */}
-                            {selectedRequest.status === 'Pending' && (
-                                <div className="border-t border-slate-100 pt-4 flex justify-end gap-3 uppercase">
-                                    <button
-                                        onClick={() => { handleUpdateStatus(selectedRequest._id, 'Rejected'); setIsViewModalOpen(false); }}
-                                        className="px-6 py-2.5 rounded-xl text-sm font-black text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
-                                    >
-                                        Reject Request
-                                    </button>
-                                    <button
-                                        onClick={() => { handleUpdateStatus(selectedRequest._id, 'Approved'); setIsViewModalOpen(false); }}
-                                        className="px-6 py-2.5 rounded-xl text-sm font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all"
-                                    >
-                                        Approve Partnership
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>,

@@ -180,7 +180,7 @@ const Payments = () => {
                                 const rowId = payment.paymentId || payment._id;
                                 return (
                                     <tr key={payment._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]" title={payment.paymentId || payment._id}>
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]">
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
@@ -264,7 +264,7 @@ const Payments = () => {
             {/* View Details Modal */}
             {isViewModalOpen && selectedPayment && createPortal(
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/60 backdrop-blur-sm"
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
@@ -291,7 +291,7 @@ const Payments = () => {
                                 {/* Customer Info */}
                                 <div className="space-y-3 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="p-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800">{selectedPayment.user?.userId || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedPayment.user?.email || 'N/A'}</span></p>
@@ -301,7 +301,7 @@ const Payments = () => {
                                 {/* Category */}
                                 <div className="space-y-3 w-full md:w-[15%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Category</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase border border-blue-50 h-[81px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
                                         {selectedPayment.type === 'Subscription' ? (
                                             <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-fuchsia-100 text-fuchsia-700">Business</span>
                                         ) : selectedPayment.booking ? (
@@ -315,7 +315,7 @@ const Payments = () => {
                                 {/* Status */}
                                 <div className="space-y-3 w-full md:w-[12%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Status</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase border border-blue-50 h-[81px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
                                         <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(selectedPayment.status)}`}>
                                             {selectedPayment.status}
                                         </span>
@@ -325,7 +325,7 @@ const Payments = () => {
                                 {/* Method */}
                                 <div className="space-y-3 w-full md:w-[16%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Method</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase border border-blue-50 h-[81px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
                                         <p className="text-sm font-semibold text-center text-gray-700">{selectedPayment.method}</p>
                                     </div>
                                 </div>
@@ -333,7 +333,7 @@ const Payments = () => {
                                 {/* Amount */}
                                 <div className="space-y-3 w-full md:w-[10%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Amount</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[81px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl h-[81px] flex items-center justify-center">
                                         <p className="text-base font-bold text-center text-[#011023]">₹{selectedPayment.amount?.toLocaleString()}</p>
                                     </div>
                                 </div>
@@ -342,22 +342,22 @@ const Payments = () => {
                             {/* Transaction Details */}
                             <div className="space-y-3">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Transaction Details</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm">
+                                <div className="bg-white border border-[#e6f0fa] p-2 rounded-xl shadow-sm">
                                     <div className="flex gap-4">
-                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[2]">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Transaction ID</p>
+                                        <div className="rounded-xl px-4 py-2 flex-[2]">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Transaction ID</p>
                                             <p className="text-sm text-[#011023] font-semibold">{selectedPayment.transactionId || 'N/A'}</p>
                                         </div>
-                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[1]">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Payment ID</p>
+                                        <div className="rounded-xl px-4 py-2 flex-[1]">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Payment ID</p>
                                             <p className="text-sm text-[#011023] font-semibold">{selectedPayment.paymentId || 'N/A'}</p>
                                         </div>
-                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[1]">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Booking ID</p>
+                                        <div className="rounded-xl px-4 py-2 flex-[1]">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Booking ID</p>
                                             <p className="text-sm text-[#011023] font-semibold">{selectedPayment.type === 'Booking' ? (selectedPayment.booking?.bookingId || '—') : '—'}</p>
                                         </div>
-                                        <div className="bg-[#f4f9ff] rounded-xl px-4 py-3 flex-[2]">
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Paid At</p>
+                                        <div className="rounded-xl px-4 py-2 flex-[2]">
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Paid At</p>
                                             <p className="text-sm text-[#011023] font-semibold">
                                                 {new Date(selectedPayment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(selectedPayment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                             </p>

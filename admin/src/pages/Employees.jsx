@@ -426,7 +426,7 @@ const Employees = () => {
                                         <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
                                             <div className="flex uppercase items-center gap-2">
-                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${viewEmployee.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                                <span className={`px-2 py-0.5 ml-3 mt-4 text-xs font-bold rounded-lg uppercase tracking-wider ${viewEmployee.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
                                                     {viewEmployee.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </div>
@@ -477,7 +477,7 @@ const Employees = () => {
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
                                 <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
                                     <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
-                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{viewEmployee.address || 'No Address Provided'}</h5>
+                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewEmployee.address || 'No Address Provided'}</h5>
                                     {/* <p className="text-sm text-gray-500 mt-1 uppercase">Physical Deployment Address Registry</p> */}
                                 </div>
                             </div>
@@ -553,7 +553,7 @@ const Employees = () => {
                             <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
                                 <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
                                 <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                                    <div className="p-2 mt-7 mb-1 border-b border-gray-100/50 flex items-center justify-between bg-red-50/50 text-center flex-col gap-4">
+                                    <div className="p-2 mt-7 mb-1 flex items-center justify-between text-center flex-col gap-4">
                                         <div>
                                             <h3 className="text-2xl uppercase font-bold text-[#011023]">Remove Member</h3>
                                         </div>
@@ -591,7 +591,7 @@ const Employees = () => {
                             <div className="flex items-center gap-4">
                                 <div>
                                     <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Service History</h3>
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-black">{serviceHistory.length}</span></p>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-bold">{serviceHistory.length}</span></p>
                                 </div>
                             </div>
                             <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">

@@ -236,7 +236,7 @@ const Messages = () => {
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 <div className="space-y-4 w-full md:w-[60%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Sender Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl space-y-2 border border-blue-50 uppercase">
+                                    <div className="pt-4 rounded-xl space-y-2 uppercase">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedMessage.name}>{selectedMessage.name || 'N/A'}</span></p>
                                         {selectedMessage.company && <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Company:</span> <span className="font-semibold text-purple-700 truncate">{selectedMessage.company}</span></p>}
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedMessage.phone || 'N/A'}</span></p>
