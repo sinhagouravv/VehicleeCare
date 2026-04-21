@@ -201,7 +201,7 @@ const Customers = () => {
                                     {/* Customer */}
                                     <td className="p-4 text-center w-[12%]">
                                         <div className="flex items-center justify-center gap-2">
-                                            <span className="font-semibold text-sm text-[#011023] truncate" title={customer.name}>
+                                            <span className="font-semibold text-sm text-[#011023] truncate">
                                                 {customer.name}
                                             </span>
                                         </div>
@@ -255,14 +255,12 @@ const Customers = () => {
                                             <button
                                                 onClick={() => handleViewDetails(customer)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                                                title="View Details"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(customer)}
                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                                title="Delete Customer"
                                             >
                                                 <Trash2 size={17} />
                                             </button>
