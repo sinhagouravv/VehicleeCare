@@ -21,7 +21,9 @@ const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [dbResults, setDbResults] = useState([]);
+    const [garageUser, setGarageUser] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(-1);
+
     const wrapperRef = useRef(null);
     const navigate = useNavigate();
 
@@ -102,7 +104,13 @@ const Header = () => {
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
+    useEffect(() => {
+        const storedUser = localStorage.getItem('garageUser');
+        if (storedUser) setGarageUser(JSON.parse(storedUser));
+    }, []);
+
     const handleSelect = (path, id = null) => {
+
         navigate(path, { state: { highlightId: id } });
         setSearchTerm('');
         setIsOpen(false);
@@ -216,9 +224,15 @@ const Header = () => {
                 </div>
 
                 {/* Profile Icon */}
-                <div className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-[#052558] to-[#527FB0] shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300">
-                    <span className="text-white text-sm font-black tracking-wider">G</span>
+                <div 
+                    onClick={() => navigate('/profile')}
+                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-[#052558] to-[#527FB0] shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300"
+                >
+                    <span className="text-white text-sm font-black tracking-wider">
+                        {garageUser?.name?.charAt(0) || ''}
+                    </span>
                 </div>
+
             </div>
         </header>
     );

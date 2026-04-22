@@ -16,6 +16,8 @@ import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import Profile from './pages/Profile';
+
 
 const App = () => {
   return (
@@ -39,6 +41,8 @@ const App = () => {
             <Route path="reviews" element={<Reviews />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="profile" element={<Profile />} />
+
           </Route>
         </Route>
       </Routes>
