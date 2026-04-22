@@ -136,3 +136,28 @@ exports.deleteGarage = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+// GET single garage by ID
+exports.getGarageById = async (req, res) => {
+    try {
+        let garage;
+        const { id } = req.params;
+
+        // Try searching by MongoDB _id if it's a valid ObjectId
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            garage = await Garage.findById(id);
+        }
+
+        // Fallback to custom 9-digit garageId
+        if (!garage) {
+            garage = await Garage.findOne({ garageId: id });
+        }
+
+        if (!garage) return res.status(404).json({ success: false, message: 'Garage not found' });
+        res.json({ success: true, data: garage });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+

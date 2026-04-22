@@ -325,8 +325,19 @@ exports.garageLogin = async (req, res) => {
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
             if (err) throw err;
-            res.json({ token, garage: { id: garage.garageId, name: garage.name, ownerEmail: garage.ownerEmail } });
+            res.json({ 
+                token, 
+                garage: { 
+                    id: garage.garageId, 
+                    garageId: garage.garageId, 
+                    dbId: garage._id, 
+                    _id: garage._id,
+                    name: garage.name, 
+                    ownerEmail: garage.ownerEmail 
+                } 
+            });
         });
+
 
     } catch (err) {
         console.error("Garage login error:", err);

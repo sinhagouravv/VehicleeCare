@@ -130,10 +130,40 @@ const updateEmployee = async (req, res) => {
     }
 };
 
+// @desc    Get an employee by ID
+// @route   GET /api/employees/:id
+const getEmployeeById = async (req, res) => {
+    try {
+        let employee;
+        const { id } = req.params;
+
+        // Try searching by MongoDB _id (ObjectId)
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            employee = await Employee.findById(id);
+        }
+
+        // Fallback to custom numerical employeeId
+        if (!employee) {
+            employee = await Employee.findOne({ employeeId: id });
+        }
+
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+        res.status(200).json({ success: true, data: employee });
+    } catch (err) {
+        console.error("Error fetching employee:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+
 module.exports = {
     getEmployees,
+    getEmployeeById,
     getGarageEmployees,
     createEmployee,
     deleteEmployee,
     updateEmployee
 };
+
