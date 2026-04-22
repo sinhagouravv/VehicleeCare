@@ -19,7 +19,11 @@ const GarageSchema = new mongoose.Schema({
     workingHours: { type: String },
     workingDays: { type: String },
     services: { type: String },
+    panCard: { type: String, default: '' },
+    adharCard: { type: String, default: '' },
+    voterId: { type: String, default: '' },
     password: { type: String },
+
     resetPasswordOtp: { type: String },
     resetPasswordExpires: { type: Date },
 }, { timestamps: true });
