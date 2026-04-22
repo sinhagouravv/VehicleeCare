@@ -17,7 +17,9 @@ const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [dbResults, setDbResults] = useState([]);
+    const [employeeUser, setEmployeeUser] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(-1);
+
     const wrapperRef = useRef(null);
     const navigate = useNavigate();
 
@@ -101,6 +103,12 @@ const Header = () => {
         const timer = setTimeout(fetchDbResults, 300);
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem('employeeUser');
+        if (storedUser) setEmployeeUser(JSON.parse(storedUser));
+    }, []);
+
 
     const handleSelect = (path, id = null) => {
         navigate(path, { state: { highlightId: id } });
@@ -214,9 +222,16 @@ const Header = () => {
                 </div>
 
                 {/* Profile Icon */}
-                <div className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-[#052558] to-[#527FB0] shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300">
-                    <span className="text-white text-sm font-black tracking-wider">E</span>
+                <div 
+                    onClick={() => navigate('/profile')}
+                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-[#052558] to-[#527FB0] shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300"
+                >
+                    <span className="text-white text-sm font-black tracking-wider tooltip-trigger relative group">
+                        {employeeUser?.name?.charAt(0) || 'E'}
+                        <span className="absolute invisible group-hover:visible -bottom-10 right-0 bg-[#052558] text-white text-[10px] py-1 px-3 rounded whitespace-nowrap shadow-xl font-bold uppercase tracking-widest z-[60] border border-white/10 opacity-0 group-hover:opacity-100 transition-all">My Profile</span>
+                    </span>
                 </div>
+
             </div>
         </header>
     );
