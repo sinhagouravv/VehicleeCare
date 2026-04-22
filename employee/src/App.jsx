@@ -8,7 +8,9 @@ import Leave from './pages/Leave';
 import Notifications from './pages/Notifications';
 import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 import Login from './pages/Login';
+
 import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
@@ -27,7 +29,9 @@ const App = () => {
             <Route path="notifications" element={<Notifications />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
+
         </Route>
         
         {/* Fallback */}
