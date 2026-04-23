@@ -342,7 +342,7 @@ const Analytics = () => {
     };
 
     return (
-        <div className="space-y-1 max-w-[92rem] mx-auto ">
+        <div className="space-y-2 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Analytics Overview</h1>
                 <div className="flex gap-3 justify-between">
