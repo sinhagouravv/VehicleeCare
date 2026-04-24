@@ -397,7 +397,7 @@ const Analytics = () => {
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-lg">
-                                    <TrendingUp size={8} className="mr-1" /> +24.1%
+                                    <TrendingUp size={9} className="mr-1" /> +24.1%
                                 </span>
                             </div>
                         </div>
