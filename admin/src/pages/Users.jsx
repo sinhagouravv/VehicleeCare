@@ -397,63 +397,85 @@ const Users = () => {
             {/* ── BAN USER MODAL ────────────────────────── */}
             {banUser && createPortal(
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setBanUser(null)} />
-                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50">
-                        {/* Red Header */}
-                        <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-5 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                                    <Ban size={18} className="text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-white uppercase tracking-wide">Ban User</h3>
-                                    <p className="text-xs text-white/60 mt-0.5">{banUser.name}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setBanUser(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all">
-                                <X size={15} />
+                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !banSubmitting && setBanUser(null)} />
+                    
+                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-7 py-5 bg-rose-50 border-b border-rose-100 flex items-center justify-center relative">
+                            <h3 className="text-xl font-bold text-rose-600 uppercase tracking-wider">Disable User Account</h3>
+                            <button 
+                                onClick={() => setBanUser(null)}
+                                className="absolute right-7 p-2 text-rose-400 rounded-xl transition-colors"
+                                disabled={banSubmitting}
+                            >
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4">
+                        {/* Body */}
+                        <div className="p-8 space-y-6">
                             {banSuccess ? (
-                                <div className="flex flex-col items-center gap-3 py-4">
-                                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                        <UserX size={22} className="text-red-500" />
+                                <div className="flex flex-col items-center gap-3 py-10">
+                                    <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center animate-bounce">
+                                        <UserX size={32} className="text-red-500" />
                                     </div>
-                                    <p className="text-sm font-bold text-[#011023] text-center">{banSuccess}</p>
+                                    <p className="text-lg font-bold text-[#011023] text-center uppercase tracking-tight">{banSuccess}</p>
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-[13.5px] uppercase text-gray-500">Please provide a reason for banning <strong className="text-[#011023]">{banUser.name}</strong>. This will be recorded for audit purposes.</p>
-                                    <div>
-                                        <label className="text-[11px] text-gray-400 uppercase font-bold tracking-widest block mb-2">Reason for Ban</label>
-                                        <textarea
-                                            rows={4}
-                                            value={banReason}
-                                            onChange={e => setBanReason(e.target.value)}
-                                            className="w-full border-2 border-gray-200 uppercase focus:border-red-300 bg-[#fff8f8] rounded-2xl px-4 py-3 text-sm text-[#011023] placeholder-gray-300 outline-none resize-none transition-all"
-                                        />
+                                    <div className="bg-rose-50/50 border border-rose-100 p-3 rounded-2xl">
+                                        <p className="text-sm uppercase font-medium text-justify text-rose-700 leading-relaxed">
+                                            Are you sure you want to ban <span className="font-bold">"{banUser.name}"</span>? 
+                                            This action will revoke all access privileges immediately. This record will be flagged in the security audit registry.
+                                        </p>
                                     </div>
-                                    <div className="flex gap-3 pt-1">
-                                        <button onClick={() => setBanUser(null)} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 text-sm font-bold text-gray-400 hover:bg-gray-50 transition-all">
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleBanSubmit}
-                                            disabled={!banReason.trim() || banSubmitting}
-                                            className="flex-1 py-3 rounded-2xl bg-red-500 text-white text-sm font-black uppercase tracking-wide hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            {banSubmitting ? <><Loader2 size={13} className="animate-spin" /> Banning…</> : <><UserX size={13} /> Confirm Ban</>}
-                                        </button>
+
+                                    <div className="space-y-2 text-left">
+                                        <label className="text-[13.5px] font-semibold text-rose-600 uppercase tracking-wider flex items-center justify-center">Please provide a valid and detailed reason for the disabling of this user</label>
+                                        <textarea 
+                                            value={banReason}
+                                            onChange={(e) => setBanReason(e.target.value)}
+                                            className="w-full h-32 p-4 bg-white border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none transition-all resize-none font-medium text-gray-700 shadow-sm"
+                                            disabled={banSubmitting}
+                                        />
                                     </div>
                                 </>
                             )}
                         </div>
+
+                        {!banSuccess && (
+                            <div className="px-8 pb-6 pt-1 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                                <button 
+                                    onClick={() => setBanUser(null)}
+                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                                    disabled={banSubmitting}
+                                >
+                                    Cancel Action
+                                </button>
+                                <button 
+                                    onClick={handleBanSubmit}
+                                    disabled={banSubmitting || !banReason.trim()}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
+                                >
+                                    {banSubmitting ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Processing…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <UserX size={16} />
+                                            Confirm Ban
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>,
                 document.body
             )}
+
 
             {/* Service History Modal */}
             {isHistoryModalOpen && createPortal(
