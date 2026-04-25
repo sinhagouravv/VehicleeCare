@@ -58,15 +58,17 @@ const markAllRead = async (req, res) => {
     }
 };
 
-// ── Delete a notification ──────────────────────────────────────
-// DELETE /api/notifications/:id
-const deleteOne = async (req, res) => {
+// ── Create a notification (Public/Internal) ──────────────────
+// POST /api/notifications/create
+const create = async (req, res) => {
     try {
-        await Notification.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'Deleted' });
+        const { eventType, title, message, meta } = req.body;
+        const notification = await Notification.create({ eventType, title, message, meta });
+        res.status(201).json({ success: true, data: notification });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server Error', error: err.message });
     }
 };
 
-module.exports = { getAll, getUserNotifications, markRead, markAllRead, deleteOne, createAdminNotification };
+module.exports = { getAll, getUserNotifications, markRead, markAllRead, deleteOne, createAdminNotification, create };
+
