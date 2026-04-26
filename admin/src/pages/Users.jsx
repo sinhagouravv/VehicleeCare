@@ -322,7 +322,7 @@ const Users = () => {
                                  <h3 className="text-xl uppercase font-bold text-[#052558]">User Details</h3>
                                  <div className="flex items-center gap-2 mt-1">
                                      <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewUser.userId || viewUser._id?.slice(0, 8)}</span></p>
-                                     <button onClick={() => fetchServiceHistory(viewUser._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50" title="Booking History">
+                                     <button onClick={() => fetchServiceHistory(viewUser._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
                                          <Eye size={17} />
                                      </button>
                                  </div>

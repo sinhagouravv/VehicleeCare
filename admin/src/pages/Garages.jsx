@@ -501,7 +501,7 @@ const Garages = () => {
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Garage Details</h3>
                                 <div className="flex items-center gap-2 mt-1">
                                     <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewTarget.garageId || viewTarget._id?.slice(0, 8)}</span></p>
-                                    <button onClick={() => fetchGarageEmployees(viewTarget.garageId || viewTarget._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50" title="Garage Staff">
+                                    <button onClick={() => fetchGarageEmployees(viewTarget.garageId || viewTarget._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
                                         <Eye size={15} />
                                     </button>
                                 </div>
