@@ -401,7 +401,7 @@ const Staff = () => {
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Staff Details</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{selectedStaff.employeeId || '—'}</span></p>
-                                    <button onClick={() => fetchServiceHistory(selectedStaff._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50" title="Working Details">
+                                    <button onClick={() => fetchServiceHistory(selectedStaff._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
                                         <Eye size={17} />
                                     </button>
                                 </div>
