@@ -256,20 +256,20 @@ const Payments = () => {
                             {/* Top Row */}
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 {/* Customer Info */}
-                                <div className="space-y-3 w-full md:w-[40%]">
+                                <div className="space-y-3 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
                                     <div className="pt-4 pb-2 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800 ">{selectedPayment.user?.userId || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate lowercase">{selectedPayment.user?.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate ">{selectedPayment.user?.email || 'N/A'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Payment Status */}
-                                <div className="space-y-3 w-full md:w-[15%]">
+                                <div className="space-y-3 w-full md:w-[20%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Status</h4>
-                                    <div className="p-4 rounded-xl uppercase space-y-3 h-[81px] flex items-center">
-                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(selectedPayment.status)}`}>
+                                    <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
+                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedPayment.status)}`}>
                                             {selectedPayment.status}
                                         </span>
                                     </div>
@@ -284,7 +284,7 @@ const Payments = () => {
                                 </div>
 
                                 {/* Amount */}
-                                <div className="space-y-3 w-full md:w-[20%]">
+                                <div className="space-y-3 w-full md:w-[15%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Amount</h4>
                                     <div className="p-4 rounded-xl h-[81px] flex items-center justify-center">
                                         <p className="text-xl font-semibold text-center text-[#011023]">₹{selectedPayment.amount?.toLocaleString()}</p>
