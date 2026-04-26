@@ -39,7 +39,10 @@ const getUserNotifications = async (req, res) => {
 // PATCH /api/notifications/:id/read
 const markRead = async (req, res) => {
     try {
-        const notif = await Notification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+        let notif = await Notification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+        if (!notif) {
+            notif = await UserNotification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+        }
         if (!notif) return res.status(404).json({ success: false, message: 'Not found' });
         res.json({ success: true, data: notif });
     } catch (err) {
