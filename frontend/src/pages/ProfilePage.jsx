@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+
 import { useNavigate } from 'react-router-dom';
 import {
     User, Mail, Phone, Car, Settings, MapPin, Calendar,
@@ -64,6 +66,14 @@ const ProfilePage = () => {
 
     // Global toast notification
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+    const [activeTab, setActiveTab] = useState('bookings');
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [isPaymentViewModalOpen, setIsPaymentViewModalOpen] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState(null);
+
+
+
     const showToast = (msg, type = 'success') => {
         setToast({ visible: true, message: msg, type });
         setTimeout(() => setToast({ visible: false, message: '', type: 'success' }), 3500);
@@ -309,6 +319,27 @@ const ProfilePage = () => {
         }
     };
 
+    const handleMarkNotificationAsRead = async (id) => {
+        // Optimistically update the UI
+        setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+        
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:5001/api/notifications/${id}/read`, {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                }
+            });
+            if (!res.ok) {
+                console.error('Failed to mark notification as read');
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    };
+
     // ── OTP handlers ──────────────────────────────────────────
     const handleSendOtp = async () => {
         setOtpSending(true);
@@ -390,13 +421,40 @@ const ProfilePage = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-            case 'Confirmed': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'Scheduled': return 'bg-purple-100 text-purple-700 border-purple-200';
-            case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
-            case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
+            case 'Delivered': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'Completed': return 'bg-teal-100 text-teal-800 border-teal-200';
+            case 'In Service': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+            case 'In Progress': return 'bg-purple-100 text-purple-700 border-purple-200';
+            case 'Pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+            case 'Cancelled': return 'bg-rose-100 text-rose-800 border-rose-200';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
+
+    const handleViewDetails = (booking) => {
+        setSelectedBooking(booking);
+        setIsViewModalOpen(true);
+    };
+
+    const getBookingIdForPayment = (payment) => {
+        if (!payment) return '—';
+        const bId = payment.booking?._id || payment.booking;
+        if (!bId) return '—';
+        const bookingObj = bookings.find(b => b._id === bId);
+        return bookingObj?.bookingId || payment.booking?.bookingId || (typeof bId === 'string' ? bId.substring(0, 8).toUpperCase() : '—');
+    };
+
+    const formatDate = (dateString) => {
+
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
+
 
     const handleDownloadInvoice = (booking) => {
         try {
@@ -975,7 +1033,7 @@ const ProfilePage = () => {
 
                             <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2">
                                 {(user.userId || user.id) && (
-                                    <span className="flex items-center gap-1.5 text-white/60 text-xs font-bold tracking-widest">
+                                    <span className="flex items-center gap-1.5 text-white/60 text-[13px] font-bold tracking-wider">
                                         <User size={11} /> {user.userId || user.id}
                                     </span>
                                 )}
@@ -1009,41 +1067,39 @@ const ProfilePage = () => {
             </div>
 
             {/* ── Stats Bar ── */}
-            <div className="max-w-6xl mx-auto px-4 -mt-15 relative z-10">
+            <div className="max-w-6xl mx-auto px-4 -mt-12 relative z-10">
                 <div className="grid grid-cols-3 gap-3">
                     {[
-                        { label: 'Bookings', value: loadingBookings ? '—' : bookings.length, icon: <Clipboard size={16} /> },
-                        { label: 'Vehicles', value: loadingBookings ? '—' : new Set(bookings.map(b => `${b.vehicle?.make} ${b.vehicle?.model}`)).size || 0, icon: <Car size={16} /> },
-                        { label: 'Services', value: loadingBookings ? '—' : new Set(bookings.map(b => b.service?.title)).size || 0, icon: <Wrench size={16} /> },
+                        { label: 'Bookings', value: loadingBookings ? '—' : bookings.length },
+                        { label: 'Vehicles', value: loadingBookings ? '—' : new Set(bookings.map(b => `${b.vehicle?.make} ${b.vehicle?.model}`)).size || 0 },
+                        { label: 'Services', value: loadingBookings ? '—' : new Set(bookings.map(b => b.service?.title)).size || 0 },
                     ].map(stat => (
-                        <div key={stat.label} className="bg-white rounded-2xl shadow-sm border border-white p-4 flex flex-col items-center gap-1 text-center">
-                            <div className="text-[#527FB0]">{stat.icon}</div>
-                            <p className="text-2xl font-black text-[#011023]">{stat.value}</p>
+                        <div key={stat.label} className="bg-white rounded-2xl shadow-sm border border-[#C2E8FF] p-4 flex flex-col items-center gap-1 text-center">
                             <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide">{stat.label}</p>
+                            <p className="text-2xl font-black text-[#011023]">{stat.value}</p>
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* ── Main content ── */}
-            <div className="max-w-6xl mx-auto px-4 py-5 space-y-8">
+            <div className="max-w-6xl mx-auto px-4 py-5  space-y-5">
 
                 {/* Account Details */}
                 <section>
-                    <h2 className="text-[11px] text-[#052558] font-semibold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    {/* <h2 className="text-[11px] text-[#052558] font-semibold uppercase tracking-widest mb-4 flex items-center gap-2">
                         <User size={11} /> Account Details
-                    </h2>
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-wrap">
+                    </h2> */}
+                    <div className="bg-white rounded-2xl shadow border border-[#C2E8FF] flex flex-wrap">
                         {[
-                            { label: 'Full Name', value: user.name, icon: <User size={14} className="text-[#527FB0]" />, width: 'lg:w-[19%]' },
-                            { label: 'Email Address', value: user.email || '—', icon: <Mail size={14} className="text-[#527FB0]" />, width: 'lg:w-[29%]' },
-                            { label: 'Phone Number', value: user.phone || '—', icon: <Phone size={14} className="text-[#527FB0]" />, width: 'lg:w-[18%]' },
-                            { label: 'Address', value: user.address || '—', icon: <MapPin size={14} className="text-[#527FB0]" />, width: 'lg:w-[34%]' },
+                            { label: 'Email Address', value: user.email || '—', width: 'lg:w-[40%]' },
+                            { label: 'Phone Number', value: user.phone || '—', width: 'lg:w-[20%]' },
+                            { label: 'Address', value: user.address || '—', width: 'lg:w-[40%]' },
                         ].map((row, i) => (
                             <div
                                 key={row.label}
                                 className={`
-                                    flex items-center gap-3 px-5 py-5 w-full sm:w-1/2 ${row.width} border-gray-100
+                                    flex flex-col items-center justify-center text-center px-5 py-5 w-full sm:w-1/2 ${row.width} border-gray-100
                                     ${i < 3 ? 'border-b' : ''} 
                                     ${i < 2 ? 'sm:border-b' : 'sm:border-b-0'}
                                     ${i % 2 === 0 ? 'sm:border-r' : 'sm:border-r-0'}
@@ -1051,251 +1107,251 @@ const ProfilePage = () => {
                                     ${i < 3 ? 'lg:border-r' : 'lg:border-r-0'}
                                 `}
                             >
-                                <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    {row.icon}
-                                </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 w-full">
                                     <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide">{row.label}</p>
                                     <p className="text-sm font-bold text-[#011023] uppercase truncate" title={row.value}>{row.value}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
+
                 </section>
+                
+                {/* ── Tabs Container (Booking, Payment, Notification) ── */}
+                <div className="bg-white rounded-3xl shadow-sm border border-[#C2E8FF] overflow-hidden">
+                    {/* Tabs Header */}
+                    <div className="flex border-b border-gray-300 bg-gray-50/50">
+                        {[
+                            { id: 'bookings', label: 'Booking', count: bookings.length },
+                            { id: 'payments', label: 'Payment', count: payments.length },
+                            { id: 'notifications', label: 'Notification', count: notifications.filter(n => !n.isRead).length },
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex-1 flex items-center justify-center py-4 transition-all relative group ${
+                                    activeTab === tab.id 
+                                    ? 'text-[#052558] bg-white' 
+                                    : 'text-gray-400 hover:text-[#052558] hover:bg-white/50'
+                                }`}
+                            >
+                                <div className="relative">
+                                    <span className="text-[12px] font-bold uppercase tracking-widest">{tab.label}</span>
+                                    {tab.count > 0 && (
+                                        <sup className={`absolute top-1 -right-3.5 text-[9.5px] font-bold transition-colors ${activeTab === tab.id ? 'text-[#052558]' : 'text-gray-400 group-hover:text-[#052558]'}`}>
+                                            {tab.count}
+                                        </sup>
+                                    )}
 
-                {/* ── Service History + Payment History (left) | Notifications (right) ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+                                </div>
 
-                    {/* Left column: Service History + Payment History */}
-                    <div className="flex flex-col gap-4">
-
-                        {/* Booking History */}
-                        <section>
-                            <div className="flex items-center justify-between -mt-3 mb-4">
-                                <h2 className="text-[11px] text-[#052558] font-semibold uppercase tracking-widest flex items-center gap-2">
-                                    <Clipboard size={12} /> Booking History
-                                </h2>
-                                {!loadingBookings && bookings.length > 0 && (
-                                    <span className="text-[10px] bg-[#052558] text-white px-2.5 py-0.5 rounded-full font-bold">
-                                        {bookings.length} total
-                                    </span>
+                                {activeTab === tab.id && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#052558]" />
                                 )}
-                            </div>
+                            </button>
 
-                            <div className="h-[275px] overflow-hidden rounded-2xl border border-[#C2E8FF] shadow-sm bg-white">
+                        ))}
+                    </div>
+
+                    {/* Tab Content area */}
+                    <div className="h-[37.25rem] overflow-y-auto">
+
+                        {activeTab === 'bookings' && (
+                            <div className="p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 {loadingBookings ? (
-                                    <div className="h-full bg-white rounded-2xl border border-gray-100 p-16 flex items-center justify-center">
-                                        <div className="w-7 h-7 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
+                                    <div className="h-[400px] flex items-center justify-center">
+                                        <div className="w-8 h-8 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
                                     </div>
                                 ) : bookings.length === 0 ? (
-                                    <div className="h-full bg-white rounded-2xl border border-gray-100 p-12 flex flex-col items-center justify-center text-center">
-                                        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-                                            <Car size={28} className="text-[#527FB0]" />
+                                    <div className="h-[400px] flex flex-col items-center justify-center text-center">
+                                        <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-5">
+                                            <Car size={32} className="text-[#527FB0]" />
                                         </div>
-                                        <p className="text-sm font-bold text-[#011023] uppercase">No bookings yet</p>
-                                        <p className="text-xs text-gray-400 mt-1 mb-5">Book a service to see it here</p>
+                                        <h3 className="text-base font-bold text-[#011023] uppercase">No Bookings Found</h3>
+                                        <p className="text-xs text-gray-400 mt-2 mb-6">You haven't booked any services yet.</p>
                                         <button
                                             onClick={() => navigate('/book-service')}
-                                            className="flex items-center gap-2 px-5 py-2.5 bg-[#052558] text-white text-xs font-bold uppercase rounded-xl hover:bg-[#052558]/90 transition-colors shadow-lg shadow-blue-900/20"
+                                            className="px-6 py-3 bg-[#052558] text-white text-xs font-bold uppercase rounded-xl hover:bg-[#052558]/90 transition-colors shadow-lg shadow-blue-900/20"
                                         >
-                                            Book a Service <ArrowRight size={13} />
+                                            Book a Service Now
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-4">
+                                    <div className="space-y-3.5">
                                         {bookings.map((b, i) => (
-                                            <div key={b._id || i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                                                {/* Card header strip */}
-                                                <div className="bg-gradient-to-r from-[#052558] to-[#527FB0] px-5 py-3 flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <Car size={14} className="text-white/70" />
-                                                        <p className="text-white font-black text-xs uppercase tracking-wide">
-                                                            {b.vehicle?.make} {b.vehicle?.model} {b.vehicle?.year && `· ${b.vehicle.year}`}
-                                                            {b.bookingId && <span className="ml-2 px-1.5 py-0.5 bg-white/20 rounded text-[9px] text-[#C2E8FF] tracking-widest">{b.bookingId}</span>}
-                                                        </p>
-                                                    </div>
-                                                    {b.createdAt && (
-                                                        <span className="text-white/50 text-[10px] font-medium">
-                                                            {new Date(b.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                        </span>
-                                                    )}
+                                            <div key={b._id || i} onClick={() => handleViewDetails(b)} className="bg-white rounded-2xl border border-gray-300 p-4 flex items-center text-center hover:bg-blue-50/30 transition-all group">
+
+                                                {/* Booking ID */}
+                                                <div className="w-[7%] font-bold text-[#052558] text-[13px] truncate">
+                                                    {b.bookingId || b._id.substring(0, 8).toUpperCase()}
                                                 </div>
 
-                                                {/* Card body */}
-                                                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    {b.service?.title && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                                                <Settings size={13} className="text-[#527FB0]" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide">Service</p>
-                                                                <p className="text-xs font-bold text-[#011023] uppercase mt-0.5">{b.service.title}</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {b.garage?.name && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                                                <MapPin size={13} className="text-[#527FB0]" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide">Service Center</p>
-                                                                <p className="text-xs font-bold text-[#011023] uppercase mt-0.5">{b.garage.name}</p>
-                                                                {b.garage.district && <p className="text-[10px] text-gray-400 uppercase">{b.garage.district}{b.garage.state && `, ${b.garage.state}`}</p>}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {(b.schedule?.dateDisplay || b.schedule?.date) && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                                                <Calendar size={13} className="text-[#527FB0]" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide">Scheduled</p>
-                                                                <p className="text-xs font-bold text-[#011023] uppercase mt-0.5">
-                                                                    {b.schedule.dateDisplay || b.schedule.date}
-                                                                </p>
-                                                                {b.schedule.time && <p className="text-[10px] text-gray-400">{b.schedule.time}</p>}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {b.paymentMethod && (
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                                                <CreditCard size={13} className="text-[#527FB0]" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide">Payment</p>
-                                                                <p className="text-xs font-bold text-[#011023] uppercase mt-0.5">{paymentLabel(b.paymentMethod)}</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                {/* Garage Name */}
+                                                <div className="w-[23%] text-center px-2">
+                                                    <div className="text-[13px] font-bold text-[#052558] uppercase">
+                                                        {b.garage?.name}
+                                                    </div>
+                                                    <div className="text-[11px]  uppercase font-semibold">
+                                                        {b.garage?.district || 'Service Center'}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Service & Vehicle */}
+                                                <div className="w-[40%] text-center px-3">
+                                                    <div className="font-bold text-[#011023] text-[13px] uppercase">
+                                                        {b.service?.title}
+                                                    </div>
+                                                    <div className="text-[11px] uppercase font-semibold">
+                                                        {b.vehicle?.make} {b.vehicle?.model}
+                                                    </div>
                                                 </div>
 
-                                                {/* Pickup badge */}
-                                                {b.garage?.pickupDrop && (
-                                                    <div className="px-5 pb-4">
-                                                        <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-[#527FB0] bg-blue-50 px-2.5 py-1 rounded-full">
-                                                            <CheckCircle size={9} /> Pickup & Drop: {b.garage.pickupDrop}
-                                                        </span>
-                                                    </div>
-                                                )}
 
-                                                {/* Status & Actions Footer */}
-                                                <div className="bg-gray-50 border-t border-gray-100 flex items-center justify-between px-5 py-3">
-                                                    <span className={`inline-block px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border ${getStatusColor(b.status)}`}>
+                                                {/* Schedule */}
+                                                <div className="w-[18%] text-center">
+                                                    <div className="font-bold text-[#011023] text-[13px] uppercase">
+                                                        {b.schedule?.dateDisplay || b.schedule?.date}
+                                                    </div>
+                                                    <div className="text-[11px]  uppercase font-semibold">
+                                                        {b.schedule?.time || '—'}
+                                                    </div>
+                                                </div>
+
+                                                {/* Status */}
+                                                <div className="w-[11%] flex justify-center">
+                                                    <span className={`inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border border-transparent ${getStatusColor(b.status)}`}>
                                                         {b.status || 'Pending'}
                                                     </span>
-                                                    <button onClick={() => handleDownloadInvoice(b)} className="text-[#052558] font-black text-[10px] uppercase tracking-widest hover:text-[#527FB0] transition-colors flex items-center gap-1.5 bg-white border border-gray-200 shadow-sm px-3 py-1.5 rounded-lg active:scale-95">
-                                                        <Download size={13} /> Invoice
-                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
+
                                 )}
                             </div>
-                        </section>
+                        )}
 
-                        {/* Payment History */}
-                        <section>
-                            <h2 className="text-[11px] text-[#052558] uppercase tracking-widest mb-4 font-semibold flex items-center gap-2">
-                                <CreditCard size={12} /> Payment History
-                            </h2>
-                            <div className="h-[275px] overflow-hidden  rounded-2xl border border-[#C2E8FF] shadow-sm bg-white">
+                        {activeTab === 'payments' && (
+                            <div className="p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 {loadingPayments ? (
-                                    <div className="h-full bg-white rounded-2xl border border-gray-100 p-10 flex items-center justify-center">
-                                        <div className="w-6 h-6 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
+                                    <div className="h-[400px] flex items-center justify-center">
+                                        <div className="w-8 h-8 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
                                     </div>
                                 ) : payments.length === 0 ? (
-                                    <div className="h-full bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center text-center">
-                                        <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
-                                            <CreditCard size={20} className="text-[#527FB0]" />
+                                    <div className="h-[400px] flex flex-col items-center justify-center text-center">
+                                        <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-5">
+                                            <CreditCard size={32} className="text-[#527FB0]" />
                                         </div>
-                                        <p className="text-xs font-bold text-gray-400 uppercase">No payments yet</p>
+                                        <h3 className="text-base font-bold text-[#011023] uppercase">No Payments Recorded</h3>
+                                        <p className="text-xs text-gray-400 mt-2">Your payment history will appear here.</p>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-3 p-4">
+                                    <div className="space-y-3.5">
                                         {payments.map((p, i) => (
-                                            <div key={p._id || i} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                                                <div className="w-9 h-9 bg-gradient-to-br from-[#052558] to-[#527FB0] rounded-xl flex items-center justify-center flex-shrink-0">
-                                                    <CreditCard size={14} className="text-white" />
+                                            <div key={p._id || i} className="bg-white rounded-2xl border border-gray-300 p-4 flex items-center text-center hover:bg-blue-50/30 transition-all group">
+                                                {/* Payment ID */}
+                                                <div className="w-[13%] font-bold text-[#052558] text-[13px] truncate">
+                                                    {p.paymentId || p._id.substring(0, 8).toUpperCase()}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-black text-[#011023] uppercase truncate">
-                                                        {p.booking?.service?.title || 'Service Payment'}
-                                                    </p>
-                                                    <p className="text-[10px] text-gray-400 mt-0.5 font-medium">
-                                                        {p.method} • <span className={`${p.status === 'Completed' ? 'text-green-600' : 'text-amber-500'}`}>{p.status}</span>
-                                                    </p>
+
+                                                {/* Booking ID */}
+                                                <div className="w-[13%] text-center px-2">
+                                                    <div className="font-bold text-[#011023] text-[13px] uppercase">
+                                                        {getBookingIdForPayment(p)}
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs font-black text-[#011023]">₹{p.amount}</p>
-                                                    <p className="text-[9px] text-gray-400 mt-0.5 font-bold uppercase">
-                                                        {new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                                    </p>
+
+                                                {/* Transaction ID */}
+                                                <div className="w-[20%] text-center px-2">
+                                                    <div className="text-[13px] font-bold truncate" title={p.transactionId}>
+                                                        {p.transactionId || 'N/A'}
+                                                    </div>
+                                                </div>
+
+                                                {/* Amount */}
+                                                <div className="w-[12%] text-center">
+                                                    <div className="font-bold text-[#011023] text-[14px]">
+                                                        ₹{p.amount?.toLocaleString()}
+                                                    </div>
+                                                </div>
+
+                                                {/* Date & Time */}
+                                                <div className="w-[19%] text-center">
+                                                    <div className="font-bold text-[#011023] text-[13px] uppercase whitespace-nowrap">
+                                                        {new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(p.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                    </div>
+                                                </div>
+
+                                                {/* Method */}
+                                                <div className="w-[14%] text-center px-2">
+                                                    <div className="text-[13px] uppercase font-semibold ">
+                                                        {p.method}
+                                                    </div>
+                                                </div>
+
+                                                {/* Status */}
+                                                <div className="w-[13%] flex justify-center">
+                                                    <span className={`inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border border-transparent ${getStatusColor(p.status)}`}>
+                                                        {p.status || 'Pending'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+
+
+                                    </div>
+                                )}
+
+                            </div>
+                        )}
+
+                        {activeTab === 'notifications' && (
+                            <div className="p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                {loadingNotifications ? (
+                                    <div className="h-[400px] flex items-center justify-center">
+                                        <div className="w-8 h-8 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                ) : notifications.length === 0 ? (
+                                    <div className="h-[400px] flex flex-col items-center justify-center text-center p-8">
+                                        <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-5">
+                                            <Bell size={32} className="text-[#527FB0]" />
+                                        </div>
+                                        <h3 className="text-base font-bold text-[#011023] uppercase">All Caught Up</h3>
+                                        <p className="text-xs text-gray-400 mt-2">No new notifications at the moment.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3.5">
+                                        {notifications.map((n, i) => (
+                                            <div key={n._id || i} onClick={() => !n.isRead && handleMarkNotificationAsRead(n._id)} className={`bg-white rounded-2xl border border-gray-300 p-4 flex items-center hover:bg-blue-50/30 transition-all group relative ${!n.isRead ? 'bg-blue-50/5' : ''}`}>
+                                                <div className="flex-1 flex items-center justify-between min-w-0">
+                                                    <div className="w-[80%] ">
+                                                        <p className="text-sm font-bold text-[#011023] uppercase leading-tight">{n.message}</p>
+                                                    </div>
+                                                    <div className="w-[20%] flex items-center justify-end gap-4">
+                                                        <span className="text-gray-400 font-light text-xl">|</span>
+                                                        <div className="text-right relative">
+                                                            <p className="text-[12px] font-bold uppercase">
+                                                                {new Date(n.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} | {new Date(n.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                            </p>
+                                                            {!n.isRead && (
+                                                                <sup className="absolute -top-1 -right-2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-sm" />
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                        </section>
+                        )}
+                    </div>
+                </div>
 
-                    </div>{/* end left column */}
-
-                    {/* Right column – Notifications */}
-                    <section>
-                        <h2 className="text-[11px] text-[#052558] uppercase tracking-widest -mt-3 font-semibold mb-4 flex items-center gap-2">
-                            <Bell size={12} /> Notifications
-                        </h2>
-                        <div className="h-[597px] overflow-hidden bg-white rounded-2xl border border-[#C2E8FF] shadow-sm divide-y divide-gray-50">
-                            {loadingNotifications ? (
-                                <div className="h-full flex items-center justify-center">
-                                    <div className="w-7 h-7 border-[3px] border-[#527FB0] border-t-transparent rounded-full animate-spin" />
-                                </div>
-                            ) : notifications.length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-                                        <Bell size={28} className="text-[#527FB0]" />
-                                    </div>
-                                    <p className="text-sm font-bold text-[#011023] uppercase">No Notifications</p>
-                                    <p className="text-xs text-gray-400 mt-1">We'll let you know when something important happens.</p>
-                                </div>
-                            ) : (
-                                notifications.map((n, i) => (
-                                    <div key={n._id || i} className={`flex items-start gap-4 px-5 py-5 hover:bg-gray-50 transition-colors ${!n.isRead ? 'bg-blue-50/40 relative' : ''}`}>
-                                        {/* Unread indicator dot */}
-                                        {!n.isRead && (
-                                            <div className="absolute top-5 right-5 w-2 h-2 bg-blue-500 rounded-full shadow-sm ring-2 ring-white" />
-                                        )}
-
-                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${n.type === 'success' ? 'bg-green-50 text-green-600' :
-                                            n.type === 'error' ? 'bg-red-50 text-red-500' :
-                                                'bg-blue-50 text-[#527FB0]'
-                                            }`}>
-                                            {n.type === 'success' ? <CheckCircle size={15} /> :
-                                                n.type === 'error' ? <X size={15} /> :
-                                                    <Bell size={15} />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-black text-[#011023] uppercase leading-snug">{n.message}</p>
-                                            <p className="text-[10px] text-gray-400 mt-1.5 font-bold uppercase tracking-wide">
-                                                {new Date(n.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </section>
-
-                </div>{/* end outer 2-col grid */}
 
                 {/* Book another CTA */}
 
-                {!loadingBookings && bookings.length > 0 && (
+                {/* {!loadingBookings && bookings.length > 0 && (
                     <div className="bg-gradient-to-r from-[#052558] to-[#1a4a8a] rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-blue-900/20">
                         <div>
                             <p className="text-white font-black uppercase text-sm">Ready for your next service?</p>
@@ -1308,10 +1364,148 @@ const ProfilePage = () => {
                             Book Now <ArrowRight size={13} />
                         </button>
                     </div>
-                )}
+                )} */}
             </div>
+
+            
+
+            {isViewModalOpen && selectedBooking && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
+                    onClick={() => setIsViewModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Booking Details</h3>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{selectedBooking.bookingId || selectedBooking._id}</span></p>
+                                    <button 
+                                        onClick={() => handleDownloadInvoice(selectedBooking)}
+                                        className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition-all"
+                                    >
+                                        <Download size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                            {/* Info Grid */}
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                <div className="space-y-4 w-full md:w-[46%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
+                                    <div className="pt-4 pb-2 rounded-xl uppercase space-y-2">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || user.name}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || user.phone}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || user.email}</span></p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 w-full md:w-[28%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
+                                    <div className="pt-4 pb-2 rounded-xl uppercase space-y-2">
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                        <div className="flex items-center mt-7 gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
+                                            <div className="flex uppercase items-center gap-2">
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
+                                                    {selectedBooking.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="rounded-xl flex items-center gap-4">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Payment</h4>
+                                            <span className="text-base ml-5 font-bold text-[#011023]">₹{selectedBooking.payment?.amount || selectedBooking.service?.price || '0'}</span>
+                                            {selectedBooking.payment?.status === 'Partially Paid' ? (
+                                                <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Partially Paid</span>
+                                            ) : selectedBooking.payment?.status === 'Completed' ? (
+                                                <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Completed</span>
+                                            ) : (
+                                                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Pending</span>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-3">
+                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Booked At</h4>
+                                            <span className="text-xs ml-2 font-bold text-gray-600 uppercase">
+                                                {formatDate(selectedBooking.createdAt)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Service Details */}
+                            <div className="space-y-4"> 
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Service Details</h4>
+                                <div className="bg-white border border-[#e6f0fa] p-4 gap-5 rounded-xl flex justify-between items-center shadow-sm">
+                                    <div>
+                                        <h5 className="font-bold text-[#052558] uppercase text-[15.5px]">{selectedBooking.service?.title || 'General Service'}</h5>
+                                        <p className="text-sm uppercase text-gray-500 mt-1">Scheduled for: <span className="font-semibold text-gray-700">{selectedBooking.schedule?.date} at {selectedBooking.schedule?.time}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Entity & Employees Info */}
+                            <div className="flex gap-5 -mt-1">
+                                {/* Entity Info - 40% */}
+                                <div className="w-[40%] bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm uppercase">
+                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">
+                                        {selectedBooking.store ? 'Assigned Store' : selectedBooking.parking ? 'Assigned Parking' : 'Assigned Garage'}
+                                    </p>
+                                    <h5 className="font-bold text-[#052558] text-[15.5px] truncate" title={
+                                        selectedBooking.store?.name || selectedBooking.parking?.name || selectedBooking.garage?.name
+                                    }>
+                                        {selectedBooking.store ? (selectedBooking.store?.name || 'No Store Assigned') : 
+                                         selectedBooking.parking ? (selectedBooking.parking?.name || 'No Parking Assigned') : 
+                                         (selectedBooking.garage?.name || 'No Garage Assigned')}
+                                    </h5>
+                                    <p className="text-sm text-gray-500 mt-0.5 truncate">
+                                        {selectedBooking.store ? `${selectedBooking.store?.district || ''}, ${selectedBooking.store?.state || ''} | ${selectedBooking.store?.id || 'N/A'}` : 
+                                         selectedBooking.parking ? `${selectedBooking.parking?.district || ''}, ${selectedBooking.parking?.state || ''} | ${selectedBooking.parking?.id || 'N/A'}` : 
+                                         `${selectedBooking.garage?.district || ''}, ${selectedBooking.garage?.state || ''} | ${selectedBooking.garage?.id || 'N/A'}`}
+                                    </p>
+                                </div>
+
+                                {/* Employees Info - 70% */}
+                                <div className="w-[70%] bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm flex divide-x divide-[#e6f0fa]">
+                                    <div className="w-1/2 pr-4 uppercase">
+                                        <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee's</p>
+                                        <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
+                                        <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedBooking.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
+                                    </div>
+                                    <div className="w-1/2 pl-4 uppercase">
+                                        <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
+                                        <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedBooking.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
+
+
 };
 
 export default ProfilePage;
