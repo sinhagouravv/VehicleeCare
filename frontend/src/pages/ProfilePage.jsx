@@ -629,7 +629,7 @@ const ProfilePage = () => {
                             </div>
 
                             {/* ── RIGHT: Notifications + Danger Zone ── */}
-                            <div className="px-4 pt-6 pb-7 space-y-3">
+                            <div className="px-4 pt-6 pb-7 space-y-4">
                                 {/* Notification Preferences */}
                                 <div>
                                     <p className="text-[12px] text-[#052558] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
