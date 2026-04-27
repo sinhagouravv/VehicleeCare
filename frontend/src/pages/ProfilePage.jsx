@@ -665,7 +665,7 @@ const ProfilePage = () => {
 
                                 {/* Danger Zone */}
                                 <div>
-                                    <p className="text-[12px] text-red-400 font-black uppercase tracking-widest -mt-5.5 mb-3">Danger Zone</p>
+                                    <p className="text-[12px] text-red-400 font-black uppercase tracking-widest -mt-5.5 mb-3">DANGER ZONE</p>
                                     <button
                                         onClick={() => handleSendSettingsOtp('delete-account')}
                                         disabled={sOtpSending && sOtpAction === 'delete-account'}
