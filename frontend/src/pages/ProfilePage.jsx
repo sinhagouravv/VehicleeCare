@@ -585,7 +585,7 @@ const ProfilePage = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
 
                             {/* ── LEFT: Change Password ── */}
-                            <div className="pl-5.5 pr-1 pt-5 pb-6 space-y-3">
+                            <div className="pl-5.5 pr-1 pt-6 pb-6 space-y-3">
                                 <p className="text-[12px] text-[#052558] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
                                     <ShieldCheck size={11} /> Change Password
                                 </p>
