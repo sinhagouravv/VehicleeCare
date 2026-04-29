@@ -81,7 +81,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                 ))}
             </nav>
 
-            <div className="p-7 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
+            <div className="p-4 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
                 <button
                     onClick={handleLogout}
                     className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
