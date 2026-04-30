@@ -87,7 +87,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                     className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
                 >
                     <div className={`${isCollapsed ? '' : 'pl-1'} flex-shrink-0 group-hover:text-red-500 transition-colors`}>
-                        <LogOut size={15} />
+                        <LogOut size={16} />
                     </div>
                     {!isCollapsed && (
                         <span>SIGN OUT</span>
