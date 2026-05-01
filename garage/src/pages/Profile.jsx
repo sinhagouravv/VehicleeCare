@@ -4,16 +4,25 @@ import { createPortal } from 'react-dom';
 
 
 import { useNavigate } from 'react-router-dom';
+import { useAlert } from '../context/AlertContext';
 
 const Profile = () => {
+    const { triggerAlert } = useAlert();
     const [garage, setGarage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteReason, setDeleteReason] = useState('');
     const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({
+        name: '', ownerName: '', email: '', phone: '', whatsapp: '',
+        address: '', workingHours: '', workingDays: '',
+        panCard: '', adharCard: '', voterId: '',
+        sacCode: '', hsnCode: '', gstNumber: ''
+    });
     const navigate = useNavigate();
-
 
 
 
@@ -47,6 +56,11 @@ const Profile = () => {
         fetchGarageProfile();
     }, [navigate]);
 
+    const handleCloseDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setTimeout(() => setDeleteReason(''), 300);
+    };
+
     const handleDeleteRequest = async () => {
         if (!deleteReason.trim()) return alert('Please provide a reason for deletion');
         
@@ -72,8 +86,7 @@ const Profile = () => {
 
             if (res.ok) {
                 alert('Your deletion request has been sent to the administration team. They will review it and get back to you shortly.');
-                setIsDeleteModalOpen(false);
-                setDeleteReason('');
+                handleCloseDeleteModal();
             } else {
                 throw new Error('Failed to send request');
             }
@@ -82,6 +95,70 @@ const Profile = () => {
             alert('Failed to send deletion request. Please try again later.');
         } finally {
             setIsSubmittingDelete(false);
+        }
+    };
+
+
+
+    const formatPAN = (val) => val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    const formatAadhar = (val) => val.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 14);
+    const formatVoter = (val) => val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    const formatGST = (val) => val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+    const formatSAC = (val) => val.replace(/\D/g, '').slice(0, 6);
+    const formatHSN = (val) => val.replace(/\D/g, '').slice(0, 8);
+    const formatPhone = (val) => val.replace(/\D/g, '').slice(0, 10);
+
+    useEffect(() => {
+        if (garage && isAddModalOpen) {
+            setForm({
+                name: garage.name || '',
+                ownerName: garage.ownerName || '',
+                email: garage.ownerEmail || garage.email || '',
+                phone: garage.phone || garage.ownerContact || '',
+                whatsapp: garage.whatsapp || '',
+                address: garage.address || '',
+                workingHours: garage.workingHours || '',
+                workingDays: garage.workingDays || '',
+                panCard: garage.panCard || '',
+                adharCard: garage.adharCard || '',
+                voterId: garage.voterId || '',
+                sacCode: garage.sacCode || '',
+                hsnCode: garage.hsnCode || '',
+                gstNumber: garage.gstNumber || ''
+            });
+        }
+    }, [garage, isAddModalOpen]);
+
+    const handleSave = async () => {
+        if (form.panCard && form.panCard.length !== 10) return triggerAlert('Kindly enter the PAN CARD details correctly');
+        if (form.adharCard && form.adharCard.length !== 14) return triggerAlert('Kindly enter the AADHAR CARD details correctly');
+        if (form.voterId && form.voterId.length !== 10) return triggerAlert('Kindly enter the VOTER ID details correctly');
+        if (form.gstNumber && form.gstNumber.length !== 15) return triggerAlert('Kindly enter the GST NUMBER details correctly');
+        if (form.sacCode && form.sacCode.length !== 6) return triggerAlert('Kindly enter the SAC CODE details correctly');
+        if (form.hsnCode && ![4, 6, 8].includes(form.hsnCode.length)) return triggerAlert('Kindly enter the HSN CODE details correctly');
+        if (form.phone && form.phone.length !== 10) return triggerAlert('Kindly enter the PHONE NUMBER details correctly');
+        if (form.whatsapp && form.whatsapp.length !== 10) return triggerAlert('Kindly enter the WHATSAPP NUMBER details correctly');
+
+        setSaving(true);
+        try {
+            const res = await fetch(`http://localhost:5001/api/garages/${garage._id || garage.id || garage.dbId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setGarage(data.data || data);
+                setIsAddModalOpen(false);
+                triggerAlert('Profile updated successfully', 'success');
+            } else {
+                triggerAlert('Failed to update profile', 'error');
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            triggerAlert('An error occurred while updating', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -101,7 +178,7 @@ const Profile = () => {
             {/* Header (Leave.jsx style) */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Garage Profile</h1>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 -mt-1.5">
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-95 transition-opacity uppercase tracking-tighter text-sm">
                         <Plus size={18} />
                         Edit Profile
@@ -117,7 +194,7 @@ const Profile = () => {
                     {/* Top Identity Block */}
                     <div className="flex flex-col md:flex-row gap-8 mb-5 w-full">
                         {/* Garage Identity */}
-                        <div className="space-y-2 w-full md:w-[30%]">
+                        <div className="space-y-2 w-full md:w-[31.5%]">
                             <h4 className="text-base font-bold text-gray-400 uppercase tracking-wider">Garage Identity</h4>
                             <div className="bg-blue-50/30 py-5 rounded-2xl uppercase space-y-4 border border-blue-50 relative overflow-hidden">
                                 <div className="relative z-10">
@@ -131,7 +208,7 @@ const Profile = () => {
                         </div>
 
                         {/* Ownership Details */}
-                        <div className="space-y-2 w-full md:w-[35%]">
+                        <div className="space-y-2 w-full md:w-[34%]">
                             <h4 className="text-base font-bold text-gray-400 uppercase tracking-wider">Owner Details</h4>
                             <div className="py-4 rounded-2xl uppercase space-y-2">
                                 <p className="text-[15px] flex items-center leading-relaxed"><span className="text-gray-500 shrink-0 w-30 uppercase font-bold">Name:</span> <span className="font-semibold text-[#011023]">{garage.ownerName || 'NOT AVAILABLE'}</span></p>
@@ -256,7 +333,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business PAN Card</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.panCard ? `XXXXX${garage.panCard.slice(-4)}` : 'NOT PROVIDED'}</p>
+                                    <p className="text-sm font-semibold text-[#052558]">{garage.panCard ? `XXXXX${garage.panCard.slice(-4)}` : '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -266,7 +343,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-200 transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business Adhar Card</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.adharCard ? `XXXX XXXX ${garage.adharCard.slice(-4)}` : 'NOT PROVIDED'}</p>
+                                    <p className="text-sm font-semibold text-[#052558]">{garage.adharCard ? `XXXX XXXX ${garage.adharCard.slice(-4)}` : '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -276,7 +353,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group  transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Election Card ID</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.voterId || 'NOT PROVIDED'}</p>
+                                    <p className="text-sm font-semibold text-[#052558]">{garage.voterId || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -293,7 +370,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business Sac Code</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.sacCode || 'NOT PROVIDED'}</p>
+                                    <p className="text-sm font-semibold text-[#052558]">{garage.sacCode || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -303,7 +380,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-200 transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business HSN Code</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.hsnCode || 'NOT PROVIDED'}</p>
+                                    <p className="text-sm font-semibold text-[#052558]">{garage.hsnCode || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -313,7 +390,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business GST Number</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.gstNumber || 'NOT PROVIDED'}</p>
+                                    <p className="text-sm font-semibold text-[#052558]">{garage.gstNumber || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -341,14 +418,14 @@ const Profile = () => {
             {/* Deletion Request Modal */}
             {isDeleteModalOpen && createPortal(
                 <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !isSubmittingDelete && setIsDeleteModalOpen(false)} />
+                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !isSubmittingDelete && handleCloseDeleteModal()} />
                     
                     <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
                         {/* Header */}
                         <div className="px-7 py-5 bg-rose-50 border-b border-rose-100 flex items-center justify-center relative">
                             <h3 className="text-xl font-bold text-rose-600 uppercase tracking-wider">Account Deletion</h3>
                             <button 
-                                onClick={() => setIsDeleteModalOpen(false)}
+                                onClick={handleCloseDeleteModal}
                                 className="absolute right-7 p-2 text-rose-400 rounded-xl transition-colors"
                                 disabled={isSubmittingDelete}
                             >
@@ -382,7 +459,7 @@ const Profile = () => {
                         {/* Footer */}
                         <div className="px-8 pb-6 pt-1 bg-gray-50/50 border-t border-gray-100 flex gap-4.5">
                             <button 
-                                onClick={() => setIsDeleteModalOpen(false)}
+                                onClick={handleCloseDeleteModal}
                                 className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
                                 disabled={isSubmittingDelete}
                             >
@@ -410,9 +487,112 @@ const Profile = () => {
                 </div>,
                 document.body
             )}
+
+            {/* Edit Profile Modal */}
+            {isAddModalOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className="relative w-full max-w-5xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100/50 relative flex items-center justify-center bg-gradient-to-r from-emerald-50/60 to-transparent">
+                            <div className="flex uppercase items-center gap-3">
+                                <div>
+                                    <h2 className="text-xl font-bold text-center text-[#011023]">Update Profile</h2>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsAddModalOpen(false)} className="absolute right-6 p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Garage Name</label>
+                                    <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Name</label>
+                                    <input value={form.ownerName} onChange={e => setForm({ ...form, ownerName: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Email Address</label>
+                                    <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none lowercase" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Phone Number</label>
+                                    <input value={form.phone} onChange={e => setForm({ ...form, phone: formatPhone(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">WhatsApp Number</label>
+                                    <input value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: formatPhone(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Working Hours</label>
+                                    <input value={form.workingHours} onChange={e => setForm({ ...form, workingHours: e.target.value })} placeholder="e.g. 09:00 AM - 09:00 PM" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Working Days</label>
+                                    <input value={form.workingDays} onChange={e => setForm({ ...form, workingDays: e.target.value })} placeholder="e.g. Monday - Saturday" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Address</label>
+                                    <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none h-10 resize-none" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">OWNER'S PAN Card</label>
+                                    <input value={form.panCard} onChange={e => setForm({ ...form, panCard: formatPAN(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">OWNER'S Aadhar Card</label>
+                                    <input value={form.adharCard} onChange={e => setForm({ ...form, adharCard: formatAadhar(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={14} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">OWNER'S Voter ID</label>
+                                    <input value={form.voterId} onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">GST Number</label>
+                                    <input value={form.gstNumber} onChange={e => setForm({ ...form, gstNumber: formatGST(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={15} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">SAC Code</label>
+                                    <input value={form.sacCode} onChange={e => setForm({ ...form, sacCode: formatSAC(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={6} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">HSN Code</label>
+                                    <input value={form.hsnCode} onChange={e => setForm({ ...form, hsnCode: formatHSN(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={8} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 bg-white/30 border-t border-white/40 flex  justify-end gap-3">
+                            <button onClick={() => setIsAddModalOpen(false)} className="px-5 py-2.5 text-sm uppercase font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm uppercase font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
+                                {saving ? 'Updating...' : 'Update Profile'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
-
 
 export default Profile;
