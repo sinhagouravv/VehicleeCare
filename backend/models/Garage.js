@@ -22,6 +22,9 @@ const GarageSchema = new mongoose.Schema({
     panCard: { type: String, default: '' },
     adharCard: { type: String, default: '' },
     voterId: { type: String, default: '' },
+    gstNumber: { type: String, default: '' },
+    sacCode: { type: String, default: '' },
+    hsnCode: { type: String, default: '' },
     password: { type: String },
 
     resetPasswordOtp: { type: String },

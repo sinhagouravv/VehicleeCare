@@ -17,36 +17,38 @@ import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
-
+import { AlertProvider } from './context/AlertContext';
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        {/* Protected Dashboard Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="payments" element={<Payments />} />
-            <Route path="my-bookings" element={<MyBookings />} />
-            <Route path="customers" element={<Customers />} />
-            <Route path="staff" element={<Staff />} />
-            <Route path="progress" element={<Progress />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="leave" element={<Leave />} />
-            <Route path="vehicles" element={<Vehicles />} />
-            <Route path="services" element={<Services />} />
-            <Route path="reviews" element={<Reviews />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="profile" element={<Profile />} />
+    <AlertProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected Dashboard Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="payments" element={<Payments />} />
+              <Route path="my-bookings" element={<MyBookings />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="staff" element={<Staff />} />
+              <Route path="progress" element={<Progress />} />
+              <Route path="attendance" element={<Attendance />} />
+              <Route path="leave" element={<Leave />} />
+              <Route path="vehicles" element={<Vehicles />} />
+              <Route path="services" element={<Services />} />
+              <Route path="reviews" element={<Reviews />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="profile" element={<Profile />} />
 
+            </Route>
           </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </AlertProvider>
   );
 };
 
