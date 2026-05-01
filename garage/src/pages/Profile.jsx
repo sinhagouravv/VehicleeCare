@@ -62,7 +62,7 @@ const Profile = () => {
     };
 
     const handleDeleteRequest = async () => {
-        if (!deleteReason.trim()) return alert('Please provide a reason for deletion');
+        if (!deleteReason.trim()) return triggerAlert('Please provide a reason for deletion', 'error');
         
         setIsSubmittingDelete(true);
         try {
@@ -85,14 +85,14 @@ const Profile = () => {
             });
 
             if (res.ok) {
-                alert('Your deletion request has been sent to the administration team. They will review it and get back to you shortly.');
+                triggerAlert('Your deletion request has been sent to the administration team.', 'success');
                 handleCloseDeleteModal();
             } else {
                 throw new Error('Failed to send request');
             }
         } catch (error) {
             console.error("Deletion request failed", error);
-            alert('Failed to send deletion request. Please try again later.');
+            triggerAlert('Failed to send deletion request. Please try again later.', 'error');
         } finally {
             setIsSubmittingDelete(false);
         }
