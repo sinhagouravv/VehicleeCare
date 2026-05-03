@@ -91,6 +91,74 @@ const StepIndicator = ({ current }) => {
     );
 };
 
+const ServiceDropdown = ({ options, value, onChange, garageDisabledServices }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    const inputClass = "w-full px-4 py-2.5 bg-white border-2 border-blue-100 rounded-lg focus:outline-none text-[#011023] text-sm font-semibold transition text-center uppercase disabled:opacity-50 disabled:cursor-not-allowed";
+    const selectClass = `${inputClass} cursor-pointer appearance-none px-10`;
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`${selectClass} w-full text-center text-[10.5px] uppercase font-bold py-2 px-8 h-10 flex items-center justify-center gap-2 relative truncate pr-10`}
+            >
+                <span className="truncate">{value || ''}</span>
+                <ChevronDown size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 transition-transform duration-200 text-gray-500 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <div className="absolute z-50 mt-2 w-full bg-white/60 backdrop-blur-xl rounded-xl shadow-md border border-white/80 overflow-visible py-1 animate-[fadeIn_0.2s_ease-out] origin-top">
+                    <div 
+                        className="px-4 py-2 text-[10px] text-gray-400 hover:bg-white/40 cursor-pointer uppercase font-bold text-center border-b border-white/20 mb-1"
+                        onClick={() => { onChange(''); setIsOpen(false); }}
+                    >
+                        None
+                    </div>
+                    <div className="hide-scrollbar">
+                        {options.map(opt => {
+                            const isBlocked = garageDisabledServices.includes(opt.name);
+                            return (
+                                <div
+                                    key={opt.name}
+                                    className={`group relative px-4 py-2.5 text-[10.5px] uppercase font-bold text-center transition-colors
+                                        ${isBlocked 
+                                            ? 'text-gray-300 cursor-not-allowed bg-gray-50/10' 
+                                            : 'text-[#011023] hover:bg-blue-50/50 hover:text-[#052558] cursor-pointer'}`}
+                                    onClick={() => {
+                                        if (!isBlocked) {
+                                            onChange(opt.name);
+                                            setIsOpen(false);
+                                        }
+                                    }}
+                                >
+                                    {opt.name}
+                                    {isBlocked && (
+                                        <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 uppercase w-60 bg-red-200 text-red-900 font-semibold text-[10px] py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-[100] shadow- pointer-events-none group-hover:block hidden text-center normal-case">
+                                            This service is currently unavailable at this garage
+                                            <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-red-200"></div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 const FullService = () => {
     const navigate = useNavigate();
@@ -248,7 +316,8 @@ const FullService = () => {
                 _id: g._id,
                 id: g.garageId,
                 name: g.name,
-                pickupDrop: g.pickupDrop ? ['Yes', 'No'] : ['No']
+                pickupDrop: g.pickupDrop ? ['Yes', 'No'] : ['No'],
+                disabledServices: g.disabledServices || []
             }))
         : [];
     const pickupDropOptions = selectedGarage ? (selectedGarage.pickupDrop || []) : [];
@@ -963,37 +1032,30 @@ const FullService = () => {
                             <div className="animate-[fadeIn_0.3s_ease-out]  max-w-6xl mx-auto">
                                 <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Select a Service</h2>
 
-                                {/* 10 Select Dropdowns Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                                    {(dynamicServiceData[fuelType] || dynamicServiceData['Petrol']).map((item, index) => {
-                                        const availableOptions = item.options.filter(opt => !disabledServices.includes(opt.name));
-                                        if (availableOptions.length === 0) return null;
+                        {/* 10 Select Dropdowns Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                            {(dynamicServiceData[fuelType] || dynamicServiceData['Petrol']).map((item, index) => {
+                                const availableOptions = item.options.filter(opt => !disabledServices.includes(opt.name));
+                                if (availableOptions.length === 0) return null;
 
-                                        return (
-                                            <div key={index}>
-                                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center truncate" title={item.category}>
-                                                    {item.category}
-                                                </label>
-                                                <div className="relative">
-                                                    <select
-                                                        value={selectedServices[item.category] || ''}
-                                                        onChange={e => setSelectedServices(prev => ({
-                                                            ...prev,
-                                                            [item.category]: e.target.value
-                                                        }))}
-                                                        className={`${selectClass} text-center text-[10.5px] uppercase font-bold py-2 px-8 h-10`}
-                                                    >
-                                                        <option value=""></option>
-                                                        {availableOptions.map(opt => (
-                                                            <option key={opt.name} value={opt.name}>{opt.name}</option>
-                                                        ))}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none z-10" size={14} />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                return (
+                                    <div key={index}>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center truncate" title={item.category}>
+                                            {item.category}
+                                        </label>
+                                        <ServiceDropdown
+                                            options={availableOptions}
+                                            value={selectedServices[item.category] || ''}
+                                            onChange={val => setSelectedServices(prev => ({
+                                                ...prev,
+                                                [item.category]: val
+                                            }))}
+                                            garageDisabledServices={selectedGarage?.disabledServices || []}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
                             </div>
                         )}
 
