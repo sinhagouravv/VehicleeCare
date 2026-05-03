@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
+import Reports from './pages/Reports';
+import Revenue from './pages/Revenue';
 import Payments from './pages/Payments';
 import Services from './pages/Services';
 import Bookings from './pages/Bookings';
@@ -39,6 +41,8 @@ const App = () => {
         }>
           <Route index element={<Dashboard />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="revenue" element={<Revenue />} />
           <Route path="payments" element={<Payments />} />
           <Route path="services" element={<Services />} />
           <Route path="bookings" element={<Bookings />} />
