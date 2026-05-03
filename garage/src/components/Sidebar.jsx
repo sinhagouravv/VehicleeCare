@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, CalendarOff, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, PieChart, FileBarChart, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, CalendarOff, BarChart3 } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -15,6 +15,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Progress', path: '/progress', icon: <BarChart3 size={20} /> },
+        { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
+        { name: 'Staff Overview', path: '/staff-overview', icon: <PieChart size={20} /> },
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'My Bookings', path: '/my-bookings', icon: <ClipboardList size={20} /> },
         { name: 'Customers', path: '/customers', icon: <Users size={20} /> },
@@ -61,7 +63,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-2 overflow-y-auto hide-scrollbar">
+            <nav className="flex-1 px-4 py-10 uppercase space-y-1 overflow-y-auto hide-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
