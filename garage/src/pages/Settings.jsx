@@ -1,68 +1,88 @@
-import React, { useState } from 'react';
-import { Save, Home, Clock, Wrench, Car } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Home, Clock, Wrench, Car, Loader2 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const Settings = () => {
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
+    const [disabledServices, setDisabledServices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const { triggerAlert } = useAlert();
+
+    const garageUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
+    const garageId = garageUser._id || garageUser.id; // Prioritize MongoDB _id
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            if (!garageId) return;
+            try {
+                const res = await fetch(`http://localhost:5001/api/garages/${garageId}`);
+                const result = await res.json();
+                if (result.success && result.data) {
+                    setDisabledServices(result.data.disabledServices || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch settings:", err);
+                triggerAlert("Failed to load settings");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSettings();
+    }, [garageId, triggerAlert]);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const res = await fetch(`http://localhost:5001/api/garages/${garageId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ disabledServices })
+            });
+            const result = await res.json();
+            if (res.ok && result.success) {
+                triggerAlert("Settings saved successfully", "success");
+            } else {
+                throw new Error(result.message || 'Server returned an error');
+            }
+        } catch (err) {
+            console.error("Failed to save settings:", err);
+            triggerAlert(err.message || "Failed to save settings");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const toggleService = (serviceName) => {
+        setDisabledServices(prev =>
+            prev.includes(serviceName)
+                ? prev.filter(s => s !== serviceName)
+                : [...prev, serviceName]
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 text-[#052558] animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto ">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-[#011023] tracking-tight">Garage Settings</h1>
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                    <Save size={18} />
-                    Save Details
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Garage Settings</h1>
+                <button 
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2 text-[13px] mb-1.5 px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm disabled:opacity-50"
+                >
+                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    {saving ? 'Saving...' : 'Save Details'}
                 </button>
             </div>
-
-            {/* General Settings */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="p-6 border-b border-[#e6f0fa] flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-[#527FB0] rounded-lg"><Home size={20} /></div>
-                    <div>
-                        <h2 className="text-lg font-bold text-[#011023]">Garage Profile</h2>
-                        <p className="text-sm text-gray-500 font-medium">Public details shown to customers on the map.</p>
-                    </div>
-                </div>
-                <div className="p-6 space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">Garage Name</label>
-                            <input type="text" defaultValue="VehicleeCare Downtown" className="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 transition-shadow text-sm font-medium text-[#011023]" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">Contact Number</label>
-                            <input type="text" defaultValue="+91 98765 43210" className="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 transition-shadow text-sm font-medium text-[#011023]" />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Full Address</label>
-                        <input type="text" defaultValue="Shop 4, Linking Road, Mumbai Central, MH 400008" className="w-full px-4 py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 transition-shadow text-sm font-medium text-[#011023]" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Operational Settings */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="p-6 border-b border-[#e6f0fa] flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-[#527FB0] rounded-lg"><Clock size={20} /></div>
-                    <div>
-                        <h2 className="text-lg font-bold text-[#011023]">Operating Hours</h2>
-                        <p className="text-sm text-gray-500 font-medium">When are you open for receiving vehicles?</p>
-                    </div>
-                </div>
-                <div className="p-6 space-y-4">
-                    {['Monday - Friday', 'Saturday', 'Sunday'].map((day, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-4 bg-white/40 border border-blue-50 rounded-xl">
-                            <h3 className="font-bold text-[#011023] text-sm">{day}</h3>
-                            <div className="flex gap-3 items-center">
-                                <input type="time" defaultValue={idx === 2 ? "" : "09:00"} disabled={idx === 2} className="px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-sm font-bold text-[#052558] disabled:opacity-50" />
-                                <span className="text-gray-400 font-medium text-sm">to</span>
-                                <input type="time" defaultValue={idx === 2 ? "" : "19:00"} disabled={idx === 2} className="px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-sm font-bold text-[#052558] disabled:opacity-50" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            
             {/* Services Configuration */}
             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col h-full col-span-1 xl:col-span-2">
                 <div className="pt-6 pl-7 pb-2">
@@ -102,7 +122,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -115,7 +140,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -128,7 +158,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -141,7 +176,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -154,7 +194,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -167,7 +212,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -180,7 +230,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -193,7 +248,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -206,7 +266,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -219,7 +284,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -240,7 +310,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -253,7 +328,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -266,7 +346,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -279,7 +364,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -292,7 +382,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -305,7 +400,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -318,7 +418,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -331,7 +436,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -344,7 +454,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -357,7 +472,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -378,7 +498,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -391,7 +516,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -404,7 +534,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -417,7 +552,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -430,7 +570,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -443,7 +588,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -456,7 +606,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -469,7 +624,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -482,7 +642,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
@@ -495,7 +660,12 @@ const Settings = () => {
                                             <div key={item} className="flex items-center justify-between border-b border-gray-100 last:border-0">
                                                 <span className="text-xs uppercase text-gray-700">{item}</span>
                                                 <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={!disabledServices.includes(item)}
+                                                        onChange={() => toggleService(item)}
+                                                    />
                                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
                                                 </label>
                                             </div>
