@@ -251,7 +251,7 @@ const Settings = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">System Settings</h1>
                 {!['records', 'log'].includes(activeTab) && (
-                    <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity disabled:opacity-75 disabled:cursor-not-allowed">
+                    <button onClick={handleSaveChanges} disabled={isSaving} className="flex items-center gap-2 text-[13px] mb-1.5 px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm disabled:opacity-50">
                         <Save size={18} />
                         {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
