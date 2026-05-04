@@ -17,6 +17,8 @@ import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
+import StaffOverview from './pages/StaffOverview';
+import Reports from './pages/Reports';
 import { AlertProvider } from './context/AlertContext';
 
 const App = () => {
@@ -43,6 +45,8 @@ const App = () => {
               <Route path="notifications" element={<Notifications />} />
               <Route path="settings" element={<Settings />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="staff-overview" element={<StaffOverview />} />
+              <Route path="reports" element={<Reports />} />
 
             </Route>
           </Route>
