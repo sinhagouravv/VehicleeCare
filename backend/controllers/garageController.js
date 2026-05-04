@@ -118,7 +118,19 @@ exports.createGarage = async (req, res) => {
 // PUT update garage
 exports.updateGarage = async (req, res) => {
     try {
-        const garage = await Garage.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { id } = req.params;
+        let garage;
+
+        // Try updating by MongoDB _id if it's a valid ObjectId
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            garage = await Garage.findByIdAndUpdate(id, req.body, { new: true });
+        }
+
+        // Fallback to custom 9-digit garageId
+        if (!garage) {
+            garage = await Garage.findOneAndUpdate({ garageId: id }, req.body, { new: true });
+        }
+
         if (!garage) return res.status(404).json({ success: false, message: 'Garage not found' });
         res.json({ success: true, data: garage });
     } catch (err) {
