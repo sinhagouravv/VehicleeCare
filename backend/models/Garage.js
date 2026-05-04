@@ -29,6 +29,7 @@ const GarageSchema = new mongoose.Schema({
 
     resetPasswordOtp: { type: String },
     resetPasswordExpires: { type: Date },
+    disabledServices: { type: [String], default: [] },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Garage', GarageSchema);
