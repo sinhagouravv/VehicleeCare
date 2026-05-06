@@ -4,8 +4,10 @@ import { UserSquare2, Plus, Shield, Eye, Edit, Trash2, X, Wrench, Briefcase, Use
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
+import { useAlert } from '../context/AlertContext';
 
 const Staff = () => {
+    const { triggerAlert } = useAlert();
     const [staffMembers, setStaffMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedStaff, setSelectedStaff] = useState(null);
@@ -79,7 +81,18 @@ const Staff = () => {
     };
 
     const handleSave = async () => {
-        if (!form.name || !form.email || !form.phone) return alert('Please fill all required fields');
+        const cleanPhone = form.phone?.replace(/\s/g, '') || '';
+        const cleanPAN = form.panCard?.replace(/\s/g, '') || '';
+        const cleanAadhar = form.adharCard?.replace(/\s/g, '') || '';
+        const cleanVoter = form.voterId?.replace(/\s/g, '') || '';
+
+        if (!form.name || !form.email || !cleanPhone) return triggerAlert('Please fill all required fields', 'error');
+        
+        if (cleanPhone && cleanPhone.length !== 10) return triggerAlert('Kindly enter the PHONE NUMBER details correctly', 'error');
+        if (cleanPAN && cleanPAN.length !== 10) return triggerAlert('Kindly enter the PAN CARD details correctly', 'error');
+        if (cleanAadhar && cleanAadhar.length !== 12) return triggerAlert('Kindly enter the AADHAR CARD details correctly', 'error');
+        if (cleanVoter && cleanVoter.length !== 10) return triggerAlert('Kindly enter the VOTER ID details correctly', 'error');
+
         setSaving(true);
         try {
             const storedUser = localStorage.getItem('garageUser');
@@ -102,12 +115,13 @@ const Staff = () => {
                     name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
                     shift: '', panCard: '', adharCard: '', voterId: '', agreement: '', salaryType: ''
                 });
+                triggerAlert(isEditMode ? 'Employee updated successfully' : 'Employee added successfully', 'success');
             } else {
-                alert(data.message || 'Failed to process employee');
+                triggerAlert(data.message || 'Failed to process employee', 'error');
             }
         } catch (error) {
             console.error("Error processing employee:", error);
-            alert('Error processing employee');
+            triggerAlert('Error processing employee', 'error');
         } finally {
             setSaving(false);
         }
@@ -253,12 +267,13 @@ const Staff = () => {
                 setStaffMembers(prev => prev.filter(emp => emp._id !== employeeToDelete._id));
                 setIsDeleteModalOpen(false);
                 setEmployeeToDelete(null);
+                triggerAlert('Employee removed successfully', 'success');
             } else {
-                alert(data.message || 'Failed to delete employee');
+                triggerAlert(data.message || 'Failed to delete employee', 'error');
             }
         } catch (error) {
             console.error("Error deleting employee:", error);
-            alert('Error deleting employee');
+            triggerAlert('Error deleting employee', 'error');
         } finally {
             setDeleting(false);
         }
@@ -595,8 +610,8 @@ const Staff = () => {
 
                         {/* Footer */}
                         <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditMode(false); }} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
+                            <button onClick={() => { setIsAddModalOpen(false); setIsEditMode(false); }} className="px-5 py-2.5 uppercase text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 uppercase text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
                                 {saving ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Employee' : 'Add Employee')}
                             </button>
                         </div>
