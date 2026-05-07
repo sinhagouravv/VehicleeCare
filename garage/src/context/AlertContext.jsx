@@ -34,7 +34,7 @@ export const AlertProvider = ({ children }) => {
             
             {/* Global Custom Animated Alert */}
             {alertState.show && createPortal(
-                <div className={`fixed inset-x-0 top-13 z-[9999] flex justify-center pointer-events-none`}>
+                <div className={`fixed inset-x-0 top-14 z-[9999] flex justify-center pointer-events-none`}>
                     <div 
                         className={`${alertState.type === 'success' ? 'bg-emerald-100 border-emerald-200 shadow-emerald-500/10' : 'bg-rose-100 border-rose-200 shadow-rose-500/10'} border flex items-center justify-center transition-all duration-[500ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden
                             ${alertState.phase === 'ball-top' ? 'max-w-[40px] min-w-[40px] px-0 h-10 rounded-full -translate-y-24 opacity-0 scale-50' : ''}
