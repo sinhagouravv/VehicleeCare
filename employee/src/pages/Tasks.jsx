@@ -664,7 +664,7 @@ const Tasks = () => {
                             <button 
                                 onClick={handleVerifyOTP}
                                 disabled={isSubmitting || otpInput.replace(/\s+/g, '').length !== 6}
-                                className="px-2 py-3 bg-emerald-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                                className="px-4 py-3 bg-emerald-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                             >
                                 {isSubmitting ? (
                                     <><Loader2 size={16} className="animate-spin" /> VERIFYING...</>
