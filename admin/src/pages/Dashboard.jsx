@@ -259,7 +259,7 @@ const Dashboard = () => {
                                     dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 13, fontWeight: 600 }}
+                                    tick={{ fill: '#64748b', fontSize: 14, fontWeight: 600 }}
                                     dy={10}
                                 />
                                 <YAxis
