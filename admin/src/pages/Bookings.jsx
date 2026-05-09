@@ -420,6 +420,7 @@ const Bookings = () => {
                 </div>,
                 document.body
             )}
+            
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
