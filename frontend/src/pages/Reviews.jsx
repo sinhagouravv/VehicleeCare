@@ -50,6 +50,17 @@ const Reviews = () => {
         }
     };
 
+    useEffect(() => {
+        if (selectedReview || isWriteReviewOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [selectedReview, isWriteReviewOpen]);
+
     // Combine API reviews + remaining Demo reviews to maintain visibility
     // As per user request: "if a user submit 1 review than 1 demo review be removed"
     // This logic removes demo reviews from the FRONT (slice based on apiReviews length)
@@ -174,7 +185,7 @@ const Reviews = () => {
     };
 
     return (
-        <div className="relative bg-gray-50/50 min-h-[calc(100vh-80px)] pt-24 pb-12 overflow-hidden flex flex-col justify-between">
+        <div className="relative bg-gray-50/50 min-h-[calc(100vh-80px)] pt-36 pb-12 overflow-hidden flex flex-col justify-between">
             {/* Background Decorative Blobs */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[20%] -left-[10%] w-[500px] h-[500px] bg-purple-200/20 rounded-full blur-[100px]"></div>
@@ -253,8 +264,18 @@ const Reviews = () => {
             {/* Write a Review Button */}
             <div className="text-center mt-auto pt-10 relative z-10 w-full mb-8">
                 <button
-                    onClick={() => setIsWriteReviewOpen(true)}
-                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-gray-900 hover:bg-black text-white rounded-xl font-semibold shadow-lg shadow-gray-900/20 transition-all hover:-translate-y-1"
+                    onClick={() => {
+                        const section = document.getElementById('reviews');
+                        if (section) {
+                            section.scrollIntoView({ behavior: 'smooth' });
+                            setTimeout(() => {
+                                setIsWriteReviewOpen(true);
+                            }, 500);
+                        } else {
+                            setIsWriteReviewOpen(true);
+                        }
+                    }}
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-gray-900 hover:bg-black text-white rounded-xl font-semibold shadow-lg shadow-gray-900/20 transition-all"
                 >
                     <User size={18} />
                     Write a Review
@@ -263,8 +284,8 @@ const Reviews = () => {
 
             {/* Review Detail Modal */}
             {selectedReview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedReview(null)}>
-                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl scale-100 animate-in zoom-in-95 duration-200 relative" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300 ease-out" onClick={() => setSelectedReview(null)}>
+                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out relative" onClick={e => e.stopPropagation()}>
                         <button
                             onClick={() => setSelectedReview(null)}
                             className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -320,8 +341,8 @@ const Reviews = () => {
 
             {/* Write Review Modal */}
             {isWriteReviewOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsWriteReviewOpen(false)}>
-                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl scale-100 animate-in zoom-in-95 duration-200 relative" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300 ease-out" onClick={() => setIsWriteReviewOpen(false)}>
+                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out relative" onClick={e => e.stopPropagation()}>
                         <button
                             onClick={() => setIsWriteReviewOpen(false)}
                             className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
