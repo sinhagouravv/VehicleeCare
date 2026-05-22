@@ -326,7 +326,7 @@ const FullService = () => {
     const [schedule, setSchedule] = useState(() => getSessionState('schedule', { date: '', time: '' }));
 
     // Step 5 – Details
-    const [details, setDetails] = useState(() => getSessionState('details', { name: '', phone: '', email: '', notes: '' }));
+    const [details, setDetails] = useState(() => getSessionState('details', { name: '', phone: '', email: '', address: '', notes: '' }));
 
     // Step 7 – Checkout
     const [paymentMethod, setPaymentMethod] = useState(() => getSessionState('paymentMethod', ''));
@@ -351,6 +351,7 @@ const FullService = () => {
                 name: u.name || prev.name,
                 email: u.email || prev.email,
                 phone: u.phone || prev.phone,
+                address: u.address || prev.address,
             }));
         }
     }, []);
@@ -590,9 +591,9 @@ const FullService = () => {
                         }
                     },
                     prefill: {
-                        name: details.name,
-                        email: details.email,
-                        contact: details.phone
+                        name: details.name || undefined,
+                        email: details.email || undefined,
+                        contact: details.phone || undefined
                     },
                     theme: { color: "#052558" },
                     modal: {
@@ -670,9 +671,9 @@ const FullService = () => {
                         }
                     },
                     prefill: {
-                        name: details.name,
-                        email: details.email,
-                        contact: details.phone
+                        name: details.name || undefined,
+                        email: details.email || undefined,
+                        contact: details.phone || undefined
                     },
                     theme: { color: '#052558' },
                     modal: {
@@ -757,7 +758,7 @@ const FullService = () => {
                             </div>
                             <div className="h-px bg-blue-100 w-full" />
                             <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-[#052558]">Total Payable (with GST)</span>
+                                <span className="text-sm font-bold text-[#052558]">Total Paid (with GST)</span>
                                 <span className="font-bold text-[#527FB0] text-lg">₹{calculateGrandTotal()}</span>
                             </div>
                         </div>
@@ -1221,12 +1222,12 @@ const FullService = () => {
 
                         {/* ── Step 5: Details ── */}
                         {step === 5 && (
-                            <div className="animate-[fadeIn_0.3s_ease-out] max-w-4xl mx-auto">
+                            <div className="animate-[fadeIn_0.3s_ease-out] max-w-6xl mx-auto">
                                 <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Your Contact Details</h2>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="flex flex-col sm:flex-row gap-3 w-full">
                                     {/* Full Name */}
-                                    <div>
+                                    <div className="w-full sm:w-[20%]">
                                         <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Full Name</label>
                                         <input
                                             name="name"
@@ -1240,7 +1241,7 @@ const FullService = () => {
                                     {(() => {
                                         const hasPhone = !!JSON.parse(localStorage.getItem('user') || '{}')?.phone;
                                         return (
-                                            <div>
+                                            <div className="w-full sm:w-[15%]">
                                                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Phone</label>
                                                 <input
                                                     name="phone"
@@ -1256,7 +1257,7 @@ const FullService = () => {
                                     })()}
 
                                     {/* Email */}
-                                    <div>
+                                    <div className="w-full sm:w-[30%]">
                                         <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Email</label>
                                         <input
                                             name="email"
@@ -1265,6 +1266,24 @@ const FullService = () => {
                                             className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full bg-[#f4f9ff] cursor-not-allowed select-none`}
                                         />
                                     </div>
+
+                                    {/* Address */}
+                                    {(() => {
+                                        const hasAddress = !!JSON.parse(localStorage.getItem('user') || '{}')?.address;
+                                        return (
+                                            <div className="w-full sm:w-[36%]">
+                                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide text-center">Address</label>
+                                                <input
+                                                    name="address"
+                                                    value={details.address}
+                                                    readOnly={hasAddress}
+                                                    onChange={!hasAddress ? handleDetailChange : undefined}
+                                                    required
+                                                    className={`${inputClass} text-center text-[11px] uppercase font-bold py-2 px-4 h-10 w-full ${hasAddress ? 'bg-[#f4f9ff] cursor-not-allowed select-none' : ''}`}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         )}
@@ -1274,7 +1293,7 @@ const FullService = () => {
                             <div className="animate-[fadeIn_0.3s_ease-out] max-w-6xl mx-auto">
                                 <h2 className="text-sm text-center font-bold text-[#011023] uppercase mb-5">Review Details</h2>
 
-                                <div className="grid md:grid-cols-[325px] gap-6">
+                                <div className="grid md:grid-cols-[300px] gap-6">
                                     {/* Left side – 5 review cards stacked */}
                                     <div className="flex flex-col gap-4">
                                         {/* Vehicle Card */}
@@ -1283,7 +1302,7 @@ const FullService = () => {
                                                 {/* <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-[#527FB0]"><Car size={18} /></div> */}
                                                 <div>
                                                     <p className="text-[12px] text-gray-400 pb-1 uppercase font-semibold">Vehicle</p>
-                                                    <p className="font-bold text-[#011023] pb-0.5 uppercase text-xs">{selectedBrand} {selectedModel} ({selectedYear}) &nbsp;•&nbsp; {vehicleNumber} &nbsp;•&nbsp; {transmission}</p>
+                                                    <p className="font-bold text-[#011023] pb-0.5 uppercase text-xs">{selectedBrand} {selectedModel} &nbsp;|&nbsp; {selectedYear} &nbsp;|&nbsp; {vehicleNumber} &nbsp;|&nbsp; {transmission}</p>
                                                 </div>
                                             </div>
                                             <button onClick={() => setStep(1)} className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-[#527FB0] transition-colors"><Edit size={14} /></button>
@@ -1327,7 +1346,7 @@ const FullService = () => {
                                                 <div>
                                                     <p className="text-[12px] pb-1 text-gray-400 uppercase font-semibold">Date & Time</p>
                                                     <p className="font-bold text-[#011023] text-xs">
-                                                        {schedule.dateDisplay || schedule.date} &nbsp;•&nbsp; {schedule.time}
+                                                        {schedule.dateDisplay || schedule.date} &nbsp;|&nbsp; {schedule.time}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1341,7 +1360,9 @@ const FullService = () => {
                                                 <div>
                                                     <p className="text-[12px] pb-1 text-gray-400 uppercase font-semibold">Customer</p>
                                                     <p className="font-bold pb-0.5 uppercase text-[#011023] text-xs">{details.name}</p>
-                                                    <p className="text-[10px] uppercase text-gray-500">{details.phone}{details.email && ` • ${details.email}`}</p>
+                                                    <p className="text-[10px] uppercase text-gray-500">{details.phone}</p> 
+                                                    <p className="text-[10px] uppercase text-gray-500"> {details.email && ` ${details.email}`}</p>
+                                                    <p className="text-[10px] uppercase text-gray-500"> {details.address && ` ${details.address}`}</p>
                                                 </div>
                                             </div>
                                             <button onClick={() => setStep(5)} className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-[#527FB0] transition-colors"><Edit size={14} /></button>
