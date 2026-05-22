@@ -86,7 +86,7 @@ const Contact = () => {
                 <div className="max-w-[1215px] mx-auto w-full">
                     {/* Header */}
                     <div className="text-center mb-12">
-                        <h1 className="text-4xl font-bold text-[#011023]  mb-4">Get in Touch</h1>
+                        <h1 className="text-4xl font-bold text-[#011023] uppercase mb-4">Get in Touch</h1>
                         <p className="text-gray-500 max-w-2xl mx-auto">Have questions or need a quick service? Reach out and we'll get back to you right away.</p>
                     </div>
 
