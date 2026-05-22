@@ -111,6 +111,17 @@ const Locate = () => {
         return R * c;
     };
 
+    useEffect(() => {
+        if (selectedCenter) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [selectedCenter]);
+
     const handleSearch = (e) => {
         const query = e.target.value;
         setSearchQuery(query);
@@ -229,13 +240,13 @@ const Locate = () => {
 
             <div className="max-w-7xl mx-auto px-4 mt-8 sm:px-6 lg:px-8 w-full h-full flex flex-col justify-center">
                 <div className="text-center mb-11">
-                    <h1 className="text-4xl font-bold text-[#011023] mb-4">Locate Us</h1>
-                    <p className="text-gray-600 max-w-2xl mx-auto">Locate your nearest VehicleeCare center for premium service.</p>
+                    <h1 className="text-4xl font-bold text-[#011023] mb-2 uppercase">Locate Us</h1>
+                    {/* <p className="text-gray-600 max-w-2xl mx-auto">Locate your nearest VehicleeCare center for premium service.</p> */}
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-4.5 h-[680px]">
-                    {/* Right Column: Map */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl overflow-hidden relative shadow-lg border border-white/50 group h-full">
+                <div className="flex flex-col lg:flex-row gap-4.5 h-[750px]">
+                    {/* Left Column: Map */}
+                    <div className="w-full lg:w-[70%] bg-white rounded-2xl overflow-hidden relative shadow-lg border border-white/50 group h-full">
                         <div ref={mapRef} className="w-full h-full bg-gray-100"></div>
                         {!mapLoaded && (
                             <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
@@ -244,25 +255,25 @@ const Locate = () => {
                         )}
                     </div>
 
-                    {/* Left Column: Search & List */}
-                    <div className="lg:col-span-1 flex flex-col gap-5 h-full pr-0.5 min-h-0">
+                    {/* Right Column: Search & List */}
+                    <div className="w-full lg:w-[31%] flex flex-col gap-5 h-full pr-0.5 min-h-0">
                         {/* Search Bar */}
-                        <div className="bg-white/70 backdrop-blur-md p-4 rounded-xl shadow-lg border border-white/50">
-                            <div className="relative mb-4">
+                        <div className="bg-white/70 backdrop-blur-md p-4 rounded-xl shadow-sm border border-white/50">
+                            <div className="relative mb-3.25">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={handleSearch}
                                     placeholder="Enter Zip Code or City"
-                                    className="w-full pl-10 pr-4 py-2 bg-blue-50/50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#527FB0]/50 text-[#011023]"
+                                    className="w-full pl-10 pr-4 py-1.5 bg-blue-50/50 border border-blue-100 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#527FB0]/75 text-[#011023]"
                                 />
                             </div>
                             <button
                                 onClick={handleUseMyLocation}
-                                className="w-full flex items-center justify-center gap-2 bg-[#052558] text-white py-2 rounded-lg font-medium hover:bg-[#052558]/90 transition-colors"
+                                className="w-full flex items-center justify-center gap-2 bg-[#052558] text-white text-[14.5px] py-1.75 rounded-lg font-semibold hover:bg-[#052558]/90 transition-colors"
                             >
-                                <Navigation size={18} />
+                                <Navigation size={17} />
                                 Use My Current Location
                             </button>
                         </div>
@@ -272,22 +283,32 @@ const Locate = () => {
                             {filteredCenters.map((center, idx) => (
                                 <div
                                     key={idx}
-                                    onClick={() => setSelectedCenter(center)}
+                                    onClick={() => {
+                                        const section = document.getElementById('locate');
+                                        if (section) {
+                                            section.scrollIntoView({ behavior: 'smooth' });
+                                            setTimeout(() => {
+                                                setSelectedCenter(center);
+                                            }, 500);
+                                        } else {
+                                            setSelectedCenter(center);
+                                        }
+                                    }}
                                     className="bg-white/70 backdrop-blur-md p-4 rounded-xl shadow-sm border border-white/50 hover:shadow-md transition-all cursor-pointer group hover:bg-white"
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-bold text-[#011023] group-hover:text-[#527FB0] transition-colors">{center.name}</h3>
-                                        <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">{center.distance}</span>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h3 className="font-bold text-[#011023] uppercase group-hover:text-[#527FB0] transition-colors">{center.name}</h3>
+                                        {/* <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py- rounded-full">{center.distance}</span> */}
                                     </div>
-                                    <div className="flex items-start gap-2 text-sm text-gray-600 mb-2">
-                                        <MapPin size={16} className={`mt-0.5 flex-shrink-0 ${center.isStation ? 'text-emerald-500' : 'text-gray-400'}`} />
+                                    <div className="flex items-start gap-1 text-[13px] text-gray-600 mb-2">
+                                        <MapPin size={15} className={`mt-0.5 flex-shrink-0 ${center.isStation ? 'text-emerald-500' : 'text-gray-400'}`} />
                                         <p>{center.address}</p>
                                     </div>
-                                    <div className="flex items-center justify-between mt-3 pt-1.5 border-t border-gray-100">
+                                    <div className="flex items-center justify-between pt-1 border-t border-gray-100">
                                         <span className="text-xs font-medium text-green-600 flex items-center gap-1">
                                             <Clock size={12} /> {center.status}
                                         </span>
-                                        <a href="#" className="text-xs font-bold text-[#052558] flex items-center gap-1 hover:underline">
+                                        <a href="#" className="text-xs font-bold text-[#052558] flex items-center gap-1">
                                             <Phone size={12} /> {center.phone}
                                         </a>
                                     </div>
@@ -300,8 +321,14 @@ const Locate = () => {
 
             {/* Detailed Pop-up Modal */}
             {selectedCenter && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 animate-in fade-in duration-300 ease-out"
+                    onClick={() => setSelectedCenter(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => setSelectedCenter(null)}
                             className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
