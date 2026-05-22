@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Facebook, Instagram, MapPin, X } from 'lucide-react';
 
 const WhatsApp = ({ size = 18, className = "" }) => (
@@ -184,6 +184,17 @@ How can I contact customer support?\nYou can contact our support team by emailin
         }
     };
 
+    useEffect(() => {
+        if (policyModal.isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [policyModal.isOpen]);
+
     const openPolicy = (type, e) => {
         e.preventDefault();
         if (policies[type]) {
@@ -284,18 +295,24 @@ How can I contact customer support?\nYou can contact our support team by emailin
 
             {/* Policy Modal */}
             {policyModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[60vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => setPolicyModal({ isOpen: false, title: '', content: '' })}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[60vh] flex flex-col overflow-hidden animate-[fadeIn_0.2s_ease-out]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/80">
-                            <h3 className="text-xl font-bold text-[#052558]">{policyModal.title}</h3>
+                            <h3 className="text-xl font-semibold uppercase text-[#052558]">{policyModal.title}</h3>
                             <button
                                 onClick={() => setPolicyModal({ isOpen: false, title: '', content: '' })}
-                                className="text-gray-400 hover:text-gray-600 hover:bg-white p-2 rounded-full transition-colors shadow-sm"
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto text-justify text-gray-600 text-sm leading-relaxed space-y-4">
+                        <div className="p-6 overflow-y-auto text-justify text-gray-600 text-sm leading-relaxed space-y-2">
                             {policyModal.content.split('\n\n').map((paragraph, index) => (
                                 <p key={index}>{paragraph}</p>
                             ))}
