@@ -1,10 +1,71 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { MapPin, Search, Navigation, Phone, Clock, X, Star, Car, Wrench, CircleDollarSign, MessageCircle, Calendar } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { MapPin, Search, Navigation, Phone, Clock, X, Star, Car, Wrench, CircleDollarSign, MessageCircle, Calendar, PenSquare, Loader2, CheckCircle, User } from 'lucide-react';
 
 const Locate = () => {
     const mapRef = useRef(null);
     const [mapLoaded, setMapLoaded] = useState(false);
     const [selectedCenter, setSelectedCenter] = useState(null);
+    const [reviewModalData, setReviewModalData] = useState(null);
+    const [reviewText, setReviewText] = useState("");
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewHoverRating, setReviewHoverRating] = useState(0);
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [reviewSuccess, setReviewSuccess] = useState("");
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                setUser(JSON.parse(storedUser));
+            }
+        } catch (e) {
+            console.error("Failed to parse user from local storage", e);
+        }
+    }, []);
+
+    const handleReviewSubmit = async () => {
+        setReviewSubmitting(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            
+            const newReview = {
+                user: user ? (user.userId || user.id || user._id) : null,
+                name: user?.name || "Guest",
+                designation: "Customer",
+                text: reviewText,
+                type: "garage",
+                targetName: reviewModalData?.name,
+                rating: reviewRating
+            };
+
+            const response = await fetch(`${apiUrl}/api/website-reviews`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newReview)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || errorData.error || 'Failed to submit review');
+            }
+
+            setReviewSubmitting(false);
+            setReviewSuccess("Review submitted successfully!");
+            setTimeout(() => {
+                setReviewModalData(null);
+                setReviewSuccess("");
+                setReviewText("");
+                setReviewRating(0);
+                setReviewHoverRating(0);
+            }, 2000);
+        } catch (error) {
+            console.error("Error submitting review:", error);
+            setReviewSubmitting(false);
+            alert(`Failed to submit review: ${error.message}\nPlease try again.`);
+        }
+    };
 
     // Live garages fetched from admin API
     // Live garages and stations fetched from admin API
@@ -321,12 +382,12 @@ const Locate = () => {
 
             {/* Detailed Pop-up Modal */}
             {selectedCenter && (
-                <div 
+                <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 animate-in fade-in duration-300 ease-out"
                     onClick={() => setSelectedCenter(null)}
                 >
-                    <div 
-                        className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out max-h-[90vh] overflow-y-auto"
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-3xl relative animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out max-h-[90vh] overflow-y-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
@@ -337,7 +398,7 @@ const Locate = () => {
                         </button>
 
                         <div className="mb-6 border-b border-gray-100 pb-4">
-                            <h2 className="text-2xl font-bold text-[#011023] mb-2">{selectedCenter.name}</h2>
+                            <h2 className="text-2xl font-bold text-[#011023] uppercase mb-2">{selectedCenter.name}</h2>
                             <div className="flex items-center gap-2">
                                 <span className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-sm font-bold">
                                     <Star size={14} className="fill-current" /> {selectedCenter.rating}
@@ -402,23 +463,143 @@ const Locate = () => {
 
                         </div>
 
-                        <div className="mt-8 flex flex-col sm:flex-row gap-3">
-
-                            <button className="flex-1 bg-[#052558] text-white py-3 rounded-xl font-medium hover:bg-[#052558]/90 transition-colors flex items-center justify-center gap-2">
-                                <Navigation size={18} />
+                        <div className="mt-8 grid grid-cols-4 gap-3">
+                            <button className="w-full bg-[#052558] text-white uppercase py-2.5 text-sm rounded-xl font-medium hover:bg-[#052558]/90 transition-colors flex items-center justify-center gap-2">
+                                <Navigation size={16} />
                                 Directions
                             </button>
-                            <button className="flex-1 bg-white border-2 border-[#052558] text-[#052558] py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                <Phone size={18} />
+                            <button className="w-full bg-white border border-gray-200 shadow-sm text-sm text-gray-700 uppercase py-2.5 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                                <Phone size={16} />
                                 Call
                             </button>
-                            <button className="flex-1 bg-[#25D366] text-white py-3 rounded-xl font-medium hover:bg-[#25D366]/90 transition-colors flex items-center justify-center gap-2">
-                                <MessageCircle size={18} />
+                            <button className="w-full bg-[#25D366] text-white uppercase py-2.5 text-sm rounded-xl font-medium hover:bg-[#25D366]/90 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                <MessageCircle size={16} />
                                 WhatsApp
+                            </button>
+                            <button 
+                                onClick={() => setReviewModalData(selectedCenter)}
+                                className="w-full bg-blue-50 text-blue-600 border border-blue-100 uppercase py-2.5 text-sm rounded-xl font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                <PenSquare size={16} />
+                                Review
                             </button>
                         </div>
                     </div>
                 </div>
+            )}
+            
+            {/* ── WRITE REVIEW MODAL ────────────────────────── */}
+            {reviewModalData && createPortal(
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#052558]/0 backdrop-blur- animate-in fade-in duration-300" onClick={() => !reviewSubmitting && setReviewModalData(null)} />
+                    
+                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-7 py-5 bg-blue-50 border-b border-blue-100 flex items-center justify-center relative">
+                            <h3 className="text-xl font-bold text-blue-600 uppercase tracking-wider">Write a Review</h3>
+                            <button 
+                                onClick={() => setReviewModalData(null)}
+                                className="absolute right-7 text-blue-400 hover:text-blue-600 rounded-xl transition-colors"
+                                disabled={reviewSubmitting}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4">
+                            {reviewSuccess ? (
+                                <div className="flex flex-col items-center gap-3 py-10">
+                                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
+                                        <CheckCircle size={32} className="text-green-500" />
+                                    </div>
+                                    <p className="text-lg font-bold text-[#011023] text-center uppercase tracking-tight">{reviewSuccess}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[14.5px] uppercase font-semibold text-blue-700">
+                                                Reviewing: <span className="font-bold text-[#052558]">{reviewModalData.name}</span>
+                                            </p>
+                                            <p className="text-[13px] text-blue-500 mt-1 flex items-center gap-1">
+                                                <User size={14} />
+                                                Posting as <span className="font-semibold uppercase">{user?.name || "Guest"}</span> (ID: {user?.userId || user?._id || user?.id || "N/A"})
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-center justify-center border-y border-gray-100">
+                                            <p className="text-[12.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Rate your experience</p>
+                                            <div className="flex gap-2">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        disabled={reviewSubmitting}
+                                                        className=" hover:scale-110"
+                                                        onMouseEnter={() => setReviewHoverRating(star)}
+                                                        onMouseLeave={() => setReviewHoverRating(0)}
+                                                        onClick={() => setReviewRating(star)}
+                                                    >
+                                                        <Star 
+                                                            size={24} 
+                                                            className={`transition-all duration-200 ${
+                                                                (reviewHoverRating || reviewRating) >= star 
+                                                                ? "text-yellow-400 fill-yellow-400 drop-shadow-xs" 
+                                                                : "text-gray-200"
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1 text-left">
+                                        <label className="text-[14.25px] pl-1 font-semibold text-[#052558] uppercase tracking-wider flex items-center justify-between">
+                                            <span>Share your experience</span>
+                                        </label>
+                                        <textarea 
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            className="w-full h-32 p-4 bg-gray-50 border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/10 transition-all resize-none font-medium text-gray-700 shadow-sm"
+                                            disabled={reviewSubmitting}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {!reviewSuccess && (
+                            <div className="px-6 pb-6 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                                <button 
+                                    onClick={() => setReviewModalData(null)}
+                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                                    disabled={reviewSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleReviewSubmit}
+                                    disabled={reviewSubmitting || !reviewText.trim() || reviewRating === 0}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#052558]/90 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#0a3a82] transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:shadow-none"
+                                >
+                                    {reviewSubmitting ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Submitting…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PenSquare size={16} />
+                                            Submit Review
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );
