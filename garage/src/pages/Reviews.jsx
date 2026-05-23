@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Eye, X, Trash2, Loader2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-// import axios from 'axios';
+// import useHighlight from '../hooks/useHighlight'; // Keep highlighted row hook
 import useHighlight from '../hooks/useHighlight';
 
 const Reviews = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     const [reviews, setReviews] = useState([]);
+    const [allReviews, setAllReviews] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
     const [lastRefreshed, setLastRefreshed] = useState(new Date());
     const [loading, setLoading] = useState(true);
     const [selectedReview, setSelectedReview] = useState(null);
@@ -29,20 +31,32 @@ const Reviews = () => {
 
     const fetchReviews = async () => {
         try {
-            const [websiteRes, businessRes] = await Promise.all([
-                axios.get(`${API_URL}/api/website-reviews/admin`),
-                axios.get(`${API_URL}/api/business-reviews/all`)
+            const storedUser = localStorage.getItem('garageUser');
+            if (!storedUser) {
+                console.warn("No garage user found in local storage");
+                setLoading(false);
+                return;
+            }
+            const garageUser = JSON.parse(storedUser);
+
+            const [websiteRes, businessRes, usersRes] = await Promise.all([
+                fetch(`${API_URL}/api/website-reviews`),
+                fetch(`${API_URL}/api/business-reviews/all`),
+                fetch(`${API_URL}/api/users`)
             ]);
-            const webReviews = websiteRes.data.map(r => ({ ...r, type: 'Website' }));
-            const bizReviews = businessRes.data.data.map(r => ({
-                ...r,
-                type: 'Business',
-                text: r.review,
-                designation: r.role,
-                status: r.status.charAt(0).toUpperCase() + r.status.slice(1)
-            }));
-            const combined = [...webReviews, ...bizReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            setReviews(combined);
+            
+            const websiteData = await websiteRes.json();
+            const businessData = await businessRes.json();
+            const usersData = await usersRes.json();
+
+            setAllReviews([...websiteData, ...(businessData.data || [])]);
+            setAllUsers(usersData.data || []);
+
+            const garageReviews = websiteData
+                .filter(r => r.type === 'garage' && r.targetName?.toLowerCase().trim() === garageUser.name?.toLowerCase().trim())
+                .map(r => ({ ...r, sourceType: 'Garage', type: 'Website' }));
+
+            const combined = [...garageReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             setReviews(combined);
         } catch (error) {
             console.error('Error fetching reviews', error);
@@ -58,32 +72,66 @@ const Reviews = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const nameToUserIdMap = useMemo(() => {
-        const map = {};
-        reviews.forEach(rev => {
+    const userResolvers = useMemo(() => {
+        const idMap = {};
+        const nameMap = {};
+        
+        // Populate from reviews first (fallback)
+        allReviews.forEach(rev => {
             const uid = rev.user?.userId || rev.businessUser?.userId ||
                 rev.userId || rev.user_id ||
                 (typeof rev.user === 'string' ? rev.user :
                     (typeof rev.businessUser === 'string' ? rev.businessUser : null));
             if (uid && rev.name) {
                 const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
-                map[normalizedName] = uid;
+                const isObjectId = /^[a-f\d]{24}$/i.test(uid);
+                if (!nameMap[normalizedName] || !isObjectId) {
+                    nameMap[normalizedName] = uid;
+                }
             }
         });
-        return map;
-    }, [reviews]);
 
-    const getDisplayUserId = (rev) => {
+        // Populate from users database (highest priority)
+        allUsers.forEach(u => {
+            if (u._id && u.userId) {
+                idMap[u._id] = u.userId;
+            }
+            if (u.name && u.userId) {
+                nameMap[u.name.trim().toUpperCase()] = u.userId;
+            }
+        });
+
+        return { idMap, nameMap };
+    }, [allReviews, allUsers]);
+
+   const getDisplayUserId = (rev) => {
         if (!rev) return 'Guest';
-        const directId = rev.user?.userId || rev.businessUser?.userId ||
-            rev.userId || rev.user_id ||
-            (typeof rev.user === 'string' ? rev.user :
-                (typeof rev.businessUser === 'string' ? rev.businessUser : null));
-        if (directId) return directId;
-        if (rev.name) {
-            const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
-            if (nameToUserIdMap[normalizedName]) return nameToUserIdMap[normalizedName];
+        const directId = rev.user?.userId || rev.businessUser?.userId || 
+                         rev.userId || rev.user_id ||
+                         (typeof rev.user === 'string' ? rev.user : 
+                         (typeof rev.businessUser === 'string' ? rev.businessUser : null));
+        
+        const isObjectId = /^[a-f\d]{24}$/i.test(directId);
+        
+        // 1. Direct MongoDB ID mapping: If the ID is a MongoDB ObjectId, check if it maps perfectly to a short User ID
+        if (isObjectId && userResolvers.idMap[directId]) {
+            return userResolvers.idMap[directId];
         }
+        
+        // 2. Smart fallback: If direct ID is missing OR is a raw ObjectId, try to find a better one by name
+        if ((!directId || isObjectId) && rev.name) {
+            const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
+            if (userResolvers.nameMap[normalizedName]) {
+                const mappedId = userResolvers.nameMap[normalizedName];
+                const mappedIsObjectId = /^[a-f\d]{24}$/i.test(mappedId);
+                if (!isObjectId || !mappedIsObjectId) {
+                    return mappedId;
+                }
+            }
+        }
+        
+        if (directId) return directId;
+        
         return 'Guest';
     };
 
@@ -94,8 +142,8 @@ const Reviews = () => {
 
     let totalScore = 0;
     let totalVotes = 0;
-    const approvedWebsiteReviews = approvedReviews.filter(r => r.type === 'Website');
-    approvedWebsiteReviews.forEach(r => {
+    const approvedGarageReviews = approvedReviews.filter(r => r.sourceType === 'Garage');
+    approvedGarageReviews.forEach(r => {
         if (r.ratings) {
             r.ratings.forEach(val => { totalScore += val; totalVotes++; });
         }
@@ -167,11 +215,11 @@ const Reviews = () => {
                                         <td className="p-4 text-sm text-center text-gray-600 whitespace-normal">{rev.text}</td>
                                         <td className="p-4">
                                             <div className="flex flex-col items-center justify-center gap-1">
-                                                {rev.type === 'Website' ? (
+                                                {rev.sourceType === 'Garage' ? (
                                                     <>
                                                         <div className="flex text-yellow-400">
                                                             {[...Array(5)].map((_, i) => (
-                                                                <Star key={i} size={14} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
+                                                                <Star key={i} size={16} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
                                                             ))}
                                                         </div>
                                                     </>
@@ -192,7 +240,7 @@ const Reviews = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex items-center justify-center gap-2">
+                                            <div className="flex items-center justify-center gap-1">
                                                 <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                     <Eye size={18} />
                                                 </button>
@@ -242,8 +290,8 @@ const Reviews = () => {
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] pl-1 truncate">{selectedReview.name}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Type:</span>
-                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${selectedReview.type === 'Business' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                {selectedReview.type === 'Website' ? 'Garage' : selectedReview.type}
+                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${selectedReview.sourceType === 'Business' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                {selectedReview.sourceType}
                                             </span>
                                         </p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">User ID:</span>
@@ -260,7 +308,7 @@ const Reviews = () => {
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-3 border border-blue-50">
                                         <div className="flex items-center gap-4">
                                             <span className="text-gray-500 w-24 shrink-0 text-sm">Rating:</span>
-                                            {selectedReview.type === 'Website' ? (
+                                            {selectedReview.sourceType === 'Garage' ? (
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex text-yellow-400">
                                                         {[...Array(5)].map((_, i) => (
