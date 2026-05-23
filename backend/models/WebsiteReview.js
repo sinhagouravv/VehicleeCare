@@ -29,6 +29,15 @@ const WebsiteReviewSchema = new mongoose.Schema({
         type: [Number],
         default: [] // Array of numbers 1-5 to calculate average later
     },
+    type: {
+        type: String,
+        enum: ['website', 'garage'],
+        default: 'website'
+    },
+    targetName: {
+        type: String,
+        default: null // Name of the garage or target being reviewed
+    },
     status: {
         type: String,
         enum: ['Pending', 'Approved', 'Rejected'],
@@ -37,7 +46,7 @@ const WebsiteReviewSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-generate reviewId (RE + 5 digits without 0)
-WebsiteReviewSchema.pre('save', async function (next) {
+WebsiteReviewSchema.pre('save', async function () {
     if (this.isNew) {
         let isUnique = false;
         while (!isUnique) {
@@ -54,7 +63,6 @@ WebsiteReviewSchema.pre('save', async function (next) {
             }
         }
     }
-    next();
 });
 
 // Virtual to calculate average rating (Optional if frontend does it, but useful for DB sorting)

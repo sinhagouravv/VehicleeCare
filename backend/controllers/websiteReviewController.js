@@ -7,13 +7,16 @@ const mongoose = require('mongoose');
 // @access  Public
 exports.createReview = async (req, res) => {
     try {
-        const { name, designation, text, user } = req.body;
+        const { name, designation, text, user, rating, type, targetName } = req.body;
         console.log("Creating review payload:", req.body);
 
         const newReviewData = {
             name,
             designation: designation || 'Customer',
             text,
+            type: type || 'website',
+            targetName: targetName || null,
+            ratings: rating ? [rating] : [],
             status: 'Pending'
         };
 
