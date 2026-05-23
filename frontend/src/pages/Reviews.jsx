@@ -1,5 +1,6 @@
-import { Star, Quote, CheckCircle2, X, ThumbsUp, Send, User } from 'lucide-react';
+import { Star, Quote, CheckCircle2, X, ThumbsUp, Send, User, PenSquare, Loader2, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 
 const Reviews = () => {
@@ -10,6 +11,12 @@ const Reviews = () => {
     const [user, setUser] = useState(null);
     const [apiReviews, setApiReviews] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [reviewHoverRating, setReviewHoverRating] = useState(0);
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewText, setReviewText] = useState("");
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [reviewSuccess, setReviewSuccess] = useState(null);
 
     // Initial Demo Reviews (Adapted for VehicleeCare)
     const [demoReviews, setDemoReviews] = useState([
@@ -42,7 +49,8 @@ const Reviews = () => {
             // Using || 'http://localhost:5001' as a fallback if env var is not set
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const response = await axios.get(`${apiUrl}/api/website-reviews`);
-            setApiReviews(response.data);
+            const websiteReviews = response.data.filter(review => review.type === 'website');
+            setApiReviews(websiteReviews);
             setLoading(false);
         } catch (error) {
             console.error("Error fetching reviews:", error);
@@ -116,35 +124,47 @@ const Reviews = () => {
         }
     };
 
-    const handleSubmitReview = async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
+    const handleSubmitReview = async () => {
+        setReviewSubmitting(true);
 
         const newReview = {
-            user: user ? (user.id || user._id) : null, // Support both id and _id from current user object
-            name: formData.get('name'), // Use custom name or auto-filled
+            user: user ? (user.id || user._id) : null,
+            name: user?.name || "Guest",
             designation: "Customer",
-            text: formData.get('text'),
-            ratings: [] // Initialize empty
+            text: reviewText,
+            type: "website",
+            targetName: "VehicleeCare Website",
+            ratings: reviewRating ? [reviewRating] : []
         };
 
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             await axios.post(`${apiUrl}/api/website-reviews`, newReview);
-            setIsWriteReviewOpen(false);
-            alert('Thank you for your review! It will be published once approved.');
+            setReviewSuccess('Review Submitted Successfully!');
+            setTimeout(() => {
+                setIsWriteReviewOpen(false);
+                setReviewSuccess(null);
+                setReviewText("");
+                setReviewRating(0);
+                setReviewHoverRating(0);
+                fetchReviews();
+            }, 2000);
         } catch (error) {
             console.error("Error submitting review:", error);
             const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "Unknown error occurred";
-            alert(`Failed to submit review: ${errorMessage}\nPlease try again.`);
+            alert("Failed to submit review: " + errorMessage);
+        } finally {
+            setReviewSubmitting(false);
         }
     };
 
-    // Split reviews into two rows for variety
+    // Split reviews into three rows for variety
     // Ensure we have enough items for marquee by duplicating if needed or just splitting
-    const midpoint = Math.ceil(displayedReviews.length / 2);
-    const firstRow = displayedReviews.slice(0, midpoint);
-    const secondRow = displayedReviews.slice(midpoint);
+    const thirdPoint1 = Math.ceil(displayedReviews.length / 3);
+    const thirdPoint2 = Math.ceil((displayedReviews.length * 2) / 3);
+    const firstRow = displayedReviews.slice(0, thirdPoint1);
+    const secondRow = displayedReviews.slice(thirdPoint1, thirdPoint2);
+    const thirdRow = displayedReviews.slice(thirdPoint2);
 
     const ReviewCard = ({ review }) => {
         const avgRating = getAverageRating(review.ratings);
@@ -152,7 +172,7 @@ const Reviews = () => {
         return (
             <div
                 onClick={() => setSelectedReview(review)}
-                className="w-[85vw] sm:w-[350px] md:w-[400px] h-[280px] flex flex-col justify-between flex-shrink-0  bg-white/70 backdrop-blur-md border border-white/40 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 relative group cursor-pointer"
+                className="w-[85vw] sm:w-[350px] md:w-[400px] h-[290px] flex flex-col justify-between flex-shrink-0 bg-white border border-gray-100 p-5.5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 relative group cursor-pointer"
             >
                 <Quote className="absolute top-6 right-6 text-gray-200 group-hover:text-indigo-200 transition-colors" size={32} />
 
@@ -167,17 +187,17 @@ const Reviews = () => {
                     <span className="text-xs text-gray-400 ml-1">({avgRating})</span>
                 </div>
 
-                <p className="text-gray-700 leading-relaxed mb-6 font-medium text-sm line-clamp-3">"{review.text}"</p>
+                <p className="text-gray-700 leading-relaxed font-medium text-sm line-clamp-45">"{review.text}"</p>
 
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center text-indigo-700 font-bold shadow-inner flex-shrink-0">
                         {review.name.charAt(0)}
                     </div>
                     <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-gray-900 text-sm whitespace-nowrap">{review.name}</h4>
-                        <CheckCircle2 size={14} className="text-indigo-500 fill-indigo-50 flex-shrink-0" />
-                        <span className="text-gray-300">•</span>
-                        <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold whitespace-nowrap">{review.designation || review.role || 'Customer'}</span>
+                        <h4 className="font-semibold text-gray-900 text-sm uppercase whitespace-nowrap">{review.name}</h4>
+                        {/* <CheckCircle2 size={14} className="text-indigo-500 fill-indigo-50 flex-shrink-0" /> */}
+                        <span className="text-gray-400">|</span>
+                        <span className="text-xs text-gray-700 uppercase tracking-wider font-semibold whitespace-nowrap">{review.designation || review.role || 'Customer'}</span>
                     </div>
                 </div>
             </div>
@@ -195,7 +215,7 @@ const Reviews = () => {
             <div className="max-w-[1215px] mx-auto px-6 relative z-10">
                 {/* Header Section */}
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+                    <h2 className="text-4xl md:text-4xl font-bold uppercase text-gray-900 mb-6 tracking-tight">
                         Community Reviews
                     </h2>
                 </div>
@@ -205,10 +225,10 @@ const Reviews = () => {
             {loading ? (
                 <div className="text-center py-10 text-gray-500">Loading reviews...</div>
             ) : displayedReviews.length > 0 ? (
-                <div className="relative w-full max-w-7xl mx-auto space-y-8 overflow-hidden ">
+                <div className="relative w-full max-w-[1215px] mx-auto space-y-6 overflow-hidden ">
                     {/* Row 1: Left to Right */}
-                    <div className="flex overflow-hidden group gap-6">
-                        <div className="flex animate-marquee group-hover:pause-on-hover gap-6">
+                    <div className="flex overflow-hidden group gap-6 py-1">
+                        <div className="flex animate-marquee gap-6">
                             {/* Duplicate for infinite loop if enough items, otherwise just show lists */}
                             {displayedReviews.length > 5 ? (
                                 [...firstRow, ...firstRow, ...firstRow].map((review, i) => (
@@ -221,7 +241,7 @@ const Reviews = () => {
                             )}
                         </div>
                         {displayedReviews.length > 5 && (
-                            <div className="flex animate-marquee group-hover:pause-on-hover gap-6" aria-hidden="true">
+                            <div className="flex animate-marquee gap-6" aria-hidden="true">
                                 {[...firstRow, ...firstRow, ...firstRow].map((review, i) => (
                                     <ReviewCard key={`r1-dup-${i}`} review={review} />
                                 ))}
@@ -231,8 +251,8 @@ const Reviews = () => {
 
                     {/* Row 2: Right to Left (only if we have enough reviews for a second row) */}
                     {secondRow.length > 0 && (
-                        <div className="flex overflow-hidden group gap-6">
-                            <div className="flex animate-marquee-reverse group-hover:pause-on-hover gap-6">
+                        <div className="flex overflow-hidden group gap-6 py-1">
+                            <div className="flex animate-marquee-reverse gap-6">
                                 {displayedReviews.length > 5 ? (
                                     [...secondRow, ...secondRow, ...secondRow].map((review, i) => (
                                         <ReviewCard key={`r2-${i}`} review={review} />
@@ -244,7 +264,7 @@ const Reviews = () => {
                                 )}
                             </div>
                             {displayedReviews.length > 5 && (
-                                <div className="flex animate-marquee-reverse group-hover:pause-on-hover gap-6" aria-hidden="true">
+                                <div className="flex animate-marquee-reverse gap-6" aria-hidden="true">
                                     {[...secondRow, ...secondRow, ...secondRow].map((review, i) => (
                                         <ReviewCard key={`r2-dup-${i}`} review={review} />
                                     ))}
@@ -252,6 +272,30 @@ const Reviews = () => {
                             )}
                         </div>
                     )}
+
+                    {/* Row 3: Left to Right (only if we have enough reviews for a third row) */}
+                    {/* {thirdRow.length > 0 && (
+                        <div className="flex overflow-hidden group gap-6 py-4">
+                            <div className="flex animate-marquee gap-6">
+                                {displayedReviews.length > 5 ? (
+                                    [...thirdRow, ...thirdRow, ...thirdRow].map((review, i) => (
+                                        <ReviewCard key={`r3-${i}`} review={review} />
+                                    ))
+                                ) : (
+                                    thirdRow.map((review, i) => (
+                                        <ReviewCard key={`r3-${i}`} review={review} />
+                                    ))
+                                )}
+                            </div>
+                            {displayedReviews.length > 5 && (
+                                <div className="flex animate-marquee gap-6" aria-hidden="true">
+                                    {[...thirdRow, ...thirdRow, ...thirdRow].map((review, i) => (
+                                        <ReviewCard key={`r3-dup-${i}`} review={review} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )} */}
 
                     {/* Gradient Masks for Fade edge effect */}
                     <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-gray-50/50 to-transparent z-10 pointer-events-none"></div>
@@ -262,7 +306,7 @@ const Reviews = () => {
             )}
 
             {/* Write a Review Button */}
-            <div className="text-center mt-auto pt-10 relative z-10 w-full mb-8">
+            <div className="text-center mt-auto pt-7 relative z-10 w-full mb-8">
                 <button
                     onClick={() => {
                         const section = document.getElementById('reviews');
@@ -275,125 +319,194 @@ const Reviews = () => {
                             setIsWriteReviewOpen(true);
                         }
                     }}
-                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-gray-900 hover:bg-black text-white rounded-xl font-semibold shadow-lg shadow-gray-900/20 transition-all"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 uppercase bg-gray-900 hover:bg-black text-white text-sm rounded-xl font-semibold shadow-lg shadow-gray-900/20 transition-all"
                 >
                     <User size={18} />
                     Write a Review
                 </button>
             </div>
 
-            {/* Review Detail Modal */}
-            {selectedReview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300 ease-out" onClick={() => setSelectedReview(null)}>
-                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out relative" onClick={e => e.stopPropagation()}>
-                        <button
-                            onClick={() => setSelectedReview(null)}
-                            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-xl shadow-inner">
-                                {selectedReview.name.charAt(0)}
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-xl font-bold text-gray-900">{selectedReview.name}</h3>
-                                    <CheckCircle2 size={16} className="text-indigo-500 fill-indigo-50" />
-                                </div>
-                                <p className="text-sm text-gray-500 font-medium">{selectedReview.designation || selectedReview.role || 'Customer'}</p>
-                            </div>
-                        </div>
-
-                        {/* Rate this Review Section */}
-                        <div className="mb-6 bg-gray-50 rounded-xl p-4 border border-gray-100">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 text-center">Rate this review</p>
-                            <div className="flex justify-center gap-2">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                        key={star}
-                                        onClick={() => handleRateReview(selectedReview._id || selectedReview.id, star)}
-                                        className="hover:scale-110 transition-transform focus:outline-none"
-                                    >
-                                        <Star
-                                            size={24}
-                                            className={`${star <= Math.round(getAverageRating(selectedReview.ratings)) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-amber-300'}`}
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-center text-xs text-gray-400 mt-2 font-medium">
-                                Average Rating: {getAverageRating(selectedReview.ratings)} / 5 ({selectedReview.ratings.length} votes)
-                            </p>
-                        </div>
-
-                        <p className="text-gray-700 text-lg leading-relaxed mb-6">"{selectedReview.text}"</p>
-
-                        <div className="flex items-center justify-between pt-6 border-t border-gray-100">
-                            <span className="text-sm text-gray-400 font-medium">
-                                {selectedReview.createdAt ? new Date(selectedReview.createdAt).toLocaleDateString() : selectedReview.date || 'Recently'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Write Review Modal */}
-            {isWriteReviewOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm animate-in fade-in duration-300 ease-out" onClick={() => setIsWriteReviewOpen(false)}>
-                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-500 ease-out relative" onClick={e => e.stopPropagation()}>
-                        <button
-                            onClick={() => setIsWriteReviewOpen(false)}
-                            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-
-                        <div className="text-center mb-8">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Share Your Experience</h3>
-                            <p className="text-gray-500">Tell us about your journey with VehicleeCare</p>
-                        </div>
-
-                        <form className="space-y-5" onSubmit={handleSubmitReview}>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Your Name</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white cursor-not-allowed focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all outline-none"
-                                        placeholder="John Doe"
-                                        defaultValue={user ? user.name : ''}
-                                        readOnly={!!user}
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Designation</label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 cursor-not-allowed outline-none"
-                                        value="Customer"
-                                        readOnly
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">Review</label>
-                                <textarea name="text" rows="6" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all outline-none resize-none" required></textarea>
-                            </div>
-
-                            <button type="submit" className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                                <Send size={18} />
-                                Submit Review
+            {selectedReview && createPortal(
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedReview(null)} />
+                    
+                    <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="px-7 py-5 bg-white border-b border-gray-100 flex items-center justify-center relative">
+                            <h3 className="text-2xl font-semibold text-[#011023] uppercase tracking-wider">Review Details</h3>
+                            <button 
+                                onClick={() => setSelectedReview(null)}
+                                className="absolute right-7 text-gray-400 hover:text-gray-900 rounded-xl transition-colors"
+                            >
+                                <X size={20} />
                             </button>
-                        </form>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-7">
+                            {/* Name and Rating in same line */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-lg shadow-inner flex-shrink-0">
+                                        {selectedReview.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-lg uppercase font-semibold text-[#011023]">{selectedReview.name}</h3>
+                                            <CheckCircle size={16} className="text-blue-500" />
+                                        </div>
+                                        <p className="text-[13px] text-gray-500 uppercase tracking-wider font-semibold">{selectedReview.designation || selectedReview.role || 'Customer'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <div className="flex gap-1 mb-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                onClick={() => handleRateReview(selectedReview._id || selectedReview.id, star)}
+                                                className="hover:scale-110 transition-transform focus:outline-none"
+                                            >
+                                                <Star
+                                                    size={18}
+                                                    className={`${star <= Math.round(getAverageRating(selectedReview.ratings)) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 hover:text-amber-200'}`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
+                                        Rate It! ({getAverageRating(selectedReview.ratings)}/5)
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Review Text */}
+                            <div className="bg-gray-50/50 border border-gray-100 pt-6 pb-5 rounded-2xl mb-6 relative">
+                                {/* <Quote className="absolute top-4 right-4 text-gray-100" size={32} /> */}
+                                <p className="text-gray-700 text-[15px] leading-relaxed font-medium relative z-10">"{selectedReview.text}"</p>
+                            </div>
+
+                            {/* Date */}
+                            <div className="flex items-center justify-end pt-4 border-t border-gray-100">
+                                <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">
+                                    Posted on {selectedReview.createdAt ? new Date(selectedReview.createdAt).toLocaleDateString() : selectedReview.date || 'Recently'}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            )}
+            , document.body)}
+
+            {isWriteReviewOpen && createPortal(
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !reviewSubmitting && setIsWriteReviewOpen(false)} />
+                    
+                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-7 py-5 bg-blue-50 border-b border-blue-100 flex items-center justify-center relative">
+                            <h3 className="text-xl font-bold text-blue-600 uppercase tracking-wider">Write a Review</h3>
+                            <button 
+                                onClick={() => setIsWriteReviewOpen(false)}
+                                className="absolute right-7 text-blue-400 hover:text-blue-600 rounded-xl transition-colors"
+                                disabled={reviewSubmitting}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4">
+                            {reviewSuccess ? (
+                                <div className="flex flex-col items-center gap-3 py-10">
+                                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
+                                        <CheckCircle size={32} className="text-green-500" />
+                                    </div>
+                                    <p className="text-lg font-bold text-[#011023] text-center uppercase tracking-tight">{reviewSuccess}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[14.5px] uppercase font-semibold text-blue-700">
+                                                Reviewing: <span className="font-bold text-[#052558]">VehicleeCare Website</span>
+                                            </p>
+                                            <p className="text-[13px] text-blue-500 mt-1 flex items-center gap-1">
+                                                <User size={14} />
+                                                Posting as <span className="font-semibold uppercase">{user?.name || "Guest"}</span> (ID: {user?.userId || user?._id || user?.id || "N/A"})
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-center justify-center border-y border-gray-100">
+                                            <p className="text-[12.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Rate your experience</p>
+                                            <div className="flex gap-2">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        disabled={reviewSubmitting}
+                                                        className=" hover:scale-110"
+                                                        onMouseEnter={() => setReviewHoverRating(star)}
+                                                        onMouseLeave={() => setReviewHoverRating(0)}
+                                                        onClick={() => setReviewRating(star)}
+                                                    >
+                                                        <Star 
+                                                            size={24} 
+                                                            className={`transition-all duration-200 ${
+                                                                (reviewHoverRating || reviewRating) >= star 
+                                                                ? "text-yellow-400 fill-yellow-400 drop-shadow-xs" 
+                                                                : "text-gray-200"
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1 text-left">
+                                        <label className="text-[14.25px] pl-1 font-semibold text-[#052558] uppercase tracking-wider flex items-center justify-between">
+                                            <span>Share your experience</span>
+                                        </label>
+                                        <textarea 
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            className="w-full h-32 p-4 bg-gray-50 border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/10 transition-all resize-none font-medium text-gray-700 shadow-sm"
+                                            disabled={reviewSubmitting}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {!reviewSuccess && (
+                            <div className="px-6 pb-6 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                                <button 
+                                    onClick={() => setIsWriteReviewOpen(false)}
+                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                                    disabled={reviewSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleSubmitReview}
+                                    disabled={reviewSubmitting || !reviewText.trim() || reviewRating === 0}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#052558]/90 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#0a3a82] transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:shadow-none"
+                                >
+                                    {reviewSubmitting ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Submitting…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PenSquare size={16} />
+                                            Submit Review
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            , document.body)}
         </div>
     );
 };
