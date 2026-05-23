@@ -5,6 +5,7 @@ import axios from 'axios';
 
 const Reviews = () => {
     const [reviews, setReviews] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedReview, setSelectedReview] = useState(null);
@@ -16,14 +17,22 @@ const Reviews = () => {
 
     const fetchReviews = async () => {
         try {
-            const [websiteRes, businessRes] = await Promise.all([
+            const [websiteRes, businessRes, usersRes] = await Promise.all([
                 axios.get(`${API_URL}/api/website-reviews/admin`),
-                axios.get(`${API_URL}/api/business-reviews/all`)
+                axios.get(`${API_URL}/api/business-reviews/all`),
+                axios.get(`${API_URL}/api/users`)
             ]);
 
-            const webReviews = websiteRes.data.map(r => ({ ...r, type: 'Website' }));
+            setAllUsers(usersRes.data.data || []);
+
+            const webReviews = websiteRes.data.map(r => ({ 
+                ...r, 
+                sourceType: r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : 'Website',
+                type: 'Website' 
+            }));
             const bizReviews = businessRes.data.data.map(r => ({
                 ...r,
+                sourceType: 'Business',
                 type: 'Business',
                 text: r.review,
                 designation: r.role,
@@ -52,21 +61,37 @@ const Reviews = () => {
     }, []);
 
     // Smart mapping: Generate a map of reviewer names to their User IDs from known reviews
-    const nameToUserIdMap = useMemo(() => {
-        const map = {};
+    const userResolvers = useMemo(() => {
+        const idMap = {};
+        const nameMap = {};
+        
+        // Populate from reviews first (fallback)
         reviews.forEach(rev => {
             const uid = rev.user?.userId || rev.businessUser?.userId || 
                         rev.userId || rev.user_id ||
                         (typeof rev.user === 'string' ? rev.user : 
                         (typeof rev.businessUser === 'string' ? rev.businessUser : null));
             if (uid && rev.name) {
-                // Normalize name: trim, uppercase, and collapse multiple spaces
                 const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
-                map[normalizedName] = uid;
+                const isObjectId = /^[a-f\d]{24}$/i.test(uid);
+                if (!nameMap[normalizedName] || !isObjectId) {
+                    nameMap[normalizedName] = uid;
+                }
             }
         });
-        return map;
-    }, [reviews]);
+
+        // Populate from users database (highest priority)
+        allUsers.forEach(u => {
+            if (u._id && u.userId) {
+                idMap[u._id] = u.userId;
+            }
+            if (u.name && u.userId) {
+                nameMap[u.name.trim().toUpperCase()] = u.userId;
+            }
+        });
+
+        return { idMap, nameMap };
+    }, [reviews, allUsers]);
 
     const getDisplayUserId = (rev) => {
         if (!rev) return 'Guest';
@@ -75,15 +100,26 @@ const Reviews = () => {
                          (typeof rev.user === 'string' ? rev.user : 
                          (typeof rev.businessUser === 'string' ? rev.businessUser : null));
         
-        if (directId) return directId;
+        const isObjectId = /^[a-f\d]{24}$/i.test(directId);
         
-        // Smart fallback: If direct ID is missing, try to find it by name from other reviews
-        if (rev.name) {
+        // 1. Direct MongoDB ID mapping: If the ID is a MongoDB ObjectId, check if it maps perfectly to a short User ID
+        if (isObjectId && userResolvers.idMap[directId]) {
+            return userResolvers.idMap[directId];
+        }
+        
+        // 2. Smart fallback: If direct ID is missing OR is a raw ObjectId, try to find a better one by name
+        if ((!directId || isObjectId) && rev.name) {
             const normalizedName = rev.name.trim().toUpperCase().replace(/\s+/g, ' ');
-            if (nameToUserIdMap[normalizedName]) {
-                return nameToUserIdMap[normalizedName];
+            if (userResolvers.nameMap[normalizedName]) {
+                const mappedId = userResolvers.nameMap[normalizedName];
+                const mappedIsObjectId = /^[a-f\d]{24}$/i.test(mappedId);
+                if (!isObjectId || !mappedIsObjectId) {
+                    return mappedId;
+                }
             }
         }
+        
+        if (directId) return directId;
         
         return 'Guest';
     };
@@ -220,8 +256,8 @@ const Reviews = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full border ${rev.type === 'Business' ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
-                                                {rev.type === 'Website' ? 'Garage' : rev.type}
+                                            <span className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full border ${rev.sourceType === 'Business' ? 'bg-purple-50 border-purple-100 text-purple-600' : rev.sourceType === 'Website' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                                                {rev.sourceType}
                                             </span>
                                         </td>
                                         <td className="p-4 text-sm text-center text-gray-600 whitespace-normal" >{rev.text}</td>
@@ -231,10 +267,9 @@ const Reviews = () => {
                                                     <>
                                                         <div className="flex text-yellow-400">
                                                             {[...Array(5)].map((_, i) => (
-                                                                <Star key={i} size={14} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
+                                                                <Star key={i} size={16} className={i < getAverageForReview(rev.ratings) ? "fill-yellow-400" : "text-gray-300"} />
                                                             ))}
                                                         </div>
-                                                        {/* <span className="text-[10px] text-gray-400 font-bold lowercase">({rev.ratings?.length || 0} votes)</span> */}
                                                     </>
                                                 ) : (
                                                     <span className="text-gray-300 font-black text-lg">-</span>
@@ -334,8 +369,8 @@ const Reviews = () => {
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] pl-1 truncate">{selectedReview.name}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Type:</span> 
-                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${selectedReview.type === 'Business' ? 'bg-purple-50 text-purple-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                {selectedReview.type === 'Website' ? 'Garage' : selectedReview.type}
+                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${selectedReview.sourceType === 'Business' ? 'bg-purple-50 text-purple-600' : selectedReview.sourceType === 'Website' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                {selectedReview.sourceType}
                                             </span>
                                         </p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">User ID:</span> 
