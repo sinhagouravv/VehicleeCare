@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { TestimonialsColumn } from "../components/ui/testimonials-columns-1";
 import { motion } from "motion/react";
-import { X, PenLine } from "lucide-react";
+import { X, PenLine, Star, CheckCircle, User, PenSquare, Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 const testimonials = [
     {
@@ -69,6 +70,9 @@ const Reviews = () => {
     const [userName, setUserName] = useState("");
     const [reviewText, setReviewText] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [reviewSuccess, setReviewSuccess] = useState(null);
+    const [reviewHoverRating, setReviewHoverRating] = useState(0);
+    const [reviewRating, setReviewRating] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [businessUserId, setBusinessUserId] = useState(null);
     const [reviewsData, setReviewsData] = useState(testimonials); // Fallback to initial static data
@@ -107,8 +111,8 @@ const Reviews = () => {
                 if (user && user.name) {
                     setUserName(user.name);
                     setIsLoggedIn(true);
-                    if (user._id || user.id) {
-                        setBusinessUserId(user._id || user.id);
+                    if (user.userId || user._id || user.id) {
+                        setBusinessUserId(user.userId || user._id || user.id);
                     }
                 }
             } catch (e) {
@@ -123,11 +127,6 @@ const Reviews = () => {
     const thirdColumn = reviewsData.slice(Math.ceil((reviewsData.length / 3) * 2));
 
     const handleSubmitReview = async () => {
-        if (!userName.trim() || !reviewText.trim()) {
-            alert("Name and review text are required.");
-            return;
-        }
-
         setIsSubmitting(true);
         try {
             const response = await fetch('http://localhost:5001/api/business-reviews/submit', {
@@ -136,18 +135,24 @@ const Reviews = () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    name: userName,
+                    name: userName || "Guest",
                     role: userRole,
                     review: reviewText,
-                    businessUserId: businessUserId
+                    businessUserId: businessUserId,
+                    ratings: reviewRating ? [reviewRating] : []
                 })
             });
 
             const data = await response.json();
             if (data.success) {
-                alert("Thank you! Your review has been submitted and is pending approval.");
-                setIsModalOpen(false);
-                setReviewText(""); // Clear text
+                setReviewSuccess("Review Submitted Successfully!");
+                setTimeout(() => {
+                    setIsModalOpen(false);
+                    setReviewSuccess(null);
+                    setReviewText("");
+                    setReviewRating(0);
+                    setReviewHoverRating(0);
+                }, 2000);
             } else {
                 alert(data.message || "Failed to submit review");
             }
@@ -171,7 +176,7 @@ const Reviews = () => {
                 >
 
 
-                    <h2 className="text-4xl font-bold mt-5 text-[#011023]">
+                    <h2 className="text-4xl font-bold mt-6 text-[#011023]">
                         Reviews
                     </h2>
                     <p className="text-base text-slate-500 mt-4 leading-relaxed font-medium">
@@ -179,7 +184,7 @@ const Reviews = () => {
                     </p>
                 </motion.div>
 
-                <div className="flex justify-center max-w-7xl mx-auto gap-6 [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)] h-[650px] overflow-hidden">
+                <div className="flex justify-center max-w-7xl mx-auto gap-6  [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)] h-[650px] overflow-hidden">
                     <TestimonialsColumn testimonials={firstColumn} duration={15} />
                     <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={19} />
                     <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={17} />
@@ -198,72 +203,117 @@ const Reviews = () => {
                 </div>
             </div>
 
-            {/* Review Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md transition-opacity">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden relative border border-slate-100"
-                    >
-                        <div className="flex items-center justify-between p-6 md:p-8 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-2xl uppercase text-center align-center font-bold text-[#011023] tracking-tight">Write a Review</h3>
-                            <button
+            {isModalOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsModalOpen(false)} />
+                    
+                    <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-7 py-5 bg-blue-50 border-b border-blue-100 flex items-center justify-center relative">
+                            <h3 className="text-xl font-bold text-blue-600 uppercase tracking-wider">Write a Review</h3>
+                            <button 
                                 onClick={() => setIsModalOpen(false)}
-                                className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-full transition-colors"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div className="p-6 md:p-8 space-y-6">
-                            <div className="flex flex-col md:flex-row gap-6">
-                                <div className="flex-1">
-                                    <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Your Name</label>
-                                    <input
-                                        type="text"
-                                        value={userName}
-                                        onChange={(e) => setUserName(e.target.value)}
-                                        className={`w-full px-5 py-4 rounded-xl uppercase border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium text-slate-900 ${isLoggedIn ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 focus:bg-white'}`}
-                                        disabled={isLoggedIn}
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Role</label>
-                                    <input
-                                        type="text"
-                                        value={userRole}
-                                        readOnly
-                                        className="w-full px-5 py-4 rounded-xl uppercase border border-slate-200 focus:outline-none transition-all bg-slate-100 text-slate-500 font-medium cursor-not-allowed"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm uppercase font-bold text-slate-700 mb-2">Your Review</label>
-                                <textarea
-                                    value={reviewText}
-                                    onChange={(e) => setReviewText(e.target.value)}
-                                    className="w-full px-5 py-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all bg-slate-50 focus:bg-white h-40 resize-none font-medium text-slate-900 placeholder:text-slate-400"
-                                ></textarea>
-                            </div>
-                        </div>
-                        <div className="p-6 md:p-8 border-t border-slate-100 bg-slate-50/80 flex justify-end gap-4">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-8 py-3.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSubmitReview}
+                                className="absolute right-7 text-blue-400 hover:text-blue-600 rounded-xl transition-colors"
                                 disabled={isSubmitting}
-                                className="px-8 py-3.5 rounded-xl font-bold bg-[#011023] hover:bg-[#021836] disabled:bg-slate-400 text-white shadow-xl shadow-slate-900/20 hover:-translate-y-0.5 transition-all"
                             >
-                                {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                                <X size={20} />
                             </button>
                         </div>
-                    </motion.div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4">
+                            {reviewSuccess ? (
+                                <div className="flex flex-col items-center gap-3 py-10">
+                                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
+                                        <CheckCircle size={32} className="text-green-500" />
+                                    </div>
+                                    <p className="text-lg font-bold text-[#011023] text-center uppercase tracking-tight">{reviewSuccess}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[14.5px] uppercase font-semibold text-blue-700">
+                                                Reviewing: <span className="font-bold text-[#052558]">VehicleeCare Business</span>
+                                            </p>
+                                            <p className="text-[13px] text-blue-500 mt-1 flex items-center gap-1">
+                                                <User size={14} />
+                                                Posting as <span className="font-semibold uppercase">{userName || "Guest"}</span> (ID: {businessUserId || "N/A"})
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-center justify-center border-y border-gray-100">
+                                            <p className="text-[12.5px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Rate your experience</p>
+                                            <div className="flex gap-2">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        disabled={isSubmitting}
+                                                        className=" hover:scale-110"
+                                                        onMouseEnter={() => setReviewHoverRating(star)}
+                                                        onMouseLeave={() => setReviewHoverRating(0)}
+                                                        onClick={() => setReviewRating(star)}
+                                                    >
+                                                        <Star 
+                                                            size={24} 
+                                                            className={`transition-all duration-200 ${
+                                                                (reviewHoverRating || reviewRating) >= star 
+                                                                ? "text-yellow-400 fill-yellow-400 drop-shadow-xs" 
+                                                                : "text-gray-200"
+                                                            }`}
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1 text-left">
+                                        <label className="text-[14.25px] pl-1 font-semibold text-[#052558] uppercase tracking-wider flex items-center justify-between">
+                                            <span>Share your experience</span>
+                                        </label>
+                                        <textarea 
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            className="w-full h-32 p-4 bg-gray-50 border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/10 transition-all resize-none font-medium text-gray-700 shadow-sm"
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {!reviewSuccess && (
+                            <div className="px-6 pb-6 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                                <button 
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleSubmitReview}
+                                    disabled={isSubmitting || !reviewText.trim() || reviewRating === 0}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#052558]/90 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#0a3a82] transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:shadow-none"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Submitting…
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PenSquare size={16} />
+                                            Submit Review
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
+            , document.body)}
         </section>
     );
 };
