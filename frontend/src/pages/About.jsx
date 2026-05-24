@@ -101,7 +101,7 @@ const About = () => {
                             { number: "50+", label: "Expert Mechanics", icon: <Zap size={20} /> },
                             { number: "4.9", label: "Customer Rating", icon: <Heart size={20} fill="currentColor" /> }
                         ].map((stat, idx) => (
-                            <div key={idx} className="group bg-white/60 backdrop-blur-xl p-7 md:p-8.5 rounded-2xl text-center shadow-sm border border-white/60 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                            <div key={idx} className="group bg-white/60 backdrop-blur-xl p-7 md:p-8.5 rounded-2xl text-center shadow-sm border border-white/60 hover:shadow-xl transition-all duration-300 relative overflow-hidden">
                                 <div className="absolute -right-4 -top-4 text-blue-50/50 group-hover:text-blue-100/50 transform group-hover:scale-150 transition-all duration-500">
                                     {React.cloneElement(stat.icon, { size: 80 })}
                                 </div>
@@ -123,7 +123,7 @@ const About = () => {
                             { icon: <ShieldCheck className="w-8 h-8" />, title: "Transparency", desc: "No hidden costs, no surprise fees. We explain every repair and part replacement in plain, simple terms. Before any work begins, you receive a clear breakdown of pricing and service details, so you always know exactly what you're paying for, with complete confidence and clarity." },
                             { icon: <Award className="w-8 h-8" />, title: "Premium Quality", desc: "We use only highly-rated genuine parts and employ rigorously certified, very well skilled, and experienced professionals. Every minor and major service undergoes strict quality checks to ensure your vehicle performs safely, reliably, and at its absolute best." }
                         ].map((value, idx) => (
-                            <div key={idx} className="group bg-white/50 backdrop-blur-lg border border-white/60 p-7 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(5,37,88,0.08)] hover:-translate-y-2 transition-all duration-300">
+                            <div key={idx} className="group bg-white/50 backdrop-blur-lg border border-white/60 p-7 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(5,37,88,0.08)] transition-all duration-300">
                                 <div className="mb-6 w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl flex items-center justify-center text-[#052558] group-hover:bg-gradient-to-br group-hover:from-[#052558] group-hover:to-[#527FB0] group-hover:text-white  transition-all duration-300 shadow-sm border border-blue-200/50">
                                     {value.icon}
                                 </div>
