@@ -15,6 +15,21 @@ const Leave = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
+    // Action Modal States
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+    const [actionType, setActionType] = useState(''); // 'Approved' or 'Rejected'
+    const [actionEmpId, setActionEmpId] = useState('');
+    const [actionRemarks, setActionRemarks] = useState('');
+    const [actionLeaveId, setActionLeaveId] = useState(null);
+
+    const openActionModal = (leaveId, type) => {
+        setActionLeaveId(leaveId);
+        setActionType(type);
+        setActionEmpId('');
+        setActionRemarks('');
+        setIsActionModalOpen(true);
+    };
+
     const highlightedRow = useHighlight(leaves);
 
     const storedUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
@@ -43,17 +58,24 @@ const Leave = () => {
         return () => clearInterval(interval);
     }, [fetchGarageLeaves]);
 
-    const handleStatusUpdate = async (leaveId, newStatus) => {
-        setUpdatingId(leaveId);
+    const handleStatusUpdate = async (e) => {
+        if (e) e.preventDefault();
+        if(!actionEmpId || !actionRemarks) {
+            alert('Please fill both Employee ID and Remarks');
+            return;
+        }
+
+        setUpdatingId(actionLeaveId);
+        setIsActionModalOpen(false);
         try {
-            const res = await fetch(`http://localhost:5001/api/leaves/${leaveId}/status`, {
+            const res = await fetch(`http://localhost:5001/api/leaves/${actionLeaveId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status: actionType, employeeId: actionEmpId, remarks: actionRemarks })
             });
             const data = await res.json();
             if (data.success) {
-                setLeaves(prev => prev.map(l => l._id === leaveId ? { ...l, status: newStatus } : l));
+                setLeaves(prev => prev.map(l => l._id === actionLeaveId ? { ...l, status: actionType } : l));
             } else {
                 alert(data.message || "Failed to update status");
             }
@@ -217,14 +239,14 @@ const Leave = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
-                                                        onClick={() => handleStatusUpdate(leave._id, 'Approved')}
+                                                        onClick={() => openActionModal(leave._id, 'Approved')}
                                                         disabled={updatingId === leave._id}
                                                         className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
                                                     >
                                                         <Check size={18} />
                                                     </button>
                                                     <button 
-                                                        onClick={() => handleStatusUpdate(leave._id, 'Rejected')}
+                                                        onClick={() => openActionModal(leave._id, 'Rejected')}
                                                         disabled={updatingId === leave._id}
                                                         className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                                                     >
@@ -385,6 +407,93 @@ const Leave = () => {
                                 {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Action Modal */}
+            {isActionModalOpen && createPortal(
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#052558]/10 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !updatingId && setIsActionModalOpen(false)} />
+                    
+                    <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-7 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-center relative">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wider">
+                                {actionType === 'Approved' ? 'Approve Leave' : 'Reject Leave'}
+                            </h3>
+                            <button 
+                                onClick={() => setIsActionModalOpen(false)}
+                                className="absolute right-7 p-2 text-slate-400 rounded-xl transition-colors hover:bg-slate-200 hover:text-slate-600"
+                                disabled={updatingId === actionLeaveId}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleStatusUpdate}>
+                            {/* Body */}
+                            <div className="p-8 space-y-4">
+                                <div className="bg-slate-50/50 border border-slate-100 p-1 rounded-2xl">
+                                    <p className="text-sm uppercase font-medium text-justify text-slate-700 leading-relaxed">
+                                        Please provide employee verification to <span className="font-bold text-[#011023]">{actionType.toLowerCase()}</span> this leave request. This action will be documented in the internal audit.
+                                    </p>
+                                </div>
+
+                                <div className="flex gap-2.5 text-left">
+                                    <div className="w-[20%]">
+                                        <label className="text-[12.5px] font-bold text-gray-500 uppercase tracking-widest flex items-center justify-center mb-2">Employee ID</label>
+                                        <input 
+                                            type="text" 
+                                            required
+                                            className="w-full bg-white border border-gray-200 rounded-xl p-2 text-[13px] font-semibold text-[#011023] outline-none  transition-all uppercase tracking-wider shadow-sm text-center"
+
+                                            value={actionEmpId}
+                                            onChange={e => setActionEmpId(e.target.value)}
+                                            disabled={updatingId === actionLeaveId}
+                                        />
+                                    </div>
+                                    <div className="w-[80%]">
+                                        <label className="text-[12.5px] font-bold text-gray-500 uppercase tracking-widest flex items-center justify-center mb-2">Reason for Action</label>
+                                        <input 
+                                            type="text"
+                                            required
+                                            className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 text-[13px] font-semibold uppercase text-[#011023] outline-none transition-all shadow-sm"
+
+                                            value={actionRemarks}
+                                            onChange={e => setActionRemarks(e.target.value)}
+                                            disabled={updatingId === actionLeaveId}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-8 pb-6 pt-1 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsActionModalOpen(false)}
+                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                                    disabled={updatingId === actionLeaveId}
+                                >
+                                    Cancel Action
+                                </button>
+                                <button 
+                                    type="submit"
+                                    disabled={updatingId === actionLeaveId || !actionEmpId.trim() || !actionRemarks.trim()}
+                                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-50 disabled:shadow-none ${actionType === 'Approved' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200/50' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200/50'}`}
+                                >
+                                    {updatingId === actionLeaveId ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        'Confirm Action'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>,
                 document.body
