@@ -240,12 +240,12 @@ const Leave = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[7.5%]">Leave ID</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Date</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Leave</th>
-                                <th className="p-4.5 font-bold text-center w-[8.5%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[30%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]"> Start</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]"> End</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[29%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]"> Start</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]"> End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
                                 <th className="p-4.5 font-bold text-center w-[1%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[0.5%]">Action</th>
@@ -302,7 +302,7 @@ const Leave = () => {
                                         <div className="text-[13px] font-semibold text-[#011023]">{leave.totalDays} DAYS</div>
                                     </td> */}
                                     <td className="p-5">
-                                        <span className={`px-4 py-1.5 rounded-full border text-[10.5px] font-semibold uppercase tracking-widest ${getStatusStyle(leave.status)}`}>
+                                        <span className={`px-4 py-1.5 rounded-full border text-[10.5px] font-semibold uppercase tracking-w ${getStatusStyle(leave.status)}`}>
                                             {leave.status}
                                         </span>
                                     </td>
