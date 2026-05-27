@@ -4,6 +4,7 @@ import { Bell, Loader2, Trash2 } from 'lucide-react';
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
+    leave_updated: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-700' },
 };
 
 const Notifications = () => {
@@ -41,6 +42,11 @@ const Notifications = () => {
             // 1. Must be 'booking_created'
             // 2. Must match the employee's ID in meta.assignedEmployees
             const employeeNotifs = allNotifs.filter(n => {
+                if (n.eventType === 'leave_updated') {
+                    const user = JSON.parse(storedUser || '{}');
+                    return n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId;
+                }
+
                 if (n.eventType !== 'booking_created') return false;
                 
                 const assignment = n.meta?.assignedEmployees;
@@ -170,7 +176,7 @@ const Notifications = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold" style={{ width: '10%' }}>Type</th>
                                 <th className="p-4.5 font-bold" style={{ width: '10%' }}>Customer</th>
-                                <th className="p-4.5 font-bold" style={{ width: '45%' }}>Assignment Details</th>
+                                <th className="p-4.5 font-bold" style={{ width: '45%' }}>Notification Details</th>
                                 <th className="p-4.5 font-bold" style={{ width: '10%' }}>Received On</th>
                                 <th className="p-4.5 font-bold" style={{ width: '7%' }}>Status</th>
                                 <th className="p-4.5 font-bold" style={{ width: '7%' }}>Action</th>
@@ -221,8 +227,8 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.5">
                                                 <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'}`}>
-                                                    {notif.eventType === 'booking_created' 
-                                                        ? `Assigned to you, ${notif.message.replace(/^.*booked/i, 'Booked')}`
+                                                    {notif.eventType === 'booking_created'
+                                                        ? `A new task is assigned to you, for ${notif.meta?.service || 'service'} of ${notif.meta?.vehicle || 'vehicle'}. Kindly contact with the assigned team member's and complete the task within the time.`
                                                         : notif.message}
                                                 </p>
                                             </td>
