@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const LeaveRequest = require('../models/LeaveRequest');
 const Employee = require('../models/Employee');
+const Notification = require('../models/Notification');
 
 // Helper: Generate unique 7-char Leave ID (LA + 5 unique non-zero digits)
 const generateLeaveId = async () => {
@@ -130,7 +131,7 @@ exports.getAllLeaves = async (req, res) => {
 // @route   PATCH /api/leaves/:id/status
 exports.updateLeaveStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, employeeId, remarks } = req.body;
         if (!['Approved', 'Rejected'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
@@ -139,6 +140,28 @@ exports.updateLeaveStatus = async (req, res) => {
         if (!leave) {
             return res.status(404).json({ success: false, message: 'Leave request not found' });
         }
+
+        // Create Notification
+        let message = '';
+        if (status === 'Approved') {
+            message = 'Dear Employee, Your leave request has been approved successfully. Please make sure to complete any pending work before your leave period begins. We wish you a pleasant and stress-free time off.';
+        } else if (status === 'Rejected') {
+            message = 'Dear Employee, Your leave request has been reviewed and unfortunately could not be approved at this time. Please refer to the Remarks section for further details regarding the rejection.';
+        }
+        
+        await Notification.create({
+            eventType: 'leave_updated',
+            title: `Leave Request ${status}`,
+            message: message,
+            meta: {
+                leaveId: leave._id,
+                leaveCustomId: leave.leaveId,
+                employeeId: leave.employeeId,
+                approverEmpId: employeeId,
+                remarks: remarks,
+                status: status
+            }
+        });
 
         res.status(200).json({ success: true, data: leave });
     } catch (error) {
