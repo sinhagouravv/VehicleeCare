@@ -136,21 +136,26 @@ exports.updateLeaveStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
 
-        const leave = await LeaveRequest.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        const updateData = { status };
+        if (remarks) updateData.remarks = remarks;
+
+        const leave = await LeaveRequest.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!leave) {
             return res.status(404).json({ success: false, message: 'Leave request not found' });
         }
 
+        const approver = await Employee.findOne({ employeeId: employeeId });
+
         // Create Notification
         let message = '';
         if (status === 'Approved') {
-            message = 'Dear Employee, Your leave request has been approved successfully. Please make sure to complete any pending work before your leave period begins. We wish you a pleasant and stress-free time off.';
+            message = 'Dear Employee, Your leave request ' + `${leave.leaveId}` + ' has been approved successfully. Please make sure to complete any pending work before your leave period begins. We wish you a pleasant and stress-free time off.';
         } else if (status === 'Rejected') {
-            message = 'Dear Employee, Your leave request has been reviewed and unfortunately could not be approved at this time. Please refer to the Remarks section for further details regarding the rejection.';
+            message = 'Dear Employee, Your leave request ' + `${leave.leaveId}` + ' has been reviewed and unfortunately could not be approved at this time. Please refer to the Remarks section for further details regarding the rejection.';
         }
         
         await Notification.create({
-            eventType: 'leave_updated',
+            eventType: 'leave',
             title: `Leave Request ${status}`,
             message: message,
             meta: {
@@ -158,6 +163,7 @@ exports.updateLeaveStatus = async (req, res) => {
                 leaveCustomId: leave.leaveId,
                 employeeId: leave.employeeId,
                 approverEmpId: employeeId,
+                approverName: approver ? approver.name : 'MANAGER',
                 remarks: remarks,
                 status: status
             }
