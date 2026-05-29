@@ -4,7 +4,7 @@ import { Bell, Loader2, Trash2 } from 'lucide-react';
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
-    leave_updated: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-700' },
+    leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
 };
 
 const Notifications = () => {
@@ -42,9 +42,9 @@ const Notifications = () => {
             // 1. Must be 'booking_created'
             // 2. Must match the employee's ID in meta.assignedEmployees
             const employeeNotifs = allNotifs.filter(n => {
-                if (n.eventType === 'leave_updated') {
+                if (n.eventType === 'leave') {
                     const user = JSON.parse(storedUser || '{}');
-                    return n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId;
+                    return n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId || n.meta?.employeeId === user.id || n.meta?.employeeId === user._id;
                 }
 
                 if (n.eventType !== 'booking_created') return false;
@@ -132,6 +132,7 @@ const Notifications = () => {
     }, [users, notifications]);
 
     const getDisplayUserId = (notif) => {
+        if (notif.eventType === 'leave') return notif.meta?.approverEmpId || 'SYSTEM';
         // Direct hit from meta
         if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
         
@@ -211,16 +212,16 @@ const Notifications = () => {
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
                                             <td className="p-4.5">
-                                                <span className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
                                             </td>
                                             <td className="p-4.5">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
-                                                        {notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A'}
+                                                        {notif.eventType === 'leave' ? (notif.meta?.approverName || 'MANAGER') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
                                                     </span>
-                                                    <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
+                                                    <span className={`text-[11px] font-semibold uppercase tracking-tight ${notif.eventType === 'leave' ? 'text-slate-700' : 'text-gray-400'}`}>
                                                         {getDisplayUserId(notif)}
                                                     </span>
                                                 </div>
