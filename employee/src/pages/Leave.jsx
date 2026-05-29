@@ -90,6 +90,13 @@ const Leave = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const words = formData.reason.trim().split(/\s+/).filter(word => word.length > 0);
+        if (words.length < 10) {
+            setError("Reason must be at least 10 words long.");
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
         setSuccess(null);
