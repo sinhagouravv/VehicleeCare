@@ -56,6 +56,10 @@ const LeaveRequestSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    remarks: {
+        type: String,
+        required: false
+    },
     leaveId: {
         type: String,
         required: true,
