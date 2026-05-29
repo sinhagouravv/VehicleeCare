@@ -65,6 +65,12 @@ const Leave = () => {
             return;
         }
 
+        const words = actionRemarks.trim().split(/\s+/).filter(word => word.length > 0);
+        if (words.length < 10) {
+            alert('Reason for Action must be at least 10 words long.');
+            return;
+        }
+
         setUpdatingId(actionLeaveId);
         setIsActionModalOpen(false);
         try {
@@ -459,7 +465,6 @@ const Leave = () => {
                                             type="text"
                                             required
                                             className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 text-[13px] font-semibold uppercase text-[#011023] outline-none transition-all shadow-sm"
-
                                             value={actionRemarks}
                                             onChange={e => setActionRemarks(e.target.value)}
                                             disabled={updatingId === actionLeaveId}
