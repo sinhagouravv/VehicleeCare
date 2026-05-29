@@ -393,7 +393,18 @@ exports.getEmployeeBookings = async (req, res) => {
         // If employeeId is a valid MongoDB ObjectId, Mongoose handles it.
         // If it's a 9-digit string, it will match the .employeeId fields.
         
-        const bookings = await Booking.find(query).sort({ createdAt: -1 });
+        let bookings = await Booking.find(query)
+            .sort({ createdAt: -1 })
+            .populate('assignedEmployees.technician.id', 'phone');
+
+        bookings = bookings.map(b => {
+            const booking = b.toObject();
+            if (booking.assignedEmployees?.technician?.id) {
+                booking.assignedEmployees.technician.phone = booking.assignedEmployees.technician.id.phone;
+                booking.assignedEmployees.technician.id = booking.assignedEmployees.technician.id._id;
+            }
+            return booking;
+        });
 
         res.status(200).json({ success: true, data: bookings });
     } catch (error) {
