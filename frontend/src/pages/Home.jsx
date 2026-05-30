@@ -11,7 +11,7 @@ const Home = () => {
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-20">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             <h1 className="text-4xl md:text-6xl font-bold leading-tight text-[#011023]">
                                 Premium Car Care <br />
                                 <span className="text-[#527FB0]">At Your Doorstep</span>

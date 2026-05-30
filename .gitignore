@@ -34,3 +34,24 @@ Desktop.ini
 
 # Specific
 backend/.env
+
+# Mobile App
+mobile_employee/
+
+# Additional Logs
+logs
+*.log
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite / React Specific
+dist-ssr
+*.local
+
+# Editor directories and files
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
