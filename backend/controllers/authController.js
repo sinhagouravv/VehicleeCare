@@ -360,11 +360,37 @@ exports.employeeLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid employee credentials' });
         }
 
+        let garage = null;
+        if (employee.garageId) {
+            const Garage = require('../models/Garage');
+            garage = await Garage.findOne({ garageId: employee.garageId });
+        }
+
         const payload = { employee: { id: employee.employeeId, dbId: employee._id, role: employee.role } };
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
             if (err) throw err;
-            res.json({ token, employee: { _id: employee._id, id: employee.employeeId, name: employee.name, role: employee.role, email: employee.email, garageId: employee.garageId } });
+            res.json({ 
+                token, 
+                employee: { 
+                    _id: employee._id, 
+                    id: employee.employeeId, 
+                    employeeId: employee.employeeId,
+                    name: employee.name, 
+                    role: employee.role, 
+                    category: employee.category,
+                    email: employee.email, 
+                    phone: employee.phone,
+                    garageId: employee.garageId,
+                    garageName: garage ? garage.name : '',
+                    garageLocation: garage ? (garage.address || garage.district || garage.state) : '',
+                    panCard: employee.panCard,
+                    adharCard: employee.adharCard,
+                    voterId: employee.voterId,
+                    isVerified: employee.isVerified,
+                    createdAt: employee.createdAt
+                } 
+            });
         });
 
     } catch (err) {
