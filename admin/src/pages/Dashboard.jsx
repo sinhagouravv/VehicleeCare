@@ -239,7 +239,7 @@ const Dashboard = () => {
                 <div className="lg:col-span-2 bg-white/60 backdrop-blur-xl border border-white pt-4 pb-4 pr-2 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] relative min-h-[350px] flex flex-col">
                     <div className="flex-1 w-full h-full min-h-[445px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={currentChartData} margin={{ top: 20, right: 30, left: 5, bottom: 0 }}>
+                            <AreaChart data={currentChartData} margin={{ top: 20, right: 30, left: 4, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor={
