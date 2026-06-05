@@ -79,6 +79,12 @@ const employeeSchema = new mongoose.Schema({
     resetPasswordExpires: {
         type: Date
     },
+    emailOtp: {
+        type: String
+    },
+    otpExpiry: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now
