@@ -894,7 +894,10 @@ exports.sendSettingsOtp = async (req, res) => {
     try {
         const { userId, purpose, currentPassword } = req.body;
         if (!userId) return res.status(400).json({ msg: 'User ID required' });
-        const user = await User.findById(userId);
+        let user = await User.findById(userId);
+        if (!user) {
+            user = await Employee.findById(userId);
+        }
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
         // For password change: verify current password first
@@ -946,7 +949,10 @@ exports.changePasswordOtp = async (req, res) => {
         const { userId, otp, newPassword } = req.body;
         if (!userId || !otp || !newPassword) return res.status(400).json({ msg: 'All fields required' });
 
-        const user = await User.findById(userId);
+        let user = await User.findById(userId);
+        if (!user) {
+            user = await Employee.findById(userId);
+        }
         if (!user) return res.status(404).json({ msg: 'User not found' });
         if (!user.emailOtp || !user.otpExpiry) return res.status(400).json({ msg: 'No OTP issued' });
         if (new Date() > user.otpExpiry) return res.status(400).json({ msg: 'OTP expired. Request a new one.' });
