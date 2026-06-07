@@ -377,18 +377,27 @@ exports.updateBookingStatus = async (req, res) => {
 exports.getEmployeeBookings = async (req, res) => {
     try {
         const { employeeId } = req.params;
+        const mongoose = require('mongoose');
         
         // Build query to search in technician, support, and mechanic fields
-        const query = {
-            $or: [
-                { 'assignedEmployees.technician.id': employeeId },
-                { 'assignedEmployees.technician.employeeId': employeeId },
-                { 'assignedEmployees.support.id': employeeId },
-                { 'assignedEmployees.support.employeeId': employeeId },
-                { 'assignedEmployees.mechanic.id': employeeId },
-                { 'assignedEmployees.mechanic.employeeId': employeeId }
-            ]
-        };
+        const query = mongoose.Types.ObjectId.isValid(employeeId)
+            ? {
+                $or: [
+                    { 'assignedEmployees.technician.id': employeeId },
+                    { 'assignedEmployees.technician.employeeId': employeeId },
+                    { 'assignedEmployees.support.id': employeeId },
+                    { 'assignedEmployees.support.employeeId': employeeId },
+                    { 'assignedEmployees.mechanic.id': employeeId },
+                    { 'assignedEmployees.mechanic.employeeId': employeeId }
+                ]
+              }
+            : {
+                $or: [
+                    { 'assignedEmployees.technician.employeeId': employeeId },
+                    { 'assignedEmployees.support.employeeId': employeeId },
+                    { 'assignedEmployees.mechanic.employeeId': employeeId }
+                ]
+              };
 
         // If employeeId is a valid MongoDB ObjectId, Mongoose handles it.
         // If it's a 9-digit string, it will match the .employeeId fields.
@@ -408,7 +417,7 @@ exports.getEmployeeBookings = async (req, res) => {
 
         res.status(200).json({ success: true, data: bookings });
     } catch (error) {
-        console.error('[GetEmployeeBookings] Error:', error);
+        console.error('[GetEmployeeBookings] Error:', error.stack || error);
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 };
