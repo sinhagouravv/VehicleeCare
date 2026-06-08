@@ -64,9 +64,30 @@ const getTodayIST = (shift = 'Morning') => {
 
 const toMin = ({ h, m }) => h * 60 + m;
 
+const getCheckOutStatusForTime = (shift, currentStatus, totalMinutes) => {
+    if (shift === 'Evening') {
+        return currentStatus;
+    }
+    const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
+
+    let adjustedTotal = totalMinutes;
+    let adjustedOvertimeThreshold = toMin(rules.overtimeAfter);
+
+    if (shift === 'Night') {
+        if (totalMinutes < 12 * 60) {
+            adjustedTotal += 24 * 60;
+        }
+        adjustedOvertimeThreshold += 24 * 60;
+    }
+
+    if (adjustedTotal >= adjustedOvertimeThreshold) return 'Overtime';
+    return currentStatus; // Keep existing status (Present/Late)
+};
+
 module.exports = {
     SHIFT_RULES,
     getISTTime,
     getTodayIST,
-    toMin
+    toMin,
+    getCheckOutStatusForTime
 };

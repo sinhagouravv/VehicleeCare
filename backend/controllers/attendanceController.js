@@ -1,7 +1,7 @@
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 const LeaveRequest = require('../models/LeaveRequest');
-const { SHIFT_RULES, getISTTime, getTodayIST, toMin } = require('../utils/attendanceHelpers');
+const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime } = require('../utils/attendanceHelpers');
 
 
 
@@ -27,20 +27,7 @@ const getCheckInStatus = (shift) => {
 // ──────────────────────────────────────────────
 const getCheckOutStatus = (shift, currentStatus) => {
     const { total } = getISTTime();
-    const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
-
-    let adjustedTotal = total;
-    let adjustedOvertimeThreshold = toMin(rules.overtimeAfter);
-
-    if (shift === 'Night') {
-        if (total < 12 * 60) {
-            adjustedTotal += 24 * 60;
-        }
-        adjustedOvertimeThreshold += 24 * 60;
-    }
-
-    if (adjustedTotal >= adjustedOvertimeThreshold) return 'Overtime';
-    return currentStatus; // Keep existing status (Present/Late)
+    return getCheckOutStatusForTime(shift, currentStatus, total);
 };
 
 // ──────────────────────────────────────────────
