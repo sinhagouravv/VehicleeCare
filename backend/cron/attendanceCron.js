@@ -2,7 +2,7 @@
 const cron = require('node-cron');
 const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
-const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime } = require('../utils/attendanceHelpers');
+const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime, isNewEmployeeBlocked } = require('../utils/attendanceHelpers');
 
 /**
  * Automatically mark employees as 'Absent' if they haven't checked in 
@@ -15,6 +15,10 @@ const autoMarkAllAbsences = async () => {
 
         let count = 0;
         for (const emp of employees) {
+            // Skip marking new joining employees absent before their first shift start
+            if (await isNewEmployeeBlocked(emp)) {
+                continue;
+            }
             const shift = emp.shift || 'Morning';
             const rules = SHIFT_RULES[shift];
             const today = getTodayIST(shift);
@@ -33,20 +37,28 @@ const autoMarkAllAbsences = async () => {
                 });
 
                 if (!existing) {
-                    await Attendance.create({
-                        employeeId: emp.employeeId,
-                        employeeName: emp.name,
-                        contact: emp.phone || '',
-                        email: emp.email || '',
-                        role: emp.role || '',
-                        shift: shift,
-                        garageId: emp.garageId,
-                        date: today,
-                        checkIn: null,
-                        status: 'Absent'
-                    });
-                    console.log(`[Cron] Marked ${emp.name} (${emp.employeeId}) as Absent for ${today}`);
-                    count++;
+                    try {
+                        await Attendance.create({
+                            employeeId: emp.employeeId,
+                            employeeName: emp.name,
+                            contact: emp.phone || '',
+                            email: emp.email || '',
+                            role: emp.role || '',
+                            shift: shift,
+                            garageId: emp.garageId,
+                            date: today,
+                            checkIn: null,
+                            status: 'Absent'
+                        });
+                        console.log(`[Cron] Marked ${emp.name} (${emp.employeeId}) as Absent for ${today}`);
+                        count++;
+                    } catch (err) {
+                        if (err.code === 11000) {
+                            console.log(`[Cron] Attendance already exists for ${emp.name} (${emp.employeeId}) on ${today}`);
+                        } else {
+                            throw err;
+                        }
+                    }
                 }
             }
         }
@@ -80,6 +92,14 @@ const autoCheckOutAllEmployees = async () => {
             // Skip today's Night shift record (since it just started at 21:00)
             if (rec.date === todayStr && shift === 'Night') {
                 continue;
+            }
+
+            // Skip today's records for all shifts if the current time is before 9:20 PM (21:20 IST)
+            if (rec.date === todayStr) {
+                const { total: currentTotalMinutes } = getISTTime();
+                if (currentTotalMinutes < 21 * 60 + 20) {
+                    continue;
+                }
             }
 
             // Set checkout time to 9:20 PM IST of that record's day
