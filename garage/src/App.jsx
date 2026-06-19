@@ -9,6 +9,7 @@ import Staff from './pages/Staff';
 import Progress from './pages/Progress';
 import Attendance from './pages/Attendance';
 import Leave from './pages/Leave';
+import Overtime from './pages/Overtime';
 import Vehicles from './pages/Vehicles';
 import Settings from './pages/Settings';
 import Services from './pages/Services';
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="progress" element={<Progress />} />
               <Route path="attendance" element={<Attendance />} />
               <Route path="leave" element={<Leave />} />
+              <Route path="overtime" element={<Overtime />} />
               <Route path="vehicles" element={<Vehicles />} />
               <Route path="services" element={<Services />} />
               <Route path="reviews" element={<Reviews />} />

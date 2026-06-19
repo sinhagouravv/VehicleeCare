@@ -205,6 +205,9 @@ exports.createBooking = async (req, res) => {
         const fullUser = user.id ? await User.findById(user.id) : null;
         const displayUserId = fullUser?.userId || user.userId || 'GUEST';
 
+        // Look up the garage's Admin employee
+        const garageAdminForNotif = await Employee.findOne({ garageId: String(garage?.id || '').trim(), role: 'Admin', isVerified: true });
+
         // Fire admin notification
         createAdminNotification({
             eventType: 'booking_created',
@@ -214,11 +217,13 @@ exports.createBooking = async (req, res) => {
                 bookingId: savedBooking.bookingId, 
                 userId: savedBooking.user.id, 
                 userName: savedBooking.user.name,
-                displayUserId, // This will be the 65... ID
+                displayUserId,
                 service: service.title, 
                 vehicle: `${vehicle.make} ${vehicle.model}`,
                 garageId: garage?.id || null,
-                assignedEmployees: savedBooking.assignedEmployees
+                assignedEmployees: savedBooking.assignedEmployees,
+                adminName: garageAdminForNotif ? garageAdminForNotif.name : 'ADMIN',
+                adminEmpId: garageAdminForNotif ? garageAdminForNotif.employeeId : 'SYSTEM'
             }
         });
 
@@ -326,6 +331,7 @@ const autoAssignMechanic = async (booking) => {
             booking.markModified('assignedEmployees');
 
             // Notify the mechanic
+            const garageAdminForMechNotif = await Employee.findOne({ garageId: String(booking.garage?.id || '').trim(), role: 'Admin', isVerified: true });
             createAdminNotification({
                 eventType: 'booking_created',
                 title: 'New Mechanic Assignment',
@@ -337,7 +343,9 @@ const autoAssignMechanic = async (booking) => {
                     service: booking.service?.title,
                     vehicle: `${booking.vehicle?.make} ${booking.vehicle?.model}`,
                     garageId: booking.garage?.id,
-                    assignedEmployees: booking.assignedEmployees
+                    assignedEmployees: booking.assignedEmployees,
+                    adminName: garageAdminForMechNotif ? garageAdminForMechNotif.name : 'ADMIN',
+                    adminEmpId: garageAdminForMechNotif ? garageAdminForMechNotif.employeeId : 'SYSTEM'
                 }
             });
         }
