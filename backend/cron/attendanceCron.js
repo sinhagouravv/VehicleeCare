@@ -2,6 +2,7 @@
 const cron = require('node-cron');
 const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
+const OvertimeRequest = require('../models/OvertimeRequest');
 const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime, isNewEmployeeBlocked } = require('../utils/attendanceHelpers');
 
 /**
@@ -71,8 +72,10 @@ const autoMarkAllAbsences = async () => {
 };
 
 /**
- * Automatically check out any employee who hasn't checked out by 9:20 PM (21:20).
- * Sets their checkout time to 9:20 PM on that record's day, and updates their status.
+ * Automatically check out any employee who hasn't checked out by their shift's checkout deadline:
+ * - Morning shift: 3:20 PM (15:20 IST), or later if they have an approved overtime request.
+ * - Other shifts: 9:20 PM (21:20 IST)
+ * Sets their checkout time on that record's day, and updates their status.
  */
 const autoCheckOutAllEmployees = async () => {
     try {
@@ -94,21 +97,46 @@ const autoCheckOutAllEmployees = async () => {
                 continue;
             }
 
-            // Skip today's records for all shifts if the current time is before 9:20 PM (21:20 IST)
+            let threshold = 21 * 60 + 20; // Default: 9:20 PM (21:20 IST)
+            let checkoutTimeStr = 'T15:50:00.000Z'; // 21:20 IST in UTC
+
+            if (shift === 'Morning') {
+                threshold = 15 * 60 + 20; // 3:20 PM
+                checkoutTimeStr = 'T09:50:00.000Z'; // 3:20 PM IST in UTC
+
+                // Query for approved overtime request for this employee on this date
+                const approvedOvertime = await OvertimeRequest.findOne({
+                    employeeId: rec.employeeId,
+                    date: rec.date,
+                    status: 'Approved'
+                });
+
+                if (approvedOvertime) {
+                    const otHours = approvedOvertime.hours || 0;
+                    threshold += otHours * 60;
+                    
+                    const totalUTCMinutes = 9 * 60 + 50 + (otHours * 60);
+                    const hrUTC = Math.floor(totalUTCMinutes / 60) % 24;
+                    const minUTC = totalUTCMinutes % 60;
+                    checkoutTimeStr = `T${hrUTC.toString().padStart(2, '0')}:${minUTC.toString().padStart(2, '0')}:00.000Z`;
+                }
+            }
+
+            // Skip today's records for all shifts if the current time is before the threshold
             if (rec.date === todayStr) {
                 const { total: currentTotalMinutes } = getISTTime();
-                if (currentTotalMinutes < 21 * 60 + 20) {
+                if (currentTotalMinutes < threshold) {
                     continue;
                 }
             }
 
-            // Set checkout time to 9:20 PM IST of that record's day
-            const checkoutDate = new Date(`${rec.date}T15:50:00.000Z`);
+            // Set checkout time
+            const checkoutDate = new Date(`${rec.date}${checkoutTimeStr}`);
             rec.checkOut = checkoutDate;
 
-            // Update status based on checking out at 9:20 PM (1280 minutes)
+            // Update status based on checkout time
             const oldStatus = rec.status;
-            const newStatus = getCheckOutStatusForTime(shift, oldStatus, 1280);
+            const newStatus = getCheckOutStatusForTime(shift, oldStatus, threshold);
             rec.status = newStatus;
 
             await rec.save();
@@ -131,10 +159,9 @@ const initAttendanceCron = () => {
         autoMarkAllAbsences();
     });
 
-    // Schedule auto-checkout at 9:20 PM (21:20) daily
-    console.log('Scheduling Auto-Checkout Cron Job (Daily at 9:20 PM)');
-    cron.schedule('20 21 * * *', () => {
-        console.log('[Cron] Triggering daily auto-checkout at 9:20 PM');
+    // Run auto-checkout check every 10 minutes
+    console.log('Initializing Auto-Checkout Cron Job (Every 10 mins)');
+    cron.schedule('*/10 * * * *', () => {
         autoCheckOutAllEmployees();
     });
 

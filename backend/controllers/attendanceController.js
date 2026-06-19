@@ -1,6 +1,7 @@
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 const LeaveRequest = require('../models/LeaveRequest');
+const OvertimeRequest = require('../models/OvertimeRequest');
 const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime, isNewEmployeeBlocked } = require('../utils/attendanceHelpers');
 
 
@@ -8,7 +9,7 @@ const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime, i
 // ──────────────────────────────────────────────
 // Determine check-in status based on shift
 // ──────────────────────────────────────────────
-const getCheckInStatus = (shift) => {
+const getCheckInStatus = (shift, approvedOvertimeHours = 0) => {
     const { total } = getISTTime();
     const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
 
@@ -17,8 +18,16 @@ const getCheckInStatus = (shift) => {
         adjustedTotal += 24 * 60; // Push morning hours to "next day" for easy > comparison
     }
 
-    if (adjustedTotal >= toMin(rules.absentAfter)) return 'Absent';   
-    if (adjustedTotal >= toMin(rules.lateAfter))   return 'Late';     
+    let absentAfterMins = toMin(rules.absentAfter);
+    let lateAfterMins = toMin(rules.lateAfter);
+
+    if (shift === 'Evening' && approvedOvertimeHours > 0) {
+        absentAfterMins -= approvedOvertimeHours * 60;
+        lateAfterMins -= approvedOvertimeHours * 60;
+    }
+
+    if (adjustedTotal >= absentAfterMins) return 'Absent';   
+    if (adjustedTotal >= lateAfterMins)   return 'Late';     
     return 'Present';                                          
 };
 
@@ -52,7 +61,22 @@ const checkIn = async (req, res) => {
         }
 
         const shift = employee.shift || 'Morning';
-        const today = getTodayIST(shift);
+
+        // Find approved overtime hours for this employee on calendar date today
+        const { date: istDate } = getISTTime();
+        const calendarToday = istDate.toISOString().split('T')[0];
+
+        let approvedOvertimeHours = 0;
+        if (shift === 'Evening') {
+            const approvedOvertime = await OvertimeRequest.findOne({
+                employeeId,
+                date: calendarToday,
+                status: 'Approved'
+            });
+            approvedOvertimeHours = approvedOvertime ? (approvedOvertime.hours || 0) : 0;
+        }
+
+        const today = getTodayIST(shift, approvedOvertimeHours);
 
         // 1. Check if employee is on an approved leave for today
         const activeLeave = await LeaveRequest.findOne({
@@ -75,7 +99,7 @@ const checkIn = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Already checked in today', data: existing });
         }
 
-        const status = getCheckInStatus(shift);
+        const status = getCheckInStatus(shift, approvedOvertimeHours);
 
         // If past absent threshold — create Absent record but do NOT allow a normal check-in
         if (status === 'Absent') {
@@ -168,7 +192,22 @@ const getTodayStatus = async (req, res) => {
     try {
         const employee = await Employee.findOne({ employeeId: req.params.employeeId });
         const shift = employee?.shift || 'Morning';
-        const today = getTodayIST(shift);
+
+        // Find approved overtime hours for this employee on calendar date today
+        const { date: istDate } = getISTTime();
+        const calendarToday = istDate.toISOString().split('T')[0];
+
+        let approvedOvertimeHours = 0;
+        if (shift === 'Evening') {
+            const approvedOvertime = await OvertimeRequest.findOne({
+                employeeId: req.params.employeeId,
+                date: calendarToday,
+                status: 'Approved'
+            });
+            approvedOvertimeHours = approvedOvertime ? (approvedOvertime.hours || 0) : 0;
+        }
+
+        const today = getTodayIST(shift, approvedOvertimeHours);
 
         // Check if new joining employee is blocked
         if (employee && await isNewEmployeeBlocked(employee)) {
@@ -225,15 +264,35 @@ const autoMarkAbsences = async (garageId) => {
                 continue;
             }
             const shift = emp.shift || 'Morning';
+
+            // Find approved overtime hours for this employee on calendar date today
+            const { date: istDate } = getISTTime();
+            const calendarToday = istDate.toISOString().split('T')[0];
+
+            let approvedOvertimeHours = 0;
+            if (shift === 'Evening') {
+                const approvedOvertime = await OvertimeRequest.findOne({
+                    employeeId: emp.employeeId,
+                    date: calendarToday,
+                    status: 'Approved'
+                });
+                approvedOvertimeHours = approvedOvertime ? (approvedOvertime.hours || 0) : 0;
+            }
+
             const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
-            const today = getTodayIST(shift);
+            const today = getTodayIST(shift, approvedOvertimeHours);
+
+            let absentAfterMins = toMin(rules.absentAfter);
+            if (shift === 'Evening' && approvedOvertimeHours > 0) {
+                absentAfterMins -= approvedOvertimeHours * 60;
+            }
 
             let adjustedTotal = total;
             if (shift === 'Night' && total < 12 * 60) {
                 adjustedTotal += 24 * 60;
             }
 
-            if (adjustedTotal >= toMin(rules.absentAfter)) {
+            if (adjustedTotal >= absentAfterMins) {
                 const existing = await Attendance.findOne({ employeeId: emp.employeeId, date: today });
                 if (!existing) {
                     // Check if employee is on approved leave

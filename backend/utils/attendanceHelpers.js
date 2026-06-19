@@ -33,13 +33,17 @@ const getISTTime = () => {
     return { h, m, total: h * 60 + m, date: ist };
 };
 
-const getTodayIST = (shift = 'Morning') => {
+const getTodayIST = (shift = 'Morning', approvedOvertimeHours = 0) => {
     const { h, m, date } = getISTTime();
     const rules = SHIFT_RULES[shift] || SHIFT_RULES.Morning;
     
     const currentMins = h * 60 + m;
     const startMins = rules.start.h * 60 + rules.start.m;
-    const windowStartMins = startMins - 15; 
+    
+    let windowStartMins = startMins - 15;
+    if (shift === 'Evening' && approvedOvertimeHours > 0) {
+        windowStartMins -= approvedOvertimeHours * 60;
+    }
     
     let isPreviousBusinessDay = false;
 
