@@ -5,6 +5,7 @@ import { Bell, Loader2, Trash2 } from 'lucide-react';
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
+    overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
 };
 
 const Notifications = () => {
@@ -42,7 +43,7 @@ const Notifications = () => {
             // 1. Must be 'booking_created'
             // 2. Must match the employee's ID in meta.assignedEmployees
             const employeeNotifs = allNotifs.filter(n => {
-                if (n.eventType === 'leave') {
+                if (n.eventType === 'leave' || n.eventType === 'overtime') {
                     const user = JSON.parse(storedUser || '{}');
                     return n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId || n.meta?.employeeId === user.id || n.meta?.employeeId === user._id;
                 }
@@ -133,6 +134,7 @@ const Notifications = () => {
 
     const getDisplayUserId = (notif) => {
         if (notif.eventType === 'leave') return notif.meta?.approverEmpId || 'SYSTEM';
+        if (notif.eventType === 'overtime') return notif.meta?.approverEmpId || 'MANAGER';
         // Direct hit from meta
         if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
         
@@ -219,9 +221,9 @@ const Notifications = () => {
                                             <td className="p-4.5">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
-                                                        {notif.eventType === 'leave' ? (notif.meta?.approverName || 'MANAGER') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
+                                                        {notif.eventType === 'leave' || notif.eventType === 'overtime' ? (notif.meta?.approverName || 'MANAGER') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
                                                     </span>
-                                                    <span className={`text-[11px] font-semibold uppercase tracking-tight ${notif.eventType === 'leave' ? 'text-slate-700' : 'text-gray-400'}`}>
+                                                    <span className={`text-[11px] font-semibold uppercase tracking-tight ${notif.eventType === 'leave' || notif.eventType === 'overtime' ? 'text-slate-700' : 'text-gray-400'}`}>
                                                         {getDisplayUserId(notif)}
                                                     </span>
                                                 </div>
