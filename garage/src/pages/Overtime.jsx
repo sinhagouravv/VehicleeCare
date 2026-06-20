@@ -118,6 +118,15 @@ const Overtime = () => {
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '—';
+        // Handle DD-MM-YYYY format (stored overtime dates)
+        const ddmmyyyy = dateStr.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        if (ddmmyyyy) {
+            const [, dd, mm, yyyy] = ddmmyyyy;
+            return new Date(`${yyyy}-${mm}-${dd}`).toLocaleDateString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            });
+        }
+        // Fallback for ISO / YYYY-MM-DD (createdAt etc.)
         return new Date(dateStr).toLocaleDateString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric'
         });
