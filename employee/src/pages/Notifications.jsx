@@ -6,6 +6,7 @@ const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
     overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
+    meeting: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
 };
 
 const Notifications = () => {
@@ -43,7 +44,7 @@ const Notifications = () => {
             // 1. Must be 'booking_created'
             // 2. Must match the employee's ID in meta.assignedEmployees
             const employeeNotifs = allNotifs.filter(n => {
-                if (n.eventType === 'leave' || n.eventType === 'overtime') {
+                if (n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting') {
                     const user = JSON.parse(storedUser || '{}');
                     return n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId || n.meta?.employeeId === user.id || n.meta?.employeeId === user._id;
                 }
@@ -135,6 +136,7 @@ const Notifications = () => {
     const getDisplayUserId = (notif) => {
         if (notif.eventType === 'leave') return notif.meta?.approverEmpId || 'SYSTEM';
         if (notif.eventType === 'overtime') return notif.meta?.approverEmpId || 'MANAGER';
+        if (notif.eventType === 'booking_created' || notif.eventType === 'meeting') return notif.meta?.adminEmpId || 'SYSTEM';
         // Direct hit from meta
         if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
         
@@ -221,9 +223,9 @@ const Notifications = () => {
                                             <td className="p-4.5">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
-                                                        {notif.eventType === 'leave' || notif.eventType === 'overtime' ? (notif.meta?.approverName || 'MANAGER') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
+                                                        {notif.eventType === 'leave' || notif.eventType === 'overtime' ? (notif.meta?.approverName || 'MANAGER') : notif.eventType === 'meeting' ? (notif.meta?.adminName || 'ADMIN') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
                                                     </span>
-                                                    <span className={`text-[11px] font-semibold uppercase tracking-tight ${notif.eventType === 'leave' || notif.eventType === 'overtime' ? 'text-slate-700' : 'text-gray-400'}`}>
+                                                    <span className={`text-[11px] font-semibold uppercase tracking-tight ${notif.eventType === 'leave' || notif.eventType === 'overtime' || notif.eventType === 'meeting' ? 'text-slate-700' : 'text-gray-400'}`}>
                                                         {getDisplayUserId(notif)}
                                                     </span>
                                                 </div>
