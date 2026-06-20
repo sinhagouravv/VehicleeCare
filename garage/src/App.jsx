@@ -20,6 +20,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
 import StaffOverview from './pages/StaffOverview';
 import Reports from './pages/Reports';
+import Meeting from './pages/Meeting';
 import { AlertProvider } from './context/AlertContext';
 
 const App = () => {
@@ -41,6 +42,7 @@ const App = () => {
               <Route path="attendance" element={<Attendance />} />
               <Route path="leave" element={<Leave />} />
               <Route path="overtime" element={<Overtime />} />
+              <Route path="meeting" element={<Meeting />} />
               <Route path="vehicles" element={<Vehicles />} />
               <Route path="services" element={<Services />} />
               <Route path="reviews" element={<Reviews />} />

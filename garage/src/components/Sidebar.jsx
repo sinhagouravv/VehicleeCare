@@ -24,6 +24,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
         { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
+        { name: 'Meeting', path: '/meeting', icon: <CalendarDays size={20} /> },
         { name: 'Vehicles', path: '/vehicles', icon: <Car size={20} /> },
         { name: 'Services', path: '/services', icon: <Wrench size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
