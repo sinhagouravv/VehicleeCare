@@ -17,14 +17,13 @@ const IdCardRequestSchema = new mongoose.Schema({
         type: String,
         required: false
     },
-    reason: {
+    purpose: {
         type: String,
         required: true
     },
-    additionalInfo: {
+    reason: {
         type: String,
-        required: false,
-        default: ''
+        required: true
     },
     status: {
         type: String,

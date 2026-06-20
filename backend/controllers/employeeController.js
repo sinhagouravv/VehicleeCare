@@ -163,7 +163,7 @@ const getEmployeeById = async (req, res) => {
 // @route   POST /api/employees/id-card-request
 const requestIdCard = async (req, res) => {
     try {
-        const { employeeId, reason, additionalInfo, appointmentDate, appointmentTime } = req.body;
+        const { employeeId, purpose, reason, appointmentDate, appointmentTime } = req.body;
         
         // Find employee to populate other fields
         const employee = await Employee.findOne({ employeeId });
@@ -182,8 +182,8 @@ const requestIdCard = async (req, res) => {
             employeeName: employee.name,
             employeePhone: employee.phone || '',
             employeeEmail: employee.email || '',
+            purpose,
             reason,
-            additionalInfo: additionalInfo || '',
             garageId: employee.garageId,
             appointmentDate: appointmentDate || '',
             appointmentTime: appointmentTime || ''
@@ -195,9 +195,9 @@ const requestIdCard = async (req, res) => {
             const garage = await Garage.findOne({ garageId: employee.garageId });
             const garageName = garage ? garage.name : 'Unknown Garage';
 
-            let msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card. Reason: ${reason}.`;
+            let msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card. Purpose: ${purpose}. Reason: ${reason}.`;
             if (appointmentDate && appointmentTime) {
-                msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card and booked an appointment on ${appointmentDate} at ${appointmentTime}. Reason: ${reason}.`;
+                msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card and booked an appointment on ${appointmentDate} at ${appointmentTime}. Purpose: ${purpose}. Reason: ${reason}.`;
             }
 
             createAdminNotification({
@@ -209,6 +209,7 @@ const requestIdCard = async (req, res) => {
                     name: employee.name, 
                     garageId: employee.garageId,
                     garageName: garageName,
+                    purpose: purpose,
                     reason: reason,
                     appointmentDate: appointmentDate || '',
                     appointmentTime: appointmentTime || ''
@@ -237,6 +238,146 @@ const getIdCardRequests = async (req, res) => {
     }
 };
 
+// @desc    Get all ID card requests for a garage
+// @route   GET /api/employees/id-card-requests/garage/:garageId
+const getGarageIdCardRequests = async (req, res) => {
+    try {
+        const requests = await IdCardRequest.find({ garageId: req.params.garageId }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: requests });
+    } catch (err) {
+        console.error("Error getting garage ID card requests:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Update ID card request status
+// @route   PATCH /api/employees/id-card-requests/:id/status
+const updateIdCardRequestStatus = async (req, res) => {
+    try {
+        const { status, remarks, employeeId } = req.body;
+        
+        // Find request
+        const request = await IdCardRequest.findById(req.params.id);
+        if (!request) {
+            return res.status(404).json({ success: false, message: 'Request not found' });
+        }
+
+                // Verify that the status update is done by a verified Admin of this garage
+        let garageAdmin = null;
+        if (employeeId) {
+            garageAdmin = await Employee.findOne({ 
+                employeeId: employeeId, 
+                garageId: request.garageId, 
+                role: 'Admin', 
+                isVerified: true 
+            });
+            if (!garageAdmin) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'Unauthorized: Invalid Employee ID or you do not have Admin permissions for this garage.' 
+                });
+            }
+        } else {
+            // Fallback to finding any verified Admin in that garage (backward/test compatibility)
+            garageAdmin = await Employee.findOne({ 
+                garageId: request.garageId, 
+                role: 'Admin', 
+                isVerified: true 
+            });
+        }
+
+        if (!garageAdmin) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Unauthorized: Only verified Admin employees of this garage can update request status.' 
+            });
+        }
+
+        request.status = status;
+        if (remarks !== undefined) {
+            request.remarks = remarks;
+        }
+
+        await request.save();
+
+        // Fire admin notification
+        try {
+            createAdminNotification({
+                eventType: 'id_card_status_updated',
+                title: 'Duplicate ID Card Request Status Updated',
+                message: `Duplicate ID card request for employee ID ${request.employeeId} has been ${status.toLowerCase()}.`,
+                meta: {
+                    requestId: request._id,
+                    employeeId: request.employeeId,
+                    status: status,
+                    remarks: remarks || ''
+                }
+            });
+        } catch (notifErr) {
+            console.error('Failed to create admin notification for duplicate ID card status update:', notifErr);
+        }
+
+        // Fire employee notification (type: 'meeting')
+        try {
+            const cleanRemarks = remarks || '';
+            let msg = `Dear Employee, Your request for having a duplicate ID card has been ${status.toLowerCase()}`;
+            if (status === 'Rejected') {
+                msg += ' at the moment.';
+            } else {
+                msg += '.';
+            }
+            msg += ' ';
+
+            if (status === 'Approved') {
+                msg += `Your appointment has been scheduled for ${request.appointmentDate} at ${request.appointmentTime}. Kindly be on time. `;
+            }
+            if (cleanRemarks) {
+                msg += `Remarks: ${cleanRemarks}`;
+            }
+
+            createAdminNotification({
+                eventType: 'meeting',
+                title: `Duplicate ID Request ${status}`,
+                message: msg,
+                meta: {
+                    requestId: request._id,
+                    employeeId: request.employeeId,
+                    adminEmpId: garageAdmin.employeeId,
+                    adminName: garageAdmin.name,
+                    remarks: cleanRemarks,
+                    status: status,
+                    appointmentDate: request.appointmentDate,
+                    appointmentTime: request.appointmentTime
+                }
+            });
+        } catch (notifErr) {
+            console.error('Failed to create employee notification for duplicate ID card status update:', notifErr);
+        }
+
+        res.status(200).json({ success: true, data: request });
+    } catch (err) {
+        console.error("Error updating ID card request status:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Delete an ID card request
+// @route   DELETE /api/employees/id-card-requests/:id
+const deleteIdCardRequest = async (req, res) => {
+    try {
+        const request = await IdCardRequest.findById(req.params.id);
+        if (!request) {
+            return res.status(404).json({ success: false, message: 'Request not found' });
+        }
+
+        await IdCardRequest.deleteOne({ _id: req.params.id });
+        res.status(200).json({ success: true, message: 'Request deleted successfully' });
+    } catch (err) {
+        console.error("Error deleting ID card request:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getEmployees,
     getEmployeeById,
@@ -245,6 +386,9 @@ module.exports = {
     deleteEmployee,
     updateEmployee,
     requestIdCard,
-    getIdCardRequests
+    getIdCardRequests,
+    getGarageIdCardRequests,
+    updateIdCardRequestStatus,
+    deleteIdCardRequest
 };
 
