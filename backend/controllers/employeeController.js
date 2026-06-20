@@ -1,4 +1,5 @@
 const Employee = require('../models/Employee');
+const IdCardRequest = require('../models/IdCardRequest');
 const { generateEmployeeId } = require('../utils/generateId');
 const { createAdminNotification } = require('./notificationController');
 const bcrypt = require('bcryptjs');
@@ -158,12 +159,92 @@ const getEmployeeById = async (req, res) => {
 };
 
 
+// @desc    Request a duplicate ID card
+// @route   POST /api/employees/id-card-request
+const requestIdCard = async (req, res) => {
+    try {
+        const { employeeId, reason, additionalInfo, appointmentDate, appointmentTime } = req.body;
+        
+        // Find employee to populate other fields
+        const employee = await Employee.findOne({ employeeId });
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+
+        // Check if there is already a pending duplicate request for this employee
+        const hasPending = await IdCardRequest.findOne({ employeeId, status: 'Pending' });
+        if (hasPending) {
+            return res.status(400).json({ success: false, message: 'You already have a pending duplicate ID card request.' });
+        }
+
+        const idRequest = await IdCardRequest.create({
+            employeeId,
+            employeeName: employee.name,
+            employeePhone: employee.phone || '',
+            employeeEmail: employee.email || '',
+            reason,
+            additionalInfo: additionalInfo || '',
+            garageId: employee.garageId,
+            appointmentDate: appointmentDate || '',
+            appointmentTime: appointmentTime || ''
+        });
+
+        // Fire admin notification
+        try {
+            const Garage = require('../models/Garage');
+            const garage = await Garage.findOne({ garageId: employee.garageId });
+            const garageName = garage ? garage.name : 'Unknown Garage';
+
+            let msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card. Reason: ${reason}.`;
+            if (appointmentDate && appointmentTime) {
+                msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card and booked an appointment on ${appointmentDate} at ${appointmentTime}. Reason: ${reason}.`;
+            }
+
+            createAdminNotification({
+                eventType: 'id_card_requested',
+                title: 'Duplicate ID Card Request',
+                message: msg,
+                meta: { 
+                    employeeId: employee.employeeId, 
+                    name: employee.name, 
+                    garageId: employee.garageId,
+                    garageName: garageName,
+                    reason: reason,
+                    appointmentDate: appointmentDate || '',
+                    appointmentTime: appointmentTime || ''
+                }
+            });
+        } catch (notifErr) {
+            console.error('Failed to create admin notification for duplicate ID card:', notifErr);
+        }
+
+        res.status(201).json({ success: true, data: idRequest });
+    } catch (err) {
+        console.error("Error requesting duplicate ID card:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Get all ID card requests for an employee
+// @route   GET /api/employees/id-card-requests/employee/:employeeId
+const getIdCardRequests = async (req, res) => {
+    try {
+        const requests = await IdCardRequest.find({ employeeId: req.params.employeeId }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: requests });
+    } catch (err) {
+        console.error("Error getting ID card requests:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getEmployees,
     getEmployeeById,
     getGarageEmployees,
     createEmployee,
     deleteEmployee,
-    updateEmployee
+    updateEmployee,
+    requestIdCard,
+    getIdCardRequests
 };
 
