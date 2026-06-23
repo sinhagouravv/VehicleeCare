@@ -378,6 +378,48 @@ const deleteIdCardRequest = async (req, res) => {
     }
 };
 
+// @desc    Upload employee profile avatar
+// @route   POST /api/employees/:id/avatar
+const uploadEmployeeAvatar = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload an image file.' });
+        }
+
+        // Find employee first
+        let employee;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            employee = await Employee.findById(id);
+        }
+        if (!employee) {
+            // Try numerical employeeId
+            employee = await Employee.findOne({ employeeId: id });
+        }
+
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+
+        // Upload memory buffer to Cloudinary
+        const { uploadStream } = require('../utils/cloudinary');
+        const result = await uploadStream(req.file.buffer, 'employee_avatars');
+
+        // Save secure url to database
+        employee.avatar = result.secure_url;
+        await employee.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Avatar uploaded successfully',
+            data: employee
+        });
+    } catch (err) {
+        console.error('Error uploading employee avatar:', err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getEmployees,
     getEmployeeById,
@@ -389,6 +431,7 @@ module.exports = {
     getIdCardRequests,
     getGarageIdCardRequests,
     updateIdCardRequestStatus,
-    deleteIdCardRequest
+    deleteIdCardRequest,
+    uploadEmployeeAvatar
 };
 
