@@ -85,6 +85,10 @@ const employeeSchema = new mongoose.Schema({
     otpExpiry: {
         type: Date
     },
+    avatar: {
+        type: String,
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: Date.now
