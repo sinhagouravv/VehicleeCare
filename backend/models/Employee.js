@@ -61,6 +61,10 @@ const employeeSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    drivingLicense: {
+        type: String,
+        default: ''
+    },
     salaryType: {
         type: String,
         default: ''
