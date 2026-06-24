@@ -387,9 +387,12 @@ exports.employeeLogin = async (req, res) => {
                     panCard: employee.panCard,
                     adharCard: employee.adharCard,
                     voterId: employee.voterId,
+                    drivingLicense: employee.drivingLicense,
                     isVerified: employee.isVerified,
                     createdAt: employee.createdAt,
-                    avatar: employee.avatar || ''
+                    avatar: employee.avatar || '',
+                    address: employee.address || '',
+                    shift: employee.shift || 'Morning'
                 } 
             });
         });
