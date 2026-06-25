@@ -392,7 +392,8 @@ exports.employeeLogin = async (req, res) => {
                     createdAt: employee.createdAt,
                     avatar: employee.avatar || '',
                     address: employee.address || '',
-                    shift: employee.shift || 'Morning'
+                    shift: employee.shift || 'Morning',
+                    dob: employee.dob || ''
                 } 
             });
         });
