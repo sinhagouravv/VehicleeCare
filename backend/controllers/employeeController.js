@@ -420,6 +420,54 @@ const uploadEmployeeAvatar = async (req, res) => {
     }
 };
 
+// @desc    Upload employee document
+// @route   POST /api/employees/:id/document
+const uploadEmployeeDocument = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { documentType } = req.body;
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload a document file.' });
+        }
+
+        const validDocumentTypes = ['adharCard', 'voterId', 'panCard', 'drivingLicense', 'agreement', 'signature'];
+        if (!validDocumentTypes.includes(documentType)) {
+            return res.status(400).json({ success: false, message: `Invalid document type. Allowed types: ${validDocumentTypes.join(', ')}` });
+        }
+
+        // Find employee first
+        let employee;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            employee = await Employee.findById(id);
+        }
+        if (!employee) {
+            employee = await Employee.findOne({ employeeId: id });
+        }
+
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+
+        // Upload memory buffer to Cloudinary
+        const { uploadStream } = require('../utils/cloudinary');
+        const result = await uploadStream(req.file.buffer, 'employee_documents');
+
+        // Save secure url to the specified field in database
+        employee[documentType] = result.secure_url;
+        await employee.save();
+
+        res.status(200).json({
+            success: true,
+            message: `${documentType} uploaded successfully`,
+            data: employee
+        });
+    } catch (err) {
+        console.error('Error uploading employee document:', err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getEmployees,
     getEmployeeById,
@@ -432,6 +480,7 @@ module.exports = {
     getGarageIdCardRequests,
     updateIdCardRequestStatus,
     deleteIdCardRequest,
-    uploadEmployeeAvatar
+    uploadEmployeeAvatar,
+    uploadEmployeeDocument
 };
 

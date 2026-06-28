@@ -20,7 +20,8 @@ const {
     getGarageIdCardRequests,
     updateIdCardRequestStatus,
     deleteIdCardRequest,
-    uploadEmployeeAvatar
+    uploadEmployeeAvatar,
+    uploadEmployeeDocument
 } = require('../controllers/employeeController');
 
 router.get('/', getEmployees);
@@ -35,5 +36,6 @@ router.get('/garage/:garageId', getGarageEmployees);
 router.put('/:id', updateEmployee);
 router.delete('/:id', deleteEmployee);
 router.post('/:id/avatar', upload.single('avatar'), uploadEmployeeAvatar);
+router.post('/:id/document', upload.single('document'), uploadEmployeeDocument);
 
 module.exports = router;
