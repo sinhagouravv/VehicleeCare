@@ -69,6 +69,10 @@ const employeeSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    signature: {
+        type: String,
+        default: ''
+    },
     salaryType: {
         type: String,
         default: ''
