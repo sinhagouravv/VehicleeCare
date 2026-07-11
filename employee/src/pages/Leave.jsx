@@ -65,7 +65,16 @@ const Leave = () => {
     };
 
     const storedUser = JSON.parse(localStorage.getItem('employeeUser') || '{}');
-    const empId = storedUser.id || storedUser._id;
+    const empId = storedUser.employeeId || storedUser.id || storedUser._id;
+
+    const isLeaveEnded = (endDateStr) => {
+        if (!endDateStr) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = new Date(endDateStr);
+        endDate.setHours(0, 0, 0, 0);
+        return today > endDate;
+    };
 
     const fetchLeaves = useCallback(async (silent = false) => {
         if (!empId) return;
@@ -255,7 +264,7 @@ const Leave = () => {
                                 <th className="p-4.5 font-bold text-center w-[9%]"> End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
                                 <th className="p-4.5 font-bold text-center w-[1%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[0.5%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[4%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
@@ -314,27 +323,35 @@ const Leave = () => {
                                         </span>
                                     </td>
                                     <td className="p-5">
-                                        <div className="flex items-center justify-center gap-1">
+                                        <div className="flex items-center justify-center gap-4">
                                             {leave.status === 'Approved' && (
                                                 <button
                                                     onClick={() => handleOpenModal(leave)}
-                                                    className="text-gray-400 hover:text-[#527FB0] hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                    disabled={isLeaveEnded(leave.endDate)}
+                                                    className={`text-gray-400 rounded-lg transition-colors ${
+                                                        isLeaveEnded(leave.endDate) 
+                                                            ? 'opacity-30 cursor-not-allowed' 
+                                                            : 'hover:text-emerald-500 hover:bg-emerald-50'
+                                                    }`}
+                                                    title={isLeaveEnded(leave.endDate) ? "The leave has ended you cannot extend the leave now" : "Extend Leave"}
                                                 >
                                                     <History size={18} />
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => handleView(leave)}
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                                             >
                                                 <Eye size={18} />
                                             </button>
-                                            <button 
-                                                onClick={() => openDeleteModal(leave)}
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            {leave.status !== 'Approved' && (
+                                                <button 
+                                                    onClick={() => openDeleteModal(leave)}
+                                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
