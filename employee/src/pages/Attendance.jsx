@@ -40,10 +40,12 @@ const Attendance = () => {
 
             if (!silent) setLoading(true);
 
+            const empId = user.employeeId || user.id;
+
             // Fetch today's status & records simultaneously
             const [statusRes, recordsRes] = await Promise.all([
-                fetch(`http://localhost:5001/api/attendance/status/${user.id}`),
-                fetch(`http://localhost:5001/api/attendance/employee/${user.id}`)
+                fetch(`http://localhost:5001/api/attendance/status/${empId}`),
+                fetch(`http://localhost:5001/api/attendance/employee/${empId}`)
             ]);
 
             const statusData = await statusRes.json();
@@ -94,7 +96,7 @@ const Attendance = () => {
             const res = await fetch('http://localhost:5001/api/attendance/check-in', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employeeId: employeeUser.id })
+                body: JSON.stringify({ employeeId: employeeUser.employeeId || employeeUser.id })
             });
             const data = await res.json();
             if (data.success || data.message?.includes('Absent')) {
