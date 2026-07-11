@@ -16,7 +16,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Progress', path: '/progress', icon: <BarChart3 size={20} /> },
         { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
-        { name: 'Staff Overview', path: '/staff-overview', icon: <PieChart size={20} /> },
+        // { name: 'Staff Overview', path: '/staff-overview', icon: <PieChart size={20} /> },
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'My Bookings', path: '/my-bookings', icon: <ClipboardList size={20} /> },
         { name: 'Customers', path: '/customers', icon: <Users size={20} /> },
