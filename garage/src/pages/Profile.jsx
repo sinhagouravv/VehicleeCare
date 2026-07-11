@@ -332,7 +332,7 @@ const Profile = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all text-left">
                                 <div className="space-y-1">
-                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business PAN Card</p>
+                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Owner PAN Card</p>
                                     <p className="text-sm font-semibold text-[#052558]">{garage.panCard ? `XXXXX${garage.panCard.slice(-4)}` : '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
@@ -342,7 +342,7 @@ const Profile = () => {
 
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-emerald-200 transition-all text-left">
                                 <div className="space-y-1">
-                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Business Adhar Card</p>
+                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Owner Adhar Card</p>
                                     <p className="text-sm font-semibold text-[#052558]">{garage.adharCard ? `XXXX XXXX ${garage.adharCard.slice(-4)}` : '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
@@ -352,7 +352,7 @@ const Profile = () => {
 
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group  transition-all text-left">
                                 <div className="space-y-1">
-                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Election Card ID</p>
+                                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Owner Card ID</p>
                                     <p className="text-sm font-semibold text-[#052558]">{garage.voterId || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
