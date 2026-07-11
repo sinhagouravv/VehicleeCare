@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, DollarSign, Sparkles, Clock, UploadCloud, Contact } from 'lucide-react';
 
 import Logo from '../assets/logo.svg';
 
@@ -15,9 +15,16 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
 
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
+        { name: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} /> },
         { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
         { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
-        { name: 'Tasks', path: '/tasks', icon: <ListTodo size={20} /> },
+        { name: 'Tasks', path: '/tasks', icon: <FileText size={20} /> },
+        { name: 'Details', path: '/details', icon: <ListTodo size={20} /> },
+        { name: 'Finance', path: '/finance', icon: <DollarSign size={20} /> },
+        { name: 'Makeup', path: '/makeup', icon: <Sparkles size={20} /> },
+        { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
+        { name: 'Upload Documents', path: '/upload-documents', icon: <UploadCloud size={20} /> },
+        { name: 'Virtual ID Card', path: '/virtual-id-card', icon: <Contact size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
@@ -57,7 +64,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-2 overflow-y-auto hide-scrollbar">
+            <nav className="flex-1 px-4 py-10 uppercase space-y-1 overflow-y-auto hide-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}

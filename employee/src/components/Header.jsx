@@ -9,6 +9,13 @@ const EMPLOYEE_PAGES = [
     { name: 'Tasks', path: '/tasks' },
     { name: 'Notifications', path: '/notifications' },
     { name: 'Reviews', path: '/reviews' },
+    { name: 'Analytics', path: '/analytics' },
+    { name: 'Details', path: '/details' },
+    { name: 'Finance', path: '/finance' },
+    { name: 'Makeup', path: '/makeup' },
+    { name: 'Overtime', path: '/overtime' },
+    { name: 'Upload Documents', path: '/upload-documents' },
+    { name: 'Virtual ID Card', path: '/virtual-id-card' },
     { name: 'Settings', path: '/settings' }
 ];
 

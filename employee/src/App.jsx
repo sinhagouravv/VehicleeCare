@@ -10,6 +10,13 @@ import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
+import Analytics from './pages/Analytics';
+import Details from './pages/Details';
+import Finance from './pages/Finance';
+import Makeup from './pages/Makeup';
+import Overtime from './pages/Overtime';
+import UploadDocuments from './pages/UploadDocuments';
+import VirtualIDCard from './pages/VirtualIDCard';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -30,6 +37,13 @@ const App = () => {
             <Route path="reviews" element={<Reviews />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="details" element={<Details />} />
+            <Route path="finance" element={<Finance />} />
+            <Route path="makeup" element={<Makeup />} />
+            <Route path="overtime" element={<Overtime />} />
+            <Route path="upload-documents" element={<UploadDocuments />} />
+            <Route path="virtual-id-card" element={<VirtualIDCard />} />
           </Route>
 
         </Route>
