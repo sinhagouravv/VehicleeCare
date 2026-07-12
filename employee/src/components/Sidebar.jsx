@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, DollarSign, Sparkles, Clock, UploadCloud, Contact } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, Wallet, Sparkles, Clock, UploadCloud, Contact } from 'lucide-react';
 
 import Logo from '../assets/logo.svg';
 
@@ -17,10 +17,10 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} /> },
         { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
+        { name: 'Finance', path: '/finance', icon: <Wallet size={20} /> },
         { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Tasks', path: '/tasks', icon: <FileText size={20} /> },
         { name: 'Details', path: '/details', icon: <ListTodo size={20} /> },
-        { name: 'Finance', path: '/finance', icon: <DollarSign size={20} /> },
         { name: 'Makeup', path: '/makeup', icon: <Sparkles size={20} /> },
         { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
         { name: 'Upload Documents', path: '/upload-documents', icon: <UploadCloud size={20} /> },
@@ -33,7 +33,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     return (
         <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white/40 backdrop-blur-md transform-gpu border-r border-[#e6f0fa] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
             {/* Logo Area */}
-            <div className={`pt-6 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
+            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                     <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
                     <div className="-ml-4">
@@ -64,13 +64,13 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-1 overflow-y-auto hide-scrollbar">
+            <nav className="flex-1 px-4 py-5.5 uppercase space-y-1 overflow-y-auto hide-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.path}
                         className={({ isActive }) =>
-                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-12 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
+                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-11.5 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
                                 ? 'bg-white text-[#011023] shadow-md'
                                 : 'text-gray-500 hover:bg-white/50 items-center hover:text-[#011023]'
                             }`
