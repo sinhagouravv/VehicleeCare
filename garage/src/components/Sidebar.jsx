@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, PieChart, FileBarChart, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, CalendarOff, BarChart3, Clock } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, PieChart, FileBarChart, Wallet, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, CalendarOff, BarChart3, Clock } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -16,6 +16,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Progress', path: '/progress', icon: <BarChart3 size={20} /> },
         { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
+        { name: 'Finance', path: '/finance', icon: <Wallet size={20} /> },
         // { name: 'Staff Overview', path: '/staff-overview', icon: <PieChart size={20} /> },
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'My Bookings', path: '/my-bookings', icon: <ClipboardList size={20} /> },
@@ -35,9 +36,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     return (
         <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white/40 backdrop-blur-md transform-gpu border-r border-[#e6f0fa] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
             {/* Logo Area */}
-            <div className={`pt-6 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
+            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
-                    <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
+                    <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-26 object-contain drop-shadow-md flex-shrink-0" />
                     <div className="-ml-4">
                         <h1 className="text-xl font-black tracking-tight text-semibold leading-none">VehicleeCare</h1>
                         <p className="text-[#527FB0] font-bold text-[10px] tracking-widest uppercase mt-0.5">Garage Panel</p>
@@ -65,13 +66,13 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-1 overflow-y-auto hide-scrollbar">
+            <nav className="flex-1 px-4 py-5.5 uppercase space-y-1 overflow-y-auto hide-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.path}
                         className={({ isActive }) =>
-                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-12 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
+                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-11.5 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
                                 ? 'bg-white text-[#011023] shadow-md'
                                 : 'text-gray-500 hover:bg-white/50 items-center hover:text-[#011023]'
                             }`
@@ -86,7 +87,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             <div className="p-4 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
                 <button
                     onClick={handleLogout}
-                    className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
+                    className={`w-full bg-white/0 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
                 >
                     <div className={`${isCollapsed ? '' : 'pl-1'} flex-shrink-0 group-hover:text-red-500 transition-colors`}>
                         <LogOut size={18} />
