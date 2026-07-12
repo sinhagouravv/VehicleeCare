@@ -19,7 +19,7 @@ const Profile = () => {
                 const user = JSON.parse(storedUser);
                 
                 // Fetch latest data from specific Employee endpoint
-                const res = await fetch(`http://localhost:5001/api/employees/${user._id || user.id}`);
+                const res = await fetch(`http://localhost:5001/api/employees/${user._id || user.employeeId || user.id}`);
                 
                 if (res.ok) {
                     const data = await res.json();
