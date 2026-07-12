@@ -35,7 +35,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     return (
         <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white/40 backdrop-blur-md transform-gpu border-r border-[#e6f0fa] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
             {/* Logo Area */}
-            <div className={`pt-6 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
+            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                     <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
                     <div className="-ml-4">
@@ -65,13 +65,13 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-10 uppercase space-y-1 overflow-y-auto custom-scrollbar">
+            <nav className="flex-1 px-4 py-5.5 uppercase space-y-1 overflow-y-auto custom-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.path}
                         className={({ isActive }) =>
-                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-12 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
+                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-11.5 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
                                 ? 'bg-white text-[#011023] shadow-md'
                                 : 'text-gray-500 hover:bg-white/50 items-center hover:text-[#011023]'
                             }`
