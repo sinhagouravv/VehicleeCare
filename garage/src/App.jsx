@@ -21,6 +21,7 @@ import Profile from './pages/Profile';
 import StaffOverview from './pages/StaffOverview';
 import Reports from './pages/Reports';
 import Meeting from './pages/Meeting';
+import Finance from './pages/Finance';
 import { AlertProvider } from './context/AlertContext';
 
 const App = () => {
@@ -51,6 +52,7 @@ const App = () => {
               <Route path="profile" element={<Profile />} />
               <Route path="staff-overview" element={<StaffOverview />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="finance" element={<Finance />} />
 
             </Route>
           </Route>
