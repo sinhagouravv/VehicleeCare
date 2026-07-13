@@ -13,6 +13,7 @@ import Employees from './pages/Employees';
 import Garages from './pages/Garages';
 import ChargingStations from './pages/ChargingStations';
 import Messages from './pages/Messages';
+import Bug from './pages/Bug';
 import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
@@ -50,6 +51,7 @@ const App = () => {
           <Route path="employees" element={<Employees />} />
           <Route path="garages" element={<Garages />} />
           <Route path="charging-stations" element={<ChargingStations />} />
+          <Route path="bug" element={<Bug />} />
           <Route path="messages" element={<Messages />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="notifications" element={<Notifications />} />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, ClipboardList, Users, Settings, Star, Wallet, BarChart3, Wrench, Zap, ChevronLeft, LogOut, Bell, Mail, Briefcase, Car, ShoppingBag, UserSquare2, CreditCard, FileBarChart } from 'lucide-react';
+import { LayoutDashboard, Building2, ClipboardList, Users, Settings, Star, Wallet, BarChart3, Wrench, Zap, ChevronLeft, LogOut, Bell, MessagesSquare, Briefcase, Car, ShoppingBag, UserSquare2, CreditCard, FileBarChart, Bug } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -14,10 +14,10 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} /> },
-        { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
-        { name: 'Revenue', path: '/revenue', icon: <Wallet size={20} /> },
+        // { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
-        // { name: 'Business', path: '/business', icon: <Briefcase size={20} /> },
+        { name: 'Revenue', path: '/revenue', icon: <Wallet size={20} /> },
+        { name: 'Business', path: '/business', icon: <Briefcase size={20} /> },
         { name: 'Bookings', path: '/bookings', icon: <ClipboardList size={20} /> },
         { name: 'Users', path: '/users', icon: <Users size={20} /> },
         { name: 'Employees', path: '/employees', icon: <UserSquare2 size={20} /> },
@@ -26,7 +26,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         // { name: 'Store', path: '/store', icon: <ShoppingBag size={20} /> },
         { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
         { name: 'Parking', path: '/parking', icon: <Car size={20} /> },
-        { name: 'Messages', path: '/messages', icon: <Mail size={20} /> },
+        { name: 'Bug', path: '/bug', icon: <Bug size={20} /> },
+        { name: 'Messages', path: '/messages', icon: <MessagesSquare size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
@@ -86,7 +87,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             <div className="p-4 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
                 <button
                     onClick={handleLogout}
-                    className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
+                    className={`w-full rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
                 >
                     <div className={`${isCollapsed ? '' : 'pl-1'} flex-shrink-0 group-hover:text-red-500 transition-colors`}>
                         <LogOut size={18} />
