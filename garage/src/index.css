@@ -17,10 +17,15 @@
   --secondary: #527FB0;
 }
 
+html, body {
+  overflow: hidden;
+  height: 100vh;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
   color: #011023;
   background-color: #f4f9ff;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

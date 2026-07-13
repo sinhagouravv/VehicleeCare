@@ -23,12 +23,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html, body {
+  overflow: hidden;
+  height: 100vh;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   display: flex;
   flex-direction: column;
   min-width: 320px;
-  min-height: 100vh;
 }
 
 /* Fix for Webkit Autofill background color */
