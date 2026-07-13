@@ -94,30 +94,30 @@ const Messages = () => {
             </div>
 
             {/* Stats Overview */}
-            <div className="flex flex-wrap uppercase items-center gap-5.5">
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+            <div className="flex flex-wrap uppercase items-center gap-5">
+                <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Total Messages</p>
-                        <p className="text-3xl font-bold text-[#011023]">{totalMessages}</p>
+                        <p className="text-2xl font-bold text-[#011023]">{totalMessages}</p>
                     </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Read Messages</p>
-                        <p className="text-3xl font-bold text-emerald-500">{readMessages}</p>
+                        <p className="text-2xl font-bold text-emerald-500">{readMessages}</p>
                     </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Unread Messages</p>
-                        <p className="text-3xl font-bold text-blue-500">{unreadMessages}</p>
+                        <p className="text-2xl font-bold text-blue-500">{unreadMessages}</p>
                     </div>
                 </div>
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
             <div className="bg-white/60 backdrop-blur-xl max-h-[50rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[750px] relative">
+                <div className="overflow-x-hidden overflow-y-auto h-[780px] relative">
                     <table className="w-full text-center border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">

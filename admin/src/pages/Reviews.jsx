@@ -186,7 +186,7 @@ const Reviews = () => {
 
     return (
         <>
-            <div className="space-y-6 max-w-[92rem]  mx-auto ">
+            <div className="space-y-6 max-w-[92rem] mx-auto ">
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
                     <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
@@ -201,22 +201,22 @@ const Reviews = () => {
                 </div>
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-4 uppercase gap-5.5">
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                <div className="grid grid-cols-1 md:grid-cols-4 uppercase gap-5">
+                    <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Live Average Rating</p>
                         <div className="flex items-center gap-2">
                             <span className="text-2xl font-bold text-[#011023]">{avgRating}</span>
                         </div>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                    <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Total Submission</p>
                         <p className="text-2xl font-bold text-[#011023]">{reviews.length}</p>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                    <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Pending Approval</p>
                         <p className="text-2xl font-bold text-amber-500">{pendingReviews}</p>
                     </div>
-                    <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                    <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">Rejected Reviews</p>
                         <p className="text-2xl font-bold text-red-500">{rejectedReviews}</p>
                     </div>
@@ -224,7 +224,7 @@ const Reviews = () => {
 
                 {/* Main Content Table */}
                 <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                    <div className="overflow-x-hidden overflow-y-auto h-[750px] relative">
+                    <div className="overflow-x-hidden overflow-y-auto h-[780px] relative">
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
