@@ -173,7 +173,7 @@ const Meeting = () => {
                                 <th className="p-4.5 font-bold w-[30%]">Reason</th>
                                 <th className="p-4.5 font-bold w-[15%]">Scheduled At</th>
                                 <th className="p-4.5 font-bold w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold w-[8%]">Action</th>
+                                <th className="p-4.5 font-bold w-[5%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
@@ -204,10 +204,10 @@ const Meeting = () => {
                                     <td className="p-4 font-semibold text-sm text-gray-700">
                                         {req.employeeName || '—'}
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-gray-600">
+                                    <td className="p-4 font-semibold text-sm text-gray-700">
                                         ID card
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-[#011023]">
+                                    <td className="p-4 font-semibold text-sm text-gray-700">
                                         {req.purpose || req.reason || '—'}
                                     </td>
                                     <td className="p-4">
@@ -234,7 +234,7 @@ const Meeting = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="flex items-center justify-center gap-">
+                                        <div className="flex items-center justify-center gap-1.5">
                                             {req.status === 'Pending' ? (
                                                 <>
                                                     <button 
@@ -310,7 +310,7 @@ const Meeting = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             <div className="flex flex-col md:flex-row gap-6 mb-7 w-full">
                                 {/* Employee Info */}
-                                <div className="space-y-1 w-full md:w-[33%]">
+                                <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employee Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011021] truncate">{selectedRequest.employeeName || '—'}</span></p>
@@ -319,45 +319,28 @@ const Meeting = () => {
                                 </div>
 
                                 {/* Request Info */}
-                                <div className="space-y-1 w-full md:w-[33%]">
+                                <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Appointment Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Type:</span> <span className="font-semibold text-blue-600">ID CARD</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Scheduled:</span> <span className="font-semibold text-[#011023]">{selectedRequest.appointmentDate ? `${formatDate(selectedRequest.appointmentDate)} | ${selectedRequest.appointmentTime || '—'}` : '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Type:</span> <span className="font-semibold ">ID CARD</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Purpose:</span> <span className="font-semibold text-[#011023]">{selectedRequest.purpose || selectedRequest.reason || '—'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Status & Remarks */}
-                                <div className="flex flex-col gap-4 w-full md:w-[33%]">
+                                <div className="flex flex-col gap-4 w-full md:w-[40%]">
                                     <div className="space-y-1">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Status Details</h4>
                                         <div className="space-y-2 mt-4">
                                             <div className="flex items-center gap-6">
-                                                <p className="text-sm font-semibold text-gray-500 w-16 shrink-0 uppercase">Status</p>
-                                                <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg uppercase tracking-wider ${getStatusStyle(selectedRequest.status)}`}>
+                                                <p className="text-sm text-gray-500 w-16 shrink-0 uppercase">Status</p>
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border border-transparent uppercase tracking-wider ml-5.5 ${getStatusStyle(selectedRequest.status)}`}>
                                                     {selectedRequest.status}
                                                 </span>
                                             </div>
-                                            {selectedRequest.remarks && (
-                                                <div className="flex flex-col gap-1">
-                                                    <p className="text-sm font-semibold text-gray-500 uppercase">Remarks</p>
-                                                    <span className="text-sm font-semibold text-gray-700 uppercase leading-relaxed">
-                                                        {selectedRequest.remarks}
-                                                    </span>
-                                                </div>
-                                            )}
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0 uppercase">Scheduled</span> <span className="font-semibold text-[#011023] uppercase ml-4">{selectedRequest.appointmentDate ? `${formatDate(selectedRequest.appointmentDate)} | ${selectedRequest.appointmentTime || '—'}` : '—'}</span></p>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Purpose */}
-                            <div className="space-y-2">
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Purpose</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
-                                    <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">
-                                        {selectedRequest.purpose || selectedRequest.reason || '—'}
-                                    </h5>
                                 </div>
                             </div>
 
@@ -370,6 +353,18 @@ const Meeting = () => {
                                     </h5>
                                 </div>
                             </div>
+
+                            {/* Remarks */}
+                            {selectedRequest.remarks && (
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks</h4>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
+                                        <h5 className="font-semibold text-gray-700 text-[13px] leading-relaxed whitespace-pre-wrap">
+                                            {selectedRequest.remarks}
+                                        </h5>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,
