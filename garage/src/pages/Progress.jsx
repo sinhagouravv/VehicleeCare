@@ -144,7 +144,7 @@ const Progress = () => {
                 ${expandedJob === job._id ? 'shadow-2xl shadow-blue-900/10 scale-[1.01] bg-white/95 ring-1 ring-blue-50' : ''}`}
         >
             <div
-                className="p-4 cursor-pointer flex items-center justify-between"
+                className="px-4.5 py-2.5 cursor-pointer flex items-center justify-between"
                 onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
             >
                 <div className="flex items-center gap-6 w-[80%]">
@@ -157,8 +157,8 @@ const Progress = () => {
                                 {job.bookingId || job._id?.slice(0, 8)}
                             </span>
                         </div>
-                        <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[12px] font-semibold text-slate-500 uppercase">{job.service?.title}</span>
+                        <div className="flex items-center gap-3 mt-1.25">
+                            <span className={`text-[12px] font-semibold text-slate-500 uppercase ${expandedJob === job._id ? 'whitespace-normal' : 'truncate block max-w-xl'}`} >{job.service?.title}</span>
                         </div>
                     </div>
                 </div>
@@ -299,7 +299,7 @@ const Progress = () => {
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-6 uppercase gap-4 mb-4">
                 {stats.map((stat, i) => (
-                    <div key={i} className="bg-white/60 backdrop-blur-xl border border-white px-6 py-4.5 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                    <div key={i} className="bg-white/60 backdrop-blur-xl border border-white px-6 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
                         <p className="text-gray-500 font-semibold">{stat.label}</p>
                         <div className="flex items-center gap-2">
                             <span className={`text-2xl font-bold ${stat.color === 'emerald' ? 'text-emerald-500' : stat.color === 'blue' ? 'text-[#011023]' : 'text-[#011023]'}`}>{stat.value}</span>
@@ -313,9 +313,9 @@ const Progress = () => {
 
                 {/* Active Jobs Pipeline */}
                 <div className="space-y-5">
-                    <div className="space-y-4 max-h-[775px] overflow-y-auto rounded-xl hide-scrollbar">
+                    <div className="space-y-4 max-h-[790px] overflow-y-auto rounded-xl hide-scrollbar">
                         {loading && bookings.length === 0 ? (
-                            <div className="bg-white/40 backdrop-blur-md border border-white p-20 rounded-2xl text-center shadow-sm">
+                            <div className="bg-white/40 backdrop-blur-md border border-white p-10 rounded-2xl text-center shadow-sm">
                                 <div className="relative w-16 h-16 mx-auto mb-6">
                                     <Activity className="text-blue-200 animate-ping absolute inset-0 opacity-20" size={64} />
                                     <Activity className="text-blue-400 relative z-10" size={64} />
@@ -323,7 +323,7 @@ const Progress = () => {
                                 <p className="text-slate-400 font-bold uppercase tracking-[0.25em] text-[11px]">Synchronizing Fleet Data...</p>
                             </div>
                         ) : activeBookings.length === 0 ? (
-                            <div className="bg-white/40 backdrop-blur-md border border-white p-20 rounded-[2.5rem] text-center shadow-sm">
+                            <div className="bg-white/40 backdrop-blur-md border border-white p-10 rounded-[2.5rem] text-center shadow-sm">
                                 <CheckCircle className="mx-auto text-emerald-200 mb-6" size={64} />
                                 <p className="text-slate-400 font-bold uppercase tracking-[0.25em] text-[11px]">All Services Completed</p>
                             </div>
@@ -333,9 +333,9 @@ const Progress = () => {
 
                 {/* Delivered Jobs Section */}
                 <div className="space-y-5 lg:sticky lg:top-0">
-                    <div className="space-y-4 max-h-[775px] overflow-y-auto rounded-xl hide-scrollbar">
+                    <div className="space-y-4 max-h-[790px] overflow-y-auto rounded-xl hide-scrollbar">
                         {deliveredBookings.length === 0 ? (
-                            <div className="bg-white/40 backdrop-blur-md border border-white p-20 rounded-2xl text-center shadow-sm">
+                            <div className="bg-white/40 backdrop-blur-md border border-white p-10 rounded-2xl text-center shadow-sm">
                                 <Clock className="mx-auto text-slate-200 mb-6" size={64} />
                                 <p className="text-slate-400 font-bold uppercase tracking-[0.25em] text-[11px]">No Recent Deliveries</p>
                             </div>
