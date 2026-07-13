@@ -187,7 +187,7 @@ const ChargingStations = () => {
             </div>
 
             <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
+                <div className="overflow-x-hidden overflow-y-auto h-[861px] relative">
                     <table className="w-full border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">

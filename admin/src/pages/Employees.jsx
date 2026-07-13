@@ -259,8 +259,8 @@ const Employees = () => {
             </div>
 
             {/* Main Content Table */}
-            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative">
+            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto text-center h-[861px] relative">
                     {loading ? (
                         <div className="h-full flex items-center justify-center">
                             <div className="flex flex-col items-center gap-3 text-gray-400">

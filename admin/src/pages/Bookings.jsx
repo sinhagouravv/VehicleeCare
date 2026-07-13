@@ -197,7 +197,7 @@ const Bookings = () => {
             <div className="bg-white/60 backdrop-blur-xl max-h-[55rem]  border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
 
                 <div className="overflow-x-hidden overflow-y-auto h-[860px]  relative">
-                    <table className="w-full text-left  border-collapse">
+                    <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10.5%]">Booking ID</th>
