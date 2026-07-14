@@ -17,6 +17,8 @@ import Makeup from './pages/Makeup';
 import Overtime from './pages/Overtime';
 import UploadDocuments from './pages/UploadDocuments';
 import VirtualIDCard from './pages/VirtualIDCard';
+import AverageDuration from './pages/AverageDuration';
+import SuccessRate from './pages/SuccessRate';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -44,6 +46,8 @@ const App = () => {
             <Route path="overtime" element={<Overtime />} />
             <Route path="upload-documents" element={<UploadDocuments />} />
             <Route path="virtual-id-card" element={<VirtualIDCard />} />
+            <Route path="average-duration" element={<AverageDuration />} />
+            <Route path="success-rate" element={<SuccessRate />} />
           </Route>
 
         </Route>
