@@ -43,6 +43,7 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/leaves', require('./routes/leaveRoutes'));
 app.use('/api/overtime', require('./routes/overtimeRoutes'));
+app.use('/api/bugs', require('./routes/bugRoutes'));
 
 app.get('/', (req, res) => {
     res.send('VehicleeCare Backend API');
