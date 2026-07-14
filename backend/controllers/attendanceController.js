@@ -4,6 +4,8 @@ const LeaveRequest = require('../models/LeaveRequest');
 const OvertimeRequest = require('../models/OvertimeRequest');
 const { SHIFT_RULES, getISTTime, getTodayIST, toMin, getCheckOutStatusForTime, isNewEmployeeBlocked } = require('../utils/attendanceHelpers');
 
+const lastAutoMarkTimes = {};
+
 
 
 // ──────────────────────────────────────────────
@@ -50,6 +52,10 @@ const checkIn = async (req, res) => {
 
         const employee = await Employee.findOne({ employeeId });
         if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
+
+        if (employee.garageId) {
+            delete lastAutoMarkTimes[employee.garageId.toString()];
+        }
 
         // Block new joining employee checks until their first shift start
         if (await isNewEmployeeBlocked(employee)) {
@@ -176,6 +182,10 @@ const checkOut = async (req, res) => {
         record.checkOut = new Date();
         record.status = getCheckOutStatus(shift, record.status);
         await record.save();
+
+        if (record.garageId) {
+            delete lastAutoMarkTimes[record.garageId.toString()];
+        }
 
         res.status(200).json({ success: true, data: record });
     } catch (err) {
@@ -356,7 +366,14 @@ const autoMarkAbsences = async (garageId) => {
 // ──────────────────────────────────────────────
 const getGarageAttendance = async (req, res) => {
     try {
-        await autoMarkAbsences(req.params.garageId);
+        const garageId = req.params.garageId;
+        const now = Date.now();
+        const lastMark = lastAutoMarkTimes[garageId] || 0;
+        // Only run autoMarkAbsences at most once every 10 minutes (600000ms)
+        if (now - lastMark > 10 * 60 * 1000) {
+            await autoMarkAbsences(garageId);
+            lastAutoMarkTimes[garageId] = now;
+        }
 
         const { date } = req.query;
         const query = { garageId: req.params.garageId };
@@ -448,6 +465,11 @@ const deleteRecord = async (req, res) => {
     try {
         const record = await Attendance.findByIdAndDelete(req.params.id);
         if (!record) return res.status(404).json({ success: false, message: 'Record not found' });
+        
+        if (record.garageId) {
+            delete lastAutoMarkTimes[record.garageId.toString()];
+        }
+        
         res.status(200).json({ success: true, data: {} });
     } catch (err) {
         console.error('Delete record error:', err);
