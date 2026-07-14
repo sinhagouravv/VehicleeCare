@@ -60,10 +60,10 @@ const Layout = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#f4f9ff] via-[#e6f0fa] to-[#f4f9ff] flex text-[#011023] font-sans">
+        <div className="min-h-screen bg-[#fafbfc] flex text-[#011023] font-sans">
             {/* Ambient Background Elements */}
-            <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-300/20 rounded-full blur-3xl opacity-40 transform-gpu pointer-events-none"></div>
-            <div className="fixed bottom-[-10%] right-[-5%] w-[30%] h-[50%] bg-emerald-200/15 rounded-full blur-3xl opacity-40 transform-gpu pointer-events-none"></div>
+            <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-50/5 rounded-full blur-3xl opacity-10 transform-gpu pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-5%] w-[30%] h-[50%] bg-emerald-50/5 rounded-full blur-3xl opacity-10 transform-gpu pointer-events-none"></div>
 
             {/* Sidebar */}
             <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
@@ -81,7 +81,7 @@ const Layout = () => {
 
             <button
                 onClick={() => setIsBugModalOpen(true)}
-                className="fixed bottom-9 right-9 z-50 p-3 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center group cursor-pointer shadow-[#052558]/20"
+        className="fixed bottom-9 right-9 z-50 p-3 rounded-full bg-blue-50 border border-blue-300 flex items-center justify-center text-[#527FB0] hover:bg-blue-100 hover:text-blue-400 transition-all shadow-md hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
             >
                 <Bug size={24} className="group-hover:scale-110 transition-transform duration-300" />
                 {/* <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-out whitespace-nowrap text-xs font-bold uppercase tracking-wider pl-0 group-hover:pl-2">Report a Bug</span> */}
