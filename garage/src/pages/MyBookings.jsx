@@ -360,7 +360,7 @@ const MyBookings = () => {
                                     <div className="flex items-center mt-7 gap-3">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
                                         <div className="flex uppercase items-center gap-2 pl-4">
-                                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border border-transparent ${getStatusColor(selectedBooking.status)}`}>
                                                 {selectedBooking.status}
                                             </span>
                                         </div>
