@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, Wallet, Sparkles, Clock, UploadCloud, Contact } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, Wallet, Sparkles, Clock, UploadCloud, Contact, Gauge, BadgeCheck } from 'lucide-react';
 
 import Logo from '../assets/logo.svg';
 
@@ -20,20 +20,22 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Finance', path: '/finance', icon: <Wallet size={20} /> },
         { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Tasks', path: '/tasks', icon: <FileText size={20} /> },
-        { name: 'Details', path: '/details', icon: <ListTodo size={20} /> },
-        { name: 'Makeup', path: '/makeup', icon: <Sparkles size={20} /> },
+        { name: 'Average Duration', path: '/average-duration', icon: <Gauge size={20} /> },
+        { name: 'Success Rate', path: '/success-rate', icon: <BadgeCheck size={20} /> },
+        // { name: 'Details', path: '/details', icon: <ListTodo size={20} /> },
+        // { name: 'Makeup', path: '/makeup', icon: <Sparkles size={20} /> },
         { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
         { name: 'Upload Documents', path: '/upload-documents', icon: <UploadCloud size={20} /> },
-        { name: 'Virtual ID Card', path: '/virtual-id-card', icon: <Contact size={20} /> },
+        // { name: 'Virtual ID Card', path: '/virtual-id-card', icon: <Contact size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
         { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
     ];
 
     return (
-        <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white/40 backdrop-blur-md transform-gpu border-r border-[#e6f0fa] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
+        <aside className={`${isCollapsed ? 'w-22.5' : 'w-67'} transition-all duration-300 bg-white/60 backdrop-blur-md transform-gpu border-r border-[#e2e8f0] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
             {/* Logo Area */}
-            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
+            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e2e8f0] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                     <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
                     <div className="-ml-4">
@@ -82,7 +84,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                 ))}
             </nav>
 
-            <div className="p-4 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
+            <div className="p-4 border-t text-sm border-[#e2e8f0] bg-white/20 mt-auto">
                 <button
                     onClick={handleLogout}
                     className={`w-full bg-white/60 rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
