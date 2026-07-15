@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, ShieldAlert, Loader2 } from 'lucide-react';
+import { Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 const Overtime = () => {
@@ -10,12 +10,19 @@ const Overtime = () => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [employeeUser, setEmployeeUser] = useState(null);
+    const [selectedOvertime, setSelectedOvertime] = useState(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         date: '',
         hours: '',
         reason: ''
     });
+
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [requestedHours, setRequestedHours] = useState(null);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
+    const [fullEmployeeProfile, setFullEmployeeProfile] = useState(null);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('employeeUser');
@@ -25,6 +32,36 @@ const Overtime = () => {
     }, []);
 
     const empId = employeeUser?.employeeId || employeeUser?.id || employeeUser?._id;
+
+    const getFormattedDateString = (dayOffset = 0) => {
+        const d = new Date();
+        d.setDate(d.getDate() + dayOffset);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    useEffect(() => {
+        const fetchExtraData = async () => {
+            if (!empId) return;
+            try {
+                const attRes = await fetch(`http://localhost:5001/api/attendance/employee/${empId}`);
+                if (attRes.ok) {
+                    const data = await attRes.json();
+                    if (data.success) setAttendanceRecords(data.data || []);
+                }
+                const profRes = await fetch(`http://localhost:5001/api/employees/${empId}`);
+                if (profRes.ok) {
+                    const data = await profRes.json();
+                    if (data.success) setFullEmployeeProfile(data.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch extra overtime data", err);
+            }
+        };
+        fetchExtraData();
+    }, [empId]);
 
     const fetchOvertimes = useCallback(async (silent = false) => {
         if (!empId) return;
@@ -53,6 +90,8 @@ const Overtime = () => {
     }, [empId, fetchOvertimes]);
 
     const handleOpenModal = () => {
+        setSelectedDate(null);
+        setRequestedHours(null);
         setFormData({
             date: '',
             hours: '',
@@ -68,14 +107,20 @@ const Overtime = () => {
         setError(null);
         setSuccess(null);
 
-        if (!formData.date || !formData.hours || !formData.reason) {
-            setError("Please fill in all fields.");
+        if (!selectedDate) {
+            setError("Please select a date option (Today or Tomorrow).");
             return;
         }
 
-        const hoursNum = parseFloat(formData.hours);
-        if (isNaN(hoursNum) || hoursNum <= 0 || hoursNum > 12) {
-            setError("Hours must be between 0.5 and 12.");
+        if (!requestedHours) {
+            setError("Please select the hours requested.");
+            return;
+        }
+
+        const targetDate = selectedDate === 'Today' ? getFormattedDateString(0) : getFormattedDateString(1);
+
+        if (!formData.reason.trim()) {
+            setError("Kindly provide a valid reason for Overtime.");
             return;
         }
 
@@ -97,8 +142,8 @@ const Overtime = () => {
                     employeePhone: employeeUser.phone || '',
                     employeeEmail: employeeUser.email || '',
                     garageId: employeeUser.garageId || 'G001', // default garage mapping if none exists
-                    date: formData.date,
-                    hours: hoursNum,
+                    date: targetDate,
+                    hours: requestedHours,
                     reason: formData.reason
                 })
             });
@@ -110,6 +155,8 @@ const Overtime = () => {
                 fetchOvertimes(true);
                 setTimeout(() => {
                     setShowModal(false);
+                    setSelectedDate(null);
+                    setRequestedHours(null);
                 }, 800);
             } else {
                 setError(data.message || "Failed to submit request.");
@@ -155,70 +202,111 @@ const Overtime = () => {
         return d;
     };
 
+    const formatDateToJul = (d) => {
+        if (!d) return '—';
+        let dateObj;
+        if (d.includes('-')) {
+            const parts = d.split('-');
+            if (parts[0].length === 4) {
+                // YYYY-MM-DD
+                dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+            } else {
+                // DD-MM-YYYY
+                dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+        } else {
+            dateObj = new Date(d);
+        }
+        if (isNaN(dateObj.getTime())) return d;
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = dateObj.getDate();
+        const month = months[dateObj.getMonth()];
+        const year = dateObj.getFullYear();
+        return `${day} ${month} ${year}`;
+    };
+
+    const getOvertimeSlot = (hours) => {
+        const startHour = 18; // 6 PM
+        const endHour = startHour + parseFloat(hours || 0);
+        
+        const formatHour = (h) => {
+            const period = h >= 12 && h < 24 ? 'PM' : 'AM';
+            let displayHour = Math.floor(h % 12);
+            if (displayHour === 0) displayHour = 12;
+            const minutes = (h % 1) === 0.5 ? '30' : '00';
+            return `${String(displayHour).padStart(2, '0')}:${minutes} ${period}`;
+        };
+        
+        return `${formatHour(startHour)} - ${formatHour(endHour)}`;
+    };
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
-                <div>
                     <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
-                    <p className="text-xs text-gray-400 font-semibold mt-1">Submit and track overtime hours request approvals</p>
-                </div>
-                <button
-                    onClick={handleOpenModal}
-                    className="flex items-center gap-2 px-5 py-3 bg-[#052558] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-[#527FB0] transition-all shadow-sm active:scale-95 cursor-pointer"
-                >
-                    <Plus size={16} /> Request Overtime
+                 <div className="flex items-center gap-4">
+                    <button onClick={handleOpenModal} className="flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm">
+                        <Plus size={18} /> Apply Overtime
                 </button>
+                </div>
             </div>
 
             {/* Overtime Table Log */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="p-6 border-b border-[#e6f0fa]">
-                    <h4 className="text-sm font-bold text-[#011023] uppercase tracking-wider">Overtime Logging Directory</h4>
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase">Official overtime work listings and status</p>
-                </div>
-
-                <div className="overflow-x-auto">
-                    {loading && overtimes.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-96 gap-4">
-                            <Loader2 size={32} className="animate-spin text-[#527FB0]" />
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Retrieving logs...</p>
-                        </div>
-                    ) : (
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-[#f0f6ff] text-[12px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4 font-bold text-center">Request ID</th>
-                                    <th className="p-4 font-bold text-center">Overtime Date</th>
-                                    <th className="p-4 font-bold text-center">Logged Hours</th>
-                                    <th className="p-4 font-bold text-center">Reason</th>
-                                    <th className="p-4 font-bold text-center">Date Applied</th>
-                                    <th className="p-4 font-bold text-center">Status</th>
-                                    <th className="p-4 font-bold text-center">Actions</th>
+            <div className="bg-white max-h-[55rem] border border-[#e6f0fa] rounded-2xl shadow-sm overflow-hidden">
+                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[20%]">Overtime Date</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Logged Hours</th>
+                                <th className="p-4.5 font-bold text-center w-[32%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
+                            {loading && overtimes.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="p-20 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <span className="text-gray-400 font-bold tracking-widest animate-pulse">Loading Logs...</span>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y text-[12px] uppercase divide-[#e6f0fa]">
-                                {overtimes.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="7" className="p-8 text-center text-gray-400 font-medium">No overtime logs registered.</td>
-                                    </tr>
-                                ) : overtimes.map((ot) => (
-                                    <tr key={ot._id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="p-4 text-center font-bold text-[#052558]">
-                                            {`OT-${ot._id.substring(ot._id.length - 5).toUpperCase()}`}
+                            ) : overtimes.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="p-20 text-center text-sm text-gray-500">
+                                        No overtime logs registered.
+                                    </td>
+                                </tr>
+                            ) : (
+                                overtimes.map((ot) => (
+                                    <tr 
+                                        key={ot._id} 
+                                        className="text-center hover:bg-blue-50/30 transition-colors"
+                                    >
+                                        <td className="p-4 font-semibold text-[#052558] text-sm text-center whitespace-nowrap">
+                                            <span>{formatDateToJul(ot.date)}</span>
+                                            <span className="text-[#052558] mx-1.5">|</span>
+                                            <span className="text-[#052558] text-sm font-semibold uppercase">
+                                                {getOvertimeSlot(ot.hours)}
+                                            </span>
                                         </td>
-                                        <td className="p-4 text-center font-semibold text-gray-700">
-                                            {formatDate(ot.date)}
+                                        <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                            {ot.hours} Hours
                                         </td>
-                                        <td className="p-4 text-center font-bold text-[#011023]">{ot.hours} Hours</td>
-                                        <td className="p-4 text-center font-semibold text-gray-500 max-w-xs truncate normal-case" title={ot.reason}>
+                                        <td className="p-4 text-center text-[#011023] font-semibold max-w-xs text-sm truncate">
                                             {ot.reason}
                                         </td>
-                                        <td className="p-4 text-center font-semibold text-gray-500">
-                                            {new Date(ot.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        <td className="p-4 text-center font-semibold text-[#011023] text-sm whitespace-nowrap">
+                                            <span>{new Date(ot.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                            <span className="text-gray-600 mx-1.5">|</span>
+                                            <span>{new Date(ot.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 text-[10px] font-black tracking-widest rounded-full border ${
+                                            <span className={`px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wider ${
                                                 ot.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
                                                 ot.status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200' :
                                                 'bg-amber-100 text-amber-700 border-amber-200'
@@ -227,34 +315,52 @@ const Overtime = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            {ot.status === 'Pending' ? (
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedOvertime(ot);
+                                                        setIsViewModalOpen(true);
+                                                    }}
+                                                    className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={17} />
+                                                </button>
                                                 <button
                                                     onClick={() => handleDelete(ot._id)}
-                                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                                                    title="Delete Log"
+                                                    disabled={ot.status !== 'Pending'}
+                                                    className={`p-1.5 rounded-lg transition-colors ${
+                                                        ot.status === 'Pending'
+                                                            ? 'text-gray-400 hover:text-red-500 hover:bg-red-50 cursor-pointer'
+                                                            : 'text-gray-300/80 cursor-not-allowed'
+                                                    }`}
+                                                    title={ot.status === 'Pending' ? "Delete Log" : "Cannot delete reviewed requests"}
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>
-                                            ) : (
-                                                <span className="text-gray-300 text-xs font-semibold">-</span>
-                                            )}
+                                            </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            {/* Request Modal Portal */}
             {showModal && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/25 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="bg-white/95 backdrop-blur-xl border border-blue-50/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
-                        <div className="flex justify-between items-center pb-3 border-b border-[#e6f0fa]">
-                            <h3 className="text-lg font-black text-[#011023] uppercase tracking-wide">Request Overtime shift</h3>
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-[#011023] transition-colors text-sm font-bold cursor-pointer">CLOSE</button>
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setShowModal(false); setSelectedDate(null); setRequestedHours(null); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-lg font-bold text-[#011023] uppercase tracking-wide">Apply Overtime</h3>
+                            <button
+                                onClick={() => { setShowModal(false); setSelectedDate(null); setRequestedHours(null); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
                         {error && (
@@ -264,62 +370,188 @@ const Overtime = () => {
                         )}
 
                         {success && (
-                            <div className="bg-emerald-50 text-emerald-700 p-3.5 rounded-xl text-xs font-bold uppercase tracking-wide border border-emerald-100">
+                            <div className="bg-emerald-50 text-emerald-600 p-3.5 rounded-xl text-xs font-bold uppercase tracking-wide border border-emerald-100">
                                 {success}
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-bold text-[#011023]">
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Overtime Shift Date</label>
-                                <input
-                                    type="date"
-                                    required
-                                    className="w-full px-4 py-3 bg-[#f0f6ff] border border-transparent rounded-xl focus:outline-none focus:bg-white focus:border-blue-100 transition-all font-semibold"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                />
+                        <form onSubmit={handleSubmit} className="space-y-4.5">
+                            {/* Date Selection */}
+                            <div className="space-y-1">
+                                <div className="flex gap-3">
+                                    {['Today', 'Tomorrow'].map((dateOpt) => {
+                                        const isAbsentToday = attendanceRecords.some((r) => 
+                                            r.date === getFormattedDateString(0) && r.status === 'Absent'
+                                        );
+                                        const isTodayDisabled = (dateOpt === 'Today' && fullEmployeeProfile?.shift?.toLowerCase() === 'evening') || 
+                                            (dateOpt === 'Today' && fullEmployeeProfile?.shift?.toLowerCase() === 'morning' && overtimes.some((req) => 
+                                                req.date === getFormattedDateString(0) && req.status === 'Approved'
+                                            )) ||
+                                            (dateOpt === 'Today' && isAbsentToday);
+                                        const isTomorrowDisabled = dateOpt === 'Tomorrow' && overtimes.some((req) => 
+                                            req.date === getFormattedDateString(1) && req.status === 'Approved'
+                                        );
+                                        
+                                        const isDisabled = dateOpt === 'Today' ? isTodayDisabled : isTomorrowDisabled;
+                                        
+                                        return (
+                                            <button
+                                                type="button"
+                                                key={dateOpt}
+                                                onClick={() => {
+                                                    if (isDisabled) {
+                                                        if (isAbsentToday && dateOpt === 'Today') {
+                                                            alert('You are absent today, so you cannot apply for overtime today.');
+                                                        } else if (fullEmployeeProfile?.shift?.toLowerCase() === 'evening') {
+                                                            alert('Today is not available for Evening shift employees as their shift completes at 9 PM.');
+                                                        } else {
+                                                            alert('You already have an approved overtime request for this date.');
+                                                        }
+                                                        return;
+                                                    }
+                                                    setSelectedDate(dateOpt);
+                                                }}
+                                                className={`flex-1 py-2 text-xs font-bold border rounded-xl transition-all ${
+                                                    selectedDate === dateOpt
+                                                        ? 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3]'
+                                                        : 'bg-[#f1f5f9] border-[#cbd5e1] text-[#475569] hover:bg-slate-100'
+                                                } ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                                            >
+                                                {dateOpt.toUpperCase()}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Hours Requested</label>
-                                <input
-                                    type="number"
-                                    required
-                                    step="0.5"
-                                    min="0.5"
-                                    max="12"
-                                    className="w-full px-4 py-3 bg-[#f0f6ff] border border-transparent rounded-xl focus:outline-none focus:bg-white focus:border-blue-100 transition-all font-semibold"
-                                    placeholder="Enter hours (e.g. 3.5)"
-                                    value={formData.hours}
-                                    onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
-                                />
+                            {/* Hours Selection */}
+                            <div className="space-y-2">
+                                <div className="flex gap-3">
+                                    {[2, 4, 6].map((hr) => (
+                                        <button
+                                            type="button"
+                                            key={hr}
+                                            onClick={() => setRequestedHours(hr)}
+                                            className={`flex-1 py-2 text-xs font-bold border rounded-xl transition-all cursor-pointer ${
+                                                requestedHours === hr
+                                                    ? 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3]'
+                                                    : 'bg-[#f1f5f9] border-[#cbd5e1] text-[#475569] hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {hr} HRS
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5">Reason description</label>
+                            {/* Reason Input */}
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Kindly provide a valid reason for Overtime</label>
                                 <textarea
                                     required
                                     rows="3"
-                                    className="w-full px-4 py-3 bg-[#f0f6ff] border border-transparent rounded-xl focus:outline-none focus:bg-white focus:border-blue-100 transition-all font-semibold normal-case"
-                                    placeholder="Explain the workload, tasks to cover, or specific vehicle queue requiring overtime..."
+                                    className="w-full px-4 py-3 bg-[#f8fafc] border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold normal-case text-sm text-[#011023]"
                                     value={formData.reason}
                                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                                 />
                             </div>
 
+                            {/* Submit Button */}
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full py-3.5 bg-[#052558] hover:bg-[#527FB0] text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm mt-4 flex items-center justify-center gap-2 cursor-pointer"
+                                className="w-full py-2 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-bold uppercase tracking-wider transition-all active:scale-95 shadow-sm mt-4 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {submitting ? (
                                     <>
-                                        <Loader2 size={14} className="animate-spin" /> SUBMITTING REQUEST...
+                                        <Loader2 size={14} className="animate-spin" /> SUBMITTING...
                                     </>
-                                ) : 'SUBMIT OVERTIME REQUEST'}
+                                ) : 'SUBMIT REQUEST'}
                             </button>
                         </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {isViewModalOpen && selectedOvertime && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setIsViewModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
+                            <div>
+                                <h3 className="text-xl uppercase font-bold text-[#052558]">Overtime Details</h3>
+                            </div>
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6 hide-scrollbar">
+                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                                {/* Overtime Info */}
+                                <div className="space-y-4 w-full md:w-[50%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Overtime Info</h4>
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Date:</span> <span className="font-semibold text-[#011023]">{formatDateToJul(selectedOvertime.date)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0">Logged Hours:</span> <span className="font-semibold text-gray-800">{selectedOvertime.hours} Hours</span></p>
+                                    </div>
+                                </div>
+
+                                {/* Status Details */}
+                                <div className="space-y-4 w-full md:w-[50%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Status Details</h4>
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
+                                        <div className="flex items-center gap-6">
+                                            <p className="text-sm font-semibold text-gray-500 w-28 shrink-0 uppercase">Status</p>
+                                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent uppercase ${
+                                                selectedOvertime.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                selectedOvertime.status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                                                'bg-amber-100 text-amber-700 border-amber-200'
+                                            }`}>
+                                                {selectedOvertime.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <p className="text-sm font-semibold text-gray-500 w-28 shrink-0 uppercase">Date Applied</p>
+                                            <span className="text-sm font-semibold text-gray-750 uppercase">
+                                                {selectedOvertime.createdAt ? `${formatDate(selectedOvertime.createdAt)} | ${new Date(selectedOvertime.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}` : '—'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Reason for Overtime */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Overtime</h4>
+                                <div className="bg-[#f0f6ff]/40 p-4 rounded-xl border border-[#e6f0fa] uppercase">
+                                    <h5 className="font-semibold text-[#052558] text-[13px] leading-relaxed whitespace-pre-wrap">{selectedOvertime.reason}</h5>
+                                </div>
+                            </div>
+
+                            {/* Remarks */}
+                            {selectedOvertime.remarks && (
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks</h4>
+                                    <div className="bg-[#f0f6ff]/40 p-4 rounded-xl border border-[#e6f0fa] uppercase">
+                                        <h5 className="font-semibold text-[#052558] text-[13px] leading-relaxed whitespace-pre-wrap">
+                                            {selectedOvertime.remarks}
+                                        </h5>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>,
                 document.body
