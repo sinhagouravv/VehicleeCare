@@ -12,7 +12,8 @@ import {
     MapPin, 
     Car, Calendar,
     Clock,
-    X } from 'lucide-react';
+    X,
+    MessageSquare } from 'lucide-react';
 
 import useHighlight from '../hooks/useHighlight';
 
@@ -384,7 +385,7 @@ const Tasks = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="flex items-center justify-center gap-1">
+                                        <div className="flex items-center justify-center gap-1.5">
                                             <button 
                                                 onClick={() => handleViewDetails(task)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
@@ -418,6 +419,15 @@ const Tasks = () => {
                                                     ) : (
                                                         <Check size={17} strokeWidth={2.5} />
                                                     )}
+                                                </button>
+                                            )}
+                                            {task.status === 'Delivered' && (
+                                                <button
+                                                    onClick={() => handleViewDetails(task)}
+                                                    className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                                    title="Remarks"
+                                                >
+                                                    <MessageSquare size={17} />
                                                 </button>
                                             )}
                                         </div>
