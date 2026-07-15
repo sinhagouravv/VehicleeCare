@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, PieChart, FileBarChart, Wallet, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, CalendarOff, BarChart3, Clock } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, PieChart, FileBarChart, Wallet, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, MessageCircleMore, BarChart3, Clock } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
@@ -25,7 +25,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
         { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
-        { name: 'Meeting', path: '/meeting', icon: <CalendarDays size={20} /> },
+        { name: 'Meeting', path: '/meeting', icon: <MessageCircleMore size={20} /> },
         { name: 'Vehicles', path: '/vehicles', icon: <Car size={20} /> },
         { name: 'Services', path: '/services', icon: <Wrench size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
