@@ -134,8 +134,8 @@ const Payments = () => {
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
-            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                <div className="overflow-x-auto overflow-y-auto flex-1 hide-scrollbar">
+            <div className="bg-white/60 backdrop-blur-xl border border-white max-h-[54rem] rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
+                <div className="overflow-x-auto overflow-y-auto flex-1 h-[860px] hide-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
