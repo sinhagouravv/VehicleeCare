@@ -58,7 +58,7 @@ const Reports = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto">
             {/* Header Area */}
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Financial & Operational Reports</h1>
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Reports</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
                     {loading && !lastRefreshed ? (
                         <span>Synchronizing...</span>
