@@ -215,7 +215,7 @@ const Customers = () => {
 
                                     {/* Vehicle */}
                                     <td className="p-4 text-center w-[36%]">
-                                        <div className="flex flex-wrap justify-center gap-1.5">
+                                        <div className="flex flex-wrap justify-center gap-1.5 max-h-[58px] overflow-hidden">
                                             {customer.vehicleObjects && customer.vehicleObjects.length > 0
                                                 ? customer.vehicleObjects.map((v, i) => {
                                                     const ft = v.fuelType || '';
@@ -251,7 +251,7 @@ const Customers = () => {
 
                                     {/* Actions */}
                                     <td className="p-4 text-center w-[8%]">
-                                        <div className="flex items-center justify-center gap-1">
+                                        <div className="flex items-center justify-center gap-1.5">
                                             <button
                                                 onClick={() => handleViewDetails(customer)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
@@ -280,7 +280,7 @@ const Customers = () => {
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -305,8 +305,8 @@ const Customers = () => {
                                 {/* Contact */}
                                 <div className="space-y-2 w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Contact</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl uppercase space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate lowercase">{selectedCustomer.email}</span></p>
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedCustomer.email}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800">{selectedCustomer.phone}</span></p>
                                     </div>
                                 </div>
@@ -315,23 +315,23 @@ const Customers = () => {
                                 <div className="space-y-2 w-[18%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Total Booking</h4>
                                     <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
-                                        <p className="text-lg font-bold text-[#011023]">{selectedCustomer.bookingCount}</p>
+                                        <p className="text-lg font-semibold text-[#011023]">{selectedCustomer.bookingCount}</p>
                                     </div>
                                 </div>
 
                                 {/* Total Spent */}
-                                <div className="space-y-2 w-[18%]">
+                                <div className="space-y-2 w-[20%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Total Spent</h4>
                                     <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
-                                        <p className="text-lg font-bold text-[#011023]">₹{selectedCustomer.totalSpent.toLocaleString()}</p>
+                                        <p className="text-lg font-semibold text-[#011023]">₹{selectedCustomer.totalSpent.toLocaleString()}</p>
                                     </div>
                                 </div>
 
                                 {/* Last Visit */}
-                                <div className="space-y-2 w-[20%]">
+                                <div className="space-y-2 w-[18%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Last Visit</h4>
                                     <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
-                                        <p className="text-lg font-bold text-center text-[#011023]">{selectedCustomer.lastVisit}</p>
+                                        <p className="text-lg font-semibold text-center uppercase text-[#011023]">{selectedCustomer.lastVisit}</p>
                                     </div>
                                 </div>
                             </div>
