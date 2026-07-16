@@ -168,11 +168,11 @@ const Overtime = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold w-[12%]">Employee ID</th>
                                 <th className="p-4.5 font-bold w-[13%]">Date Requested</th>
-                                <th className="p-4.5 font-bold w-[10%]">Hours</th>
-                                <th className="p-4.5 font-bold w-[34%]">Reason</th>
-                                <th className="p-4.5 font-bold w-[13%]">Date Applied</th>
+                                <th className="p-4.5 font-bold w-[7%]">Hours</th>
+                                <th className="p-4.5 font-bold w-[32%]">Reason</th>
+                                <th className="p-4.5 font-bold w-[15%]">Date Applied</th>
                                 <th className="p-4.5 font-bold w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold w-[10%]">Action</th>
+                                <th className="p-4.5 font-bold w-[8%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
@@ -200,7 +200,7 @@ const Overtime = () => {
                                     <td className="p-4 font-semibold text-[#011023] text-sm">
                                         {overtime.employeeId}
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-gray-700">
+                                    <td className="p-4 font-semibold text-sm text-[#011023]">
                                         {formatDate(overtime.date)}
                                     </td>
                                     <td className="p-4">
@@ -209,7 +209,7 @@ const Overtime = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <p className="whitespace-normal">
+                                        <p className="whitespace-normal text-[#011023] font-semibold">
                                             {overtime.reason}
                                         </p>
                                     </td>
@@ -224,7 +224,7 @@ const Overtime = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="flex items-center justify-center gap-1">
+                                        <div className="flex items-center justify-center gap-1.5">
                                             {overtime.status === 'Pending' ? (
                                                 <>
                                                     <button 
@@ -300,7 +300,7 @@ const Overtime = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             <div className="flex flex-col md:flex-row gap-6 mb-7 w-full">
                                 {/* Employee Info */}
-                                <div className="space-y-1 w-full md:w-[33%]">
+                                <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employee Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011021] truncate">{selectedOvertime.employeeName}</span></p>
@@ -309,33 +309,31 @@ const Overtime = () => {
                                 </div>
 
                                 {/* Overtime Info */}
-                                <div className="space-y-1 w-full md:w-[33%]">
+                                <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Overtime Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Requested:</span> <span className="font-semibold text-[#011023]">{formatDate(selectedOvertime.date)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Date:</span> <span className="font-semibold text-[#011023]">{formatDate(selectedOvertime.date)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Hours:</span> <span className="font-semibold text-gray-850">{selectedOvertime.hours} {selectedOvertime.hours === 1 ? 'HR' : 'HRS'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Status & Remarks */}
-                                <div className="flex flex-col gap-4 w-full md:w-[33%]">
+                                <div className="flex flex-col gap-4 w-full md:w-[40%]">
                                     <div className="space-y-1">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Status Details</h4>
                                         <div className="space-y-2 mt-4">
                                             <div className="flex items-center gap-6">
-                                                <p className="text-sm font-semibold text-gray-500 w-16 shrink-0 uppercase">Status</p>
-                                                <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg uppercase tracking-wider ${getStatusStyle(selectedOvertime.status)}`}>
+                                                <p className="text-sm font-semibold text-gray-500 w-28 shrink-0 uppercase">Status</p>
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent uppercase ${getStatusStyle(selectedOvertime.status)}`}>
                                                     {selectedOvertime.status}
                                                 </span>
                                             </div>
-                                            {selectedOvertime.remarks && (
-                                                <div className="flex flex-col gap-1">
-                                                    <p className="text-sm font-semibold text-gray-500 uppercase">Remarks</p>
-                                                    <span className="text-sm font-semibold text-gray-700 uppercase leading-relaxed">
-                                                        {selectedOvertime.remarks}
-                                                    </span>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-6">
+                                                <p className="text-sm font-semibold text-gray-500 w-28 shrink-0 uppercase">Date Applied</p>
+                                                <span className="text-sm font-semibold text-gray-750 uppercase">
+                                                    {selectedOvertime.createdAt ? `${formatDate(selectedOvertime.createdAt)} | ${formatTime(selectedOvertime.createdAt)}` : '—'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -345,9 +343,21 @@ const Overtime = () => {
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Overtime</h4>
                                 <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
-                                    <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedOvertime.reason}</h5>
+                                    <h5 className="font-semibold text-[#052558] text-[13px] leading-relaxed whitespace-pre-wrap">{selectedOvertime.reason}</h5>
                                 </div>
                             </div>
+
+                            {/* Remarks */}
+                            {selectedOvertime.remarks && (
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks</h4>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
+                                        <h5 className="font-semibold text-[#052558] text-[13px] leading-relaxed whitespace-pre-wrap">
+                                            {selectedOvertime.remarks}
+                                        </h5>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,
