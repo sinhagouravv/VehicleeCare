@@ -180,8 +180,8 @@ const Services = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[37%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Assigned To</th>
+                                <th className="p-4.5 font-bold text-center w-[37%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Duration</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
@@ -219,10 +219,6 @@ const Services = () => {
                                             {booking.vehicle?.fuelType || 'N/A'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[45%]">
-                                        <div className="font-semibold text-[#0f172a] text-[13.5px] uppercase leading-snug">{booking.service?.title}</div>
-                                        <div className="text-[11.5px] text-slate-500 uppercase mt-1 tracking-wide">{booking.service?.id || '—'}</div>
-                                    </td>
 
                                     <td className="p-4 text-center w-[11%]">
                                         <div className="font-semibold text-[13px]">
@@ -231,6 +227,10 @@ const Services = () => {
                                         <div className="text-[11.5px] text-gray-500">
                                             {booking.assignedEmployees?.technician?.employeeId || 'ID Pending'}
                                         </div>
+                                    </td>
+                                    <td className="p-4 text-center w-[45%]">
+                                        <div className="font-semibold text-[#0f172a] text-[13.5px] uppercase leading-snug">{booking.service?.title}</div>
+                                        <div className="text-[11.5px] text-slate-500 uppercase mt-1 tracking-wide">{booking.service?.id || '—'}</div>
                                     </td>
                                     <td className="p-4 text-center w-[8%]">
                                         <span className="font-semibold text-[13px] whitespace-nowrap px-3 py-1.5 rounded-lg uppercase tracking-tight">
