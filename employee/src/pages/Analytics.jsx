@@ -45,7 +45,7 @@ const Analytics = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Metric 1 */}
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex justify-between items-start mb-5">
                         <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
                             <CheckCircle2 size={22} />
                         </div>
