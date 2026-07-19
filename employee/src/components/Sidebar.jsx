@@ -33,7 +33,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     ];
 
     return (
-        <aside className={`${isCollapsed ? 'w-22.5' : 'w-67'} transition-all duration-300 bg-white/60 backdrop-blur-md transform-gpu border-r border-[#e2e8f0] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
+        <aside className={`${isCollapsed ? 'w-22.5' : 'w-67'} transition-all duration-300 bg-white/60 backdrop-blur-md transform-gpu border-r border-[#e2e8f0] h-screen fixed left-0 top-0 flex flex-col shadow-xs z-20`}>
             {/* Logo Area */}
             <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e2e8f0] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
