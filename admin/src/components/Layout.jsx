@@ -11,10 +11,10 @@ const Layout = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#f4f9ff] via-[#e6f0fa] to-[#f4f9ff] flex text-[#011023] font-sans">
+        <div className="min-h-screen bg-[#fafbfc] flex text-[#011023] font-sans">
             {/* Ambient Background Elements */}
-            <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-300/20 rounded-full blur-[120px] pointer-events-none"></div>
-            <div className="fixed bottom-[-10%] right-[-5%] w-[30%] h-[50%] bg-blue-400/15 rounded-full blur-[150px] pointer-events-none"></div>
+            <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-300/5 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-5%] w-[30%] h-[50%] bg-blue-400/5 rounded-full blur-[150px] pointer-events-none"></div>
 
             <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
 

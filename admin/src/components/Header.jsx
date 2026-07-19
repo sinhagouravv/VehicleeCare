@@ -114,7 +114,7 @@ const Header = () => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <header className="h-20 bg-white/60 backdrop-blur-xl border-b border-[#e6f0fa] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
+        <header className="h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center justify-end transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[17rem]' : 'w-9.5'}`}>

@@ -34,9 +34,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     ];
 
     return (
-        <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white/40 backdrop-blur-md transform-gpu border-r border-[#e6f0fa] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
+        <aside className={`${isCollapsed ? 'w-22' : 'w-67'} transition-all duration-300 bg-white transform-gpu border-r border-[#e2e8f0] h-screen fixed left-0 top-0 flex flex-col shadow-[4px_0_24px_rgba(5,37,88,0.02)] z-20`}>
             {/* Logo Area */}
-            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e6f0fa] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
+            <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e2e8f0] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
                     <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
                     <div className="-ml-4">
@@ -84,7 +84,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                 ))}
             </nav>
 
-            <div className="p-4 border-t text-sm border-[#e6f0fa] bg-white/20 mt-auto">
+            <div className="p-4 border-t text-sm border-[#e2e8f0] bg-white mt-auto">
                 <button
                     onClick={handleLogout}
                     className={`w-full rounded-xl ${isCollapsed ? 'p-2 justify-center' : 'p-3 justify-start'} flex items-center gap-3 border border-white cursor-pointer hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors text-gray-600 font-semibold group`}
