@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Search, Trash2, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Customers = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -144,37 +145,35 @@ const Customers = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Customers</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[11%]">Customer ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[16%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[36%]">Vehicle</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[32%]">Vehicle</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Last Visit</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Last Visit</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="7" className="p-8 text-center text-sm text-gray-500">Loading customers...</td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={7} />
                             ) : filteredCustomers.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No customers found.</td>
@@ -209,8 +208,8 @@ const Customers = () => {
 
                                     {/* Contact */}
                                     <td className="p-4 text-center w-[16%]">
+                                        <div className="font-medium text-[#052558] text-sm lowercase">{customer.email}</div>
                                         <div className="text-xs text-gray-500 mt-0.5">{customer.phone}</div>
-                                        <div className="font-medium text-gray-700 text-sm lowercase">{customer.email}</div>
                                     </td>
 
                                     {/* Vehicle */}
@@ -227,7 +226,7 @@ const Customers = () => {
                                                         ? 'bg-orange-50 text-orange-700 border-orange-100'
                                                         : 'bg-blue-50 text-blue-700 border-blue-100';
                                                     return (
-                                                        <span key={i} className={`px-2.5 py-1 text-[11px] font-semibold border rounded-lg whitespace-nowrap ${cls}`}>
+                                                        <span key={i} className={`px-2.5 py-1 text-xs font-semibold border border-transparent rounded-full whitespace-nowrap ${cls}`}>
                                                             {v.label}
                                                         </span>
                                                     );
@@ -246,21 +245,21 @@ const Customers = () => {
 
                                     {/* Last Visit */}
                                     <td className="p-4 text-center w-[11%]">
-                                        <span className="text-sm font-semibold text-gray-600">{customer.lastVisit}</span>
+                                        <span className="text-sm font-semibold text-[#052558]">{customer.lastVisit}</span>
                                     </td>
 
                                     {/* Actions */}
                                     <td className="p-4 text-center w-[8%]">
-                                        <div className="flex items-center justify-center gap-1.5">
+                                        <div className="flex items-center justify-center gap-4">
                                             <button
                                                 onClick={() => handleViewDetails(customer)}
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-blue-500 transition-colors"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(customer)}
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 size={17} />
                                             </button>
