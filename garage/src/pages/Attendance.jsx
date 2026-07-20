@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Attendance = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -243,7 +244,7 @@ const Attendance = () => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return '—';
-        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
     };
 
     // const formatDateStr = (dateStr) => {
@@ -317,44 +318,47 @@ const Attendance = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Attendance Directory</h1>
-                    {/* <button 
-                        onClick={() => setIsMarkModalOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
-                    >
-                        Mark Attendance
-                    </button> */}
                 </div>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Employee Id</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Employee Name</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Role</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Shift</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Check-in Time</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Check-out Time</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Employee Id</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Employee Name</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Role</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Shift</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Check-in Time</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Check-out Time</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                            {displayData.map((r) => {
+                            {loading && displayData.length === 0 ? (
+                                <TableSkeleton rows={15} cols={10} />
+                            ) : displayData.length === 0 ? (
+                                <tr>
+                                    <td colSpan="10" className="p-8 text-center py-20 text-gray-400 font-bold uppercase">
+                                        No attendance records found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                displayData.map((r) => {
                                 const rowId = r.isMock ? `temp-${r.employeeId}` : r._id;
                                 return (
                                     <tr 
@@ -376,12 +380,12 @@ const Attendance = () => {
                                             <div className="text-sm text-[#052558] font-semibold">{r.contact}</div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold  uppercase tracking-wide ${getRoleBadge(r.role)}`}>
+                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getRoleBadge(r.role)}`}>
                                                 {r.role}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
+                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
                                                 {r.shift}
                                             </span>
                                         </td>
@@ -389,31 +393,31 @@ const Attendance = () => {
                                             {formatDateStr(r.checkIn || r.date)}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="text-[13px] font-bold text-gray-600">
+                                            <span className="text-[13px] font-bold text-gray-600 tracking-wide">
                                                 {formatTime(r.checkIn)}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="text-[13px] font-bold text-gray-600">
+                                            <span className="text-[13px] font-bold text-gray-600 tracking-wide">
                                                 {formatTime(r.checkOut)}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-3 py-1 rounded-lg text-xs font-semibold border uppercase tracking-wide ${getStatusBadge(r.status)}`}>
+                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getStatusBadge(r.status)}`}>
                                                 {r.status === 'On Leave' ? 'On Leave' : r.status}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex items-center justify-center gap-1">
+                                            <div className="flex items-center justify-center gap-4">
                                                 <button
                                                     onClick={() => handleViewDetails(r)}
-                                                    className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                    className="text-gray-400 hover:text-blue-500 transition-colors"
                                                 >
                                                     <Eye size={17} />
                                                 </button>
                                                     <button
                                                     onClick={() => { setRecordToDelete(r); setIsDeleteModalOpen(true); }}
-                                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                    className="text-gray-400 hover:text-red-500 transition-colors"
                                                 >
                                                     <Trash2 size={17} />
                                                 </button>
@@ -421,7 +425,8 @@ const Attendance = () => {
                                         </td>
                                     </tr>
                                 );
-                            })}
+                            })
+                            )}
                         </tbody>
                     </table>
                 </div>
