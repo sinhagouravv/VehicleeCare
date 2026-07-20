@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Check, X, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Meeting = () => {
     const [requests, setRequests] = useState([]);
@@ -149,46 +150,39 @@ const Meeting = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Meeting Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[10%]">Employee ID</th>
-                                <th className="p-4.5 font-bold w-[12%]">Name</th>
-                                <th className="p-4.5 font-bold w-[8%]">Type</th>
-                                <th className="p-4.5 font-bold w-[10%]">Purpose</th>
-                                <th className="p-4.5 font-bold w-[30%]">Reason</th>
-                                <th className="p-4.5 font-bold w-[15%]">Scheduled At</th>
-                                <th className="p-4.5 font-bold w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold w-[5%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Name</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Purpose</th>
+                                <th className="p-4.5 font-bold text-center w-[28%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Scheduled At</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && requests.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="py-20 text-gray-400">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                                            <p className="text-sm font-medium tracking-widest opacity-60">Fetching requests...</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={8} />
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan="8" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No requests found.
                                     </td>
                                 </tr>
@@ -198,32 +192,32 @@ const Meeting = () => {
                                     id={`row-${req._id}`}
                                     className={`transition-all duration-1000 ${highlightedRow === req._id ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                 >
-                                    <td className="p-4 font-semibold text-[#011023] text-sm">
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
                                         {req.employeeId}
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-gray-700">
+                                    <td className="p-4 font-semibold text-sm text-gray-700 text-center">
                                         {req.employeeName || '—'}
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-gray-700">
+                                    <td className="p-4 font-semibold text-sm text-gray-700 text-center">
                                         ID card
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-gray-700">
+                                    <td className="p-4 font-semibold text-sm text-gray-700 text-center">
                                         {req.purpose || req.reason || '—'}
                                     </td>
-                                    <td className="p-4">
-                                        <p className="whitespace-normal truncate max-w-xs mx-auto">
+                                    <td className="p-4 text-center">
+                                        <p className="whitespace-normal text-center truncate max-w-xs mx-auto">
                                             {req.purpose ? req.reason : (req.additionalInfo || req.reason)}
                                         </p>
                                     </td>
-                                    <td className="p-4 font-semibold text-sm whitespace-nowrap">
+                                    <td className="p-4 font-semibold text-sm whitespace-nowrap text-center">
                                         {req.appointmentDate ? (
                                             <>
                                                 <span className="text-[#011023] font-semibold">{formatDate(req.appointmentDate)}</span>
                                                 {req.appointmentTime && (
-                                                    <>
+                                                    <span className="inline-flex items-center">
                                                         <span className="text-gray-800 mx-1.5">|</span>
                                                         <span className="text-[#011023] font-semibold">{req.appointmentTime}</span>
-                                                    </>
+                                                    </span>
                                                 )}
                                             </>
                                         ) : '—'}
@@ -233,27 +227,27 @@ const Meeting = () => {
                                             {req.status}
                                         </span>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-center gap-1.5">
+                                    <td className="p-4 text-center">
+                                        <div className="flex items-center justify-center gap-4">
                                             {req.status === 'Pending' ? (
                                                 <>
                                                     <button 
                                                         onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => openActionModal(req._id, 'Approved')}
                                                         disabled={updatingId === req._id}
-                                                        className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
                                                     >
                                                         <Check size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => openActionModal(req._id, 'Rejected')}
                                                         disabled={updatingId === req._id}
-                                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-red-500 transition-colors"
                                                     >
                                                         <X size={18} />
                                                     </button>
@@ -262,13 +256,13 @@ const Meeting = () => {
                                                 <>
                                                     <button 
                                                         onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => { setSelectedRequest(req); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-red-500 transition-colors"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
