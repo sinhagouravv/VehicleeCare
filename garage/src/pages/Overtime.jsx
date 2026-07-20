@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Overtime = () => {
     const [overtimes, setOvertimes] = useState([]);
@@ -149,45 +150,38 @@ const Overtime = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[12%]">Employee ID</th>
-                                <th className="p-4.5 font-bold w-[13%]">Date Requested</th>
-                                <th className="p-4.5 font-bold w-[7%]">Hours</th>
-                                <th className="p-4.5 font-bold w-[32%]">Reason</th>
-                                <th className="p-4.5 font-bold w-[15%]">Date Applied</th>
-                                <th className="p-4.5 font-bold w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold w-[8%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Date Requested</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Hours</th>
+                                <th className="p-4.5 font-bold text-center w-[35%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && overtimes.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="py-20 text-gray-400">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                                            <p className="text-sm font-medium tracking-widest opacity-60">Fetching overtime requests...</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={7} />
                             ) : overtimes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan={7} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No overtime requests found.
                                     </td>
                                 </tr>
@@ -197,23 +191,23 @@ const Overtime = () => {
                                     id={`row-${overtime._id}`}
                                     className={`transition-all duration-1000 ${highlightedRow === overtime._id ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                 >
-                                    <td className="p-4 font-semibold text-[#011023] text-sm">
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
                                         {overtime.employeeId}
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-[#011023]">
+                                    <td className="p-4 font-semibold text-sm text-[#011023] text-center">
                                         {formatDate(overtime.date)}
                                     </td>
-                                    <td className="p-4">
+                                    <td className="p-4 text-center">
                                         <span className="font-semibold text-[#011023]">
                                             {overtime.hours} {overtime.hours === 1 ? 'HR' : 'HRS'}
                                         </span>
                                     </td>
-                                    <td className="p-4">
-                                        <p className="whitespace-normal text-[#011023] font-semibold">
+                                    <td className="p-4 text-center">
+                                        <p className="whitespace-normal text-center text-[#011023] font-semibold">
                                             {overtime.reason}
                                         </p>
                                     </td>
-                                    <td className="p-4 font-semibold text-sm whitespace-nowrap">
+                                    <td className="p-4 font-semibold text-sm whitespace-nowrap text-center">
                                         <span className="text-[#011023]">{formatDate(overtime.createdAt)}</span>
                                         <span className="text-gray-800 mx-1.5">|</span>
                                         <span className="text-[#011023]">{formatTime(overtime.createdAt)}</span>
@@ -223,27 +217,27 @@ const Overtime = () => {
                                             {overtime.status}
                                         </span>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-center gap-1.5">
+                                    <td className="p-4 text-center">
+                                        <div className="flex items-center justify-center gap-4">
                                             {overtime.status === 'Pending' ? (
                                                 <>
                                                     <button 
                                                         onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => openActionModal(overtime._id, 'Approved')}
                                                         disabled={updatingId === overtime._id}
-                                                        className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
                                                     >
                                                         <Check size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => openActionModal(overtime._id, 'Rejected')}
                                                         disabled={updatingId === overtime._id}
-                                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-red-500 transition-colors"
                                                     >
                                                         <X size={18} />
                                                     </button>
@@ -252,13 +246,13 @@ const Overtime = () => {
                                                 <>
                                                     <button 
                                                         onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => { setSelectedOvertime(overtime); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-red-500 transition-colors"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
