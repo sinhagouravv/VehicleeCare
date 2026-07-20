@@ -4,6 +4,7 @@ import { Eye, Download, X, Users, Trash2, Loader2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -195,40 +196,38 @@ const MyBookings = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Assigned Bookings</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[30%]">Service & Vehicle</th>
-                                <th className="p-4.5 font-bold text-center w-[5%]">Schedule At</th>
-                                <th className="p-4.5 font-bold text-center w-[6.5%]">Price</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[16%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
+                                <th className="p-4.75 font-bold text-center w-[10%]">Booking ID</th>
+                                <th className="p-4.75 font-bold text-center w-[11%]">Customer</th>
+                                <th className="p-4.75 font-bold text-center w-[11%]">Schedule At</th>
+                                <th className="p-4.75 font-bold text-center w-[34%]">Service & Vehicle</th>
+                                <th className="p-4.75 font-bold text-center w-[7%]">Price</th>
+                                <th className="p-4.75 font-bold text-center w-[9.5%]">Payment ID</th>
+                                <th className="p-4.75 font-bold text-center w-[9.5%]">Status</th>
+                                <th className="p-4.75 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">Loading assigned bookings...</td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={8} />
                             ) : bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No bookings found for this garage.</td>
+                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">No bookings found for this garage.</td>
                                 </tr>
                             ) : bookings.map((booking) => {
                                 const rowId = booking.bookingId || booking._id;
@@ -242,59 +241,59 @@ const MyBookings = () => {
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm truncate text-center">
                                         {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
                                     </td>
-                                    <td className="p-4 text-center w-[12%]">
-                                        <div className="font-semibold text-[13px] truncate px-2" title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
-                                        <div className="text-xs text-gray-400">{booking.user?.userId || ''}</div>
+                                    <td className="p-3.25 text-center">
+                                        <div className="font-semibold text-[13px] truncate " title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
+                                        <div className="text-[11.5px] font-medium text-gray-500 tracking-wide">{booking.user?.userId || ''}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[36%]">
-                                        <div className="font-semibold text-[#0f172a] text-[13px] uppercase whitespace-normal leading-snug mx-auto">
+                                    <td className="p-3.25 text-center">
+                                        <span className="text-sm font-semibold text-gray-600 flex flex-col items-center">
+                                            <span>{booking.schedule?.date}</span>
+                                        <span className="text-[11.5px] font-medium text-gray-500 flex flex-col items-center">    <span>{booking.schedule?.time}</span></span>
+                                        </span>
+                                    </td>
+                                    <td className="p-3.25 text-center">
+                                        <div className="font-semibold text-[#0f172a] text-[13px] uppercase line-clamp-1 leading-snug">
                                             {booking.service?.title}
                                         </div>
                                         <div className="text-[11.5px] font-medium text-slate-500 uppercase mt-1 tracking-wide">
                                             {booking.vehicle?.make} {booking.vehicle?.model}
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center w-[15%]">
-                                        <span className="text-sm font-semibold text-gray-600 flex flex-col items-center">
-                                            <span>{booking.schedule?.date}</span>
-                                            <span>{booking.schedule?.time}</span>
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-center w-[3%]">
+                                    <td className="p-3.25 text-center w-[3%]">
                                         <span className="text-sm font-semibold text-[#011023]">
                                             ₹{booking.payment?.amount || booking.service?.price || '0'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[11%]">
+                                    <td className="p-3.25 text-center">
                                         <span className="font-semibold text-[#052558] text-sm truncate block px-1">
                                             {booking.payment?.paymentId || '—'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[8%]">
+                                    <td className="p-3.25 text-center">
                                         <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                             {booking.status || 'Pending'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[6%]">
-                                        <div className="flex items-center justify-center gap-1">
+                                    <td className="p-3.25 text-center">
+                                        <div className="flex items-center justify-center gap-3.5">
                                             <button
                                                 onClick={() => handleViewDetails(booking)}
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-blue-500 transition-colors"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => handleDownloadInvoice(booking)}
-                                                className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-emerald-500 transition-colors"
                                             >
                                                 <Download size={17} />
                                             </button>
                                             <button
                                                 onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }}
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 size={17} />
                                             </button>
