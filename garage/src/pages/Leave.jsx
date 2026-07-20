@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, CheckCircle2, XCircle, Check, X,  Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Leave = () => {
     const [leaves, setLeaves] = useState([]);
@@ -149,48 +150,41 @@ const Leave = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Leave Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[8%]">Leave ID</th>
-                                <th className="p-4.5 font-bold w-[9%]">Employee ID</th>
-                                <th className="p-4.5 font-bold w-[8%]">Leave</th>
-                                {/* <th className="p-4.5 font-bold w-[8.5%]">Leave Type</th> */}
-                                <th className="p-4.5 font-bold w-[40%]">Reason</th>
-                                <th className="p-4.5 font-bold w-[10%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Leave ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Leave Type</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave</th>
+                                <th className="p-4.5 font-bold text-center w-[36%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Date Applied</th>
                                 {/* <th className="p-4.5 font-bold w-[7.5%]">Start</th>
                                 <th className="p-4.5 font-bold w-[7.5%]">End</th> */}
-                                <th className="p-4.5 font-bold w-[2%]">Status</th>
-                                <th className="p-4.5 font-bold w-[2%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && leaves.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="py-20 text-gray-400">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                                            <p className="text-sm font-medium tracking-widest opacity-60">Fetching leave requests...</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={7} />
                             ) : leaves.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan="7" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No leave requests found.
                                     </td>
                                 </tr>
@@ -199,29 +193,30 @@ const Leave = () => {
                                     key={leave._id} 
                                     id={`row-${leave.leaveId}`}
                                     className={`transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                
                                 >
-                                    <td className="p-4 font-semibold text-[#052558] text-sm">
+                                    <td className="p-3.5 font-semibold text-[#052558] text-sm text-center">
                                         {leave.leaveId || '—'}
                                     </td>
-                                    <td className="p-4 font-semibold text-[#011023] text-sm">
+                                    <td className="p-3.5 font-semibold text-[#011023] text-sm text-center">
                                         {leave.employeeId}
                                     </td>
-                                    {/* <td className="p-4">
-                                        <span className="font-semibold text-gray-700">{leave.type}</span>
-                                    </td> */}
-                                    <td className="p-4">
+                                    <td className="p-3.5 text-center">
+                                        <span className="font-semibold text-gray-700 text-sm">{leave.type}</span>
+                                    </td>
+                                    <td className="p-3.5 text-center">
                                         <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${leave.leaveTime === 'Half Day' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                                             {leave.leaveTime}
                                         </span>
                                     </td>
-                                    <td className="p-4">
-                                        <p className="whitespace-normal">
+                                    <td className="p-3.5 text-center">
+                                        <p className="whitespace-normal text-[#052558] text-sm font-semibold text-center line-clamp-2 leading-snug">
                                             {leave.reason}
                                         </p>
                                     </td>
-                                    <td className="p-4 font-semibold text-sm">
+                                    <td className="p-3.5 font-semibold text-sm text-center">
                                         <div className="text-[#011023]">{formatDate(leave.createdAt)}</div>
-                                        <div className="text-gray-500 mt-0.5 text-xs">{formatTime(leave.createdAt)}</div>
+                                        <div className="text-[#011023] mt-0.5 text-xs">{formatTime(leave.createdAt)}</div>
                                     </td>
                                     {/* <td className="p-4 font-semibold text-center">
                                         {formatDate(leave.startDate)}
@@ -229,12 +224,12 @@ const Leave = () => {
                                     <td className="p-4 font-semibold text-center">
                                         {formatDate(leave.endDate)}
                                     </td> */}
-                                    <td className="p-4 text-center">
-                                        <span className={`px-3 py-1 rounded-full border text-xs font-semibold tracking-widest ${getStatusStyle(leave.status)}`}>
+                                    <td className="p-3.5 text-center">
+                                        <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getStatusStyle(leave.status)}`}>
                                             {leave.status}
                                         </span>
                                     </td>
-                                    <td className="p-4">
+                                    <td className="p-3.5 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                             {leave.status === 'Pending' ? (
                                                 <>
