@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bug as BugIcon, Check, Clock, Trash2, X, Loader2, Eye, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Bug = () => {
     const [bugs, setBugs] = useState([]);
@@ -148,7 +149,7 @@ const Bug = () => {
 
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight flex items-center gap-3">
@@ -164,32 +165,27 @@ const Bug = () => {
 
 
             {/* Main Content List */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[861px] relative hide-scrollbar">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[8%]">Bug ID</th>
-                                <th className="p-4.5 font-bold w-[12%]">Portal</th>
-                                <th className="p-4.5 font-bold w-[10%]">Reporter ID</th>
-                                <th className="p-4.5 font-bold w-[21%]">Bug Subject</th>
-                                <th className="p-4.5 font-bold w-[12%]">Reported At</th>
-                                <th className="p-4.5 font-bold w-[5%]">Severity</th>
-                                <th className="p-4.5 font-bold w-[9.5%]">Status</th>
-                                <th className="p-4.5 font-bold w-[1%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Bug ID</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Portal</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Reporter ID</th>
+                                <th className="p-4.5 font-bold text-center w-[28%]">Bug Subject</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Reported At</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Severity</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
                             {loading && bugs.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="p-8 text-center text-gray-400 font-bold">
-                                        <Loader2 className="animate-spin mx-auto text-[#527FB0] mb-2" size={24} />
-                                        Syncing issue log database...
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={8} />
                             ) : bugs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="p-8 text-center text-gray-400 font-bold">No bug reports have been submitted yet.</td>
+                                    <td colSpan={8} className="p-8 text-center text-gray-400 font-bold">No bug reports have been submitted yet.</td>
                                 </tr>
                             ) : (
                                 bugs.map((bug) => (
@@ -199,28 +195,28 @@ const Bug = () => {
                                             highlightedRow === bug ? 'bg-emerald-50/50' : ''
                                         }`}
                                     >
-                                        <td className="p-4 font-semibold text-[#052558] text-sm">{bug.bugId}</td>
-                                        <td className="p-4">
+                                        <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[10%]">{bug.bugId}</td>
+                                        <td className="p-4 text-center w-[12%]">
                                             <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getPortalColor(bug.portal)}`}>
                                                 {getPortalLabel(bug.portal)}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-sm font-semibold text-[#052558]">{bug.reporterId}</td>
-                                        <td className="p-4 text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase">{bug.title}</td>
-                                        <td className="p-4 text-center whitespace-nowrap text-sm text-gray-800 font-semibold">
+                                        <td className="p-4 text-sm font-semibold text-[#052558] text-center w-[12%]">{bug.reporterId}</td>
+                                        <td className="p-4 text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase w-[28%]">{bug.title}</td>
+                                        <td className="p-4 text-center whitespace-nowrap text-sm text-gray-800 font-semibold w-[18%]">
                                             {new Date(bug.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(bug.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getSeverityColor(bug.severity)}`}>
                                                 {bug.severity}
                                             </span>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(bug.status)}`}>
                                                 {bug.status}
                                             </span>
                                         </td>
-                                        <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                        <td className="p-4 text-center w-[4%]" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <button
                                                     onClick={() => {
