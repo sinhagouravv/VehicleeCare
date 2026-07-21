@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, X, Check, Briefcase, Users, Loader2 } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../garagedata/punjab.json';
 import haryanaData from '../garagedata/haryana.json';
 import delhiData from '../garagedata/delhi.json';
@@ -163,7 +164,7 @@ const Garages = () => {
     const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Garages</h1>
                 <div className="flex items-center gap-3">
@@ -177,36 +178,36 @@ const Garages = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[861px] relative">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10%]">Garage ID</th>
-                                <th className="p-4 font-bold text-center w-[15%]">Garage Name</th>
-                                <th className="p-4 font-bold text-center w-[23%]">Location</th>
-                                <th className="p-4 font-bold text-center w-[14%]">Vehicle Types</th>
-                                <th className="p-4 font-bold text-center w-[8%]">Pickup</th>
-                                <th className="p-4 font-bold text-center w-[6%]">Rating</th>
+                                <th className="p-4 font-bold text-center w-[16%]">Garage Name</th>
+                                <th className="p-4 font-bold text-center w-[26%]">Location</th>
+                                <th className="p-4 font-bold text-center w-[20%]">Vehicle Types</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Pickup</th>
+                                <th className="p-4 font-bold text-center w-[8%]">Rating</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                             {loading ? (
-                                <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">Loading…</td></tr>
+                                <TableSkeleton rows={15} cols={7} />
                             ) : filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No garages found</td></tr>
                             ) : filtered.map((garage) => {
                                 const rowId = garage.garageId || garage._id;
                                 return (
                                     <tr key={garage._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4">
-                                            <div className="font-semibold text-sm">{garage.garageId}</div>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <div className="font-semibold text-sm text-center">{garage.garageId}</div>
                                         </td>
-                                        <td className="p-4">
-                                            <div className="font-semibold text-sm">{garage.name}</div>
+                                        <td className="p-4 text-center w-[16%]">
+                                            <div className="font-semibold text-sm text-center">{garage.name}</div>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[26%]">
                                             <div className="flex flex-col items-center justify-center gap-1.5">
                                                 <div className="text-center">
                                                     <div className="font-semibold text-gray-800 text-sm">{garage.district}, {garage.state}</div>
@@ -214,7 +215,7 @@ const Garages = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 text-center w-[20%]">
                                             <div className="flex flex-wrap gap-1.5 justify-center">
                                                 {(garage.type || []).map(t => (
                                                     <span key={t} className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
@@ -228,19 +229,19 @@ const Garages = () => {
                                                 ))}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[10%]">
                                             {garage.pickupDrop ? (
-                                                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs uppercase">Yes</span>
+                                                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 font-semibold rounded-full text-xs uppercase border border-transparent">Yes</span>
                                             ) : (
-                                                <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs uppercase">No</span>
+                                                <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs uppercase border border-transparent">No</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-center">
-                                            <span className="inline-block px-4 py-1 bg-amber-100 text-amber-700 font-bold rounded-full text-xs">
+                                        <td className="p-4 text-center w-[8%]">
+                                            <span className="inline-block px-4 py-1 bg-amber-100 text-amber-700 font-bold rounded-full text-xs border border-transparent">
                                                 {garage.rating ? `${garage.rating}` : 'N/A'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[10%]">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button onClick={() => openView(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                     <Eye size={17} />
