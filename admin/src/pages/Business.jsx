@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2 } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Business = () => {
     const [requests, setRequests] = useState([]);
@@ -122,7 +123,7 @@ const Business = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Business Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -134,30 +135,26 @@ const Business = () => {
             </div>
 
             {/* Main Content Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[12%]">Request ID</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Business Name</th>
+                                <th className="p-4.5 font-bold text-center w-[20%]">Business Name</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[20%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="6" className="p-8 text-center text-sm text-gray-500">
-                                        Loading business requests...
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={7} />
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan="7" className="p-8 text-center text-sm text-gray-500">
                                         No business requests found.
                                     </td>
                                 </tr>
@@ -166,20 +163,20 @@ const Business = () => {
                                     <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[12%]">
                                         {req.displayId}
                                     </td>
-                                    <td className="p-4 text-center w-[18%]">
+                                    <td className="p-4 text-center w-[20%]">
                                         <div className="font-semibold text-[#011023] text-sm">{req.businessName}</div>
                                         <div className="text-xs text-gray-500 mt-1">{req.district}, {req.state}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[10%]">
+                                    <td className="p-4 text-center w-[12%]">
                                         <div className="flex items-center text-sm font-semibold justify-center gap-2">
-                                            {(req.businessCategory)}
+                                            {getCategoryName(req.businessCategory)}
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center w-[15%]">
+                                    <td className="p-4 text-center w-[20%]">
                                         <div className="font-semibold text-sm text-gray-800">{req.ownerName}</div>
                                         <div className="text-xs text-gray-500 lowercase mt-0.5">{req.email}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[20%] text-sm whitespace-nowrap ">
+                                    <td className="p-4 text-center w-[18%] text-sm whitespace-nowrap ">
                                         <span className="font-semibold text-gray-800">
                                             {new Date(req.createdAt).toLocaleDateString('en-IN', {
                                                 day: '2-digit', month: 'short', year: 'numeric'
@@ -198,7 +195,7 @@ const Business = () => {
                                             {req.status}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[10%]">
+                                    <td className="p-4 text-center w-[8%]">
                                         <div className="flex items-center justify-center gap-2">
                                             <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                 <Eye size={18} />
