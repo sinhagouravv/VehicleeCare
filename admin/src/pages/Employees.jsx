@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Employees = () => {
     const [employees, setEmployees] = useState([]);
@@ -248,7 +249,7 @@ const Employees = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Employees</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center">
@@ -258,51 +259,45 @@ const Employees = () => {
                 </div>
             </div>
 
-            {/* Main Content Table */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[861px] relative">
-                    {loading ? (
-                        <div className="h-full flex items-center justify-center">
-                            <div className="flex flex-col items-center gap-3 text-gray-400">
-                                <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                                <p className="text-sm font-medium">Loading employees...</p>
-                            </div>
-                        </div>
-                    ) : error ? (
-                        <div className="h-full flex items-center justify-center">
-                            <p className="text-sm text-red-400 font-medium">{error}</p>
-                        </div>
-                    ) : (
-                        <table className="w-full text-center border-collapse">
-                            <thead className="sticky top-0 z-10 shadow-sm">
-                                <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold w-[10.5%]">Employee ID</th>
-                                    <th className="p-4.5 font-bold w-[15%]">Employee</th>
-                                    <th className="p-4.5 font-bold w-[8%]">Category</th>
-                                    <th className="p-4.5 font-bold w-[11%]">Category ID</th>
-                                    <th className="p-4.5 font-bold w-[15%]">Contact</th>
-                                    <th className="p-4.5 font-bold w-[10%]">Role</th>
-                                    <th className="p-4.5 font-bold w-[17%]">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold w-[8.5%]">Status</th>
-                                    <th className="p-4.5 font-bold w-[6%]">Actions</th>
+            {/* Main Table */}
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
+                        <thead className="sticky top-0 z-10 shadow-sm">
+                            <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[14.5%]">Employee</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Category ID</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
+                                <th className="p-4.5 font-bold text-center w-[17%]">Join Date & Time</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
+                            {loading ? (
+                                <TableSkeleton rows={15} cols={9} />
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan={9} className="p-8 text-center text-red-400 font-medium">{error}</td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                                {employees.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="py-16 text-gray-400 text-sm">No employees found.</td>
-                                    </tr>
-                                ) : employees.map((employee) => {
-                                    const rowId = employee.userId || employee.employeeId || employee._id;
-                                    return (
-                                        <tr key={employee._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                            <td className="p-4">
-                                                <div className="font-semibold text-sm">{employee.userId || employee.employeeId || '—'}</div>
+                            ) : employees.length === 0 ? (
+                                <tr>
+                                    <td colSpan={9} className="py-16 text-gray-400 text-sm text-center">No employees found.</td>
+                                </tr>
+                            ) : employees.map((employee) => {
+                                const rowId = employee.userId || employee.employeeId || employee._id;
+                                return (
+                                    <tr key={employee._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                        <td className="p-4 text-center">
+                                            <div className="font-semibold text-sm text-center">{employee.userId || employee.employeeId || '—'}</div>
+                                        </td>
+                                            <td className="p-4 text-center">
+                                                <div className="font-semibold uppercase text-sm text-center">{employee.name}</div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="font-semibold uppercase text-sm">{employee.name}</div>
-                                            </td>
-                                             <td className="p-4">
+                                             <td className="p-4 text-center">
                                                  <span className={`inline-block px-2.5 py-1 uppercase text-xs font-semibold rounded-lg border ${
                                                      employee.category === 'Store' ? 'bg-orange-50 text-orange-600 border-orange-200' : 
                                                      employee.category === 'Garage' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
@@ -313,16 +308,16 @@ const Employees = () => {
                                                      {employee.category || 'System'}
                                                  </span>
                                              </td>
-                                            <td className="p-4">
-                                                <div className="font-semibold text-sm uppercase">
+                                            <td className="p-4 text-center">
+                                                <div className="font-semibold text-sm uppercase text-center">
                                                     {employee.category === 'Garage' ? (employee.garageId || '—') : '—'}
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="text-xs text-gray-500 mt-0.5">{employee.phone || '—'}</div>
-                                                <div className="font-semibold text-gray-700 text-sm">{employee.email}</div>
+                                            <td className="p-4 text-center">
+                                                <div className="text-xs text-gray-500 mt-0.5 text-center">{employee.phone || '—'}</div>
+                                                <div className="font-semibold text-gray-700 text-sm text-center">{employee.email}</div>
                                             </td>
-                                             <td className="p-4">
+                                             <td className="p-4 text-center">
                                                 <div className="flex items-center uppercase justify-center gap-1.5 font-semibold">
                                                     <span className={`px-2.5 py-1 text-[11px] rounded-lg ${getRoleBadge(employee.role)}`}>
                                                         {formatRole(employee.role)}
@@ -335,14 +330,14 @@ const Employees = () => {
                                                 </span>
                                             </td> */}
                                             <td className="p-4 text-center uppercase">
-                                                <div className="font-semibold text-[13px]">
+                                                <div className="font-semibold text-[13px] text-center">
                                                     {formatDate(employee.createdAt)}
                                                 </div>
                                             </td>
-                                            <td className="p-4">
-                                                <span className="uppercase font-semibold text-gray-700">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
+                                            <td className="p-4 text-center">
+                                                <span className="uppercase font-semibold text-gray-700 text-center">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-4 text-center">
                                                 <div className="flex items-center justify-center gap-1.5">
                                                     <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                         <Eye size={17} />
@@ -363,7 +358,6 @@ const Employees = () => {
                                 })}
                             </tbody>
                         </table>
-                    )}
                 </div>
             </div>
 
