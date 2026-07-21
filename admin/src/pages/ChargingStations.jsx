@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check, Loader2 } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../../../backend/chargingdata/punjab.json';
 import haryanaData from '../../../backend/chargingdata/haryana.json';
 import delhiData from '../../../backend/chargingdata/delhi.json';
@@ -176,7 +177,7 @@ const ChargingStations = () => {
     const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Charging Stations</h1>
                 <div className="flex items-center gap-3">
@@ -186,14 +187,14 @@ const ChargingStations = () => {
                 </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[861px] relative">
-                    <table className="w-full border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10%]">Station ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Station Name</th>
-                                <th className="p-4 font-bold text-center w-[30%]">Location</th>
+                                <th className="p-4 font-bold text-center w-[28%]">Location</th>
                                 <th className="p-4 font-bold text-center w-[5%]">Ports</th>
                                 <th className="p-4 font-bold text-center w-[22%]">Charger Type</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Status</th>
@@ -201,19 +202,21 @@ const ChargingStations = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
-                            {filtered.length === 0 ? (
+                            {loading ? (
+                                <TableSkeleton rows={15} cols={7} />
+                            ) : filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No stations found</td></tr>
                             ) : filtered.map((station) => {
                                 const rowId = station.id || station._id;
                                 return (
                                     <tr key={station.id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[10%]">
                                             <span className="font-semibold text-sm">{station.id}</span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[15%]">
                                             <span className="font-semibold text-sm">{station.name}</span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[28%]">
                                             <div className="flex items-start justify-center gap-1.5">
                                                 <div className="text-center">
                                                     <div className="font-semibold text-gray-800 text-sm">{station.district}, {station.state}</div>
@@ -221,12 +224,12 @@ const ChargingStations = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[5%]">
                                             <span className="font-semibold text-sm">
                                                 {station.ports}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[22%]">
                                             <div className="flex flex-wrap gap-1.5 justify-center">
                                                 {(station.type || []).map(t => (
                                                     <span key={t} className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
@@ -237,12 +240,12 @@ const ChargingStations = () => {
                                                 ))}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${getStatusColor(station.status)}`}>
+                                        <td className="p-4 text-center w-[10%]">
+                                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border border-transparent ${getStatusColor(station.status)}`}>
                                                 {station.status}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center w-[10%]">
                                             <div className="flex items-center justify-center gap-1">
                                                 <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                     <Eye size={16} />
