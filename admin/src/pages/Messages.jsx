@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Mail, Eye, Trash2, X, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Messages = () => {
     const [messages, setMessages] = useState([]);
@@ -83,7 +84,7 @@ const Messages = () => {
     const unreadMessages = messages.filter(m => !m.isRead).length;
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto ">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Messages</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center">
@@ -95,19 +96,19 @@ const Messages = () => {
 
             {/* Stats Overview */}
             <div className="flex flex-wrap uppercase items-center gap-5">
-                <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                <div className="bg-white border border-[#e2e8f0] px-5 py-3 rounded-2xl shadow-xs flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Total Messages</p>
                         <p className="text-2xl font-bold text-[#011023]">{totalMessages}</p>
                     </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                <div className="bg-white border border-[#e2e8f0] px-5 py-3 rounded-2xl shadow-xs flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Read Messages</p>
                         <p className="text-2xl font-bold text-emerald-500">{readMessages}</p>
                     </div>
                 </div>
-                <div className="bg-white/60 backdrop-blur-xl border border-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex-1 min-w-[200px]">
+                <div className="bg-white border border-[#e2e8f0] px-5 py-3 rounded-2xl shadow-xs flex-1 min-w-[200px]">
                     <div className="flex justify-between items-center">
                         <p className="text-gray-500 font-semibold uppercase">Unread Messages</p>
                         <p className="text-2xl font-bold text-blue-500">{unreadMessages}</p>
@@ -115,55 +116,63 @@ const Messages = () => {
                 </div>
             </div>
 
-            {/* Main Content Table (Glassmorphism) */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[50rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[780px] relative">
-                    <table className="w-full text-center border-collapse">
+            {/* Main Content Table */}
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold">Message id</th>
-                                <th className="p-4.5 font-bold">Contact Info</th>
-                                <th className="p-4.5 font-bold">Type</th>
-                                <th className="p-4.5 font-bold">Subject</th>
-                                <th className="p-4.5 font-bold">Message preview</th>
-                                <th className="p-4.5 font-bold">Date Received</th>
-                                <th className="p-4.5 font-bold">Status</th>
-                                <th className="p-4.5 font-bold">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Message id</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Contact Info</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Subject</th>
+                                <th className="p-4.5 font-bold text-center w-[24%]">Message preview</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Date Received</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {messages.map((message) => {
+                            {loading ? (
+                                <TableSkeleton rows={15} cols={8} />
+                            ) : messages.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="p-8 text-center text-sm text-gray-500">
+                                        No messages found.
+                                    </td>
+                                </tr>
+                            ) : messages.map((message) => {
                                 const rowId = message.messageId || message._id;
                                 return (
                                     <tr key={message._id} id={`row-${rowId}`} className={`transition-all duration-1000 group ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-white/50'}`}>
-                                        <td className="p-4.5">
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold text-[#011023] text-sm">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
+                                        <td className="p-4.5 text-center w-[10%]">
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-semibold text-[#011023] text-sm text-center">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4.5">
-                                            <div className="flex flex-col uppercase items-center">
-                                                <span className="font-bold text-[#011023] text-">{message.name}</span>
-                                                <span className="text-xs lowercase text-gray-500">{message.email}</span>
+                                        <td className="p-4.5 text-center w-[16%]">
+                                            <div className="flex flex-col uppercase items-center justify-center">
+                                                <span className="font-bold text-[#011023] text-center">{message.name}</span>
+                                                <span className="text-xs lowercase text-gray-500 text-center">{message.email}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4.5 text-center uppercase">
-                                            <span className={`px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700 font-extrabold' : 'bg-emerald-100 text-emerald-700 font-extrabold'}`}>
+                                        <td className="p-4.5 text-center uppercase w-[10%]">
+                                            <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${message.type === 'business' ? 'bg-purple-100 text-purple-700 font-extrabold' : 'bg-emerald-100 text-emerald-700 font-extrabold'}`}>
                                                 {message.type || 'website'}
                                             </span>
                                         </td>
-                                        <td className="p-4.5 text-center uppercase">
-                                            <span className={`font-semibold ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
+                                        <td className="p-4.5 text-center uppercase w-[16%]">
+                                            <span className={`font-semibold text-center ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
                                                 {message.type === 'business' ? 'Business inquiry' : message.subject}
                                             </span>
                                         </td>
-                                        <td className="p-4.5 max-w-xs truncate text-center uppercase">
-                                            <span className={`text-sm ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} >
+                                        <td className="p-4.5 max-w-xs truncate text-center uppercase w-[24%]">
+                                            <span className={`text-sm text-center ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`} >
                                                 {message.message}
                                             </span>
                                         </td>
-                                        <td className="p-4.5 uppercase">
-                                            <div className="flex flex-col">
+                                        <td className="p-4.5 uppercase text-center w-[14%]">
+                                            <div className="flex flex-col items-center justify-center">
                                                 <span className="text-sm font-semibold text-[#011023]">
                                                     {new Date(message.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </span>
@@ -172,7 +181,7 @@ const Messages = () => {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="p-4.5 text-center">
+                                        <td className="p-4.5 text-center w-[6%]">
                                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${message.isRead
                                                 ? 'bg-gray-100 text-gray-600'
                                                 : 'bg-emerald-100 text-emerald-700'
@@ -180,7 +189,7 @@ const Messages = () => {
                                                 {message.isRead ? 'Read' : 'New'}
                                             </span>
                                         </td>
-                                        <td className="p-4.5">
+                                        <td className="p-4.5 text-center w-[4%]">
                                             <div className="flex justify-center gap-1">
                                                 <button
                                                     onClick={() => handleViewMessage(message)}
