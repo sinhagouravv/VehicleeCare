@@ -166,12 +166,12 @@ const Notifications = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">User</th>
-                                <th className="p-4.5 font-bold text-center w-[46%]">Content</th>
-                                <th className="p-4.5 font-bold text-center w-[16%]">Received On</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">User</th>
+                                <th className="p-4.5 font-bold text-center w-[50%]">Content</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -195,12 +195,12 @@ const Notifications = () => {
                                             onClick={() => !notif.isRead && markRead(notif._id)}
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
-                                            <td className="p-4.5 text-center">
-                                                <span className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                            <td className="p-3.75 text-center">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
                                             </td>
-                                            <td className="p-4.5 text-center">
+                                            <td className="p-3.75 text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
                                                         {notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A'}
@@ -210,7 +210,7 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5 text-center">
+                                            <td className="p-3.75 text-center">
                                                 <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'}`}>
                                                     {notif.eventType === 'booking_created' 
                                                         ? notif.message.replace(/^.*booked/i, 'Booked') 
@@ -221,7 +221,7 @@ const Notifications = () => {
                                                         : notif.message}
                                                 </p>
                                             </td>
-                                            <td className="p-4.5 uppercase text-center">
+                                            <td className="p-3.75 uppercase text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="text-sm font-semibold text-[#011023]">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -231,7 +231,7 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5 text-center">
+                                            <td className="p-3.75 text-center">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
                                                     ? 'bg-gray-100 text-gray-600'
                                                     : 'bg-blue-100 text-blue-700'
@@ -239,7 +239,7 @@ const Notifications = () => {
                                                     {notif.isRead ? 'Read' : 'Unread'}
                                                 </span>
                                             </td>
-                                            <td className="p-4.5 text-center">
+                                            <td className="p-3.75 text-center">
                                                 <div className="flex justify-center">
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
