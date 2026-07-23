@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { useAlert } from '../context/AlertContext';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Staff = () => {
     const { triggerAlert } = useAlert();
@@ -156,7 +157,7 @@ const Staff = () => {
         });
         if (!includeTime) return day;
         const time = date.toLocaleTimeString('en-IN', {
-            hour: '2-digit', minute: '2-digit', hour12: true
+            hour: '2-digit', minute: '2-digit', second:'2-digit', hour12: true
         });
         return `${day} | ${time}`;
     };
@@ -286,7 +287,8 @@ const Staff = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Employee Management</h1>
                 <div className="flex items-center gap-4">
@@ -298,34 +300,27 @@ const Staff = () => {
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
-            <div className="bg-white/60 backdrop-blur-xl h-[53.5rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold w-[10%]">Employee ID</th>
-                                <th className="p-4.5 font-bold w-[15%]">Employee</th>
-                                <th className="p-4.5 font-bold w-[18%]">Contact</th>
-                                <th className="p-4.5 font-bold w-[8%]">Role</th>
-                                <th className="p-4.5 font-bold w-[8%]">Shift</th>
-                                <th className="p-4.5 font-bold w-[15%]">Join Date & Time</th>
-                                <th className="p-4.5 font-bold w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold w-[12%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Employee</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Role</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Shift</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Join Date & Time</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={8} className="py-16 text-gray-400 text-sm">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                                            <p className="text-sm font-medium uppercase tracking-widest opacity-60">Loading records...</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                            {loading && staffMembers.length === 0 ? (
+                                <TableSkeleton rows={15} cols={8} />
                             ) : staffMembers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-16 text-gray-400 text-sm uppercase font-bold tracking-widest opacity-60">
+                                    <td colSpan={8} className="py-16 text-gray-400 text-sm uppercase font-bold tracking-widest opacity-60 text-center">
                                         No staff members found.
                                     </td>
                                 </tr>
@@ -341,54 +336,54 @@ const Staff = () => {
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-4">
-                                        <div className="font-semibold text-[#011023] text-sm tracking-wider">{staff.employeeId || '—'}</div>
+                                    <td className="p-3.25 text-center">
+                                        <div className="font-semibold text-[#011023] text-sm tracking-wider text-center">{staff.employeeId || '—'}</div>
                                     </td>
-                                    <td className="p-4">
+                                    <td className="p-3.25 text-center">
                                         <div className="flex items-center gap-3 justify-center text-center">
-                                            <p className="font-semibold text-[#011023] text-sm uppercase leading-tight">{staff.name}</p>
+                                            <p className="font-semibold text-[#011023] text-sm uppercase leading-tight text-center">{staff.name}</p>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="text-xs font-semibold text-gray-500">{staff.phone || '—'}</div>
-                                        <div className="font-medium lowercase text-sm mt-1">{staff.email || 'No email'}</div>
+                                    <td className="p-3.25 text-center">
+                                        <div className="font-medium lowercase text-sm mt-1 text-center">{staff.email || '—'}</div>
+                                        <div className="text-xs font-semibold text-gray-500 text-center">{staff.phone || '—'}</div>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-3.25 text-center">
                                         <div className="flex items-center uppercase justify-center gap-1.5 font-bold">
-                                            <span className={`px-2.5 py-1 text-xs rounded-lg ${getRoleBadge(staff.role)}`}>
+                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent rounded-full whitespace-nowrap ${getRoleBadge(staff.role)}`}>
                                                 {formatRole(staff.role)}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-1000'}`}>
+                                    <td className="p-3.25 text-center">
+                                        <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-1000'}`}>
                                             {staff.shift || '—'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center uppercase">
-                                        <div className="font-semibold text-[#011023]">
+                                    <td className="p-3.25 text-center uppercase">
+                                        <div className="font-semibold text-[#011023] text-center">
                                             {formatDate(staff.createdAt)}
                                         </div>
                                     </td>
-                                    <td className="p-4">
-                                        <span className="uppercase font-semibold text-gray-700">{staff.isVerified ? 'Verified' : 'Unverified'}</span>
+                                    <td className="p-3.25 text-center">
+                                        <span className="uppercase font-semibold text-gray-700 text-center">{staff.isVerified ? 'Verified' : 'Unverified'}</span>
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-center gap-1.5">
-                                            <button onClick={() => handleViewDetails(staff)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                    <td className="p-3.25 text-center">
+                                        <div className="flex items-center justify-center gap-4">
+                                            <button onClick={() => handleViewDetails(staff)} className="text-gray-400 hover:text-blue-500 transition-colors">
                                                 <Eye size={17} />
                                             </button>
 
-                                            <button onClick={() => handleEdit(staff)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors">
+                                            <button onClick={() => handleEdit(staff)} className="text-gray-400 hover:text-amber-500 transition-colors">
                                                 <Edit size={17} />
                                             </button>
-                                            <button onClick={() => { setBanEmployee(staff); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                            <button onClick={() => { setBanEmployee(staff); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 transition-colors">
                                                 <UserX size={17} />
                                             </button>
-                                            <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                            <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 transition-colors">
                                                 <Download size={17} />
                                             </button>
-                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 transition-colors">
                                                 <Trash2 size={17} />
                                             </button>
                                         </div>
