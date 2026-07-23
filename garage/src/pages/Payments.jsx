@@ -4,6 +4,7 @@ import { Eye, Download, X, Search, DollarSign, ArrowUpRight, ArrowDownRight } fr
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
@@ -123,45 +124,42 @@ const Payments = () => {
     const expensesThisMonth = 0;
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9rem)] flex flex-col">
+            {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Payments</h1>
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Payments</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
-            {/* Main Content Table (Glassmorphism) */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white max-h-[54rem] rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden flex flex-col">
-                <div className="overflow-x-auto overflow-y-auto flex-1 h-[860px] hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            {/* Main Table */}
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="px-6 py-4.5 font-bold text-center w-[12%]">Payment ID</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[10%]">Booking ID</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[12%]">User</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[10%]">Payment ID</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[9%]">Booking ID</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[11%]">User</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[10%]">User ID</th>
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[9%]">User Type</th> */}
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[14%]">Details</th> */}
-                                <th className="px-6 py-4.5 font-bold text-center w-[14%]">Paid At</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[15%]">Paid At</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[7%]">Amount</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[7%]">Method</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[7%]">Status</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[6%]">Actions</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[9.5%]">Method</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[9.5%]">Status</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="10" className="p-8 text-center text-sm text-gray-500">
-                                        Loading payments...
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={9} />
                             ) : payments.length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">
                                         No payment records found.
                                     </td>
                                 </tr>
@@ -177,46 +175,46 @@ const Payments = () => {
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]">
+                                        <td className="p-3.5 font-semibold text-[#052558] text-sm truncate text-center w-[12%]">
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-3.5 text-center w-[10%]">
                                             <span className="font-semibold text-[#052558] text-sm">
                                                 {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[12%]">
+                                        <td className="p-3.5 text-center w-[12%]">
                                             <div className="font-semibold text-sm text-[#011023]">{getCustomerName(payment)}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-3.5 text-center w-[10%]">
                                             <div className="text-sm font-semibold uppercase">{payment.user?.userId || '—'}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[14%]">
+                                        <td className="p-3.5 text-center w-[14%]">
                                             <span className="text-sm font-semibold whitespace-nowrap">
                                                 {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | 
                                                 {' '}
                                                 {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[7%]">
+                                        <td className="p-3.5 text-center w-[7%]">
                                             <span className="text-sm font-bold text-gray-800">
                                                 ₹{payment.amount?.toLocaleString()}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[7%]">
+                                        <td className="p-3.5 text-center w-[7%]">
                                             <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
                                         </td>
-                                        <td className="p-4 text-center w-[7%]">
+                                        <td className="p-3.5 text-center w-[7%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
                                                 {payment.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[6%]">
-                                            <div className="flex justify-center gap-1.5">
-                                                <button onClick={() => handleViewDetails(payment)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                        <td className="p-3.5 text-center w-[6%]">
+                                            <div className="flex justify-center gap-4">
+                                                <button onClick={() => handleViewDetails(payment)} className="text-gray-400 hover:text-blue-600 transition-colors">
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => handleDownloadInvoice(payment)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                                                <button onClick={() => handleDownloadInvoice(payment)} className="text-gray-400 hover:text-emerald-600 transition-colors">
                                                     <Download size={18} />
                                                 </button>
                                             </div>
