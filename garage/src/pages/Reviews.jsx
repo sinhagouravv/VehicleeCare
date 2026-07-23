@@ -3,6 +3,7 @@ import { Star, Eye, X, Trash2, Loader2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 // import useHighlight from '../hooks/useHighlight'; // Keep highlighted row hook
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Reviews = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -158,7 +159,7 @@ const Reviews = () => {
 
     return (
         <>
-            <div className="space-y-6 max-w-[92rem] mx-auto">
+            <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
                     <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
@@ -173,26 +174,28 @@ const Reviews = () => {
                 </div>
 
                 {/* Main Content Table */}
-                <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                    <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
-                        <table className="w-full text-left border-collapse">
+                <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                    <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                        <table className="w-full text-left border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center w-[9%]">Review ID</th>
-                                    <th className="p-4.5 font-bold text-center w-[10%]">Reviewer</th>
-                                    <th className="p-4.5 font-bold text-center w-[35%]">Review Text</th>
-                                    <th className="p-4.5 font-bold text-center w-[6%]">Rating</th>
-                                    <th className="p-4.5 font-bold text-center w-[14%]">Date</th>
-                                    <th className="p-4.5 font-bold text-center w-[4%]">Status</th>
-                                    <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Review ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[12%]">Reviewer</th>
+                                    <th className="p-4.5 font-bold text-center w-[40%]">Review Text</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Rating</th>
+                                    <th className="p-4.5 font-bold text-center w-[16%]">Date</th>
+                                    <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
+                                    <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
-                                {reviews.length === 0 && !loading && (
+                                {loading && reviews.length === 0 ? (
+                                    <TableSkeleton rows={15} cols={7} />
+                                ) : reviews.length === 0 ? (
                                     <tr>
                                         <td colSpan="8" className="p-8 text-center text-gray-400 font-medium">No reviews found in the database.</td>
                                     </tr>
-                                )}
+                                ) : null}
                                 {reviews.map((rev) => (
                                     <tr
                                         key={rev._id}
@@ -213,7 +216,7 @@ const Reviews = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-sm text-center text-gray-600 whitespace-normal">{rev.text}</td>
-                                        <td className="p-4">
+                                        <td className="p-4 text-center">
                                             <div className="flex flex-col items-center justify-center gap-1">
                                                 {rev.sourceType === 'Garage' ? (
                                                     <>
