@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Vehicles = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -103,38 +104,37 @@ const Vehicles = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Vehicles Directory</h1>
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Vehicles</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 
             {/* Main Table */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[11%]">Customer Id</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Booking ID</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Brand</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Model</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Customer Id</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[11.5%]">Brand</th>
+                                <th className="p-4.5 font-bold text-center w-[11.5%]">Model</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Number</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Other Details</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Visit At</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Other Details</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Visit At</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">Loading vehicles...</td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={9} />
                             ) : vehicles.length === 0 ? (
                                 <tr>
                                     <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No vehicles found.</td>
@@ -149,49 +149,52 @@ const Vehicles = () => {
                                             : 'hover:bg-blue-50/30'
                                     }`}
                                 >
-                                    <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[11%]" title={v.customerId}>
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm truncate text-center" title={v.customerId}>
                                         {v.customerId}
                                     </td>
-                                    <td className="p-4 text-center w-[10%]">
+                                    <td className="p-3.25 text-center">
                                         <div className="font-semibold text-[13.5px] truncate px-2" title={v.ownerName}>{v.ownerName}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[10%]">
+                                    <td className="p-3.25 text-center">
                                         <div className="font-semibold text-[13.5px] truncate px-1" title={v.bookingId}>{v.bookingId}</div>
                                     </td>
-                                    <td className="p-4 text-center w-[10%] font-semibold text-[13.5px]">
+                                    <td className="p-3.25 text-center font-semibold text-[13.5px]">
                                         {v.brand}
                                     </td>
-                                    <td className="p-4 text-center w-[9%] font-semibold text-[13.5px]">
+                                    <td className="p-3.25 text-center font-semibold text-[13.5px]">
                                         {v.model}
                                     </td>
-                                    <td className="p-4 text-center w-[7%]">
+                                    <td className="p-3.25 text-center">
                                         <span className="bg-[#fef3c7] text-[#92400e] font-semibold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide">
                                             {v.number}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[15%]">
-                                        <div className="flex flex-wrap justify-center gap-1.5">
-                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-semibold border border-blue-100">{v.year}</span>
-                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-semibold border border-emerald-100">{v.type}</span>
-                                            <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-md font-semibold border border-purple-100">{v.transmission}</span>
+                                    <td className="p-3.25 text-center">
+                                        <div className="grid grid-cols-2 gap-2 items-center">
+                                            <div className="flex justify-end">
+                                                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full font-semibold border border-emerald-100">{v.type}</span>
+                                            </div>
+                                            <div className="flex justify-start">
+                                                <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full font-semibold border border-purple-100">{v.transmission}</span>
+                                            </div>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center w-[15%]">
+                                    <td className="p-3.25 text-center ">
                                         <span className="text-sm font-semibold text-gray-600">
                                             {formatDate(v.lastVisitDate)}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[11%]">
-                                        <div className="flex items-center justify-center gap-1">
+                                    <td className="p-3.25 text-center">
+                                        <div className="flex items-center justify-center gap-4">
                                             <button
                                                 onClick={() => handleViewDetails(v)}
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-blue-500 transition-colors"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
                                                 onClick={() => { setVehicleToDelete(v); setIsDeleteModalOpen(true); }}
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 size={17} />
                                             </button>
