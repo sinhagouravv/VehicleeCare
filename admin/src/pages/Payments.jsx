@@ -4,6 +4,7 @@ import { Eye, Download, X, RefreshCw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
@@ -134,9 +135,9 @@ const Payments = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9rem)] flex flex-col">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Payments</h1>
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Payments</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
@@ -144,35 +145,31 @@ const Payments = () => {
                 </div>
             </div>
 
-            {/* Main Content Table (Glassmorphism) */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
-                    <table className="w-full text-left border-collapse">
+            {/* Main Content Table */}
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[13%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">ID</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">User</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">User Type</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Paid At</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Method</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">ID</th>
+                                <th className="p-4.5 font-bold text-center w-[13%]">User</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">User Type</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Paid At</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Amount</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Method</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="11" className="p-8 text-center text-sm text-gray-500">
-                                        Server is not running. Kindly start the server.
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={11} />
                             ) : payments.length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan="11" className="p-8 text-center text-sm text-gray-500">
                                         No payments found.
                                     </td>
                                 </tr>
@@ -180,10 +177,10 @@ const Payments = () => {
                                 const rowId = payment.paymentId || payment._id;
                                 return (
                                     <tr key={payment._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[12%]">
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10.5%]">
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[9%]">
                                             {payment.type === 'Subscription' ? (
                                                 <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-fuchsia-100 text-fuchsia-700">
                                                     Business
@@ -196,49 +193,46 @@ const Payments = () => {
                                                 <span className="text-gray-400">—</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[9%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getTypeColor(payment.type)}`}>
                                                 {payment.type || 'Booking'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[9%]">
                                             <span className="font-semibold text-sm">
                                                 {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[18%]">
-                                            <div className="font-semibold text-[13px">{getCustomerName(payment)}</div>
-                                            <div className="text-xs text-gray-500">{payment.user?.userId || ''}</div>
+                                        <td className="p-4 text-center w-[13%]">
+                                            <div className="font-semibold text-[13px] text-center">{getCustomerName(payment)}</div>
+                                            <div className="text-xs text-gray-500 text-center">{payment.user?.userId || ''}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[8%]">
+                                        <td className="p-4 text-center w-[9%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${payment.type === 'Subscription' ? 'bg-orange-100 text-orange-700' : 'bg-cyan-100 text-cyan-700'}`}>
                                                 {payment.type === 'Subscription' ? 'Vendor' : 'Customer'}
                                             </span>
                                         </td>
-                                        {/* <td className="p-4 text-center w-[18%]">
-                                            {payment.booking?.service?.title}
-                                        </td> */}
                                         <td className="p-4 text-center w-[15%]">
-                                            <span className="text-sm font-semibold whitespace-nowrap">
+                                            <span className="text-sm font-semibold whitespace-nowrap text-center">
                                                 {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} <br></br> 
                                                 {' '}
                                                 {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[9%]">
-                                            <span className="text-sm font-semibold text-gray-800">
+                                        <td className="p-4 text-center w-[6%]">
+                                            <span className="text-sm font-semibold text-gray-800 text-center">
                                                 ₹{payment.amount}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[8%]">
-                                            <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
+                                        <td className="p-4 text-center w-[6%]">
+                                            <span className="text-sm font-semibold whitespace-nowrap text-center">{payment.method}</span>
                                         </td>
-                                        <td className="p-4 text-center w-[8%]">
+                                        <td className="p-4 text-center w-[7.5%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
                                                 {payment.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[10%]">
+                                        <td className="p-4 text-center w-[6%]">
                                             <div className="flex justify-center gap-1.5">
                                                 <button
                                                     onClick={() => handleViewDetails(payment)}
