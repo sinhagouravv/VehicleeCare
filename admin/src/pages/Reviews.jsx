@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Trash2, Eye, Check, X, Loader2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Reviews = () => {
     const [reviews, setReviews] = useState([]);
@@ -186,7 +187,7 @@ const Reviews = () => {
 
     return (
         <>
-            <div className="space-y-6 max-w-[92rem] mx-auto ">
+            <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
                     <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
@@ -223,9 +224,9 @@ const Reviews = () => {
                 </div>
 
                 {/* Main Content Table */}
-                <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                    <div className="overflow-x-hidden overflow-y-auto h-[780px] relative">
-                        <table className="w-full text-left border-collapse">
+                <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                    <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                        <table className="w-full text-center border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                     <th className="p-4.5 font-bold text-center w-[9%]">Review ID</th>
@@ -239,12 +240,14 @@ const Reviews = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
-                                {reviews.length === 0 && !loading && (
+                                {loading ? (
+                                    <TableSkeleton rows={15} cols={8} />
+                                ) : reviews.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="p-8 text-center text-gray-400 font-medium">No reviews found in the database.</td>
+                                        <td colSpan="8" className="p-8 text-center text-gray-400 font-medium">No reviews found in the database.</td>
                                     </tr>
-                                )}
-                                {reviews.map((rev) => (
+                                ) : null}
+                                {!loading && reviews.map((rev) => (
                                     <tr key={rev._id} className="hover:bg-blue-50/30 transition-colors">
                                         <td className="p-4 text-center font-semibold text-[#052558] text-sm tracking-wide">
                                             {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
