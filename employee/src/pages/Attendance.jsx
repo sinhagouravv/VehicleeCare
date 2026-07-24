@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LogIn, LogOut, CheckCircle, Clock, Calendar, Loader2, AlertCircle } from 'lucide-react';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const Attendance = () => {
     const [todayRecord, setTodayRecord] = useState(null);
@@ -176,17 +177,14 @@ const Attendance = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
-            {/* Header Area */}
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Attendance</h1>
 
                 {/* Check In / Out Buttons replace the Last Refreshed area natively */}
                 <div className="flex items-center gap-4 w-56">
                     {loading ? (
-                        <div className="w-full py-2.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center h-[38px]">
-                            <Loader2 size={16} className="animate-spin text-gray-400" />
-                        </div>
+                        <SkeletonBlock className="h-[38px] w-full bg-slate-200 rounded-xl" />
                     ) : isShiftComplete ? (
                         <div className="w-full py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 font-bold text-[12px] uppercase tracking-widest text-center flex items-center justify-center gap-2">
                             {/* <CheckCircle size={16} /> */}
@@ -253,12 +251,11 @@ const Attendance = () => {
             )}
 
             {/* Main Table Area mapped from Garage Directory styling */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white flex-1 min-h-0 border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-
+                            <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
                                 <th className="p-4.5 font-bold text-center w-[12%]">Employee Id</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Employee Name</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
@@ -271,14 +268,7 @@ const Attendance = () => {
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="8" className="p-8 text-center">
-                                        <div className="flex flex-col items-center justify-center gap-4 py-12">
-                                            <Loader2 size={24} className="animate-spin text-[#527FB0]" />
-                                            <span className="text-xs font-bold text-gray-400">LOADING RECORDS...</span>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={8} />
                             ) : attendanceRecords.length === 0 ? (
                                 <tr>
                                     <td colSpan="8" className="p-8 text-center py-20">
