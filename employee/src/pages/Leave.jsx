@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Leave = () => {
     const [showModal, setShowModal] = useState(false);
@@ -227,8 +228,8 @@ const Leave = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto pb-12">
-            <div className="flex justify-between items-center mb-8">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Leave Management</h1>
 
                 <div className="relative group">
@@ -250,30 +251,26 @@ const Leave = () => {
             </div>
 
             {/* Past Leave Requests Table */}
-            <div className="bg-white h-[53.25rem] border border-[#e2e8f0] rounded-2xl shadow-sm overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto text-center h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white flex-1 min-h-0 border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-blue-50 text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave ID</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Date</th>
+                            <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
+                                <th className="p-4.5 font-bold text-center w-[7%]">Leave ID</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Date</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Leave</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[29%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]"> Start</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]"> End</th>
+                                <th className="p-4.5 font-bold text-center w-[25%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]"> Start</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]"> End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
-                                <th className="p-4.5 font-bold text-center w-[1%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[4%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && leaves.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" className="p-20 text-center">
-                                        <Loader2 size={24} className="animate-spin text-gray-400 mx-auto" />
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={9} />
                             ) : leaves.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="p-20 text-center text-gray-400 font-bold tracking-widest">
