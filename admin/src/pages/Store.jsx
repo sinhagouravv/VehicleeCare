@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../../../backend/chargingdata/punjab.json';
 import haryanaData from '../../../backend/chargingdata/haryana.json';
 import delhiData from '../../../backend/chargingdata/delhi.json';
@@ -168,7 +169,7 @@ const Store = () => {
     const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Stores</h1>
                 <div className="flex items-center gap-3">
@@ -178,9 +179,9 @@ const Store = () => {
                 </div>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
-                    <table className="w-full border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[13px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center">Store ID</th>
@@ -193,7 +194,9 @@ const Store = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
-                            {filtered.length === 0 ? (
+                            {loading ? (
+                                <TableSkeleton rows={15} cols={7} />
+                            ) : filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No stores found</td></tr>
                             ) : filtered.map((store) => {
                                 const rowId = store.id || store._id;
