@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Wrench, Plus, Edit, Trash2, SwitchCamera, X, Loader2 } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Services = () => {
     const [disabledServices, setDisabledServices] = useState([]);
@@ -217,7 +218,7 @@ const Services = () => {
     ));
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto ">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Services</h1>
                 <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-12 uppercase text-[13px] py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
@@ -226,9 +227,9 @@ const Services = () => {
                 </button>
             </div>
 
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
-                    <table className="w-full text-left uppercase border-collapse">
+            <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-center uppercase border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-center text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold">Service ID</th>
