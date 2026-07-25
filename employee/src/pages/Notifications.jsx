@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Loader2, Trash2 } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -157,8 +158,8 @@ const Notifications = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
-            <div className="flex justify-between items-center mb-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight flex items-center gap-3">
                         Notifications
@@ -174,34 +175,26 @@ const Notifications = () => {
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
-            <div className="bg-white/60 backdrop-blur-xl max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative">
-                    <table className="w-full text-center border-collapse">
+            <div className="bg-white flex-1 min-h-0 border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold" style={{ width: '10%' }}>Type</th>
-                                <th className="p-4.5 font-bold" style={{ width: '10%' }}>Customer</th>
-                                <th className="p-4.5 font-bold" style={{ width: '45%' }}>Notification Details</th>
-                                <th className="p-4.5 font-bold" style={{ width: '10%' }}>Received On</th>
-                                <th className="p-4.5 font-bold" style={{ width: '7%' }}>Status</th>
-                                <th className="p-4.5 font-bold" style={{ width: '7%' }}>Action</th>
+                            <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
+                                <th className="p-4.5 font-bold w-[10%]">Type</th>
+                                <th className="p-4.5 font-bold w-[10%]">Customer</th>
+                                <th className="p-4.5 font-bold w-[50%]">Notification Details</th>
+                                <th className="p-4.5 font-bold w-[15%]">Received On</th>
+                                <th className="p-4.5 font-bold w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                             {loading && notifications.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="p-20 text-center">
-                                        <div className="flex flex-col items-center gap-3 text-gray-400">
-                                            <Loader2 size={26} className="animate-spin text-[#527FB0]" />
-                                            <p className="text-sm font-medium">Loading notifications...</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={6} />
                             ) : notifications.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="p-20 text-center text-gray-300">
                                         <div className="flex flex-col items-center gap-3">
-                                            <Bell size={40} />
                                             <p className="text-sm font-semibold uppercase">No new assignments</p>
                                         </div>
                                     </td>
@@ -216,9 +209,12 @@ const Notifications = () => {
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
                                             <td className="p-4.5">
+
+                                                <div className="flex justify-center">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
+                                                </div>
                                             </td>
                                             <td className="p-4.5">
                                                 <div className="flex flex-col items-center justify-center">
@@ -238,7 +234,7 @@ const Notifications = () => {
                                                 </p>
                                             </td>
                                             <td className="p-4.5 uppercase">
-                                                <div className="flex flex-col">
+                                                <div className="flex flex-col items-center">
                                                     <span className="text-sm font-semibold text-[#011023]">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
@@ -248,12 +244,14 @@ const Notifications = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4.5">
+                                                <div className="flex justify-center">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
                                                     ? 'bg-gray-100 text-gray-600'
                                                     : 'bg-blue-100 text-blue-700'
                                                     }`}>
                                                     {notif.isRead ? 'Read' : 'Unread'}
                                                 </span>
+                                                </div>
                                             </td>
                                             <td className="p-4.5">
                                                 <div className="flex justify-center">
