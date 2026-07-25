@@ -16,6 +16,7 @@ import {
     MessageSquare } from 'lucide-react';
 
 import useHighlight from '../hooks/useHighlight';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Tasks = () => {
     const [tasks, setTasks] = useState([]);
@@ -291,7 +292,7 @@ const Tasks = () => {
     }, [tasks, searchTerm, filterStatus]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto pb-12">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">My Tasks</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -301,15 +302,15 @@ const Tasks = () => {
                 </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-md max-h-[55rem] border border-white rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white flex-1 min-h-0 border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                            <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[30%]">Service Details</th>
+                                <th className="p-4.5 font-bold text-center w-[35%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Time Slot</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Action</th>
@@ -317,13 +318,7 @@ const Tasks = () => {
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && tasks.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" className="p-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <span className="text-gray-400 font-bold tracking-widest">Loading Assignments...</span>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={7} />
                             ) : filteredTasks.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="p-20 text-center text-sm text-gray-500">
