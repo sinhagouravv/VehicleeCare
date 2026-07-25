@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Target, CheckCircle2, Star, ShieldAlert, Award, ArrowUpRight, Loader2, HeartHandshake } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { PageSkeleton } from '../components/Skeleton';
 
 const SuccessRate = () => {
     const [bookings, setBookings] = useState([]);
@@ -68,12 +69,7 @@ const SuccessRate = () => {
     const avgRating = displayJobs.length > 0 ? (ratingSum / displayJobs.length).toFixed(1) : "4.8";
 
     if (loading) {
-        return (
-            <div className="min-h-[85vh] flex flex-col items-center justify-center gap-2">
-                <Loader2 size={32} className="animate-spin text-[#527FB0]" />
-                <p className="text-xs uppercase font-bold tracking-widest text-gray-400">Loading success analysis...</p>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     return (
