@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { TableSkeleton } from '../components/Skeleton';
 
 const Overtime = () => {
     const [overtimes, setOvertimes] = useState([]);
@@ -241,9 +242,8 @@ const Overtime = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-6">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
                  <div className="flex items-center gap-4">
                     <button onClick={handleOpenModal} className="flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm">
@@ -253,14 +253,14 @@ const Overtime = () => {
             </div>
 
             {/* Overtime Table Log */}
-            <div className="bg-white max-h-[55rem] border border-[#e6f0fa] rounded-2xl shadow-sm overflow-hidden">
-                <div className="overflow-x-hidden overflow-y-auto h-[860px] relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse">
+            <div className="bg-white flex-1 min-h-0 border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] overflow-hidden flex flex-col">
+                <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
+                    <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
-                            <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                            <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
                                 <th className="p-4.5 font-bold text-center w-[20%]">Overtime Date</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Logged Hours</th>
-                                <th className="p-4.5 font-bold text-center w-[32%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[35%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Date Applied</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
@@ -268,13 +268,7 @@ const Overtime = () => {
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && overtimes.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="p-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <span className="text-gray-400 font-bold tracking-widest animate-pulse">Loading Logs...</span>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton rows={15} cols={6} />
                             ) : overtimes.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="p-20 text-center text-sm text-gray-500">
