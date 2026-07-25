@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UploadCloud, CheckCircle2, AlertCircle, FileText, Loader2, Eye, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { FormSkeleton } from '../components/Skeleton';
 
 const UploadDocuments = () => {
     const [employee, setEmployee] = useState(null);
@@ -129,9 +130,17 @@ const UploadDocuments = () => {
 
     if (loading) {
         return (
-            <div className="min-h-[80vh] flex flex-col items-center justify-center gap-2">
-                <Loader2 size={28} className="animate-spin text-[#527FB0]" />
-                <p className="text-sm font-medium tracking-widest uppercase opacity-60">Loading documents...</p>
+            <div className="space-y-6 max-w-[92rem] mx-auto animate-pulse">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
+                        <div className="h-3 w-64 bg-slate-200 rounded mt-2 animate-pulse" />
+                    </div>
+                </div>
+
+                {/* Form/Card grid skeleton representation */}
+                <FormSkeleton fields={4} />
             </div>
         );
     }
