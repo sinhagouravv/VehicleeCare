@@ -176,7 +176,7 @@ const Payments = () => {
                             ) : payments.map((payment) => {
                                 const rowId = payment.paymentId || payment._id;
                                 return (
-                                    <tr key={payment._id} id={`row-${rowId}`} className={`text-center mt-4 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
+                                    <tr key={payment._id} id={`row-${rowId}`} className={`text-center mt-3 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
                                         <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10.5%]">
                                             {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
                                         </td>
