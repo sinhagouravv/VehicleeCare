@@ -154,7 +154,7 @@ const Meeting = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Meeting Requests</h1>
-                <div className="flex items-center gap-4 text-xs uppercase text-gray-400 font-medium self-center">
+                <div className="flex items-center gap-3 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
                         : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
