@@ -154,7 +154,7 @@ const Meeting = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Meeting Requests</h1>
-                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                <div className="flex items-center gap-7 text-xs uppercase text-gray-400 font-medium self-center">
                     {lastRefreshed
                         ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
                         : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
@@ -306,7 +306,7 @@ const Meeting = () => {
                                 {/* Employee Info */}
                                 <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employee Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011021] truncate">{selectedRequest.employeeName || '—'}</span></p>
                                         <p className="text-sm text-gray-500"><span className="text-gray-500 w-24 shrink-0">ID:</span> <span className="font-semibold pl-19 text-gray-700">{selectedRequest.employeeId}</span></p>
                                     </div>
@@ -315,7 +315,7 @@ const Meeting = () => {
                                 {/* Request Info */}
                                 <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Appointment Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Type:</span> <span className="font-semibold ">ID CARD</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Purpose:</span> <span className="font-semibold text-[#011023]">{selectedRequest.purpose || selectedRequest.reason || '—'}</span></p>
                                     </div>
