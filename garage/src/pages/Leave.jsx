@@ -311,7 +311,7 @@ const Leave = () => {
                                 {/* Employee Info */}
                                 <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employee Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011021] truncate">{selectedLeave.employeeName}</span></p>
                                         <p className="text-sm text-gray-500"><span className="text-gray-500 w-24 shrink-0">ID:</span> <span className="font-semibold pl-19 text-gray-700">{selectedLeave.employeeId}</span></p>
                                     </div>
@@ -320,7 +320,7 @@ const Leave = () => {
                                 {/* Leave Info */}
                                 <div className="space-y-1 w-full md:w-[35%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Leave Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Type:</span> <span className="font-semibold text-[#011023]">{selectedLeave.type}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Date:</span> <span className="font-semibold text-gray-800 uppercase">{formatDate(selectedLeave.createdAt)} | {formatTime(selectedLeave.createdAt)}</span></p>
                                     </div>
