@@ -296,7 +296,7 @@ const Overtime = () => {
                                 {/* Employee Info */}
                                 <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employee Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011021] truncate">{selectedOvertime.employeeName}</span></p>
                                         <p className="text-sm text-gray-500"><span className="text-gray-500 w-24 shrink-0">ID:</span> <span className="font-semibold pl-19 text-gray-700">{selectedOvertime.employeeId}</span></p>
                                     </div>
@@ -305,7 +305,7 @@ const Overtime = () => {
                                 {/* Overtime Info */}
                                 <div className="space-y-1 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Overtime Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Date:</span> <span className="font-semibold text-[#011023]">{formatDate(selectedOvertime.date)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Hours:</span> <span className="font-semibold text-gray-850">{selectedOvertime.hours} {selectedOvertime.hours === 1 ? 'HR' : 'HRS'}</span></p>
                                     </div>
