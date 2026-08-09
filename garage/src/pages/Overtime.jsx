@@ -313,7 +313,7 @@ const Overtime = () => {
 
                                 {/* Status & Remarks */}
                                 <div className="flex flex-col gap-4 w-full md:w-[40%]">
-                                    <div className="space-y-5">
+                                    <div className="space-y-4">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Status Details</h4>
                                         <div className="space-y-2 mt-4">
                                             <div className="flex items-center gap-6">
