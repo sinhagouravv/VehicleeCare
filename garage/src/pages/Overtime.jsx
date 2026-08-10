@@ -315,7 +315,7 @@ const Overtime = () => {
                                 <div className="flex flex-col gap-4 w-full md:w-[40%]">
                                     <div className="space-y-4">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Status Details</h4>
-                                        <div className="space-y-2 mt-4">
+                                        <div className="space-y-2 mt-5">
                                             <div className="flex items-center gap-6">
                                                 <p className="text-sm font-semibold text-gray-500 w-28 shrink-0 uppercase">Status</p>
                                                 <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent uppercase ${getStatusStyle(selectedOvertime.status)}`}>
