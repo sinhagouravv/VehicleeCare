@@ -169,11 +169,11 @@ const Overtime = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Date Requested</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Hours</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Hours</th>
                                 <th className="p-4.5 font-bold text-center w-[35%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Date Applied</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
@@ -221,12 +221,12 @@ const Overtime = () => {
                                         <div className="flex items-center justify-center gap-4">
                                             {overtime.status === 'Pending' ? (
                                                 <>
-                                                    <button 
+                                                    {/* <button 
                                                         onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
                                                         className="text-gray-400 hover:text-blue-500 transition-colors"
                                                     >
                                                         <Eye size={18} />
-                                                    </button>
+                                                    </button> */}
                                                     <button 
                                                         onClick={() => openActionModal(overtime._id, 'Approved')}
                                                         disabled={updatingId === overtime._id}
