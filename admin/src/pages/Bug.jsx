@@ -170,14 +170,14 @@ const Bug = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Bug ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Bug ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Portal</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Reporter ID</th>
-                                <th className="p-4.5 font-bold text-center w-[28%]">Bug Subject</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Reported At</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Reporter ID</th>
+                                <th className="p-4.5 font-bold text-center w-[30%]">Bug Subject</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Reported At</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Severity</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[4%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
@@ -217,13 +217,13 @@ const Bug = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[4%]" onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center justify-center gap-1.5">
+                                            <div className="flex items-center justify-center gap-4">
                                                 <button
                                                     onClick={() => {
                                                         setSelectedBug(bug);
                                                         setIsViewModalOpen(true);
                                                     }}
-                                                    className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                                    className="text-gray-400 hover:text-blue-500 cursor-pointer"
                                                 >
                                                     <Eye size={18} />
                                                 </button>
@@ -231,7 +231,7 @@ const Bug = () => {
                                                     <button
                                                         onClick={() => handleUpdateStatus(bug._id, 'Resolved')}
                                                         disabled={updatingId === bug._id}
-                                                        className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                                                        className="text-gray-400 hover:text-emerald-500 cursor-pointer disabled:opacity-50"
                                                     >
                                                         <Check size={18} className="stroke-[2]" />
                                                     </button>
@@ -242,8 +242,7 @@ const Bug = () => {
                                                             setSelectedBug(bug);
                                                             setIsViewModalOpen(true);
                                                         }}
-                                                        className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                                                        title="Remarks"
+                                                        className="text-gray-400 hover:text-emerald-500 cursor-pointer"
                                                     >
                                                         <MessageSquare size={18} />
                                                     </button>
