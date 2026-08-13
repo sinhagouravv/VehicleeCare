@@ -201,23 +201,22 @@ const Bookings = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10.5%]">Booking ID</th>
-                                <th className="p-4.5 font-bold text-center w-[11.5%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[22%]">Service</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">Schedule At</th>
-                                <th className="p-4.5 font-bold text-center w-[5%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[5%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[29%]">Service</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Schedule At</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <TableSkeleton rows={15} cols={9} />
+                                <TableSkeleton rows={15} cols={8} />
                             ) : bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">
                                         No bookings found.
                                     </td>
                                 </tr>
@@ -225,58 +224,53 @@ const Bookings = () => {
                                 const rowId = booking.bookingId || booking._id;
                                 return (
                                     <tr key={booking._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10.5%]">
+                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center">
                                             {booking.bookingId || booking._id.substring(0, 8).toUpperCase()}
                                         </td>
-                                        <td className="p-4 text-center w-[11.5%]">
+                                        <td className="p-4 text-center">
                                             <div className="text-[13px] font-semibold text-[#011023]">{booking.user?.name || "Unknown"}</div>
                                             <div className="text-xs text-gray-500">{booking.user?.userId || ""}</div>
                                         </td>
-                                        <td className="p-4 text-center w-[8%]">
+                                        <td className="p-4 text-center">
                                             <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${booking.store ? 'bg-purple-100 text-purple-700' : booking.parking ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
                                                 {booking.store ? 'Store' : booking.parking ? 'Parking' : 'Garage'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[22%]">
-                                            <div className="font-semibold text-gray-800 text-sm ">
+                                        <td className="p-4 text-center">
+                                            <div className="font-semibold text-gray-800 text-sm">
                                                 {booking.service?.title}
                                             </div>
                                             <div className="text-xs text-gray-500">
                                                 {booking.vehicle?.make} {booking.vehicle?.model}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[14%]">
-                                            <div className="font-semibold text-gray-800 text-sm ">
+                                        <td className="p-4 text-center">
+                                            <div className="font-semibold text-gray-800 text-sm">
                                                 {booking.schedule?.date}
                                             </div>
                                             <div className="text-[13px] text-gray-600">
                                                 {booking.schedule?.time}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[5%]">
-                                            <span className="text-sm font-semibold text-gray-800">
-                                                ₹{booking.payment?.amount || booking.service?.price || '0'}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-center w-[11%]">
+                                        <td className="p-4 text-center">
                                             <span className="font-semibold text-[#052558] text-sm">
                                                 {booking.payment?.paymentId || '—'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[13%]">
+                                        <td className="p-4 text-center">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
                                                 {booking.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[5%]">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                        <td className="p-4 text-center">
+                                            <div className="flex items-center justify-center gap-3.5">
+                                                <button onClick={() => handleViewDetails(booking)} className="text-gray-400 hover:text-blue-500">
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => handleDownloadInvoice(booking)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => handleDownloadInvoice(booking)} className="text-gray-400 hover:text-emerald-500">
                                                     <Download size={18} />
                                                 </button>
-                                                <button onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500">
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
