@@ -11,11 +11,17 @@ const EVENT_MAPPING = {
     garage_added: { type: 'Garage', category: 'Admin', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-teal-100 text-teal-700' },
     charging_station_added: { type: 'Charging', category: 'Admin', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-teal-100 text-teal-700' },
     employee_added: { type: 'Employee', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-teal-100 text-teal-700' },
+    leave: { type: 'Leave', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-amber-100 text-amber-700' },
+    id_card_requested: { type: 'ID Card', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-indigo-100 text-indigo-700' },
+    id_card_status_updated: { type: 'ID Card', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-indigo-100 text-indigo-700' },
+    meeting: { type: 'ID Card', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-purple-100 text-purple-700' },
+    overtime: { type: 'Overtime', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-rose-100 text-rose-700' },
 };
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);
-    const [users, setUsers] = useState([]); // Added for smart ID mapping
+    const [users, setUsers] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [unread, setUnread] = useState(0);
@@ -37,6 +43,13 @@ const Notifications = () => {
             if (userRes.ok) {
                 const userData = await userRes.json();
                 setUsers(userData.data || []);
+            }
+
+            // Also fetch employees for ID lookup
+            const empRes = await fetch('http://localhost:5001/api/employees');
+            if (empRes.ok) {
+                const empData = await empRes.json();
+                setEmployees(empData.data || []);
             }
         } catch (error) {
             console.error('Error fetching notifications:', error);
@@ -75,6 +88,16 @@ const Notifications = () => {
         }
     };
 
+    const employeeMap = useMemo(() => {
+        const map = {};
+        employees.forEach(emp => {
+            if (emp.employeeId) map[emp.employeeId] = emp;
+            if (emp.userId) map[emp.userId] = emp;
+            if (emp._id) map[emp._id] = emp;
+        });
+        return map;
+    }, [employees]);
+
     // Build a map of Name -> userId from all users AND notifications to fill in gaps
     const nameToUserIdMap = useMemo(() => {
         const map = {};
@@ -88,7 +111,7 @@ const Notifications = () => {
 
         // 2. Supplement from notifications (for vendors or others)
         notifications.forEach(n => {
-            const name = (n.meta?.userName || n.meta?.name || n.message.split(' (')[0].split(' booked')[0]).trim().toUpperCase();
+            const name = (n.meta?.userName || n.meta?.name || '').trim().toUpperCase();
             if (name && n.meta?.displayUserId && n.meta.displayUserId !== 'GUEST') {
                 map[name] = n.meta.displayUserId;
             }
@@ -97,39 +120,62 @@ const Notifications = () => {
         return map;
     }, [users, notifications]);
 
-    const getDisplayUserId = (notif) => {
-        if (notif.eventType === 'message_received') return 'GUEST';
-        if (notif.eventType === 'employee_added') return notif.meta?.employeeId || 'EMP-N/A';
-        if (notif.eventType === 'garage_added') return notif.meta?.garageId || 'GAR-N/A';
-        
-        // 1. Direct hit from meta
-        if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
-        
-        // 2. Try map lookup by name
-        const name = (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0]).trim().toUpperCase();
-        if (nameToUserIdMap[name]) return nameToUserIdMap[name];
+    const getUserName = (notif) => {
+        if (notif.meta?.userName) return notif.meta.userName;
+        if (notif.meta?.name) return notif.meta.name;
+        if (notif.meta?.adminName) return notif.meta.adminName;
+        if (notif.meta?.approverName) return notif.meta.approverName;
 
-        // 3. Fallback to legacy userId if it looks like a custom ID (e.g. 65...)
-        if (notif.meta?.userId && notif.meta.userId.length < 15 && (notif.meta.userId.startsWith('65') || notif.meta.userId.startsWith('75'))) {
-            return notif.meta.userId;
+        const empId = notif.meta?.employeeId || notif.meta?.approverEmpId || notif.meta?.adminEmpId;
+        if (empId && employeeMap[empId]?.name) {
+            return employeeMap[empId].name;
         }
 
-        return 'GUEST';
+        if (notif.eventType === 'booking_created' && notif.message?.includes(' booked')) {
+            const extracted = notif.message.split(' booked')[0].trim();
+            if (extracted && extracted.length < 40) return extracted;
+        }
+
+        if (notif.eventType === 'message_received' && notif.message?.includes('Message from ')) {
+            const afterFrom = notif.message.replace('Message from ', '');
+            const nameOnly = afterFrom.split(' (')[0].trim();
+            if (nameOnly && nameOnly.length < 40) return nameOnly;
+        }
+
+        if (empId) return `Employee (${empId})`;
+        return 'System';
+    };
+
+    const getDisplayUserId = (notif) => {
+        if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
+        if (notif.meta?.employeeId) return notif.meta.employeeId;
+        if (notif.meta?.userId && notif.meta.userId.length < 15) return notif.meta.userId;
+        if (notif.meta?.garageId) return notif.meta.garageId;
+
+        const userName = (notif.meta?.userName || notif.meta?.name || '').trim().toUpperCase();
+        if (userName && nameToUserIdMap[userName]) return nameToUserIdMap[userName];
+
+        if (notif.eventType === 'message_received') return 'GUEST';
+        if (notif.eventType === 'garage_added') return notif.meta?.garageId || 'GAR-N/A';
+        if (notif.eventType === 'charging_station_added') return notif.meta?.stationId || 'CS-N/A';
+
+        return '—';
     };
 
     const getMapping = (notif) => {
-        let mapping = { ...EVENT_MAPPING[notif.eventType] } || { type: 'Event', category: 'System', color: 'bg-gray-50 text-gray-600' };
+        let mapping = EVENT_MAPPING[notif.eventType] || { 
+            type: notif.eventType ? notif.eventType.replace(/_/g, ' ') : 'General', 
+            category: 'Garage', 
+            color: 'bg-emerald-100 text-emerald-700', 
+            typeColor: 'bg-slate-100 text-slate-700' 
+        };
         
         // Refine based on meta
         if (notif.eventType === 'message_received' && notif.meta?.type === 'business') {
-            mapping.category = 'Business';
-            mapping.color = 'bg-purple-100 text-purple-700';
-            mapping.typeColor = 'bg-fuchsia-100 text-fuchsia-700';
+            mapping = { ...mapping, category: 'Business', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-fuchsia-100 text-fuchsia-700' };
         }
         if (notif.eventType === 'review_submitted' && notif.meta?.reviewType === 'Business') {
-            mapping.category = 'Business';
-            mapping.color = 'bg-purple-100 text-purple-700';
-            mapping.typeColor = 'bg-amber-100 text-amber-700';
+            mapping = { ...mapping, category: 'Business', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-700' };
         }
 
         return mapping;
@@ -164,7 +210,7 @@ const Notifications = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {loading && notifications.length === 0 ? (
+                            {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
                             ) : notifications.length === 0 ? (
                                 <tr>
@@ -184,27 +230,27 @@ const Notifications = () => {
                                             onClick={() => !notif.isRead && markRead(notif._id)}
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
-                                            <td className="p-4.5 text-center w-[10%]">
-                                                <span className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.color}`}>
+                                            <td className="p-4.5 text-center">
+                                                <span className={`inline-block px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.color}`}>
                                                     {mapping.category}
                                                 </span>
                                             </td>
-                                            <td className="p-4.5 text-center w-[10%]">
-                                                <span className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                            <td className="p-4.5 text-center">
+                                                <span className={`inline-block px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
                                             </td>
-                                            <td className="p-4.5 text-center w-[14%]">
+                                            <td className="p-4.5 text-center">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate">
-                                                        {notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A'}
+                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[150px]">
+                                                        {getUserName(notif)}
                                                     </span>
                                                     <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
                                                         {getDisplayUserId(notif)}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5 text-center w-[40%]">
+                                            <td className="p-4.5 text-center">
                                                 <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'}`}>
                                                     {notif.eventType === 'booking_created' 
                                                         ? notif.message.replace(/^.*booked/i, 'Booked') 
@@ -215,7 +261,7 @@ const Notifications = () => {
                                                         : notif.message}
                                                 </p>
                                             </td>
-                                            <td className="p-4.5 uppercase text-center w-[14%]">
+                                            <td className="p-4.5 uppercase text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="text-sm font-semibold text-[#011023]">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -225,7 +271,7 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5 text-center w-[6%]">
+                                            <td className="p-4.5 text-center">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
                                                     ? 'bg-gray-100 text-gray-600'
                                                     : 'bg-blue-100 text-blue-700'
@@ -233,7 +279,7 @@ const Notifications = () => {
                                                     {notif.isRead ? 'Read' : 'Unread'}
                                                 </span>
                                             </td>
-                                            <td className="p-4.5 text-center w-[6%]">
+                                            <td className="p-4.5 text-center">
                                                 <div className="flex justify-center">
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
