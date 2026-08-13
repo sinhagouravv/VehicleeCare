@@ -194,9 +194,9 @@ const ChargingStations = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10%]">Station ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Station Name</th>
-                                <th className="p-4 font-bold text-center w-[28%]">Location</th>
-                                <th className="p-4 font-bold text-center w-[5%]">Ports</th>
-                                <th className="p-4 font-bold text-center w-[22%]">Charger Type</th>
+                                <th className="p-4 font-bold text-center w-[25%]">Location</th>
+                                <th className="p-4 font-bold text-center w-[8%]">Ports</th>
+                                <th className="p-4 font-bold text-center w-[25%]">Charger Type</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Manage</th>
                             </tr>
@@ -246,14 +246,14 @@ const ChargingStations = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                            <div className="flex items-center justify-center gap-4">
+                                                <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500">
                                                     <Eye size={16} />
                                                 </button>
-                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500">
                                                     <Edit size={16} />
                                                 </button>
-                                                <button onClick={() => { setStationToDelete(station.id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => { setStationToDelete(station.id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
