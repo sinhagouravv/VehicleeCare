@@ -221,30 +221,30 @@ const Users = () => {
             {/* Main Content Table */}
             <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
-                    {loading ? (
-                        <TableSkeleton />
-                    ) : error ? (
-                        <div className="h-full flex items-center justify-center">
+                    {error ? (
+                        <div className="h-full flex items-center justify-center p-8">
                             <p className="text-sm text-red-400 font-medium">{error}</p>
                         </div>
                     ) : (
                         <table className="w-full text-center border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold w-[12%]">User ID</th>
-                                    <th className="p-4.5 font-bold w-[15%]">User</th>
-                                    <th className="p-4.5 font-bold w-[10%]">Category</th>
-                                    <th className="p-4.5 font-bold w-[20%]">Contact</th>
-                                    <th className="p-4.5 font-bold w-[10%]">Role</th>
-                                    <th className="p-4.5 font-bold w-[20%]">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold w-[8%]">Status</th>
-                                    <th className="p-4.5 font-bold w-[8%]">Actions</th>
+                                    <th className="p-4.5 font-bold text-center w-[11%]">User ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[15%]">User</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
+                                    <th className="p-4.5 font-bold text-center w-[19%]">Contact</th>
+                                    <th className="p-4.5 font-bold text-center w-[9%]">Role</th>
+                                    <th className="p-4.5 font-bold text-center w-[20%]">Join Date & Time</th>
+                                    <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                    <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                                {users.length === 0 ? (
+                                {loading ? (
+                                    <TableSkeleton rows={15} cols={8} />
+                                ) : users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="py-16 text-gray-400 text-sm">No users found.</td>
+                                        <td colSpan={8} className="py-16 text-gray-400 text-sm text-center">No users found.</td>
                                     </tr>
                                 ) : users.map((user) => {
                                     const rowId = user.userId || user._id;
@@ -282,7 +282,7 @@ const Users = () => {
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <button onClick={() => handleViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => setViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
                                                         <Eye size={17} />
                                                     </button>
                                                     <button onClick={() => handleDownloadPDF(user)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
