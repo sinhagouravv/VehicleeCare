@@ -170,7 +170,7 @@ const Leave = () => {
                                 <th className="p-4.5 font-bold text-center w-[7%]">Leave ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Leave Type</th>
-                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Duration</th>
                                 <th className="p-4.5 font-bold text-center w-[36%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Date Applied</th>
                                 {/* <th className="p-4.5 font-bold w-[7.5%]">Start</th>
@@ -230,26 +230,26 @@ const Leave = () => {
                                         </span>
                                     </td>
                                     <td className="p-3.5 text-center">
-                                        <div className="flex items-center justify-center gap-1">
+                                        <div className="flex items-center justify-center gap-4">
                                             {leave.status === 'Pending' ? (
                                                 <>
                                                     <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-blue-500 "
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => openActionModal(leave._id, 'Approved')}
                                                         disabled={updatingId === leave._id}
-                                                        className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-emerald-500 "
                                                     >
                                                         <Check size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => openActionModal(leave._id, 'Rejected')}
                                                         disabled={updatingId === leave._id}
-                                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-red-500 "
                                                     >
                                                         <X size={18} />
                                                     </button>
@@ -258,13 +258,13 @@ const Leave = () => {
                                                 <>
                                                     <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-blue-500 "
                                                     >
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                        className="text-gray-400 hover:text-red-500 "
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
