@@ -171,7 +171,7 @@ const Notifications = () => {
                                 <th className="p-4.5 font-bold text-center w-[50%]">Content</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -223,7 +223,7 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-3.75 uppercase text-center">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="text-sm font-semibold text-[#011023]">
+                                                    <span className="text-sm font-semibold ">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
@@ -243,7 +243,7 @@ const Notifications = () => {
                                                 <div className="flex justify-center">
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
-                                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                        className="text-gray-400 hover:text-red-500 "
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>
