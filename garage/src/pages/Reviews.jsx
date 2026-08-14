@@ -179,13 +179,13 @@ const Reviews = () => {
                         <table className="w-full text-left border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center w-[10%]">Review ID</th>
-                                    <th className="p-4.5 font-bold text-center w-[12%]">Reviewer</th>
-                                    <th className="p-4.5 font-bold text-center w-[40%]">Review Text</th>
-                                    <th className="p-4.5 font-bold text-center w-[10%]">Rating</th>
-                                    <th className="p-4.5 font-bold text-center w-[16%]">Date</th>
-                                    <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
-                                    <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
+                                    <th className="p-4.5 font-bold text-center w-[7.5%]">Review ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[11%]">Reviewer</th>
+                                    <th className="p-4.5 font-bold text-center w-[33%]">Review Text</th>
+                                    <th className="p-4.5 font-bold text-center w-[6%]">Rating</th>
+                                    <th className="p-4.5 font-bold text-center w-[13%]">Date</th>
+                                    <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
+                                    <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
@@ -243,11 +243,11 @@ const Reviews = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex items-center justify-center gap-1.5">
-                                                <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                            <div className="flex items-center justify-center gap-4">
+                                                <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 ">
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => { setReviewToDelete(rev._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => { setReviewToDelete(rev._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 ">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
