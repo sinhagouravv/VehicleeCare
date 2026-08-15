@@ -197,7 +197,7 @@ const Bug = () => {
                                     >
                                         <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[10%]">{bug.bugId}</td>
                                         <td className="p-4 text-center w-[12%]">
-                                            <span className={`inline-block px-3 py-3 text-xs font-semibold rounded-full ${getPortalColor(bug.portal)}`}>
+                                            <span className={`inline-block px-3 py-2 text-xs font-semibold rounded-full ${getPortalColor(bug.portal)}`}>
                                                 {getPortalLabel(bug.portal)}
                                             </span>
                                         </td>
