@@ -33,12 +33,12 @@ const PaymentSchema = new mongoose.Schema({
     method: {
         type: String,
         required: true,
-        enum: ['Cash', 'UPI', 'Card', 'Net Banking']
+        enum: ['Cash', 'UPI', 'Card', 'Net Banking', 'Cash on Delivery']
     },
     status: {
         type: String,
         default: 'Pending',
-        enum: ['Pending', 'Completed', 'Failed', 'Refunded']
+        enum: ['Pending', 'Completed', 'Failed', 'Refunded', 'Partially Paid']
     },
     transactionId: {
         type: String
