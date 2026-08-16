@@ -4,13 +4,12 @@ import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loa
 import { TableSkeleton } from '../components/Skeleton';
 
 const EVENT_MAPPING = {
-    user_registered: { type: 'User', category: 'Website', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-indigo-100 text-indigo-700' },
+    booking: { type: 'Booking', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
     booking_created: { type: 'Booking', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
-    message_received: { type: 'Message', category: 'Website', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-fuchsia-100 text-fuchsia-700' },
-    review_submitted: { type: 'Review', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-amber-100 text-amber-700' },
-    garage_added: { type: 'Garage', category: 'Admin', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-teal-100 text-teal-700' },
-    charging_station_added: { type: 'Charging', category: 'Admin', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-teal-100 text-teal-700' },
-    employee_added: { type: 'Employee', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-teal-100 text-teal-700' },
+    meeting: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    id_card_requested: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
+    overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
 };
 
 const Notifications = () => {
@@ -22,6 +21,20 @@ const Notifications = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [expandedIds, setExpandedIds] = useState(new Set());
+
+    const toggleExpand = (id, e) => {
+        if (e) e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     const fetchNotifications = useCallback(async (silent = false) => {
         try {
@@ -40,11 +53,15 @@ const Notifications = () => {
             let allNotifs = data.data || [];
             
             // Filter notifications for this garage ONLY
-            // 1. Must be 'booking_created'
-            // 2. Must match the garage's ID in meta
-            const garageNotifs = allNotifs.filter(n => 
-                n.eventType === 'booking_created' && n.meta?.garageId === garageId
-            );
+            const garageNotifs = allNotifs.filter(n => {
+                if (n.superCategory === 'employees_notification') return false;
+
+                const isMatchingGarage = n.meta?.garageId === garageId;
+                if (!isMatchingGarage) return false;
+                
+                if (n.superCategory === 'garageNotification') return true;
+                return n.eventType === 'booking_created' || n.eventType === 'booking' || n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting' || n.eventType === 'id_card_requested';
+            });
 
             setNotifications(garageNotifs);
             setUnread(garageNotifs.filter(n => !n.isRead).length);
@@ -167,11 +184,11 @@ const Notifications = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">User</th>
-                                <th className="p-4.5 font-bold text-center w-[50%]">Content</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Send By</th>
+                                <th className="p-4.5 font-bold text-center w-[55%]">Content</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -189,39 +206,75 @@ const Notifications = () => {
                             ) : (
                                 notifications.map((notif) => {
                                     const mapping = getMapping(notif);
+                                    const isExpanded = expandedIds.has(notif._id);
                                     return (
                                         <tr 
                                             key={notif._id} 
                                             onClick={() => !notif.isRead && markRead(notif._id)}
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
-                                            <td className="p-3.75 text-center">
+                                            <td className="p-4.25 text-center">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
                                             </td>
-                                            <td className="p-3.75 text-center">
+                                            <td className="p-4.25 text-center">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
-                                                        {notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A'}
+                                                    <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
+                                                        {notif.meta?.senderName || 'ADMINISTRATOR'}
                                                     </span>
                                                     <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
-                                                        {getDisplayUserId(notif)}
+                                                        {notif.meta?.senderId || '184592037461'}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-3.75 text-center">
-                                                <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'}`}>
-                                                    {notif.eventType === 'booking_created' 
-                                                        ? notif.message.replace(/^.*booked/i, 'Booked') 
-                                                        : notif.eventType === 'employee_added'
-                                                        ? `A new employee, ${notif.meta?.name || 'Staff Member'}, has been added to the ${notif.meta?.garageName || 'Garage'} ${notif.meta?.garageId || 'ID'} for ${notif.meta?.role || 'Staff'} role.`
-                                                        : notif.eventType === 'user_registered'
-                                                        ? `A new ${notif.meta?.role === 'vendor' ? 'business ' : ''}user, ${notif.meta?.name || 'Someone'}, has created an account with us.`
-                                                        : notif.message}
-                                                </p>
+                                            <td 
+                                                className="p-4.25 cursor-pointer select-none"
+                                                onClick={(e) => {
+                                                    toggleExpand(notif._id, e);
+                                                    if (!notif.isRead) markRead(notif._id);
+                                                }}
+                                            >
+                                                <div 
+                                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                >
+                                                    <p 
+                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
+                                                        style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
+                                                    >
+                                                        {(() => {
+                                                            if (notif.message && notif.message.startsWith('Dear ')) return notif.message;
+                                                            if (notif.eventType === 'booking' || notif.eventType === 'booking_created') {
+                                                                const garageName = notif.meta?.garageName || 'Garage';
+                                                                const customerName = notif.meta?.userName || notif.meta?.name || 'Customer';
+                                                                const vehicleName = notif.meta?.vehicle || 'Vehicle';
+                                                                const date = notif.meta?.scheduleDate || notif.meta?.date || new Date(notif.createdAt).toLocaleDateString('en-GB');
+                                                                return `Dear ${garageName}, a new booking has been made by ${customerName} for ${vehicleName} for ${date}. Kindly ensure that the process is completed successfully and that the booking is confirmed for the specified time.`;
+                                                            }
+                                                            if (notif.eventType === 'meeting' || notif.eventType === 'id_card_requested') {
+                                                                const garageName = notif.meta?.garageName || 'Garage';
+                                                                const employeeName = notif.meta?.name || notif.meta?.employeeName || 'Employee';
+                                                                const employeeId = notif.meta?.employeeId || '';
+                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a meeting. Kindly review the details of the meeting and approved or reject according.`;
+                                                            }
+                                                            if (notif.eventType === 'leave') {
+                                                                const garageName = notif.meta?.garageName || 'Garage';
+                                                                const employeeName = notif.meta?.employeeName || notif.meta?.name || 'Employee';
+                                                                const employeeId = notif.meta?.employeeId || '';
+                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a leave. Kindly review the details of the leave and approved or reject according.`;
+                                                            }
+                                                            if (notif.eventType === 'overtime') {
+                                                                const garageName = notif.meta?.garageName || 'Garage';
+                                                                const employeeName = notif.meta?.employeeName || notif.meta?.name || 'Employee';
+                                                                const employeeId = notif.meta?.employeeId || '';
+                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a overtime. Kindly review the details of the overtime and approved or reject according.`;
+                                                            }
+                                                            return notif.message;
+                                                        })()}
+                                                    </p>
+                                                </div>
                                             </td>
-                                            <td className="p-3.75 uppercase text-center">
+                                            <td className="p-4.25 uppercase text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="text-sm font-semibold ">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -231,15 +284,17 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-3.75 text-center">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                    ? 'bg-gray-100 text-gray-600'
-                                                    : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                    {notif.isRead ? 'Read' : 'Unread'}
-                                                </span>
+                                            <td className="p-4.25 text-center">
+                                                <div className="flex justify-center">
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
+                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                        : 'bg-blue-100 text-blue-700 border border-blue-100'
+                                                        }`}>
+                                                        {notif.isRead ? 'Read' : 'Unread'}
+                                                    </span>
+                                                </div>
                                             </td>
-                                            <td className="p-3.75 text-center">
+                                            <td className="p-4.25 text-center">
                                                 <div className="flex justify-center">
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
