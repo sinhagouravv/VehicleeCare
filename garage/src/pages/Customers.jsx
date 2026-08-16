@@ -162,13 +162,13 @@ const Customers = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[11%]">Customer ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Customer ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[32%]">Vehicle</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Last Visit</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[16%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[35%]">Vehicle</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Amount</th>
+                                <th className="p-4.5 font-bold text-center w-[8.5%]">Last Visit</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -304,7 +304,7 @@ const Customers = () => {
                                 {/* Contact */}
                                 <div className="space-y-2 w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Contact</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedCustomer.email}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800">{selectedCustomer.phone}</span></p>
                                     </div>
@@ -313,7 +313,7 @@ const Customers = () => {
                                 {/* Total Booking */}
                                 <div className="space-y-2 w-[18%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Total Booking</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
                                         <p className="text-lg font-semibold text-[#011023]">{selectedCustomer.bookingCount}</p>
                                     </div>
                                 </div>
@@ -321,7 +321,7 @@ const Customers = () => {
                                 {/* Total Spent */}
                                 <div className="space-y-2 w-[20%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Total Spent</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
                                         <p className="text-lg font-semibold text-[#011023]">₹{selectedCustomer.totalSpent.toLocaleString()}</p>
                                     </div>
                                 </div>
@@ -329,7 +329,7 @@ const Customers = () => {
                                 {/* Last Visit */}
                                 <div className="space-y-2 w-[18%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Last Visit</h4>
-                                    <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
+                                    <div className="p-4 rounded-xl border border-blue-50 h-[76px] flex items-center justify-center">
                                         <p className="text-lg font-semibold text-center uppercase text-[#011023]">{selectedCustomer.lastVisit}</p>
                                     </div>
                                 </div>
@@ -339,24 +339,30 @@ const Customers = () => {
                             <div className="flex gap-4">
                                 <div className="w-full space-y-2">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicles</h4>
-                                    <div className="bg-[#f4f9ff] p-4 rounded-xl border border-blue-50/50">
-                                        <div className="flex flex-wrap uppercase gap-3">
+                                    <div className="pt-2 rounded-xl">
+                                        <div className="flex flex-wrap uppercase gap-2.5">
                                             {selectedCustomer.vehicleObjects && selectedCustomer.vehicleObjects.length > 0
-                                                ? selectedCustomer.vehicleObjects.map((v, i) => {
-                                                    const ft = v.fuelType || '';
-                                                    const isEV = ft.includes('ev') || ft.includes('electric') || v.label.toLowerCase().includes(' ev') || v.label.toLowerCase().includes('ioniq') || v.label.toLowerCase().endsWith(' ev6') || v.label.toLowerCase().endsWith(' ev3');
-                                                    const isDiesel = ft.includes('diesel');
-                                                    const cls = isEV
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                        : isDiesel
-                                                        ? 'bg-orange-50 text-orange-700 border-orange-100'
-                                                        : 'bg-blue-50 text-blue-700 border-blue-100';
-                                                    return (
-                                                        <span key={i} className={`px-2.5 py-1.5 text-[12px] font-bold border rounded-lg shadow-sm whitespace-nowrap ${cls}`}>
-                                                            {v.label}
-                                                        </span>
-                                                    );
-                                                })
+                                                ? (() => {
+                                                    const hasManyVehicles = selectedCustomer.vehicleObjects.length > 5;
+                                                    return selectedCustomer.vehicleObjects.map((v, i) => {
+                                                        const ft = v.fuelType || '';
+                                                        const isEV = ft.includes('ev') || ft.includes('electric') || v.label.toLowerCase().includes(' ev') || v.label.toLowerCase().includes('ioniq') || v.label.toLowerCase().endsWith(' ev6') || v.label.toLowerCase().endsWith(' ev3');
+                                                        const isDiesel = ft.includes('diesel');
+                                                        const cls = isEV
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                            : isDiesel
+                                                            ? 'bg-orange-50 text-orange-700 border-orange-100'
+                                                            : 'bg-blue-50 text-blue-700 border-blue-100';
+                                                        return (
+                                                            <span 
+                                                                key={i} 
+                                                                className={`flex items-center justify-center text-center px-3 py-1.5 text-[12px] font-bold border rounded-lg shadow-sm whitespace-nowrap min-w-max ${hasManyVehicles ? 'flex-1 max-w-[280px]' : 'flex-none'} ${cls}`}
+                                                            >
+                                                                {v.label}
+                                                            </span>
+                                                        );
+                                                    });
+                                                })()
                                                 : <span className="text-sm text-gray-400">—</span>
                                             }
                                         </div>

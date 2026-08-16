@@ -205,7 +205,10 @@ const Meeting = () => {
                                         {req.purpose || req.reason || '—'}
                                     </td>
                                     <td className="p-4 text-center">
-                                        <p className="whitespace-normal text-center truncate max-w-xs mx-auto">
+                                        <p 
+                                            className="whitespace-normal text-center text-gray-700 font-semibold line-clamp-2 leading-snug overflow-hidden"
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                        >
                                             {req.purpose ? req.reason : (req.additionalInfo || req.reason)}
                                         </p>
                                     </td>

@@ -167,12 +167,12 @@ const Overtime = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Date Requested</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Hours</th>
-                                <th className="p-4.5 font-bold text-center w-[35%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[6%]">Hours</th>
+                                <th className="p-4.5 font-bold text-center w-[40%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[14%]">Date Applied</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
@@ -203,7 +203,10 @@ const Overtime = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <p className="whitespace-normal text-center text-[#011023] font-semibold">
+                                        <p 
+                                            className="whitespace-normal text-center text-[#011023] font-semibold line-clamp-2 leading-snug overflow-hidden"
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                        >
                                             {overtime.reason}
                                         </p>
                                     </td>
@@ -213,9 +216,11 @@ const Overtime = () => {
                                         <span className="text-[#011023]">{formatTime(overtime.createdAt)}</span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-3 py-1 rounded-full border text-xs font-semibold tracking-widest ${getStatusStyle(overtime.status)}`}>
-                                            {overtime.status}
-                                        </span>
+                                        <div className="flex justify-center">
+                                            <span className={`px-3 py-1 rounded-full border text-xs font-semibold tracking-widest ${getStatusStyle(overtime.status)}`}>
+                                                {overtime.status}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="flex items-center justify-center gap-4">

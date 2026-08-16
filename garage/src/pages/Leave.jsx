@@ -195,26 +195,29 @@ const Leave = () => {
                                     className={`transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                 
                                 >
-                                    <td className="p-3.5 font-semibold text-[#052558] text-sm text-center">
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center">
                                         {leave.leaveId || '—'}
                                     </td>
-                                    <td className="p-3.5 font-semibold text-[#011023] text-sm text-center">
+                                    <td className="p-3.25 font-semibold text-[#011023] text-sm text-center">
                                         {leave.employeeId}
                                     </td>
-                                    <td className="p-3.5 text-center">
+                                    <td className="p-3.25 text-center">
                                         <span className="font-semibold text-gray-700 text-sm">{leave.type}</span>
                                     </td>
-                                    <td className="p-3.5 text-center">
+                                    <td className="p-3.25 text-center">
                                         <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${leave.leaveTime === 'Half Day' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
                                             {leave.leaveTime}
                                         </span>
                                     </td>
-                                    <td className="p-3.5 text-center">
-                                        <p className="whitespace-normal text-[#052558] text-sm font-semibold text-center line-clamp-2 leading-snug">
+                                    <td className="p-3.25 text-center">
+                                        <p 
+                                            className="whitespace-normal text-[#052558] text-sm font-semibold text-center line-clamp-2 leading-snug overflow-hidden"
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                        >
                                             {leave.reason}
                                         </p>
                                     </td>
-                                    <td className="p-3.5 font-semibold text-sm text-center">
+                                    <td className="p-3.25 font-semibold text-sm text-center">
                                         <div className="text-[#011023]">{formatDate(leave.createdAt)}</div>
                                         <div className="text-[#011023] mt-0.5 text-xs">{formatTime(leave.createdAt)}</div>
                                     </td>
@@ -224,21 +227,21 @@ const Leave = () => {
                                     <td className="p-4 font-semibold text-center">
                                         {formatDate(leave.endDate)}
                                     </td> */}
-                                    <td className="p-3.5 text-center">
+                                    <td className="p-3.25 text-center">
                                         <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getStatusStyle(leave.status)}`}>
                                             {leave.status}
                                         </span>
                                     </td>
-                                    <td className="p-3.5 text-center">
+                                    <td className="p-3.25 text-center">
                                         <div className="flex items-center justify-center gap-4">
                                             {leave.status === 'Pending' ? (
                                                 <>
-                                                    <button 
+                                                    {/* <button 
                                                         onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
                                                         className="text-gray-400 hover:text-blue-500 "
                                                     >
                                                         <Eye size={18} />
-                                                    </button>
+                                                    </button> */}
                                                     <button 
                                                         onClick={() => openActionModal(leave._id, 'Approved')}
                                                         disabled={updatingId === leave._id}
@@ -351,7 +354,7 @@ const Leave = () => {
                             {/* Leave Duration & Timing (Legal Documentation style) */}
                             <div className="space-y-2 mb-7">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Leave Date & Timing</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm">
+                                <div className="pt-2">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex items-center gap-4">
                                             <p className="text-sm font-semibold text-[#052558] uppercase">
@@ -365,7 +368,7 @@ const Leave = () => {
                             {/* Reason for Leave (Residential Archive style) */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Leave</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
+                                <div className="pt-2 uppercase">
                                     {/* <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1 opacity-70">Employee Justification</p> */}
                                     <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedLeave.reason}</h5>
                                 </div>

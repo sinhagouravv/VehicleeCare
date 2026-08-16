@@ -236,9 +236,9 @@ const Vehicles = () => {
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Owner Info</h4>
                                     <div className="pt-4 rounded-xl space-y-2">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-bold text-[#011023] truncate">{selectedVehicle.ownerName}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Cust ID:</span> <span className="font-bold text-gray-800 truncate">{selectedVehicle.customerId}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Booking ID:</span> <span className="font-bold text-[#052558] truncate">{selectedVehicle.bookingId}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedVehicle.ownerName}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Cust ID:</span> <span className="font-semibold text-gray-800 truncate">{selectedVehicle.customerId}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Booking ID:</span> <span className="font-semibold text-[#052558] truncate">{selectedVehicle.bookingId}</span></p>
                                     </div>
                                 </div>
 
@@ -246,9 +246,9 @@ const Vehicles = () => {
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Specifications</h4>
                                     <div className="pt-4 rounded-xl space-y-2">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Brand:</span> <span className="font-bold text-[#011023]">{selectedVehicle.brand}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Model:</span> <span className="font-bold text-gray-800">{selectedVehicle.model}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Trans:</span> <span className="font-bold text-gray-800">{selectedVehicle.transmission}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Brand:</span> <span className="font-semibold text-[#011023]">{selectedVehicle.brand}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Model:</span> <span className="font-semibold text-gray-800">{selectedVehicle.model}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Trans:</span> <span className="font-semibold text-gray-800">{selectedVehicle.transmission}</span></p>
                                     </div>
                                 </div>
 
@@ -256,9 +256,9 @@ const Vehicles = () => {
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Overview</h4>
                                     <div className="pt-4 rounded-xl space-y-2">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Year:</span> <span className="font-bold text-[#011023]">{selectedVehicle.year}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Body Type:</span> <span className="font-bold text-gray-800">{selectedVehicle.type}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Last Visit:</span> <span className="font-bold text-gray-800">{formatDate(selectedVehicle.lastVisitDate).split('|')[0]}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Year:</span> <span className="font-semibold text-[#011023]">{selectedVehicle.year}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Body Type:</span> <span className="font-semibold text-gray-800">{selectedVehicle.type}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Last Visit:</span> <span className="font-semibold text-gray-800">{formatDate(selectedVehicle.lastVisitDate).split('|')[0]}</span></p>
                                     </div>
                                 </div>
                             </div>
@@ -267,7 +267,7 @@ const Vehicles = () => {
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Service</h4>
                                 <div className="bg-blue-50/30 border border-blue-50 pt-1 pb-3 rounded-xl">
-                                    <p className="text-[#052558] font-bold text-sm">{selectedVehicle.lastService}</p>
+                                    <p className="text-[#052558] font-semibold text-sm">{selectedVehicle.lastService}</p>
                                 </div>
                             </div>
                         </div>

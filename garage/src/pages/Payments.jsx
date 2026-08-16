@@ -143,14 +143,14 @@ const Payments = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="px-6 py-4.5 font-bold text-center w-[10%]">Payment ID</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[9%]">Booking ID</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[11%]">User</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[12%]">User</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[10%]">User ID</th>
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[9%]">User Type</th> */}
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[14%]">Details</th> */}
-                                <th className="px-6 py-4.5 font-bold text-center w-[15%]">Paid At</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[14%]">Paid At</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[7%]">Amount</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[9.5%]">Method</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[9.5%]">Status</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[9%]">Status</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
@@ -263,13 +263,11 @@ const Payments = () => {
                                     </div>
                                 </div>
 
-                                {/* Payment Status */}
-                                <div className="space-y-3 w-full md:w-[20%]">
-                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Status</h4>
-                                    <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
-                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedPayment.status)}`}>
-                                            {selectedPayment.status}
-                                        </span>
+                                {/* Amount */}
+                                <div className="space-y-3 w-full md:w-[15%]">
+                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Amount</h4>
+                                    <div className="p-4 rounded-xl h-[81px] flex items-center justify-center">
+                                        <p className="text-lg font-semibold text-center text-[#011023]">₹{selectedPayment.amount?.toLocaleString()}</p>
                                     </div>
                                 </div>
 
@@ -281,11 +279,13 @@ const Payments = () => {
                                     </div>
                                 </div>
 
-                                {/* Amount */}
-                                <div className="space-y-3 w-full md:w-[15%]">
-                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Amount</h4>
-                                    <div className="p-4 rounded-xl h-[81px] flex items-center justify-center">
-                                        <p className="text-xl font-semibold text-center text-[#011023]">₹{selectedPayment.amount?.toLocaleString()}</p>
+                                {/* Payment Status */}
+                                <div className="space-y-3 w-full md:w-[20%]">
+                                    <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Status</h4>
+                                    <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
+                                        <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border border-transparent ${getStatusColor(selectedPayment.status)}`}>
+                                            {selectedPayment.status}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -293,9 +293,9 @@ const Payments = () => {
                             {/* Transaction Details */}
                             <div className="space-y-3">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Transaction Details</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-2 rounded-xl shadow-sm">
+                                <div className="">
                                     <div className="flex gap-4">
-                                        <div className="rounded-xl px-4 py-2 flex-[2]">
+                                        <div className="rounded-xl px- py-2 flex-[2]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Transaction ID</p>
                                             <p className="text-sm text-[#011023] font-semibold">{selectedPayment.transactionId || 'N/A'}</p>
                                         </div>

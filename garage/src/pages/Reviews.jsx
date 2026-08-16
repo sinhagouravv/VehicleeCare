@@ -181,7 +181,7 @@ const Reviews = () => {
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                     <th className="p-4.5 font-bold text-center w-[7.5%]">Review ID</th>
                                     <th className="p-4.5 font-bold text-center w-[11%]">Reviewer</th>
-                                    <th className="p-4.5 font-bold text-center w-[33%]">Review Text</th>
+                                    <th className="p-4.5 font-bold text-center w-[40%]">Review Text</th>
                                     <th className="p-4.5 font-bold text-center w-[6%]">Rating</th>
                                     <th className="p-4.5 font-bold text-center w-[13%]">Date</th>
                                     <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
@@ -215,7 +215,14 @@ const Reviews = () => {
                                                 {getDisplayUserId(rev)}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-sm text-center text-gray-600 whitespace-normal">{rev.text}</td>
+                                        <td className="p-4 text-center">
+                                            <p 
+                                                className="text-sm text-center text-gray-600 whitespace-normal line-clamp-2 leading-snug overflow-hidden"
+                                                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                            >
+                                                {rev.text}
+                                            </p>
+                                        </td>
                                         <td className="p-4 text-center">
                                             <div className="flex flex-col items-center justify-center gap-1">
                                                 {rev.sourceType === 'Garage' ? (
@@ -235,12 +242,14 @@ const Reviews = () => {
                                             {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(rev.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                         </td>
                                         <td className="p-4 text-center">
+                                            <div className="flex justify-center">
                                             <span className={`px-3 py-1 text-xs font-semibold rounded-full ${rev.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
                                                 rev.status === 'Rejected' ? 'bg-red-100 text-red-700' :
                                                     'bg-amber-100 text-amber-700'
                                                 }`}>
                                                 {rev.status}
                                             </span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex items-center justify-center gap-4">
