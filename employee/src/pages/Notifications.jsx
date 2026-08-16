@@ -19,6 +19,20 @@ const Notifications = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [expandedIds, setExpandedIds] = useState(new Set());
+
+    const toggleExpand = (id, e) => {
+        if (e) e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     const fetchNotifications = useCallback(async (silent = false) => {
         try {
@@ -42,12 +56,13 @@ const Notifications = () => {
             let allNotifs = data.data || [];
             
             // Filter notifications for this employee ONLY
-            // 1. Must be 'booking_created'
-            // 2. Must match the employee's ID in meta.assignedEmployees
             const employeeNotifs = allNotifs.filter(n => {
+                if (n.superCategory === 'garageNotification') return false;
+
                 if (n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting') {
                     const user = JSON.parse(storedUser || '{}');
-                    return n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId || n.meta?.employeeId === user.id || n.meta?.employeeId === user._id;
+                    const isTargetEmp = n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId || n.meta?.employeeId === user.id || n.meta?.employeeId === user._id;
+                    return isTargetEmp && (n.superCategory === 'employees_notification' || n.meta?.status);
                 }
 
                 if (n.eventType !== 'booking_created') return false;
@@ -180,11 +195,11 @@ const Notifications = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold w-[10%]">Type</th>
-                                <th className="p-4.5 font-bold w-[10%]">Customer</th>
-                                <th className="p-4.5 font-bold w-[50%]">Notification Details</th>
-                                <th className="p-4.5 font-bold w-[15%]">Received On</th>
-                                <th className="p-4.5 font-bold w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold w-[8%]">Type</th>
+                                <th className="p-4.5 font-bold w-[10%]">Sent By</th>
+                                <th className="p-4.5 font-bold w-[55%]">Notification Details</th>
+                                <th className="p-4.5 font-bold w-[10%]">Received On</th>
+                                <th className="p-4.5 font-bold w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold w-[7%]">Action</th>
                             </tr>
                         </thead>
@@ -202,13 +217,14 @@ const Notifications = () => {
                             ) : (
                                 notifications.map((notif) => {
                                     const mapping = getMapping(notif);
+                                    const isExpanded = expandedIds.has(notif._id);
                                     return (
                                         <tr 
                                             key={notif._id} 
                                             onClick={() => !notif.isRead && markRead(notif._id)}
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
-                                            <td className="p-4.5">
+                                            <td className="p-4.25">
 
                                                 <div className="flex justify-center">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
@@ -216,7 +232,7 @@ const Notifications = () => {
                                                 </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5">
+                                            <td className="p-4.25">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
                                                         {notif.eventType === 'leave' || notif.eventType === 'overtime' ? (notif.meta?.approverName || 'MANAGER') : notif.eventType === 'meeting' ? (notif.meta?.adminName || 'ADMIN') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
@@ -226,14 +242,27 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5">
-                                                <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'}`}>
-                                                    {notif.eventType === 'booking_created'
-                                                        ? `A new task is assigned to you, for ${notif.meta?.service || 'service'} of ${notif.meta?.vehicle || 'vehicle'}. Kindly contact with the assigned team member's and complete the task within the time.`
-                                                        : notif.message}
-                                                </p>
+                                            <td 
+                                                className="p-4.25 cursor-pointer select-none"
+                                                onClick={(e) => {
+                                                    toggleExpand(notif._id, e);
+                                                    if (!notif.isRead) markRead(notif._id);
+                                                }}
+                                            >
+                                                <div 
+                                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                >
+                                                    <p 
+                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
+                                                        style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
+                                                    >
+                                                        {notif.eventType === 'booking_created'
+                                                            ? `Dear Employee, A new task is assigned to you, for ${notif.meta?.service || 'service'} of ${notif.meta?.vehicle || 'vehicle'}. Kindly contact with the assigned team member's and complete the task within the time.`
+                                                            : notif.message}
+                                                    </p>
+                                                </div>
                                             </td>
-                                            <td className="p-4.5 uppercase">
+                                            <td className="p-4.25 uppercase">
                                                 <div className="flex flex-col items-center">
                                                     <span className="text-sm font-semibold text-[#011023]">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -243,21 +272,21 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5">
+                                            <td className="p-4.25">
                                                 <div className="flex justify-center">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                    ? 'bg-gray-100 text-gray-600'
-                                                    : 'bg-blue-100 text-blue-700'
+                                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                    : 'bg-blue-100 text-blue-700 border border-blue-100'
                                                     }`}>
                                                     {notif.isRead ? 'Read' : 'Unread'}
                                                 </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5">
+                                            <td className="p-4.25">
                                                 <div className="flex justify-center">
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
-                                                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                                        className="text-gray-400 hover:text-red-500"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>

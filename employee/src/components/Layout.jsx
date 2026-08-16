@@ -81,7 +81,7 @@ const Layout = () => {
 
             <button
                 onClick={() => setIsBugModalOpen(true)}
-        className="fixed bottom-9 right-9 z-50 p-3 rounded-full bg-blue-50 border border-blue-300 flex items-center justify-center text-[#527FB0] hover:bg-blue-100 hover:text-blue-400 transition-all shadow-md hover:shadow-lg cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
+                className="fixed bottom-9 right-9 z-50 p-3 rounded-full bg-blue-0 border border-blue-200 flex items-center justify-center text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
             >
                 <Bug size={24} className="group-hover:scale-110 transition-transform duration-300" />
                 {/* <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-out whitespace-nowrap text-xs font-bold uppercase tracking-wider pl-0 group-hover:pl-2">Report a Bug</span> */}
