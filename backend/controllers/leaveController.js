@@ -85,6 +85,38 @@ exports.requestLeave = async (req, res) => {
 
         await newLeave.save();
 
+        // Fire garage portal notification
+        try {
+            if (garageId) {
+                const Garage = require('../models/Garage');
+                const garageDoc = await Garage.findOne({ garageId });
+                const garageName = garageDoc ? garageDoc.name : 'Garage';
+                const leaveMsg = `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a leave. Kindly review the details of the leave and approved or reject according.`;
+
+                await Notification.create({
+                    eventType: 'leave',
+                    superCategory: 'garageNotification',
+                    title: 'New Leave Request',
+                    message: leaveMsg,
+                    meta: {
+                        leaveId: newLeave._id,
+                        leaveCustomId: newLeave.leaveId,
+                        employeeId: employeeId,
+                        employeeName: employeeName,
+                        garageId: garageId,
+                        garageName: garageName,
+                        type: type,
+                        leaveTime: leaveTime,
+                        reason: reason,
+                        senderName: 'Administrator',
+                        senderId: '184592037461'
+                    }
+                });
+            }
+        } catch (notifErr) {
+            console.error('Failed to create garage notification for leave request:', notifErr);
+        }
+
         res.status(201).json({ success: true, message: 'Leave request submitted successfully', data: newLeave });
     } catch (error) {
         console.error('[LeaveRequest] Error:', error);
@@ -156,6 +188,7 @@ exports.updateLeaveStatus = async (req, res) => {
         
         await Notification.create({
             eventType: 'leave',
+            superCategory: 'employees_notification',
             title: `Leave Request ${status}`,
             message: message,
             meta: {

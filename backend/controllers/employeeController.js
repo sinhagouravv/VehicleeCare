@@ -195,14 +195,12 @@ const requestIdCard = async (req, res) => {
             const garage = await Garage.findOne({ garageId: employee.garageId });
             const garageName = garage ? garage.name : 'Unknown Garage';
 
-            let msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card. Purpose: ${purpose}. Reason: ${reason}.`;
-            if (appointmentDate && appointmentTime) {
-                msg = `Employee ${employee.name} from ${garageName} has requested a duplicate ID card and booked an appointment on ${appointmentDate} at ${appointmentTime}. Purpose: ${purpose}. Reason: ${reason}.`;
-            }
+            let msg = `Dear ${garageName}, Your employee ${employee.name} ${employee.employeeId} had requested for a meeting. Kindly review the details of the meeting and approved or reject according.`;
 
             createAdminNotification({
-                eventType: 'id_card_requested',
-                title: 'Duplicate ID Card Request',
+                eventType: 'meeting',
+                superCategory: 'garageNotification',
+                title: 'New Meeting Request',
                 message: msg,
                 meta: { 
                     employeeId: employee.employeeId, 
@@ -212,7 +210,9 @@ const requestIdCard = async (req, res) => {
                     purpose: purpose,
                     reason: reason,
                     appointmentDate: appointmentDate || '',
-                    appointmentTime: appointmentTime || ''
+                    appointmentTime: appointmentTime || '',
+                    senderName: 'Administrator',
+                    senderId: '184592037461'
                 }
             });
         } catch (notifErr) {
@@ -337,6 +337,7 @@ const updateIdCardRequestStatus = async (req, res) => {
 
             createAdminNotification({
                 eventType: 'meeting',
+                superCategory: 'employees_notification',
                 title: `Duplicate ID Request ${status}`,
                 message: msg,
                 meta: {
