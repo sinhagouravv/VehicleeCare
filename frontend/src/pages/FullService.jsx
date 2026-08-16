@@ -613,82 +613,8 @@ const FullService = () => {
                 paymentObject.open();
 
             } else {
-                // COD — collect 25% advance via Razorpay
-                const totalAmount = parseFloat(calculateGrandTotal());
-                const advanceAmount = Math.round(totalAmount * 0.25);
-
-                const confirmed = window.confirm(
-                    `For continuing with Cash on Delivery you need to pay 25% of your total amount (₹${advanceAmount}) as an advance.\n\nClick OK to proceed with the advance payment.`
-                );
-
-                if (!confirmed) {
-                    setSubmitting(false);
-                    return;
-                }
-
-                // Load Razorpay if not already loaded
-                if (!window.Razorpay) {
-                    await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-                }
-                if (!window.Razorpay) {
-                    alert('Razorpay SDK could not be loaded. Please disable any Ad Blockers and try again.');
-                    setSubmitting(false);
-                    return;
-                }
-
-                const orderRes = await fetch('http://localhost:5001/api/payments/order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: advanceAmount })
-                });
-                const orderData = await orderRes.json();
-                if (!orderData.success) throw new Error('Order creation failed');
-
-                const options = {
-                    key: 'rzp_test_SDOW0Mi3saqtVB',
-                    amount: orderData.order.amount,
-                    currency: 'INR',
-                    name: 'VehicleeCare',
-                    description: `COD Advance (25% of ₹${totalAmount})`,
-                    order_id: orderData.order.id,
-                    handler: async function (response) {
-                        const verifyRes = await fetch('http://localhost:5001/api/payments/verify', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature
-                            })
-                        });
-                        const verifyData = await verifyRes.json();
-                        if (verifyData.success) {
-                            // Save booking — mark as COD with advance paid
-                            saveBooking(response.razorpay_payment_id);
-                        } else {
-                            alert('Advance payment verification failed. Booking not confirmed.');
-                            setSubmitting(false);
-                        }
-                    },
-                    prefill: {
-                        name: details.name || undefined,
-                        email: details.email || undefined,
-                        contact: details.phone || undefined
-                    },
-                    theme: { color: '#052558' },
-                    modal: {
-                        ondismiss: function () {
-                            setSubmitting(false);
-                        }
-                    }
-                };
-
-                const paymentObject = new window.Razorpay(options);
-                paymentObject.on('payment.failed', function (response) {
-                    alert(response.error.description);
-                    setSubmitting(false);
-                });
-                paymentObject.open();
+                // COD — direct booking with Cash on Delivery (no advance required)
+                await saveBooking('CASH');
             }
         } catch (error) {
             console.error('Error initiating payment:', error);
