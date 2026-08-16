@@ -171,7 +171,7 @@ exports.createBooking = async (req, res) => {
             schedule,
             garage,
             payment: {
-                method: isFullOnline ? 'Net Banking' : isCODAdvance ? 'Cash on Delivery' : 'Cash',
+                method: isFullOnline ? 'Net Banking' : 'Cash on Delivery',
                 status: isFullOnline ? 'Completed' : isCODAdvance ? 'Partially Paid' : 'Pending',
                 amount: isFullOnline ? totalPrice : isCODAdvance ? advancePaid : totalPrice,
                 transactionId: req.body.paymentId || `TXN${Date.now()}`,
@@ -185,18 +185,22 @@ exports.createBooking = async (req, res) => {
         let paymentRecord = null;
 
         // Create Universal Payment tracking record for all checkout methods
-        if (user.id) {
-            paymentRecord = await Payment.create({
-                paymentId: savedBooking.payment.paymentId,
-                type: 'Booking',
-                user: user.id,
-                booking: savedBooking._id,
-                garageId: garage?.id || null,
-                amount: savedBooking.payment.amount,
-                method: savedBooking.payment.method === 'Cash on Delivery' ? 'Cash' : 'Net Banking',
-                status: savedBooking.payment.status,
-                transactionId: savedBooking.payment.transactionId
-            });
+        try {
+            if (user.id) {
+                paymentRecord = await Payment.create({
+                    paymentId: savedBooking.payment.paymentId,
+                    type: 'Booking',
+                    user: user.id,
+                    booking: savedBooking._id,
+                    garageId: garage?.id || null,
+                    amount: savedBooking.payment.amount,
+                    method: savedBooking.payment.method || 'Cash',
+                    status: savedBooking.payment.status || 'Pending',
+                    transactionId: savedBooking.payment.transactionId
+                });
+            }
+        } catch (paymentErr) {
+            console.error('[Booking] Payment record creation warning:', paymentErr.message);
         }
 
 
@@ -208,9 +212,10 @@ exports.createBooking = async (req, res) => {
         // Look up the garage's Admin employee
         const garageAdminForNotif = await Employee.findOne({ garageId: String(garage?.id || '').trim(), role: 'Admin', isVerified: true });
 
-        // Fire admin notification
+        // Fire admin & employee notification
         createAdminNotification({
             eventType: 'booking_created',
+            superCategory: 'employees_notification',
             title: 'New Booking Received',
             message: `Booked ${service.title || 'a service'} for ${vehicle.make} ${vehicle.model} on ${schedule.date}.`,
             meta: { 
@@ -226,6 +231,40 @@ exports.createBooking = async (req, res) => {
                 adminEmpId: garageAdminForNotif ? garageAdminForNotif.employeeId : 'SYSTEM'
             }
         });
+
+        // Fire garage portal notification
+        if (garage?.id) {
+            let garageName = garage.name;
+            if (!garageName) {
+                const Garage = require('../models/Garage');
+                const gDoc = await Garage.findOne({ garageId: garage.id });
+                garageName = gDoc ? gDoc.name : 'Garage';
+            }
+            const customerName = savedBooking.user.name || user.name || 'Customer';
+            const vehicleName = `${vehicle.make} ${vehicle.model}`;
+            const bookingDate = schedule.date;
+            const garageMsg = `Dear ${garageName}, a new booking has been made by ${customerName} for ${vehicleName} for ${bookingDate}. Kindly ensure that the process is completed successfully and that the booking is confirmed for the specified time.`;
+
+            createAdminNotification({
+                eventType: 'booking',
+                superCategory: 'garageNotification',
+                title: 'New Booking Received',
+                message: garageMsg,
+                meta: { 
+                    bookingId: savedBooking.bookingId, 
+                    userId: savedBooking.user.id, 
+                    userName: customerName,
+                    displayUserId,
+                    service: service.title, 
+                    vehicle: vehicleName,
+                    garageId: garage.id,
+                    garageName: garageName,
+                    scheduleDate: bookingDate,
+                    senderName: 'Administrator',
+                    senderId: '184592037461'
+                }
+            });
+        }
 
         // Fire user notification if logged in
         if (user.id) {
@@ -334,6 +373,7 @@ const autoAssignMechanic = async (booking) => {
             const garageAdminForMechNotif = await Employee.findOne({ garageId: String(booking.garage?.id || '').trim(), role: 'Admin', isVerified: true });
             createAdminNotification({
                 eventType: 'booking_created',
+                superCategory: 'employees_notification',
                 title: 'New Mechanic Assignment',
                 message: `You have been assigned as Mechanic for ${booking.vehicle?.make} ${booking.vehicle?.model}.`,
                 meta: {
