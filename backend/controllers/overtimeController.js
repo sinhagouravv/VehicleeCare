@@ -49,6 +49,37 @@ exports.requestOvertime = async (req, res) => {
 
         await newOvertime.save();
 
+        // Fire garage portal notification
+        try {
+            if (garageId) {
+                const Garage = require('../models/Garage');
+                const garageDoc = await Garage.findOne({ garageId });
+                const garageName = garageDoc ? garageDoc.name : 'Garage';
+                const overtimeMsg = `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a overtime. Kindly review the details of the overtime and approved or reject according.`;
+
+                await Notification.create({
+                    eventType: 'overtime',
+                    superCategory: 'garageNotification',
+                    title: 'New Overtime Request',
+                    message: overtimeMsg,
+                    meta: {
+                        overtimeId: newOvertime._id,
+                        employeeId: employeeId,
+                        employeeName: employeeName,
+                        garageId: garageId,
+                        garageName: garageName,
+                        hours: hours,
+                        date: formattedDate,
+                        reason: reason,
+                        senderName: 'Administrator',
+                        senderId: '184592037461'
+                    }
+                });
+            }
+        } catch (notifErr) {
+            console.error('Failed to create garage notification for overtime request:', notifErr);
+        }
+
         res.status(201).json({ success: true, message: 'Overtime request submitted successfully', data: newOvertime });
     } catch (error) {
         console.error('[OvertimeRequest] Error:', error);
@@ -119,6 +150,7 @@ exports.updateOvertimeStatus = async (req, res) => {
         
         await Notification.create({
             eventType: 'overtime',
+            superCategory: 'employees_notification',
             title: `Overtime Request ${status}`,
             message: message,
             meta: {
