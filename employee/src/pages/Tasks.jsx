@@ -310,10 +310,10 @@ const Tasks = () => {
                                 <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[35%]">Service Details</th>
+                                <th className="p-4.5 font-bold text-center w-[37%]">Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Time Slot</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
@@ -380,10 +380,10 @@ const Tasks = () => {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <div className="flex items-center justify-center gap-1.5">
+                                        <div className="flex items-center justify-center gap-4">
                                             <button 
                                                 onClick={() => handleViewDetails(task)}
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-blue-500 cursor-pointer"
                                             >
                                                 <Eye size={17} />
                                             </button>
@@ -401,12 +401,12 @@ const Tasks = () => {
                                                         }
                                                     }}
                                                     disabled={isSubmitting && selectedTaskId === task._id}
-                                                    className={`p-1.5 rounded-lg transition-colors ${
-                                                        task.status === 'Delivered' ? 'text-emerald-500 bg-emerald-50' : 
-                                                        task.status === 'Completed' ? 'text-blue-600 bg-blue-50' : 
-                                                        task.status === 'In Service' ? 'text-emerald-500 bg-emerald-50' : 
-                                                        task.status === 'In Progress' ? 'text-purple-600 bg-purple-50' : 
-                                                        'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50'
+                                                    className={` cursor-pointer ${
+                                                        task.status === 'Delivered' ? 'text-emerald-500 ' : 
+                                                        task.status === 'Completed' ? 'text-blue-600' : 
+                                                        task.status === 'In Service' ? 'text-emerald-500 ' : 
+                                                        task.status === 'In Progress' ? 'text-purple-600 ' : 
+                                                        'text-gray-400 hover:text-indigo-500 '
                                                     } ${isSubmitting && selectedTaskId === task._id ? 'opacity-50' : ''}`}
                                                 >
                                                     {isSubmitting && selectedTaskId === task._id ? (
@@ -419,8 +419,7 @@ const Tasks = () => {
                                             {task.status === 'Delivered' && (
                                                 <button
                                                     onClick={() => handleViewDetails(task)}
-                                                    className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                                                    title="Remarks"
+                                                    className="text-gray-400 hover:text-emerald-500 cursor-pointer"
                                                 >
                                                     <MessageSquare size={17} />
                                                 </button>
