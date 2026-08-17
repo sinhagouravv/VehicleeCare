@@ -15,6 +15,7 @@ import Details from './pages/Details';
 import Finance from './pages/Finance';
 import Makeup from './pages/Makeup';
 import Overtime from './pages/Overtime';
+import Meeting from './pages/Meeting';
 import UploadDocuments from './pages/UploadDocuments';
 import VirtualIDCard from './pages/VirtualIDCard';
 import AverageDuration from './pages/AverageDuration';
@@ -44,6 +45,7 @@ const App = () => {
             <Route path="finance" element={<Finance />} />
             <Route path="makeup" element={<Makeup />} />
             <Route path="overtime" element={<Overtime />} />
+            <Route path="meeting" element={<Meeting />} />
             <Route path="upload-documents" element={<UploadDocuments />} />
             <Route path="virtual-id-card" element={<VirtualIDCard />} />
             <Route path="average-duration" element={<AverageDuration />} />

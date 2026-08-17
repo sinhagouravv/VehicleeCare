@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, Wallet, Sparkles, Clock, UploadCloud, Contact, Gauge, BadgeCheck } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, Wallet, Sparkles, Clock, UploadCloud, Contact, Gauge, BadgeCheck, MessageCircleMore } from 'lucide-react';
 
 import Logo from '../assets/logo.svg';
 
@@ -18,13 +18,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} /> },
         { name: 'Attendance', path: '/attendance', icon: <CalendarCheck size={20} /> },
         { name: 'Finance', path: '/finance', icon: <Wallet size={20} /> },
-        { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Tasks', path: '/tasks', icon: <FileText size={20} /> },
         { name: 'Average Duration', path: '/average-duration', icon: <Gauge size={20} /> },
         { name: 'Success Rate', path: '/success-rate', icon: <BadgeCheck size={20} /> },
         // { name: 'Details', path: '/details', icon: <ListTodo size={20} /> },
         // { name: 'Makeup', path: '/makeup', icon: <Sparkles size={20} /> },
+        { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
+        { name: 'Meeting', path: '/meeting', icon: <MessageCircleMore size={20} /> },
         { name: 'Upload Documents', path: '/upload-documents', icon: <UploadCloud size={20} /> },
         // { name: 'Virtual ID Card', path: '/virtual-id-card', icon: <Contact size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
