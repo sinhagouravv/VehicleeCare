@@ -172,11 +172,11 @@ const Bug = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[9%]">Bug ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Portal</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Reporter ID</th>
-                                <th className="p-4.5 font-bold text-center w-[30%]">Bug Subject</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Reporter</th>
+                                <th className="p-4.5 font-bold text-center w-[32%]">Bug Subject</th>
                                 <th className="p-4.5 font-bold text-center w-[16%]">Reported At</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Severity</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
@@ -319,15 +319,15 @@ const Bug = () => {
                             {/* Bug Subject & Description */}
                             <div className="space-y-4 text-left"> 
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Bug Subject</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm">
-                                    <h5 className="font-bold text-[#052558] uppercase text-[15.5px]">{selectedBug.title}</h5>
+                                <div className=" ">
+                                    <h5 className="font-semibold text-[#052558] uppercase text-[14.5px]">{selectedBug.title}</h5>
                                 </div>
                             </div>
 
                             <div className="space-y-4 text-left"> 
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Detailed Description / Steps to Reproduce</h4>
-                                <div className="bg-gray-50 border border-[#e6f0fa] p-5 rounded-xl">
-                                    <p className="text-sm text-gray-700 leading-relaxed font-semibold">{selectedBug.description}</p>
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Detailed Description</h4>
+                                <div className="">
+                                    <p className="text-sm text-gray-700 leading-relaxed uppercase font-semibold text-[14px]">{selectedBug.description}</p>
                                 </div>
                             </div>
                         </div>
