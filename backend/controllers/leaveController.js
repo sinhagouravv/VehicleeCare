@@ -195,7 +195,7 @@ exports.updateLeaveStatus = async (req, res) => {
                 leaveId: leave._id,
                 leaveCustomId: leave.leaveId,
                 employeeId: leave.employeeId,
-                approverEmpId: employeeId,
+                approverEmpId: approver ? approver.employeeId : employeeId || 'MANAGER',
                 approverName: approver ? approver.name : 'MANAGER',
                 remarks: remarks,
                 status: status
