@@ -53,7 +53,34 @@ const Leave = () => {
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-IN', {
+        if (typeof dateStr !== 'string') dateStr = String(dateStr);
+
+        const ddmmyyyy = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (ddmmyyyy) {
+            const [, dd, mm, yyyy] = ddmmyyyy;
+            const parsed = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                });
+            }
+        }
+
+        const yyyymmdd = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+        if (yyyymmdd) {
+            const [, yyyy, mm, dd] = yyyymmdd;
+            const parsed = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                });
+            }
+        }
+
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+
+        return d.toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric'
         });
     };
@@ -243,7 +270,7 @@ const Leave = () => {
                     </button>
 
                     {pendingLeave && (
-                                <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
+                        <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
                             Kindly ask the admin to approve or reject the current leave to apply for a new leave
                         </div>
                     )}
@@ -281,7 +308,7 @@ const Leave = () => {
                                 <tr 
                                     key={leave._id} 
                                     id={`row-${leave.leaveId}`}
-                                    className={`text-center transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                    className={`text-center transition-all duration-1000 ${(highlightedRow === leave.leaveId || highlightedRow === leave._id) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                 >
                                     <td className="p-5 font-semibold text-[13px]">
                                         {leave.leaveId || '—'}
