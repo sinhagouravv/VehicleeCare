@@ -262,26 +262,26 @@ const updateIdCardRequestStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Request not found' });
         }
 
-                // Verify that the status update is done by a verified Admin of this garage
+        // Verify that the status update is done by a verified Manager or Admin of this garage
         let garageAdmin = null;
         if (employeeId) {
             garageAdmin = await Employee.findOne({ 
                 employeeId: employeeId, 
                 garageId: request.garageId, 
-                role: 'Admin', 
+                role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }, 
                 isVerified: true 
             });
             if (!garageAdmin) {
                 return res.status(403).json({ 
                     success: false, 
-                    message: 'Unauthorized: Invalid Employee ID or you do not have Admin permissions for this garage.' 
+                    message: 'Unauthorized: Invalid Employee ID or you do not have Manager/Admin permissions for this garage.' 
                 });
             }
         } else {
-            // Fallback to finding any verified Admin in that garage (backward/test compatibility)
+            // Fallback to finding any verified Manager/Admin in that garage (backward/test compatibility)
             garageAdmin = await Employee.findOne({ 
                 garageId: request.garageId, 
-                role: 'Admin', 
+                role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }, 
                 isVerified: true 
             });
         }
@@ -289,7 +289,7 @@ const updateIdCardRequestStatus = async (req, res) => {
         if (!garageAdmin) {
             return res.status(403).json({ 
                 success: false, 
-                message: 'Unauthorized: Only verified Admin employees of this garage can update request status.' 
+                message: 'Unauthorized: Only verified Manager/Admin employees of this garage can update request status.' 
             });
         }
 
