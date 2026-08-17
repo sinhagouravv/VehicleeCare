@@ -72,6 +72,25 @@ const deleteOne = async (req, res) => {
     }
 };
 
+// ── Toggle star status ─────────────────────────────────────────
+// PATCH /api/notifications/:id/star
+const toggleStar = async (req, res) => {
+    try {
+        let notif = await Notification.findById(req.params.id);
+        if (!notif) {
+            notif = await UserNotification.findById(req.params.id);
+        }
+        if (!notif) return res.status(404).json({ success: false, message: 'Not found' });
+
+        notif.isStarred = !notif.isStarred;
+        await notif.save();
+
+        res.json({ success: true, isStarred: notif.isStarred, data: notif });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server Error', error: err.message });
+    }
+};
+
 // ── Create a notification (Public/Internal) ──────────────────
 // POST /api/notifications/create
 const create = async (req, res) => {
@@ -84,7 +103,7 @@ const create = async (req, res) => {
     }
 };
 
-module.exports = { getAll, getUserNotifications, markRead, markAllRead, deleteOne, createAdminNotification, create };
+module.exports = { getAll, getUserNotifications, markRead, markAllRead, toggleStar, deleteOne, createAdminNotification, create };
 
 
 
