@@ -22,12 +22,14 @@ import AverageDuration from './pages/AverageDuration';
 import SuccessRate from './pages/SuccessRate';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import { FilterProvider } from './context/FilterContext';
 
 const App = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
+      <FilterProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
         
         {/* Protected Dashboard Routes */}
         <Route element={<ProtectedRoute />}>
@@ -57,6 +59,7 @@ const App = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </FilterProvider>
     </BrowserRouter>
   );
 };
