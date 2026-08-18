@@ -156,7 +156,7 @@ exports.updateOvertimeStatus = async (req, res) => {
             meta: {
                 overtimeId: overtime._id,
                 employeeId: overtime.employeeId,
-                approverEmpId: employeeId,
+                approverEmpId: approver ? approver.employeeId : employeeId || 'MANAGER',
                 approverName: approver ? approver.name : 'MANAGER',
                 remarks: remarks || '',
                 status: status
