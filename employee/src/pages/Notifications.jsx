@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Bell, Loader2, Trash2 } from 'lucide-react';
+import { Bell, Loader2, Trash2, Star, ExternalLink } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -11,8 +13,10 @@ const EVENT_MAPPING = {
 };
 
 const Notifications = () => {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]); 
+    const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [unread, setUnread] = useState(0);
@@ -20,6 +24,69 @@ const Notifications = () => {
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [expandedIds, setExpandedIds] = useState(new Set());
+
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'unread' | 'read'
+    const [starFilter, setStarFilter] = useState('all'); // 'all' | 'starred'
+    const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'booking_created' | 'leave' | 'overtime' | 'meeting'
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Notifications',
+            groups: [
+                {
+                    id: 'starred',
+                    label: 'Starred',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Starred Only', value: 'starred' },
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Read Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Unread Only', value: 'unread' },
+                        { label: 'Read Only', value: 'read' },
+                    ]
+                },
+                {
+                    id: 'type',
+                    label: 'Type / Category',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Booking', value: 'booking_created' },
+                        { label: 'Leave', value: 'leave' },
+                        { label: 'Overtime', value: 'overtime' },
+                        { label: 'Meeting', value: 'meeting' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: 'all',
+                starred: 'all',
+                type: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.starred !== undefined) setStarFilter(newValues.starred);
+                if (newValues.type !== undefined) setTypeFilter(newValues.type);
+            },
+            onReset: () => {
+                setStatusFilter('all');
+                setStarFilter('all');
+                setTypeFilter('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig]);
 
     const toggleExpand = (id, e) => {
         if (e) e.stopPropagation();
@@ -46,7 +113,7 @@ const Notifications = () => {
             }
 
             if (!empId) {
-                if (!silent) setLoading(false);
+                setLoading(false);
                 return;
             }
 
@@ -84,6 +151,13 @@ const Notifications = () => {
             setNotifications(employeeNotifs);
             setUnread(employeeNotifs.filter(n => !n.isRead).length);
             setLastRefreshed(new Date());
+
+            // Also fetch employees to build employee ID-to-Name map
+            const empRes = await fetch('http://localhost:5001/api/employees');
+            if (empRes.ok) {
+                const empData = await empRes.json();
+                setEmployees(empData.data || []);
+            }
 
             // Also fetch users to build the name-to-ID map (similar to garage portal)
             const userRes = await fetch('http://localhost:5001/api/users');
@@ -127,6 +201,48 @@ const Notifications = () => {
         }
     };
 
+    const handleToggleStar = async (id, e) => {
+        if (e) e.stopPropagation();
+        try {
+            setNotifications(prev => prev.map(n => n._id === id ? { ...n, isStarred: !n.isStarred } : n));
+            await fetch(`http://localhost:5001/api/notifications/${id}/star`, {
+                method: 'PATCH'
+            });
+        } catch (err) {
+            console.error("Failed to toggle star:", err);
+        }
+    };
+
+    const handleRedirect = (notif, e) => {
+        if (e) e.stopPropagation();
+        if (notif.eventType === 'leave') {
+            const leaveId = notif.meta?.leaveCustomId || notif.meta?.leaveId || notif.message?.match(/LEV-[A-Z0-9-]+/i)?.[0];
+            navigate('/leave', { state: { highlightId: leaveId } });
+        } else if (notif.eventType === 'overtime') {
+            const overtimeId = notif.meta?.overtimeCustomId || notif.meta?.overtimeId || notif.message?.match(/OVT-[A-Z0-9-]+/i)?.[0];
+            navigate('/overtime', { state: { highlightId: overtimeId } });
+        } else if (notif.eventType === 'meeting' || notif.eventType === 'id_card_status_updated' || notif.eventType === 'id_card_requested') {
+            const meetingId = notif.meta?.requestId || notif.meta?.meetingId || notif.meta?.id;
+            navigate('/meeting', { state: { highlightId: meetingId } });
+        } else if (notif.eventType === 'booking_created' || notif.eventType === 'booking') {
+            navigate('/tasks', { state: { highlightId: notif.meta?.bookingId } });
+        }
+    };
+
+    // Build a map of employee ID -> Name
+    const empIdToNameMap = useMemo(() => {
+        const map = {};
+        employees.forEach(emp => {
+            if (emp.employeeId && emp.name) {
+                map[String(emp.employeeId).trim()] = emp.name;
+            }
+            if (emp._id && emp.name) {
+                map[String(emp._id).trim()] = emp.name;
+            }
+        });
+        return map;
+    }, [employees]);
+
     // Build a map of Name -> userId from all users AND notifications to fill in gaps
     const nameToUserIdMap = useMemo(() => {
         const map = {};
@@ -150,27 +266,59 @@ const Notifications = () => {
     }, [users, notifications]);
 
     const getDisplayUserId = (notif) => {
-        if (notif.eventType === 'leave') return notif.meta?.approverEmpId || 'SYSTEM';
-        if (notif.eventType === 'overtime') return notif.meta?.approverEmpId || 'MANAGER';
-        if (notif.eventType === 'booking_created' || notif.eventType === 'meeting') return notif.meta?.adminEmpId || 'SYSTEM';
-        // Direct hit from meta
-        if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
-        
-        // Try map lookup by name
-        const name = (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0]).trim().toUpperCase();
-        if (nameToUserIdMap[name]) return nameToUserIdMap[name];
-
-        // Fallback to legacy userId if it looks like a custom ID
-        if (notif.meta?.userId && notif.meta.userId.length < 15 && (notif.meta.userId.startsWith('65') || notif.meta.userId.startsWith('75'))) {
-            return notif.meta.userId;
+        if (notif.eventType === 'leave' || notif.eventType === 'overtime') {
+            return notif.meta?.approverEmpId || 'MANAGER';
         }
+        if (notif.eventType === 'booking_created' || notif.eventType === 'meeting') {
+            return notif.meta?.adminEmpId || 'SYSTEM';
+        }
+        return notif.meta?.adminEmpId || notif.meta?.approverEmpId || notif.meta?.senderId || 'SYSTEM';
+    };
 
-        return 'GUEST';
+    const getSenderName = (notif) => {
+        const senderId = getDisplayUserId(notif);
+        if (senderId && senderId !== 'SYSTEM' && empIdToNameMap[String(senderId).trim()]) {
+            return empIdToNameMap[String(senderId).trim()];
+        }
+        if (notif.eventType === 'leave' || notif.eventType === 'overtime') {
+            return notif.meta?.approverName || 'MANAGER';
+        }
+        if (notif.eventType === 'booking_created' || notif.eventType === 'meeting') {
+            return notif.meta?.adminName || 'ADMIN';
+        }
+        return notif.meta?.adminName || notif.meta?.approverName || notif.meta?.senderName || 'ADMIN';
     };
 
     const getMapping = (notif) => {
         return { ...EVENT_MAPPING[notif.eventType] } || { type: 'Task', category: 'System', color: 'bg-gray-50 text-gray-600' };
     };
+
+    // Filter notifications based on active criteria
+    const filteredNotifications = useMemo(() => {
+        return notifications.filter(n => {
+            // Read status filter
+            if (statusFilter === 'unread' && n.isRead) return false;
+            if (statusFilter === 'read' && !n.isRead) return false;
+
+            // Starred filter
+            if (starFilter === 'starred' && !n.isStarred) return false;
+
+            // Type filter
+            if (typeFilter !== 'all') {
+                if (typeFilter === 'booking_created') {
+                    if (n.eventType !== 'booking_created' && n.eventType !== 'booking') return false;
+                } else if (n.eventType !== typeFilter) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [notifications, statusFilter, starFilter, typeFilter]);
+
+    useEffect(() => {
+        setResultsCount(filteredNotifications.length);
+    }, [filteredNotifications.length, setResultsCount]);
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
@@ -199,23 +347,25 @@ const Notifications = () => {
                                 <th className="p-4.5 font-bold w-[10%]">Sent By</th>
                                 <th className="p-4.5 font-bold w-[55%]">Notification Details</th>
                                 <th className="p-4.5 font-bold w-[10%]">Received On</th>
-                                <th className="p-4.5 font-bold w-[7%]">Status</th>
-                                <th className="p-4.5 font-bold w-[7%]">Action</th>
+                                <th className="p-4.5 font-bold w-[6.5%]">Status</th>
+                                <th className="p-4.5 font-bold w-[6.5%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                             {loading && notifications.length === 0 ? (
                                 <TableSkeleton rows={15} cols={6} />
-                            ) : notifications.length === 0 ? (
+                            ) : filteredNotifications.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="p-20 text-center text-gray-300">
                                         <div className="flex flex-col items-center gap-3">
-                                            <p className="text-sm font-semibold uppercase">No new assignments</p>
+                                            <p className="text-sm font-semibold uppercase">
+                                                {notifications.length === 0 ? 'No new assignments' : 'No notifications match the active filter criteria'}
+                                            </p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
-                                notifications.map((notif) => {
+                                filteredNotifications.map((notif) => {
                                     const mapping = getMapping(notif);
                                     const isExpanded = expandedIds.has(notif._id);
                                     return (
@@ -234,10 +384,10 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.25">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[120px]">
-                                                        {notif.eventType === 'leave' || notif.eventType === 'overtime' ? (notif.meta?.approverName || 'MANAGER') : notif.eventType === 'meeting' ? (notif.meta?.adminName || 'ADMIN') : (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0] || 'N/A')}
+                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
+                                                        {getSenderName(notif)}
                                                     </span>
-                                                    <span className={`text-[11px] font-semibold uppercase tracking-tight ${notif.eventType === 'leave' || notif.eventType === 'overtime' || notif.eventType === 'meeting' ? 'text-slate-700' : 'text-gray-400'}`}>
+                                                    <span className="text-[11px] font-semibold uppercase tracking-tight text-slate-700">
                                                         {getDisplayUserId(notif)}
                                                     </span>
                                                 </div>
@@ -268,7 +418,7 @@ const Notifications = () => {
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {new Date(notif.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(notif.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
@@ -282,14 +432,36 @@ const Notifications = () => {
                                                 </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.25">
-                                                <div className="flex justify-center">
+                                             <td className="p-4.25">
+                                                <div className="flex items-center justify-center gap-4">
                                                     <button 
+                                                        onClick={(e) => handleToggleStar(notif._id, e)}
+                                                        className=" cursor-pointer"
+                                                    >
+                                                        <Star 
+                                                            size={18} 
+                                                            className={`transition-all duration-150 active:scale-125 ${
+                                                                notif.isStarred 
+                                                                    ? 'fill-amber-400 text-amber-400' 
+                                                                    : 'text-gray-400 hover:text-amber-400'
+                                                            }`} 
+                                                        />
+                                                    </button>
+
+                                                    <button 
+                                                        onClick={(e) => handleRedirect(notif, e)}
+                                                        className="cursor-pointer text-gray-400 hover:text-blue-600"
+                                                    >
+                                                        <ExternalLink size={18} />
+                                                    </button>
+
+                                                    {/* <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500"
+                                                        className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-150 active:scale-110"
+                                                        title="Delete"
                                                     >
                                                         <Trash2 size={18} />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>
