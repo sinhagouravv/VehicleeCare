@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
 
 const Leave = () => {
     const [showModal, setShowModal] = useState(false);
@@ -19,6 +20,71 @@ const Leave = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [durationFilter, setDurationFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Leave Requests',
+            groups: [
+                {
+                    id: 'duration',
+                    label: 'Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Full Day', value: 'Full Day' },
+                        { label: 'Half Day', value: 'Half Day' },
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Approved', value: 'Approved' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Rejected', value: 'Rejected' },
+                    ]
+                },
+                {
+                    id: 'type',
+                    label: 'Category',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Casual', value: 'Casual Leave' },
+                        { label: 'Sick', value: 'Sick Leave' },
+                        { label: 'Paid', value: 'Paid Leave' },
+                        { label: 'Unpaid', value: 'Unpaid Leave' },
+                    ]
+                },
+            ],
+            initialValues: {
+                status: 'all',
+                duration: 'all',
+                type: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.duration !== undefined) setDurationFilter(newValues.duration);
+                if (newValues.type !== undefined) setTypeFilter(newValues.type);
+            },
+            onReset: () => {
+                setStatusFilter('all');
+                setDurationFilter('all');
+                setTypeFilter('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig]);
+
     const highlightedRow = useHighlight(leaves);
 
     const pendingLeave = leaves.find(l => l.status === 'Pending');
@@ -254,16 +320,36 @@ const Leave = () => {
         }
     };
 
+    const filteredLeaves = useMemo(() => {
+        return leaves.filter(l => {
+            if (statusFilter !== 'all' && l.status !== statusFilter) return false;
+            if (durationFilter !== 'all') {
+                const d = l.leaveTime || 'Full Day';
+                if (d.toLowerCase() !== durationFilter.toLowerCase()) return false;
+            }
+            if (typeFilter !== 'all') {
+                if ((l.type || '').toLowerCase() !== typeFilter.toLowerCase()) return false;
+            }
+            return true;
+        });
+    }, [leaves, statusFilter, durationFilter, typeFilter]);
+
+    useEffect(() => {
+        setResultsCount(filteredLeaves.length);
+    }, [filteredLeaves.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Leave Management</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Leave Management</h1>
+                </div>
 
                 <div className="relative group">
                     <button
                         onClick={() => handleOpenModal()}
                         disabled={!!pendingLeave}
-                        className={`flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 opacity-75' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase text-xs`}
+                        className={`flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 opacity-75 cursor-not-allowed' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase text-xs`}
                     >
                         <Plus size={18} />
                         Apply Leave
@@ -271,7 +357,7 @@ const Leave = () => {
 
                     {pendingLeave && (
                         <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
-                            Kindly ask the admin to approve or reject the current leave to apply for a new leave
+                            Kindly ask the manager to approve or reject the current leave to apply for a new leave
                         </div>
                     )}
                 </div>
@@ -298,13 +384,13 @@ const Leave = () => {
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && leaves.length === 0 ? (
                                 <TableSkeleton rows={15} cols={9} />
-                            ) : leaves.length === 0 ? (
+                            ) : filteredLeaves.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="p-20 text-center text-gray-400 font-bold tracking-widest">
-                                        No past leave requests.
+                                    <td colSpan="9" className="p-20 text-center text-gray-400 font-bold tracking-widest uppercase">
+                                        {leaves.length === 0 ? 'No past leave requests.' : 'No leave requests match the active filter criteria.'}
                                     </td>
                                 </tr>
-                            ) : leaves.map((leave) => (
+                            ) : filteredLeaves.map((leave) => (
                                 <tr 
                                     key={leave._id} 
                                     id={`row-${leave.leaveId}`}
