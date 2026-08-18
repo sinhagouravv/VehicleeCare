@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import FilterButton from './FilterButton';
 import { Bug, X, Send, Loader2 } from 'lucide-react';
 
 const Layout = () => {
@@ -78,6 +79,9 @@ const Layout = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Floating Filter Button & Panel */}
+            <FilterButton />
 
             <button
                 onClick={() => setIsBugModalOpen(true)}
