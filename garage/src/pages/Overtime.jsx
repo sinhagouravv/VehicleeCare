@@ -22,6 +22,7 @@ const Overtime = () => {
     const [actionEmpId, setActionEmpId] = useState('');
     const [actionRemarks, setActionRemarks] = useState('');
     const [actionOvertimeId, setActionOvertimeId] = useState(null);
+    const [managers, setManagers] = useState([]);
 
     const openActionModal = (overtimeId, type) => {
         setActionOvertimeId(overtimeId);
@@ -46,8 +47,16 @@ const Overtime = () => {
                 setOvertimes(data.data || []);
                 setLastRefreshed(new Date());
             }
+
+            // Also fetch managers of this garage
+            const empRes = await fetch(`http://localhost:5001/api/employees/garage/${garageId}`);
+            const empData = await empRes.json();
+            if (empData.success) {
+                const mgrs = (empData.data || []).filter(emp => String(emp.role || '').toLowerCase() === 'manager' && emp.isVerified !== false);
+                setManagers(mgrs);
+            }
         } catch (error) {
-            console.error("Failed to fetch garage overtimes:", error);
+            console.error("Failed to fetch garage overtimes/managers:", error);
         } finally {
             setLoading(false);
         }
@@ -61,14 +70,8 @@ const Overtime = () => {
 
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
-        if(!actionEmpId || !actionRemarks) {
-            alert('Please fill both Employee ID and Remarks');
-            return;
-        }
-
-        const words = actionRemarks.trim().split(/\s+/).filter(word => word.length > 0);
-        if (words.length < 10) {
-            alert('Reason for Action must be at least 10 words long.');
+        if(!actionEmpId || !actionRemarks.trim()) {
+            alert('Please select a Manager ID and provide Reason for Action');
             return;
         }
 
@@ -430,18 +433,24 @@ const Overtime = () => {
                                 </div>
 
                                 <div className="flex gap-2.5 text-left">
-                                    <div className="w-[20%]">
-                                        <label className="text-[12.5px] font-bold text-gray-500 uppercase tracking-widest flex items-center justify-center mb-2">Employee ID</label>
-                                        <input 
-                                            type="text" 
+                                    <div className="w-[32%]">
+                                        <label className="text-[12.5px] font-bold text-gray-500 uppercase tracking-widest flex items-center justify-center mb-2">Manager ID</label>
+                                        <select 
                                             required
-                                            className="w-full bg-white border border-gray-200 rounded-xl p-2 text-[13px] font-semibold text-[#011023] outline-none transition-all uppercase tracking-wider shadow-sm text-center"
+                                            className="w-full bg-white border border-gray-200 rounded-xl p-2 text-[13px] font-semibold text-[#011023] outline-none transition-all uppercase tracking-wider shadow-sm text-center cursor-pointer appearance-none"
                                             value={actionEmpId}
                                             onChange={e => setActionEmpId(e.target.value)}
                                             disabled={updatingId === actionOvertimeId}
-                                        />
+                                        >
+                                            <option value=""></option>
+                                            {managers.map(m => (
+                                                <option key={m._id || m.employeeId} value={m.employeeId}>
+                                                    {m.employeeId} {m.name ? `(${m.name})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <div className="w-[80%]">
+                                    <div className="w-[68%]">
                                         <label className="text-[12.5px] font-bold text-gray-500 uppercase tracking-widest flex items-center justify-center mb-2">Reason for Action</label>
                                         <input 
                                             type="text"
