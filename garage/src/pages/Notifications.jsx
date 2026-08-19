@@ -280,7 +280,7 @@ const Notifications = () => {
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {new Date(notif.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(notif.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
