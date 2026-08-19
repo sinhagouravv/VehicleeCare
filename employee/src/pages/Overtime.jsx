@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, X, MessageSquare } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
 
 const Overtime = () => {
     const [overtimes, setOvertimes] = useState([]);
@@ -14,6 +16,56 @@ const Overtime = () => {
     const [selectedOvertime, setSelectedOvertime] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [hoursFilter, setHoursFilter] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Overtime Requests',
+            groups: [
+                {
+                    id: 'hours',
+                    label: 'Hours',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: '2 Hours', value: '2' },
+                        { label: '4 Hours', value: '4' },
+                        { label: '6 Hours', value: '6' },
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Approved', value: 'Approved' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Rejected', value: 'Rejected' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: 'all',
+                hours: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.hours !== undefined) setHoursFilter(newValues.hours);
+            },
+            onReset: () => {
+                setStatusFilter('all');
+                setHoursFilter('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig]);
+
     const [formData, setFormData] = useState({
         date: '',
         hours: '',
@@ -24,6 +76,8 @@ const Overtime = () => {
     const [requestedHours, setRequestedHours] = useState(null);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [fullEmployeeProfile, setFullEmployeeProfile] = useState(null);
+    const pendingOvertime = overtimes.find(o => o.status === 'Pending');
+    const highlightedRow = useHighlight(overtimes);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('employeeUser');
@@ -241,14 +295,36 @@ const Overtime = () => {
         return `${formatHour(startHour)} - ${formatHour(endHour)}`;
     };
 
+    const filteredOvertimes = useMemo(() => {
+        return overtimes.filter(ot => {
+            if (statusFilter !== 'all' && ot.status !== statusFilter) return false;
+            if (hoursFilter !== 'all' && String(ot.hours) !== String(hoursFilter)) return false;
+            return true;
+        });
+    }, [overtimes, statusFilter, hoursFilter]);
+
+    useEffect(() => {
+        setResultsCount(filteredOvertimes.length);
+    }, [filteredOvertimes.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
-                    <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
-                 <div className="flex items-center gap-4">
-                    <button onClick={handleOpenModal} className="flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm">
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
+                <div className="relative group">
+                    <button
+                        onClick={handleOpenModal}
+                        disabled={!!pendingOvertime}
+                        className={`flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r ${pendingOvertime ? 'from-gray-400 to-gray-500 opacity-75 cursor-not-allowed' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase text-xs`}
+                    >
                         <Plus size={18} /> Apply Overtime
-                </button>
+                    </button>
+
+                    {pendingOvertime && (
+                        <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
+                            Kindly ask the manager to approve or reject the current overtime to apply for a new overtime
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -258,28 +334,29 @@ const Overtime = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold text-center w-[20%]">Overtime Date</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Logged Hours</th>
-                                <th className="p-4.5 font-bold text-center w-[35%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Date Applied</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[19%]">Overtime Date</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Hours</th>
+                                <th className="p-4.5 font-bold text-center w-[42%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && overtimes.length === 0 ? (
                                 <TableSkeleton rows={15} cols={6} />
-                            ) : overtimes.length === 0 ? (
+                            ) : filteredOvertimes.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="p-20 text-center text-sm text-gray-500">
-                                        No overtime logs registered.
+                                        {overtimes.length === 0 ? 'No overtime logs registered.' : 'No overtime requests match the active filter criteria.'}
                                     </td>
                                 </tr>
                             ) : (
-                                overtimes.map((ot) => (
+                                filteredOvertimes.map((ot) => (
                                     <tr 
                                         key={ot._id} 
-                                        className="text-center hover:bg-blue-50/30 transition-colors"
+                                        id={`row-${ot.overtimeId || ot._id}`}
+                                        className={`text-center transition-all duration-1000 ${(highlightedRow === ot.overtimeId || highlightedRow === ot._id) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                     >
                                         <td className="p-4 font-semibold text-[#052558] text-sm text-center whitespace-nowrap">
                                             <span>{formatDateToJul(ot.date)}</span>
@@ -309,29 +386,34 @@ const Overtime = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex items-center justify-center gap-1.5">
+                                            <div className="flex items-center justify-center gap-4.5">
                                                 <button
                                                     onClick={() => {
                                                         setSelectedOvertime(ot);
                                                         setIsViewModalOpen(true);
                                                     }}
-                                                    className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                                                    className="text-gray-400 hover:text-blue-500 cursor-pointer"
                                                     title="View Details"
                                                 >
-                                                    <Eye size={17} />
+                                                    <Eye size={18} />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(ot._id)}
-                                                    disabled={ot.status !== 'Pending'}
-                                                    className={`p-1.5 rounded-lg transition-colors ${
-                                                        ot.status === 'Pending'
-                                                            ? 'text-gray-400 hover:text-red-500 hover:bg-red-50 cursor-pointer'
-                                                            : 'text-gray-300/80 cursor-not-allowed'
-                                                    }`}
-                                                    title={ot.status === 'Pending' ? "Delete Log" : "Cannot delete reviewed requests"}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                {ot.status === 'Approved' && (
+                                                    <button
+                                                        type="button"
+                                                        className="text-gray-400 hover:text-emerald-600 cursor-pointer"
+                                                    >
+                                                        <MessageSquare size={18} />
+                                                    </button>
+                                                )}
+                                                {ot.status !== 'Approved' && (
+                                                    <button 
+                                                        onClick={() => handleDelete(ot._id)}
+                                                        className="text-gray-400 hover:text-red-500 cursor-pointer"
+                                                        title="Delete Log"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
