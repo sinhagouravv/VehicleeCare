@@ -17,6 +17,7 @@ import {
 
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
 
 const Tasks = () => {
     const [tasks, setTasks] = useState([]);
@@ -26,6 +27,43 @@ const Tasks = () => {
     const [filterStatus, setFilterStatus] = useState('All');
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [userRole, setUserRole] = useState('');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Tasks',
+            groups: [
+                {
+                    id: 'status',
+                    label: 'Booking Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'In Progress', value: 'In Progress' },
+                        { label: 'In Service', value: 'In Service' },
+                        { label: 'Completed', value: 'Completed' },
+                        { label: 'Delivered', value: 'Delivered' },
+                        { label: 'Cancelled', value: 'Cancelled' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus === 'All' ? 'all' : filterStatus
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) {
+                    setFilterStatus(newValues.status === 'all' ? 'All' : newValues.status);
+                }
+            },
+            onReset: () => {
+                setFilterStatus('All');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig]);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('employeeUser');
@@ -290,6 +328,10 @@ const Tasks = () => {
             return matchesSearch && matchesStatus;
         });
     }, [tasks, searchTerm, filterStatus]);
+
+    useEffect(() => {
+        setResultsCount(filteredTasks.length);
+    }, [filteredTasks.length, setResultsCount]);
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
