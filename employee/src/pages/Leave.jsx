@@ -5,6 +5,7 @@ import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, Histo
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Leave = () => {
     const [showModal, setShowModal] = useState(false);
@@ -24,8 +25,12 @@ const Leave = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const [durationFilter, setDurationFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
 
     const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('leave_row_labels');
 
     // Register filter options with the floating filter button
     useEffect(() => {
@@ -61,25 +66,33 @@ const Leave = () => {
                         { label: 'All', value: 'all' },
                         { label: 'Casual', value: 'Casual Leave' },
                         { label: 'Sick', value: 'Sick Leave' },
-                        { label: 'Paid', value: 'Paid Leave' },
-                        { label: 'Unpaid', value: 'Unpaid Leave' },
+                        { label: 'Planned', value: 'Planned Leave' },
+                        { label: 'Emergency', value: 'Emergency Leave' }
                     ]
                 },
+                LABEL_FILTER_GROUP
             ],
             initialValues: {
                 status: 'all',
                 duration: 'all',
-                type: 'all'
+                type: 'all',
+                label: 'all'
             },
             onChange: (newValues) => {
                 if (newValues.status !== undefined) setStatusFilter(newValues.status);
                 if (newValues.duration !== undefined) setDurationFilter(newValues.duration);
                 if (newValues.type !== undefined) setTypeFilter(newValues.type);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
             },
             onReset: () => {
                 setStatusFilter('all');
                 setDurationFilter('all');
                 setTypeFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
             }
         });
         return () => setFilterConfig(null);
@@ -154,7 +167,7 @@ const Leave = () => {
     const formatAppliedTime = (dateStr) => {
         if (!dateStr) return '—';
         return new Date(dateStr).toLocaleTimeString('en-IN', {
-            hour: '2-digit', minute: '2-digit', hour12: true
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
         });
     };
 
@@ -320,19 +333,92 @@ const Leave = () => {
         }
     };
 
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.startDate,
+            item.appliedDate,
+            item.date,
+            item.timestamp,
+            item.bookingDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
     const filteredLeaves = useMemo(() => {
-        return leaves.filter(l => {
+        const filtered = leaves.filter(l => {
             if (statusFilter !== 'all' && l.status !== statusFilter) return false;
             if (durationFilter !== 'all') {
                 const d = l.leaveTime || 'Full Day';
                 if (d.toLowerCase() !== durationFilter.toLowerCase()) return false;
             }
             if (typeFilter !== 'all') {
-                if ((l.type || '').toLowerCase() !== typeFilter.toLowerCase()) return false;
+                const typeStr = (l.leaveCategory || l.type || l.category || '').trim().toLowerCase();
+                const targetKey = typeFilter.trim().toLowerCase().replace('leave', '').trim();
+                if (!typeStr.includes(targetKey)) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(l);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            if (labelFilter !== 'all') {
+                const currentLabel = rowLabels[l._id];
+                if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
             }
             return true;
         });
-    }, [leaves, statusFilter, durationFilter, typeFilter]);
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [leaves, statusFilter, durationFilter, typeFilter, labelFilter, rowLabels, sortOrder, timeRange]);
 
     useEffect(() => {
         setResultsCount(filteredLeaves.length);
@@ -369,13 +455,13 @@ const Leave = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold text-center w-[7%]">Leave ID</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Date</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave ID</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Leave</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Applied At</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
                                 <th className="p-4.5 font-bold text-center w-[25%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]"> Start</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]"> End</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]"> Start</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]"> End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
@@ -394,17 +480,47 @@ const Leave = () => {
                                 <tr 
                                     key={leave._id} 
                                     id={`row-${leave.leaveId}`}
-                                    className={`text-center transition-all duration-1000 ${(highlightedRow === leave.leaveId || highlightedRow === leave._id) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                    onClick={() => {
+                                        if (isLabelMode) {
+                                            setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
+                                        }
+                                    }}
+                                    className={`text-center cursor-pointer transition-all duration-1000 ${(highlightedRow === leave.leaveId || highlightedRow === leave._id) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                 >
-                                    <td className="p-5 font-semibold text-[13px]">
-                                        {leave.leaveId || '—'}
-                                    </td>
-                                    <td className="p-5 font-semibold text-[13px]">
-                                        <div className="text-[#052558]">{new Date(leave.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                                        <div className="text-gray-500 mt-0.5 text-xs">{new Date(leave.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                                    <td className="p-5 font-semibold text-[13px] relative">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[leave._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
+                                                    }}
+                                                    className="absolute -left-3 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[leave._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[leave._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === leave._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={leave._id}
+                                                    currentLabel={rowLabels[leave._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    positionClass="-left-5"
+                                                />
+                                            )}
+                                            <span>{leave.leaveId || '—'}</span>
+                                        </div>
                                     </td>
                                     <td className="p-5">
                                         <span className="font-semibold text-[13px]">{leave.type}</span>
+                                    </td>
+                                    <td className="p-5 font-semibold text-[13px]">
+                                        <div className="text-[#052558]">{new Date(leave.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                        <div className="text-gray-500 mt-0.5 text-xs">{new Date(leave.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</div>
                                     </td>
                                     <td className="p-5">
                                         <span className={`px-3 py-1 rounded-lg text-xs border font-semibold uppercase tracking-wide ${leave.leaveTime === 'Half Day' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
@@ -412,7 +528,7 @@ const Leave = () => {
                                         </span>
                                     </td>
                                     <td className="p-5 text-[13px] text-center">
-                                        <div className="whitespace-normal truncate">
+                                        <div className="line-clamp-2 whitespace-normal break-words" title={leave.reason}>
                                             {leave.reason}
                                         </div>
                                     </td>
@@ -427,10 +543,13 @@ const Leave = () => {
                                     {/* <td className="p-5">
                                         <div className="text-[13px] font-semibold text-[#011023]">{leave.totalDays} DAYS</div>
                                     </td> */}
-                                    <td className="p-5">
-                                        <span className={`px-4 py-1.5 rounded-full border text-[10.5px] font-semibold uppercase tracking-w ${getStatusStyle(leave.status)}`}>
-                                            {leave.status}
-                                        </span>
+                                    <td className="p-5 text-center">
+
+                                        <div className="flex justify-center">
+                                            <span className={`px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-w ${getStatusStyle(leave.status)}`}>
+                                                {leave.status}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="p-5">
                                         <div className="flex items-center justify-center gap-4">
@@ -675,40 +794,40 @@ const Leave = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             {/* Quick Stats Bar */}
                             <div className="bg-blue-50/30 py-2 rounded-2xl border border-blue-50 flex mb-5">
-                                <div className="w-[25%]">
+                                <div className="w-[21%]">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-left">Leave</p>
                                     <p className="text-sm font-semibold text-[#011023] uppercase text-left truncate">{selectedLeave.type}</p>
                                 </div>
-                                <div className="w-[15%]">
-                                    <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-left">Type</p>
-                                    <p className="text-sm font-semibold text-gray-800 uppercase text-left">{selectedLeave.leaveTime}</p>
+                                <div className="w-[15%] text-center">
+                                    <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-center">Type</p>
+                                    <p className="text-sm font-semibold text-gray-800 uppercase text-center">{selectedLeave.leaveTime}</p>
                                 </div>
-                                <div className="w-[25%]">
-                                    <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-left">Date & Time</p>
-                                    <p className="text-sm font-semibold text-gray-800 uppercase text-left whitespace-nowrap">
-                                        {formatDate(selectedLeave.createdAt)} <span className="text-gray-400 mx-1">|</span> {formatAppliedTime(selectedLeave.createdAt)}
-                                    </p>
-                                </div>
-                                <div className="w-[18%] text-center border-x border-blue-100/30 pl-5 text-left">
-                                    <p className="text-sm font-bold text-gray-400 uppercase mb-3">Duration</p>
-                                    <p className="text-sm font-bold text-gray-700 uppercase">
+                                <div className="w-[18%] text-center border-x border-blue-100/30 px-3">
+                                    <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-center">Duration</p>
+                                    <p className="text-sm font-bold text-gray-700 uppercase text-center">
                                         {selectedLeave.totalDays} {selectedLeave.totalDays === 1 ? 'Day' : 'Days'}
                                     </p>
                                 </div>
-                                <div className="w-[10%] text-left pl-3">
-                                    <p className="text-sm font-bold text-gray-400 uppercase mb-2">Status</p>
-                                    <div className="flex">
-                                        <span className={`px-3 py-1.5 text-[10px] font-bold rounded-lg uppercase tracking-widest border ${getStatusStyle(selectedLeave.status)}`}>
+                                <div className="w-[15%] text-center">
+                                    <p className="text-sm font-bold text-gray-400 uppercase mb-2 text-center">Status</p>
+                                    <div className="flex justify-center">
+                                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedLeave.status)}`}>
                                             {selectedLeave.status}
                                         </span>
                                     </div>
+                                </div>
+                                <div className="ml-auto pr-10">
+                                    <p className="text-sm font-bold text-gray-400 text-center uppercase mb-3">Date & Time</p>
+                                    <p className="text-sm font-semibold text-gray-800 uppercase whitespace-nowrap">
+                                        {formatDate(selectedLeave.createdAt)} <span className="text-gray-400 mx-1">|</span> {formatAppliedTime(selectedLeave.createdAt)}
+                                    </p>
                                 </div>
                             </div>
 
                             {/* Leave Duration & Timing (Legal Documentation style) */}
                             <div className="space-y-2 mb-7 text-left">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Leave Date & Timing</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div className="pt-2">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex items-center gap-4">
                                             <p className="text-sm font-semibold text-[#052558] uppercase">
@@ -722,8 +841,8 @@ const Leave = () => {
                             {/* Reason for Leave (Residential Archive style) */}
                             <div className="space-y-2 text-left">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Leave</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm uppercase border border-gray-100">
-                                    <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedLeave.reason}</h5>
+                                <div className="pt-2">
+                                    <h5 className="font-semibold uppercase text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedLeave.reason}</h5>
                                 </div>
                             </div>
                         </div>
