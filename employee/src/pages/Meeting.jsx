@@ -22,6 +22,8 @@ const Meeting = () => {
     const [purposeFilter, setPurposeFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
 
     const { setFilterConfig, setResultsCount } = useFilter();
 
@@ -70,11 +72,15 @@ const Meeting = () => {
                 if (newValues.purpose !== undefined) setPurposeFilter(newValues.purpose);
                 if (newValues.type !== undefined) setTypeFilter(newValues.type);
                 if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
             },
             onReset: () => {
                 setPurposeFilter('all');
                 setTypeFilter('all');
                 setStatusFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
             }
         });
         return () => setFilterConfig(null);
@@ -276,17 +282,84 @@ const Meeting = () => {
         }
     };
 
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.bookingDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
     const filteredMeetings = useMemo(() => {
-        return meetings.filter(meeting => {
+        const filtered = meetings.filter(meeting => {
             if (purposeFilter !== 'all' && (meeting.purpose || '').toLowerCase() !== purposeFilter.toLowerCase()) return false;
             if (typeFilter !== 'all') {
                 const mType = meeting.type || 'ID Card';
                 if (mType.toLowerCase() !== typeFilter.toLowerCase()) return false;
             }
             if (statusFilter !== 'all' && meeting.status !== statusFilter) return false;
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(meeting);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
             return true;
         });
-    }, [meetings, purposeFilter, typeFilter, statusFilter]);
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [meetings, purposeFilter, typeFilter, statusFilter, sortOrder, timeRange]);
 
     useEffect(() => {
         setResultsCount(filteredMeetings.length);
