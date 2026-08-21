@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Bell, Loader2, Trash2, Star, ExternalLink } from 'lucide-react';
+import { Bell, Loader2, Trash2, Star, ExternalLink, Tag, X, Flame, Zap, Pin, AlertTriangle, CircleAlert, CheckCircle2, AlertOctagon, Search } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -29,8 +30,12 @@ const Notifications = () => {
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'unread' | 'read'
     const [starFilter, setStarFilter] = useState('all'); // 'all' | 'starred'
     const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'booking_created' | 'leave' | 'overtime' | 'meeting'
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
 
-    const { setFilterConfig, setResultsCount } = useFilter();
+    const { isLabelMode, setIsLabelMode, setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef } = useRowLabels('notifications_row_labels');
 
     // Register filter options with the floating filter button
     useEffect(() => {
@@ -67,22 +72,30 @@ const Notifications = () => {
                         { label: 'Overtime', value: 'overtime' },
                         { label: 'Meeting', value: 'meeting' },
                     ]
-                }
+                },
+                LABEL_FILTER_GROUP
             ],
             initialValues: {
                 status: 'all',
                 starred: 'all',
-                type: 'all'
+                type: 'all',
+                label: 'all'
             },
             onChange: (newValues) => {
                 if (newValues.status !== undefined) setStatusFilter(newValues.status);
                 if (newValues.starred !== undefined) setStarFilter(newValues.starred);
                 if (newValues.type !== undefined) setTypeFilter(newValues.type);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
             },
             onReset: () => {
                 setStatusFilter('all');
                 setStarFilter('all');
                 setTypeFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
             }
         });
         return () => setFilterConfig(null);
@@ -290,12 +303,53 @@ const Notifications = () => {
     };
 
     const getMapping = (notif) => {
-        return { ...EVENT_MAPPING[notif.eventType] } || { type: 'Task', category: 'System', color: 'bg-gray-50 text-gray-600' };
+        return EVENT_MAPPING[notif.eventType] || { type: 'Task', category: 'System', color: 'bg-gray-50 text-gray-600', typeColor: 'bg-gray-100 text-gray-700' };
+    };
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.bookingDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
     };
 
     // Filter notifications based on active criteria
     const filteredNotifications = useMemo(() => {
-        return notifications.filter(n => {
+        const filtered = notifications.filter(n => {
             // Read status filter
             if (statusFilter === 'unread' && n.isRead) return false;
             if (statusFilter === 'read' && !n.isRead) return false;
@@ -312,9 +366,48 @@ const Notifications = () => {
                 }
             }
 
+            // Label filter
+            if (labelFilter !== 'all') {
+                const currentLabel = rowLabels[n._id];
+                if (labelFilter === 'labeled') {
+                    if (!currentLabel) return false;
+                } else if (labelFilter === 'unlabeled') {
+                    if (currentLabel) return false;
+                } else {
+                    if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+                }
+            }
+
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(n);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+
             return true;
         });
-    }, [notifications, statusFilter, starFilter, typeFilter]);
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [notifications, statusFilter, starFilter, typeFilter, labelFilter, rowLabels, sortOrder, timeRange]);
 
     useEffect(() => {
         setResultsCount(filteredNotifications.length);
@@ -343,7 +436,7 @@ const Notifications = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold w-[8%]">Type</th>
+                                <th className="p-4.5 font-bold w-[11%]">Type</th>
                                 <th className="p-4.5 font-bold w-[10%]">Sent By</th>
                                 <th className="p-4.5 font-bold w-[55%]">Notification Details</th>
                                 <th className="p-4.5 font-bold w-[10%]">Received On</th>
@@ -368,18 +461,51 @@ const Notifications = () => {
                                 filteredNotifications.map((notif) => {
                                     const mapping = getMapping(notif);
                                     const isExpanded = expandedIds.has(notif._id);
+                                    const hasRowLabel = Boolean(rowLabels[notif._id]);
                                     return (
                                         <tr 
                                             key={notif._id} 
-                                            onClick={() => !notif.isRead && markRead(notif._id)}
-                                            className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
+                                            onClick={() => {
+                                                if (isLabelMode) {
+                                                    setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
+                                                } else if (!notif.isRead) {
+                                                    markRead(notif._id);
+                                                }
+                                            }}
+                                            className={`transition-all duration-300 group cursor-pointer ${
+                                                notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'
+                                            }`}
                                         >
-                                            <td className="p-4.25">
+                                            <td className="p-4.25 relative">
+                                                <div className="relative flex items-center justify-center w-full">
+                                                    {hasRowLabel && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
+                                                            }}
+                                                            className="absolute -left-2 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                            title={`Label: ${stripEmoji(rowLabels[notif._id])} (Click to change)`}
+                                                        >
+                                                            {renderLabelIcon(rowLabels[notif._id], 16)}
+                                                        </button>
+                                                    )}
 
-                                                <div className="flex justify-center">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
-                                                    {mapping.type}
-                                                </span>
+                                                    {/* Floating Label Icons Bar */}
+                                                    {activeLabelRowId === notif._id && (
+                                                        <FloatingLabelSelector 
+                                                            rowId={notif._id}
+                                                            currentLabel={rowLabels[notif._id]}
+                                                            onSaveLabel={handleSaveRowLabel}
+                                                            labelPopupRef={labelPopupRef}
+                                                            positionClass="-left-4"
+                                                        />
+                                                    )}
+
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                                        {mapping.type}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="p-4.25">
@@ -395,8 +521,10 @@ const Notifications = () => {
                                             <td 
                                                 className="p-4.25 cursor-pointer select-none"
                                                 onClick={(e) => {
-                                                    toggleExpand(notif._id, e);
-                                                    if (!notif.isRead) markRead(notif._id);
+                                                    if (!isLabelMode) {
+                                                        toggleExpand(notif._id, e);
+                                                        if (!notif.isRead) markRead(notif._id);
+                                                    }
                                                 }}
                                             >
                                                 <div 
@@ -424,15 +552,15 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.25">
                                                 <div className="flex justify-center">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                                    : 'bg-blue-100 text-blue-700 border border-blue-100'
-                                                    }`}>
-                                                    {notif.isRead ? 'Read' : 'Unread'}
-                                                </span>
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
+                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                        : 'bg-blue-100 text-blue-700 border border-blue-100'
+                                                        }`}>
+                                                        {notif.isRead ? 'Read' : 'Unread'}
+                                                    </span>
                                                 </div>
                                             </td>
-                                             <td className="p-4.25">
+                                            <td className="p-4.25">
                                                 <div className="flex items-center justify-center gap-4">
                                                     <button 
                                                         onClick={(e) => handleToggleStar(notif._id, e)}
@@ -454,14 +582,6 @@ const Notifications = () => {
                                                     >
                                                         <ExternalLink size={18} />
                                                     </button>
-
-                                                    {/* <button 
-                                                        onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
-                                                        className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-150 active:scale-110"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>
@@ -472,6 +592,7 @@ const Notifications = () => {
                     </table>
                 </div>
             </div>
+
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
