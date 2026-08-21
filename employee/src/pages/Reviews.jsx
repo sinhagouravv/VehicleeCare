@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Eye, X, Loader2, Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { TableSkeleton } from '../components/Skeleton';
-// import axios from 'axios';
+import useHighlight from '../hooks/useHighlight';
+import { useFilter } from '../context/FilterContext';
 
 const Reviews = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -14,6 +15,63 @@ const Reviews = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter & Sort states
+    const [ratingFilter, setRatingFilter] = useState('all');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Reviews',
+            groups: [
+                {
+                    id: 'category',
+                    label: 'Category',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Website', value: 'Website' },
+                        { label: 'Business', value: 'Business' }
+                    ]
+                },
+                {
+                    id: 'rating',
+                    label: 'Rating',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: '5 Stars', value: '5' },
+                        { label: '4 Stars', value: '4' },
+                        { label: '3 Stars', value: '3' },
+                        { label: '2 Stars', value: '2' },
+                        { label: '1 Star', value: '1' }
+                    ]
+                }
+            ],
+            initialValues: {
+                rating: 'all',
+                category: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.rating !== undefined) setRatingFilter(newValues.rating);
+                if (newValues.category !== undefined) setCategoryFilter(newValues.category);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setRatingFilter('all');
+                setCategoryFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig]);
 
     const confirmDeleteReview = async () => {
         if (!reviewToDelete) return;
@@ -100,11 +158,108 @@ const Reviews = () => {
     });
     const avgRating = totalVotes > 0 ? (totalScore / totalVotes).toFixed(1) : "0.0";
 
-    const getAverageForReview = (ratings) => {
-        if (!ratings || ratings.length === 0) return 0;
-        const sum = ratings.reduce((a, b) => a + b, 0);
-        return Math.round(sum / ratings.length);
+    const getReviewRating = (r) => {
+        if (Array.isArray(r.ratings) && r.ratings.length > 0) {
+            const sum = r.ratings.reduce((a, b) => a + b, 0);
+            return Math.round(sum / r.ratings.length);
+        }
+        if (r.rating !== undefined && r.rating !== null && r.rating !== '') {
+            return Math.round(Number(r.rating));
+        }
+        if (r.stars !== undefined && r.stars !== null) {
+            return Math.round(Number(r.stars));
+        }
+        return 0;
     };
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.bookingDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    const filteredReviews = useMemo(() => {
+        const filtered = reviews.filter((r) => {
+            if (ratingFilter && ratingFilter !== 'all') {
+                const rRating = getReviewRating(r);
+                if (rRating !== Number(ratingFilter)) return false;
+            }
+            if (categoryFilter && categoryFilter !== 'all') {
+                const catStr = (r.category || r.type || 'Website').trim().toLowerCase();
+                if (catStr !== categoryFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(r);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [reviews, ratingFilter, categoryFilter, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredReviews.length);
+        }
+    }, [filteredReviews.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredReviews);
 
     return (
         <>
@@ -140,12 +295,12 @@ const Reviews = () => {
                                 <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                                     {loading && reviews.length === 0 ? (
                                         <TableSkeleton rows={15} cols={7} />
-                                    ) : reviews.length === 0 ? (
+                                    ) : filteredReviews.length === 0 ? (
                                         <tr>
                                             <td colSpan="8" className="p-8 text-center text-gray-400 font-medium">No reviews found in the database.</td>
                                         </tr>
                                     ) : (
-                                        reviews.map((rev) => (
+                                        filteredReviews.map((rev) => (
                                         <tr key={rev._id} className="hover:bg-blue-50/30 transition-colors">
                                             <td className="p-4 text-center font-semibold text-[#052558] text-sm tracking-wide">
                                                 {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
