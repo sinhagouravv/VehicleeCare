@@ -3,19 +3,50 @@ import { createPortal } from 'react-dom';
 import { Eye, X, Search, Trash2, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Customers = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [customers, setCustomers] = useState([]);
     const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, _setSearchQuery] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    
+    // Row label and Filter states
+    const [labelFilter, setLabelFilter] = useState('all');
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_customers_row_labels');
+
     const highlightedRow = useHighlight(filteredCustomers);
+
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Customers',
+            groups: [
+                LABEL_FILTER_GROUP
+            ],
+            initialValues: {
+                label: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+            },
+            onReset: () => {
+                setLabelFilter('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -108,15 +139,22 @@ const Customers = () => {
 
     useEffect(() => {
         const q = searchQuery.toLowerCase();
-        setFilteredCustomers(
-            customers.filter(c =>
+        const filtered = customers.filter(c => {
+            const rowId = c.userId || c.id;
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[rowId];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            return (
                 c.name.toLowerCase().includes(q) ||
                 c.email.toLowerCase().includes(q) ||
                 c.phone.toLowerCase().includes(q) ||
                 (c.userId || '').toLowerCase().includes(q)
-            )
-        );
-    }, [searchQuery, customers]);
+            );
+        });
+        setFilteredCustomers(filtered);
+        if (setResultsCount) setResultsCount(filtered.length);
+    }, [searchQuery, customers, labelFilter, rowLabels, setResultsCount]);
 
     const handleViewDetails = (customer) => {
         setSelectedCustomer(customer);
@@ -162,7 +200,7 @@ const Customers = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Customer ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Customer ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[16%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[35%]">Vehicle</th>
@@ -178,23 +216,54 @@ const Customers = () => {
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No customers found.</td>
                                 </tr>
-                            ) : filteredCustomers.map((customer) => {
+                            ) : filteredCustomers.map((customer, index) => {
                                 const rowId = customer.userId || customer.id;
                                 return (
                                     <tr 
                                         key={customer.id} 
                                         id={`row-${rowId}`}
-                                        className={`text-center transition-all duration-1000 ${
-                                            highlightedRow === rowId 
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === rowId ? null : rowId);
+                                            }
+                                        }}
+                                        className={`text-center cursor-pointer transition-all duration-1000 ${
+                                            activeLabelRowId === rowId
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
                                     {/* Customer ID */}
-                                    <td className="p-4 text-center w-[11%]">
-                                        <span className="font-semibold text-[#052558] text-sm">
-                                            {customer.userId || customer.id?.substring(0, 10).toUpperCase()}
-                                        </span>
+                                    <td className="p-4 text-center w-[11%] relative font-semibold text-[#052558] text-sm">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[rowId]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === rowId ? null : rowId);
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[rowId])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[rowId], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === rowId && (
+                                                <FloatingLabelSelector 
+                                                    rowId={rowId}
+                                                    currentLabel={rowLabels[rowId]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass="-top-10"
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span className="truncate">{customer.userId || customer.id?.substring(0, 10).toUpperCase()}</span>
+                                        </div>
                                     </td>
 
                                     {/* Customer */}
