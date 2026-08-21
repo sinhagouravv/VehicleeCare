@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Overtime = () => {
     const [overtimes, setOvertimes] = useState([]);
@@ -15,6 +17,168 @@ const Overtime = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter & Sort states
+    const [hoursFilter, setHoursFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_overtime_row_labels');
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.overtimeDate,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Overtime Requests',
+            hasSort: true,
+            groups: [
+                {
+                    id: 'hours',
+                    label: 'Hours',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: '2 Hours', value: '2 Hours' },
+                        { label: '4 Hours', value: '4 Hours' },
+                        { label: '6 Hours', value: '6 Hours' }
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Approved', value: 'Approved' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Rejected', value: 'Rejected' }
+                    ]
+                },
+                LABEL_FILTER_GROUP
+            ],
+            initialValues: {
+                hours: 'all',
+                status: 'all',
+                label: 'all',
+                sortOrder: 'latest',
+                timeRange: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.hours !== undefined) setHoursFilter(newValues.hours);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setHoursFilter('all');
+                setStatusFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const filteredOvertimes = React.useMemo(() => {
+        let filtered = overtimes.filter((o) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[o._id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (hoursFilter && hoursFilter !== 'all') {
+                const hrs = (o.requestedHours || o.hours || '').toString().trim().toLowerCase();
+                const targetHrs = hoursFilter.trim().toLowerCase();
+                if (!hrs.includes(targetHrs.replace('hours', '').trim())) return false;
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                const statStr = (o.status || '').trim().toLowerCase();
+                if (statStr !== statusFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(o);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [overtimes, hoursFilter, statusFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredOvertimes.length);
+        }
+    }, [filteredOvertimes.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredOvertimes);
 
     // Action Modal States
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -31,8 +195,6 @@ const Overtime = () => {
         setActionRemarks('');
         setIsActionModalOpen(true);
     };
-
-    const highlightedRow = useHighlight(overtimes);
 
     const storedUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
     const garageId = storedUser.id || storedUser._id;
@@ -180,22 +342,59 @@ const Overtime = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
-                            {loading && overtimes.length === 0 ? (
+                            {loading && filteredOvertimes.length === 0 ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : overtimes.length === 0 ? (
+                            ) : filteredOvertimes.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No overtime requests found.
                                     </td>
                                 </tr>
-                            ) : overtimes.map((overtime) => (
+                            ) : filteredOvertimes.map((overtime, index) => (
                                 <tr 
                                     key={overtime._id} 
                                     id={`row-${overtime._id}`}
-                                    className={`transition-all duration-1000 ${highlightedRow === overtime._id ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                    onClick={() => {
+                                        if (isLabelMode) {
+                                            setActiveLabelRowId(prev => prev === overtime._id ? null : overtime._id);
+                                        }
+                                    }}
+                                    className={`cursor-pointer transition-all duration-1000 ${
+                                        activeLabelRowId === overtime._id
+                                            ? 'relative z-40 bg-blue-50/50'
+                                            : highlightedRow === overtime._id 
+                                            ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                            : 'hover:bg-blue-50/30'
+                                    }`}
                                 >
-                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
-                                        {overtime.employeeId}
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center relative">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[overtime._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === overtime._id ? null : overtime._id);
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[overtime._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[overtime._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === overtime._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={overtime._id}
+                                                    currentLabel={rowLabels[overtime._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass="-top-8.5"
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span className="truncate">{overtime.employeeId}</span>
+                                        </div>
                                     </td>
                                     <td className="p-4 font-semibold text-sm text-[#011023] text-center">
                                         {formatDate(overtime.date)}
