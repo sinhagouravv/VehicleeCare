@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogIn, LogOut, CheckCircle, Clock, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
 
 const Attendance = () => {
     const [todayRecord, setTodayRecord] = useState(null);
@@ -11,10 +12,166 @@ const Attendance = () => {
     const [employeeUser, setEmployeeUser] = useState(null);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
 
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [shiftFilter, setShiftFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Attendance',
+            groups: [
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Present', value: 'Present' },
+                        { label: 'Absent', value: 'Absent' },
+                        { label: 'Late', value: 'Late' },
+                        { label: 'On Leave', value: 'On Leave' },
+                        { label: 'Overtime', value: 'Overtime' }
+                    ]
+                },
+                {
+                    id: 'shift',
+                    label: 'Shift',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Morning', value: 'Morning' },
+                        { label: 'Evening', value: 'Evening' }
+                    ]
+                }
+            ],
+            initialValues: {
+                status: 'all',
+                shift: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.shift !== undefined) setShiftFilter(newValues.shift);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setStatusFilter('all');
+                setShiftFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.bookingDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    // Filter records dynamically
+    const filteredRecords = useMemo(() => {
+        const filtered = attendanceRecords.filter((record) => {
+            if (statusFilter && statusFilter !== 'all') {
+                const recStatus = (record.status || '').trim().toLowerCase();
+                const targetStatus = statusFilter.trim().toLowerCase();
+                if (recStatus !== targetStatus) {
+                    return false;
+                }
+            }
+            if (shiftFilter && shiftFilter !== 'all') {
+                const recShift = (record.shift || '').trim().toLowerCase();
+                const targetShift = shiftFilter.trim().toLowerCase();
+                if (recShift !== targetShift) {
+                    return false;
+                }
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(record);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [attendanceRecords, statusFilter, shiftFilter, sortOrder, timeRange]);
+
+    // Update floating filter counter badge
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredRecords.length);
+        }
+    }, [filteredRecords.length, setResultsCount]);
+
     const formatTime = (dateStr) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
-        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toLowerCase();
     };
 
     const formatDateStr = (dateStr) => {
@@ -269,13 +426,13 @@ const Attendance = () => {
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={8} />
-                            ) : attendanceRecords.length === 0 ? (
+                            ) : filteredRecords.length === 0 ? (
                                 <tr>
                                     <td colSpan="8" className="p-8 text-center py-20">
                                         <span className="text-sm font-bold text-gray-400">NO ATTENDANCE RECORDS FOUND</span>
                                     </td>
                                 </tr>
-                            ) : attendanceRecords.map((r) => (
+                            ) : filteredRecords.map((r) => (
                                 <tr key={r.id} className="text-center transition-all hover:bg-blue-50/30">
 
                                     <td className="p-4.5 font-semibold text-[#052558] text-sm truncate text-center">
