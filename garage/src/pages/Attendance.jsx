@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Attendance = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -20,6 +22,84 @@ const Attendance = () => {
     const [attendanceStatus, setAttendanceStatus] = useState(null);
     const [statusLoading, setStatusLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+
+    // Filter states
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [shiftFilter, setShiftFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_attendance_row_labels');
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Attendance',
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'shift',
+                    label: 'Shift',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Morning', value: 'Morning' },
+                        { label: 'Evening', value: 'Evening' }
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Present', value: 'Present' },
+                        { label: 'Absent', value: 'Absent' },
+                        { label: 'Late', value: 'Late' },
+                        { label: 'On Leave', value: 'On Leave' },
+                        { label: 'Overtime', value: 'Overtime' }
+                    ]
+                },
+                {
+                    id: 'role',
+                    label: 'Role',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Admin', value: 'Admin' },
+                        { label: 'Manager', value: 'Manager' },
+                        { label: 'Mechanic', value: 'Mechanic' },
+                        { label: 'Technician', value: 'Technician' },
+                        { label: 'Support', value: 'Support' }
+                    ]
+                }
+            ],
+            initialValues: {
+                role: 'all',
+                status: 'all',
+                shift: 'all',
+                label: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.role !== undefined) setRoleFilter(newValues.role);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.shift !== undefined) setShiftFilter(newValues.shift);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+            },
+            onReset: () => {
+                setRoleFilter('all');
+                setStatusFilter('all');
+                setShiftFilter('all');
+                setLabelFilter('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
 
     // Compute display data for the table - moved from inline map to useMemo for stability
     const displayData = React.useMemo(() => {
@@ -70,7 +150,36 @@ const Attendance = () => {
         return data;
     }, [employees, attendanceRecords]);
 
-    const highlightedRow = useHighlight(displayData);
+    const filteredData = React.useMemo(() => {
+        return displayData.filter((r) => {
+            const labelKey = r._id || r.id || r.employeeId;
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[labelKey] || rowLabels[r.employeeId];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (roleFilter && roleFilter !== 'all') {
+                const recRole = (r.role || '').trim().toLowerCase();
+                if (recRole !== roleFilter.trim().toLowerCase()) return false;
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                const recStatus = (r.status || '').trim().toLowerCase();
+                if (recStatus !== statusFilter.trim().toLowerCase()) return false;
+            }
+            if (shiftFilter && shiftFilter !== 'all') {
+                const recShift = (r.shift || '').trim().toLowerCase();
+                if (recShift !== shiftFilter.trim().toLowerCase()) return false;
+            }
+            return true;
+        });
+    }, [displayData, roleFilter, statusFilter, shiftFilter]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredData.length);
+        }
+    }, [filteredData.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredData);
 
     // Lock body scroll when any modal is open
     useEffect(() => {
@@ -349,29 +458,61 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                            {loading && displayData.length === 0 ? (
+                            {loading && filteredData.length === 0 ? (
                                 <TableSkeleton rows={15} cols={10} />
-                            ) : displayData.length === 0 ? (
+                            ) : filteredData.length === 0 ? (
                                 <tr>
                                     <td colSpan="10" className="p-8 text-center py-20 text-gray-400 font-bold uppercase">
                                         No attendance records found.
                                     </td>
                                 </tr>
-                            ) : (
-                                displayData.map((r) => {
-                                const rowId = r.isMock ? `temp-${r.employeeId}` : r._id;
+                            ) : filteredData.map((r, index) => {
+                                const rowId = r._id || r.id || r.employeeId;
                                 return (
                                     <tr 
                                         key={r.id} 
                                         id={`row-${rowId}`}
-                                        className={`text-center transition-all duration-1000 ${
-                                            highlightedRow === rowId 
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === rowId ? null : rowId);
+                                            }
+                                        }}
+                                        className={`text-center cursor-pointer transition-all duration-1000 ${
+                                            activeLabelRowId === rowId
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center w-[10%]">
-                                            {r.employeeId}
+                                        <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[10%] relative">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[rowId]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === rowId ? null : rowId);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[rowId])}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[rowId], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === rowId && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={rowId}
+                                                        currentLabel={rowLabels[rowId]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        topClass="-top-8"
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span className="truncate">{r.employeeId}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
@@ -425,8 +566,7 @@ const Attendance = () => {
                                         </td>
                                     </tr>
                                 );
-                            })
-                            )}
+                            })}
                         </tbody>
                     </table>
                 </div>
