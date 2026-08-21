@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Loader2, CheckCircle2, XCircle, Check, X,  Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Leave = () => {
     const [leaves, setLeaves] = useState([]);
@@ -15,6 +17,154 @@ const Leave = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter & Sort states
+    const [durationFilter, setDurationFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_leave_row_labels');
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Leave Requests',
+            hasSort: true,
+            groups: [
+                {
+                    id: 'duration',
+                    label: 'Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Full Day', value: 'Full Day' },
+                        { label: 'Half Day', value: 'Half Day' }
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Approved', value: 'Approved' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Rejected', value: 'Rejected' }
+                    ]
+                },
+                {
+                    id: 'type',
+                    label: 'Category',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Casual', value: 'Casual Leave' },
+                        { label: 'Sick', value: 'Sick Leave' },
+                        { label: 'Planned', value: 'Planned Leave' },
+                        { label: 'Emergency', value: 'Emergency Leave' }
+                    ]
+                },
+                LABEL_FILTER_GROUP
+            ],
+            initialValues: {
+                duration: 'all',
+                status: 'all',
+                type: 'all',
+                label: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.duration !== undefined) setDurationFilter(newValues.duration);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.type !== undefined) setTypeFilter(newValues.type);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setDurationFilter('all');
+                setStatusFilter('all');
+                setTypeFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        if (item.createdAt) {
+            const d = new Date(item.createdAt);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    const filteredLeaves = React.useMemo(() => {
+        const filtered = leaves.filter((l) => {
+            if (durationFilter && durationFilter !== 'all') {
+                const durStr = (l.leaveType || l.leaveTime || '').trim().toLowerCase();
+                if (durStr !== durationFilter.trim().toLowerCase()) return false;
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                const statStr = (l.status || '').trim().toLowerCase();
+                if (statStr !== statusFilter.trim().toLowerCase()) return false;
+            }
+            if (typeFilter && typeFilter !== 'all') {
+                const typeStr = (l.leaveCategory || l.type || l.category || '').trim().toLowerCase();
+                const targetKey = typeFilter.trim().toLowerCase().replace('leave', '').trim();
+                if (!typeStr.includes(targetKey)) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(l);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            if (labelFilter !== 'all') {
+                const currentLabel = rowLabels[l._id];
+                if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [leaves, durationFilter, statusFilter, typeFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredLeaves.length);
+        }
+    }, [filteredLeaves.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredLeaves);
 
     // Action Modal States
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -31,8 +181,6 @@ const Leave = () => {
         setActionRemarks('');
         setIsActionModalOpen(true);
     };
-
-    const highlightedRow = useHighlight(leaves);
 
     const storedUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
     const garageId = storedUser.id || storedUser._id;
@@ -197,7 +345,7 @@ const Leave = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[7%]">Leave ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Leave ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Leave Type</th>
                                 <th className="p-4.5 font-bold text-center w-[7.5%]">Duration</th>
@@ -210,23 +358,60 @@ const Leave = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
-                            {loading && leaves.length === 0 ? (
+                            {loading && filteredLeaves.length === 0 ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : leaves.length === 0 ? (
+                            ) : filteredLeaves.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No leave requests found.
                                     </td>
                                 </tr>
-                            ) : leaves.map((leave) => (
+                            ) : filteredLeaves.map((leave, index) => (
                                 <tr 
                                     key={leave._id} 
                                     id={`row-${leave.leaveId}`}
-                                    className={`transition-all duration-1000 ${highlightedRow === leave.leaveId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
-                                
+                                    onClick={() => {
+                                        if (isLabelMode) {
+                                            setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
+                                        }
+                                    }}
+                                    className={`text-center cursor-pointer transition-all duration-1000 ${
+                                        activeLabelRowId === leave._id 
+                                            ? 'relative z-40 bg-blue-50/50'
+                                            : highlightedRow === leave.leaveId 
+                                            ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                            : 'hover:bg-blue-50/30'
+                                    }`}
                                 >
-                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center">
-                                        {leave.leaveId || '—'}
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center relative">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[leave._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
+                                                    }}
+                                                    className="absolute -left-0.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[leave._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[leave._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === leave._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={leave._id}
+                                                    currentLabel={rowLabels[leave._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass= "-top-9"
+                                                    positionClass="-left-3"
+                                                />
+                                            )}
+
+                                            <span>{leave.leaveId || '—'}</span>
+                                        </div>
                                     </td>
                                     <td className="p-3.25 font-semibold text-[#011023] text-sm text-center">
                                         {leave.employeeId}
