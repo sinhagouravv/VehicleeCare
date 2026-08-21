@@ -18,6 +18,7 @@ import {
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Tasks = () => {
     const [tasks, setTasks] = useState([]);
@@ -28,13 +29,19 @@ const Tasks = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [userRole, setUserRole] = useState('');
 
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
     const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('tasks_row_labels');
 
     // Register filter options with the floating filter button
     useEffect(() => {
         setFilterConfig({
             title: 'Filter Tasks',
             groups: [
+                LABEL_FILTER_GROUP,
                 {
                     id: 'status',
                     label: 'Booking Status',
@@ -51,19 +58,26 @@ const Tasks = () => {
                 }
             ],
             initialValues: {
-                status: filterStatus === 'All' ? 'all' : filterStatus
+                status: filterStatus === 'All' ? 'all' : filterStatus,
+                label: 'all'
             },
             onChange: (newValues) => {
                 if (newValues.status !== undefined) {
                     setFilterStatus(newValues.status === 'all' ? 'All' : newValues.status);
                 }
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
             },
             onReset: () => {
                 setFilterStatus('All');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
             }
         });
         return () => setFilterConfig(null);
-    }, [setFilterConfig]);
+    }, [setFilterConfig, filterStatus]);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('employeeUser');
@@ -319,15 +333,101 @@ const Tasks = () => {
         }
     };
 
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.bookingDate,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    const getBookedAtParts = (task) => {
+        const itemDate = getItemDate(task);
+        if (!itemDate || isNaN(itemDate.getTime())) return { dateStr: '—', timeStr: '' };
+        const day = itemDate.toLocaleDateString('en-IN', { day: '2-digit' });
+        const month = itemDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+        const year = itemDate.getFullYear();
+        const time = itemDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase();
+        return {
+            dateStr: `${day} ${month} ${year}`,
+            timeStr: time
+        };
+    };
+
     const filteredTasks = useMemo(() => {
-        return tasks.filter(task => {
+        const filtered = tasks.filter(task => {
             const matchesSearch = (task.bookingId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                                 (task.service?.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                                 (task.user?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
             const matchesStatus = filterStatus === 'All' || task.status === filterStatus;
-            return matchesSearch && matchesStatus;
+            if (!matchesSearch || !matchesStatus) return false;
+
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(task);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            if (labelFilter !== 'all') {
+                const currentLabel = rowLabels[task._id];
+                if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            return true;
         });
-    }, [tasks, searchTerm, filterStatus]);
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [tasks, searchTerm, filterStatus, labelFilter, rowLabels, sortOrder, timeRange]);
 
     useEffect(() => {
         setResultsCount(filteredTasks.length);
@@ -349,11 +449,11 @@ const Tasks = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[37%]">Service Details</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Time Slot</th>
+                                <th className="p-4.5 font-bold text-center w-[33%]">Service Details</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Booked At</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
@@ -369,18 +469,49 @@ const Tasks = () => {
                                 </tr>
                             ) : filteredTasks.map((task) => {
                                 const rowId = task.bookingId || task._id;
+                                const { dateStr, timeStr } = getBookedAtParts(task);
                                 return (
                                     <tr 
                                         key={task._id} 
                                         id={`row-${rowId}`}
-                                        className={`text-center transition-all duration-1000 ${
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === task._id ? null : task._id);
+                                            }
+                                        }}
+                                        className={`text-center cursor-pointer transition-all duration-1000 ${
                                             highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-4 font-semibold text-[#052558] text-sm text-center">
-                                        {task.bookingId}
+                                    <td className="p-4 font-semibold text-[#052558] text-sm text-center relative">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[task._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === task._id ? null : task._id);
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[task._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[task._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === task._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={task._id}
+                                                    currentLabel={rowLabels[task._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span>{task.bookingId}</span>
+                                        </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex flex-col items-center">
@@ -405,16 +536,29 @@ const Tasks = () => {
                                             {task.service.title}
                                         </div>
                                         <div className="text-[11.5px] text-slate-500 uppercase tracking-wide">
-                                            {task.vehicle.year} {task.vehicle.make} {task.vehicle.model}
+                                            {(() => {
+                                                const year = task.vehicle?.year || '';
+                                                const make = (task.vehicle?.make || task.vehicle?.brand || '').trim();
+                                                const model = (task.vehicle?.model || task.vehicle?.modelName || task.vehicle?.carModel || task.vehicle?.name || '').trim();
+                                                const hasValidModel = model && model.toUpperCase() !== 'N/A';
+                                                const hasValidMake = make && make.toUpperCase() !== 'N/A';
+
+                                                let vehicleStr = 'N/A';
+                                                if (hasValidMake && hasValidModel) {
+                                                    vehicleStr = make.toLowerCase().includes(model.toLowerCase()) ? make : `${make} ${model}`;
+                                                } else if (hasValidMake) {
+                                                    vehicleStr = make;
+                                                } else if (hasValidModel) {
+                                                    vehicleStr = model;
+                                                }
+
+                                                return (year && vehicleStr !== 'N/A') ? `${year} ${vehicleStr}` : vehicleStr;
+                                            })()}
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="text-[14px] font-semibold uppercase">
-                                            {task.schedule.date}
-                                        </div>
-                                        <div className="font-normal text-slate-500 text-[13px] uppercase">
-                                            {task.schedule.time}
-                                        </div>
+                                    <td className="p-4 font-semibold text-[13px] text-center">
+                                        <div className="text-[#011023]">{dateStr}</div>
+                                        {timeStr && <div className="text-gray-500 mt-0.5 text-xs font-normal">{timeStr}</div>}
                                     </td>
                                     <td className="p-4">
                                         <span className={`px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wider ${getStatusStyle(task.status)}`}>
@@ -513,8 +657,8 @@ const Tasks = () => {
                                 <div className="space-y-4 w-full md:w-[24%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedTask.vehicle?.make || 'N/A'}</span></p>
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedTask.vehicle?.model || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedTask.vehicle?.make || selectedTask.vehicle?.brand || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedTask.vehicle?.model || selectedTask.vehicle?.modelName || selectedTask.vehicle?.carModel || selectedTask.vehicle?.name || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedTask.vehicle?.year || 'N/A'}</span></p>
                                     </div>
                                 </div>
