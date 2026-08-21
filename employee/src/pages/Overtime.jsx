@@ -19,6 +19,8 @@ const Overtime = () => {
     // Filter states
     const [statusFilter, setStatusFilter] = useState('all');
     const [hoursFilter, setHoursFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
 
     const { setFilterConfig, setResultsCount } = useFilter();
 
@@ -57,10 +59,14 @@ const Overtime = () => {
             onChange: (newValues) => {
                 if (newValues.status !== undefined) setStatusFilter(newValues.status);
                 if (newValues.hours !== undefined) setHoursFilter(newValues.hours);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
             },
             onReset: () => {
                 setStatusFilter('all');
                 setHoursFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
             }
         });
         return () => setFilterConfig(null);
@@ -295,13 +301,80 @@ const Overtime = () => {
         return `${formatHour(startHour)} - ${formatHour(endHour)}`;
     };
 
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.bookingDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
     const filteredOvertimes = useMemo(() => {
-        return overtimes.filter(ot => {
+        const filtered = overtimes.filter(ot => {
             if (statusFilter !== 'all' && ot.status !== statusFilter) return false;
             if (hoursFilter !== 'all' && String(ot.hours) !== String(hoursFilter)) return false;
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(ot);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
             return true;
         });
-    }, [overtimes, statusFilter, hoursFilter]);
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [overtimes, statusFilter, hoursFilter, sortOrder, timeRange]);
 
     useEffect(() => {
         setResultsCount(filteredOvertimes.length);
