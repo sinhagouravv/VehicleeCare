@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, CalendarCheck, MapPin, Clock, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { defaultServicesList } from '../data/servicesData';
+import { SkeletonBlock } from '../components/Skeleton';
 
 const chartDataFallback = [
     { name: 'Mon', revenue: 45, booking: 3, charging: 5, users: 2 },
@@ -23,7 +24,7 @@ const Dashboard = () => {
     const [recentActivities, setRecentActivities] = useState([]);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [activeChartTab, setActiveChartTab] = useState('REVENUE');
-    const [popularServices, setPopularServices] = useState([]);
+    const [_popularServices, setPopularServices] = useState([]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -152,30 +153,7 @@ const Dashboard = () => {
     const maxRevenue = currentChartData.reduce((max, obj) => Math.max(max, obj.revenue || 0), 0);
     const useHigherRevenueScale = maxRevenue > 100;
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
-            const value = payload[0].value;
-            const fullDate = data.dateStr ? new Date(data.dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
-            let displayValue = value;
-            if (activeChartTab === 'REVENUE' || activeChartTab === 'CHARGING STATION') {
-                displayValue = `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            }
-
-            return (
-                <div className="bg-white/90 backdrop-blur-md border border-gray-100 p-3 rounded-xl shadow-lg font-sans">
-                    <p className="text-gray-500 font-bold text-xs uppercase mb-1">{label} • {fullDate}</p>
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: payload[0].color || '#527FB0' }}></span>
-                        <p className="text-[#011023] font-black text-sm">{activeChartTab}</p>
-                        <p className="text-[#011023] font-black text-sm ml-auto">{displayValue}</p>
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     const stats = [
         { title: "Total Bookings", value: dashboardStats.bookings.toLocaleString(), change: "+12.5%", icon: <CalendarCheck size={24} className="text-[#527FB0]" /> },
@@ -191,9 +169,11 @@ const Dashboard = () => {
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Dashboard</h1>
                 </div>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -279,7 +259,30 @@ const Dashboard = () => {
                                     dx={-10}
                                 />
                                 <Tooltip
-                                    content={<CustomTooltip />}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            const value = payload[0].value;
+                                            const fullDate = data.dateStr ? new Date(data.dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+                                            let displayValue = value;
+                                            if (activeChartTab === 'REVENUE' || activeChartTab === 'CHARGING STATION') {
+                                                displayValue = `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                            }
+
+                                            return (
+                                                <div className="bg-white/90 backdrop-blur-md border border-gray-100 p-3 rounded-xl shadow-lg font-sans">
+                                                    <p className="text-gray-500 font-bold text-xs uppercase mb-1">{label} • {fullDate}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: payload[0].color || '#527FB0' }}></span>
+                                                        <p className="text-[#011023] font-black text-sm">{activeChartTab}</p>
+                                                        <p className="text-[#011023] font-black text-sm ml-auto">{displayValue}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
                                     cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
                                 />
                                 <Area
