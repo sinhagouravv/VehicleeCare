@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const Employees = () => {
     const [employees, setEmployees] = useState([]);
@@ -16,7 +16,7 @@ const Employees = () => {
     const [viewEmployee, setViewEmployee] = useState(null);
     const [serviceHistory, setServiceHistory] = useState([]);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [loadingBookings, setLoadingBookings] = useState(false);
+    const [_loadingBookings, setLoadingBookings] = useState(false);
     const [banEmployee, setBanEmployee] = useState(null);
     const [banReason, setBanReason] = useState('');
     const [banSubmitting, setBanSubmitting] = useState(false);
@@ -65,7 +65,7 @@ const Employees = () => {
         }
     };
 
-    const getShiftBadge = (shift) => {
+    const _getShiftBadge = (shift) => {
         switch (shift) {
             case 'Morning': return 'bg-orange-50 text-orange-600';
             case 'Evening': return 'bg-indigo-50 text-indigo-600';
@@ -78,7 +78,7 @@ const Employees = () => {
         return role || 'Employee';
     };
 
-    const getRoleIcon = (role) => {
+    const _getRoleIcon = (role) => {
         switch (role) {
             case 'Chef': return <Zap size={14} />;
             case 'Waiter': return <UserCheck size={14} />;
@@ -193,7 +193,7 @@ const Employees = () => {
                     });
                 }
             }
-        } catch (e) { /* skip bookings if fetch fails */ }
+        } catch { /* skip bookings if fetch fails */ }
 
         doc.save(`Employee_${employee.userId || employee.employeeId || employee._id}_Report.pdf`);
     };
@@ -253,9 +253,11 @@ const Employees = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Employees</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -265,15 +267,15 @@ const Employees = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10.5%]">Employee ID</th>
-                                <th className="p-4.5 font-bold text-center w-[14.5%]">Employee</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Employee</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Category ID</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
-                                <th className="p-4.5 font-bold text-center w-[17%]">Join Date & Time</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Joined at</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -298,12 +300,12 @@ const Employees = () => {
                                                 <div className="font-semibold uppercase text-sm text-center">{employee.name}</div>
                                             </td>
                                              <td className="p-4 text-center">
-                                                 <span className={`inline-block px-2.5 py-1 uppercase text-xs font-semibold rounded-lg border ${
-                                                     employee.category === 'Store' ? 'bg-orange-50 text-orange-600 border-orange-200' : 
-                                                     employee.category === 'Garage' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                     employee.category === 'Station' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                     employee.category === 'Parking' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
-                                                     'bg-[#f0f6ff] text-[#527FB0] border-[#e6f0fa]'
+                                                 <span className={`inline-block px-3 py-1 uppercase text-xs font-semibold rounded-full ${
+                                                     employee.category === 'Store' ? 'bg-orange-100 text-orange-700' : 
+                                                     employee.category === 'Garage' ? 'bg-emerald-100 text-emerald-700' :
+                                                     employee.category === 'Station' ? 'bg-amber-100 text-amber-700' :
+                                                     employee.category === 'Parking' ? 'bg-indigo-100 text-indigo-700' :
+                                                     'bg-purple-100 text-purple-700'
                                                  }`}>
                                                      {employee.category || 'System'}
                                                  </span>
@@ -318,37 +320,44 @@ const Employees = () => {
                                                 <div className="font-semibold text-gray-700 text-sm text-center">{employee.email}</div>
                                             </td>
                                              <td className="p-4 text-center">
-                                                <div className="flex items-center uppercase justify-center gap-1.5 font-semibold">
-                                                    <span className={`px-2.5 py-1 text-[11px] rounded-lg ${getRoleBadge(employee.role)}`}>
-                                                        {formatRole(employee.role)}
-                                                    </span>
-                                                </div>
-                                            </td>
+                                                 <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getRoleBadge(employee.role)}`}>
+                                                     {formatRole(employee.role)}
+                                                 </span>
+                                             </td>
                                             {/* <td className="p-4 text-center">
                                                 <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${getShiftBadge(employee.shift)}`}>
                                                     {employee.shift || '—'}
                                                 </span>
                                             </td> */}
-                                            <td className="p-4 text-center uppercase">
-                                                <div className="font-semibold text-[13px] text-center">
-                                                    {formatDate(employee.createdAt)}
-                                                </div>
-                                            </td>
+                                             <td className="p-4 text-center uppercase">
+                                                 <div className="flex flex-col items-center justify-center">
+                                                     <span className="text-sm font-semibold text-[#011023]">
+                                                         {new Date(employee.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                     </span>
+                                                     <span className="text-xs text-gray-600">
+                                                         {new Date(employee.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                                                     </span>
+                                                 </div>
+                                             </td>
+                                             <td className="p-4 text-center">
+                                                 <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                                     employee.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                                 }`}>
+                                                     {employee.isVerified ? 'Verified' : 'Unverified'}
+                                                 </span>
+                                             </td>
                                             <td className="p-4 text-center">
-                                                <span className="uppercase font-semibold text-gray-700 text-center">{employee.isVerified ? 'Verified' : 'Unverified'}</span>
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                <div className="flex items-center justify-center gap-1.5">
-                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                                <div className="flex items-center justify-center gap-3.5">
+                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500">
                                                         <Eye size={17} />
                                                     </button>
-                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500">
                                                         <Download size={17} />
                                                     </button>
-                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500">
                                                         <UserX size={17} />
                                                     </button>
-                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600">
                                                         <Trash2 size={17} />
                                                     </button>
                                                 </div>
