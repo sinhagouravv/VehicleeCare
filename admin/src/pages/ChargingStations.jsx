@@ -250,7 +250,7 @@ const ChargingStations = () => {
                                                 <button onClick={() => openView(station)} className="text-gray-400 hover:text-blue-500">
                                                     <Eye size={16} />
                                                 </button>
-                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-blue-500">
+                                                <button onClick={() => openEdit(station)} className="text-gray-400 hover:text-emerald-500">
                                                     <Edit size={16} />
                                                 </button>
                                                 <button onClick={() => { setStationToDelete(station.id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500">
