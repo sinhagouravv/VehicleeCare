@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, DollarSign, Activity, BarChart2, PieChart } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RePieChart, Pie, Cell } from 'recharts';
+import { SkeletonBlock } from '../components/Skeleton';
 import { defaultServicesList } from '../data/servicesData';
 
 const chartData = [
@@ -347,10 +348,11 @@ const Analytics = () => {
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Analytics Overview</h1>
                 <div className="flex gap-3 justify-between">
                     <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                        {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
-                        {lastRefreshed
-                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                            : 'Loading…'}
+                        {!lastRefreshed ? (
+                            <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                        ) : (
+                            `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        )}
                     </div>
                 </div>
             </div>
