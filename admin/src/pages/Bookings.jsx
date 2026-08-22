@@ -4,7 +4,7 @@ import { Search, MoreVertical, Eye, Download, X, Trash2, RefreshCw, Loader2 } fr
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const Bookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -13,7 +13,7 @@ const Bookings = () => {
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-    const [refreshing, setRefreshing] = useState(false);
+    const [_refreshing, setRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookingToDelete, setBookingToDelete] = useState(null);
@@ -92,9 +92,10 @@ const Bookings = () => {
             doc.text("VehicleeCare Invoice", 105, 20, null, null, "center");
 
             // Info Details
+            const displayInvoiceId = booking.bookingId || booking._id;
             doc.setFontSize(11);
             doc.setTextColor(...textColor);
-            doc.text(`Booking ID: ${booking.bookingId || booking._id}`, 14, 40);
+            doc.text(`Booking ID: ${displayInvoiceId}`, 14, 40);
 
             const bookingDate = new Date(booking.createdAt).toLocaleString('en-GB', {
                 day: '2-digit', month: 'short', year: 'numeric',
@@ -182,15 +183,75 @@ const Bookings = () => {
         });
     };
 
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.bookingDate,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    const getBookedAtParts = (booking) => {
+        const itemDate = getItemDate(booking);
+        if (!itemDate || isNaN(itemDate.getTime())) {
+            if (booking.schedule?.date) {
+                return { dateStr: booking.schedule.date, timeStr: booking.schedule.time || '' };
+            }
+            return { dateStr: '—', timeStr: '' };
+        }
+        const day = itemDate.toLocaleDateString('en-IN', { day: '2-digit' });
+        const month = itemDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+        const year = itemDate.getFullYear();
+        const time = itemDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase();
+        return {
+            dateStr: `${day} ${month} ${year}`,
+            timeStr: time
+        };
+    };
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Bookings</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -205,7 +266,7 @@ const Bookings = () => {
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[29%]">Service</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Schedule At</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Booked At</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
@@ -222,6 +283,7 @@ const Bookings = () => {
                                 </tr>
                             ) : bookings.map((booking) => {
                                 const rowId = booking.bookingId || booking._id;
+                                const { dateStr, timeStr } = getBookedAtParts(booking);
                                 return (
                                     <tr key={booking._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
                                         <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center">
@@ -240,17 +302,25 @@ const Bookings = () => {
                                             <div className="font-semibold text-gray-800 text-sm">
                                                 {booking.service?.title}
                                             </div>
-                                            <div className="text-xs text-gray-500">
-                                                {booking.vehicle?.make} {booking.vehicle?.model}
-                                            </div>
+                                             <div className="text-xs text-gray-500 uppercase font-medium">
+                                                 {(() => {
+                                                     const make = (booking.vehicle?.make || booking.vehicle?.brand || '').trim();
+                                                     const model = (booking.vehicle?.model || booking.vehicle?.modelName || booking.vehicle?.carModel || booking.vehicle?.name || '').trim();
+                                                     const hasValidModel = model && model.toUpperCase() !== 'N/A';
+                                                     const hasValidMake = make && make.toUpperCase() !== 'N/A';
+
+                                                     if (hasValidMake && hasValidModel) {
+                                                         return make.toLowerCase().includes(model.toLowerCase()) ? make : `${make} ${model}`;
+                                                     }
+                                                     if (hasValidMake) return make;
+                                                     if (hasValidModel) return model;
+                                                     return 'N/A';
+                                                 })()}
+                                             </div>
                                         </td>
-                                        <td className="p-4 text-center">
-                                            <div className="font-semibold text-gray-800 text-sm">
-                                                {booking.schedule?.date}
-                                            </div>
-                                            <div className="text-[13px] text-gray-600">
-                                                {booking.schedule?.time}
-                                            </div>
+                                        <td className="p-4 font-semibold text-[13px] text-center">
+                                            <div className="text-[#011023]">{dateStr}</div>
+                                            {timeStr && <div className="text-gray-500 mt-0.5 text-xs font-normal">{timeStr}</div>}
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className="font-semibold text-[#052558] text-sm">
@@ -320,8 +390,8 @@ const Bookings = () => {
                                 <div className="space-y-4 w-full md:w-[28%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2">
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || selectedBooking.vehicle?.brand || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || selectedBooking.vehicle?.modelName || selectedBooking.vehicle?.carModel || selectedBooking.vehicle?.name || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
                                     </div>
                                 </div>
