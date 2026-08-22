@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bug as BugIcon, Check, Clock, Trash2, X, Loader2, Eye, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const Bug = () => {
     const [bugs, setBugs] = useState([]);
@@ -142,7 +142,7 @@ const Bug = () => {
         if (!dateString) return '—';
         const date = new Date(dateString);
         const day = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        const time = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const time = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         return `${day}, ${time.toLowerCase()}`;
     };
 
@@ -156,10 +156,11 @@ const Bug = () => {
                     Bug Tracker
                 </h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -171,21 +172,21 @@ const Bug = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[9%]">Bug ID</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Portal</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Portal</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Reporter</th>
-                                <th className="p-4.5 font-bold text-center w-[32%]">Bug Subject</th>
-                                <th className="p-4.5 font-bold text-center w-[16%]">Reported At</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Severity</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[35%]">Bug Subject</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Reported At</th>
+                                {/* <th className="p-4.5 font-bold text-center w-[8%]">Severity</th> */}
+                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
                             {loading && bugs.length === 0 ? (
-                                <TableSkeleton rows={15} cols={8} />
+                                <TableSkeleton rows={15} cols={7} />
                             ) : bugs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-8 text-center text-gray-400 font-bold">No bug reports have been submitted yet.</td>
+                                    <td colSpan={7} className="p-8 text-center text-gray-400 font-bold">No bug reports have been submitted yet.</td>
                                 </tr>
                             ) : (
                                 bugs.map((bug) => (
@@ -202,21 +203,21 @@ const Bug = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-sm font-semibold text-[#052558] text-center w-[12%]">{bug.reporterId}</td>
-                                        <td className="p-4 text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase w-[28%]">{bug.title}</td>
-                                        <td className="p-4 text-center whitespace-nowrap text-sm text-gray-800 font-semibold w-[18%]">
+                                        <td className="p-4 text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase ">{bug.title}</td>
+                                        <td className="p-4 text-center whitespace-nowrap text-sm text-gray-800 font-semibold">
                                             {new Date(bug.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(bug.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                                         </td>
-                                        <td className="p-4 text-center w-[8%]">
+                                        {/* <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getSeverityColor(bug.severity)}`}>
                                                 {bug.severity}
                                             </span>
-                                        </td>
-                                        <td className="p-4 text-center w-[8%]">
+                                        </td> */}
+                                        <td className="p-4 text-center">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(bug.status)}`}>
                                                 {bug.status}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center w-[4%]" onClick={(e) => e.stopPropagation()}>
+                                        <td className="p-4 text-center " onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-4">
                                                 <button
                                                     onClick={() => {
@@ -316,19 +317,14 @@ const Bug = () => {
                                 </div>
                             </div>
 
-                            {/* Bug Subject & Description */}
-                            <div className="space-y-4 text-left"> 
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Bug Subject</h4>
-                                <div className=" ">
-                                    <h5 className="font-semibold text-[#052558] uppercase text-[14.5px]">{selectedBug.title}</h5>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 text-left"> 
-                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Detailed Description</h4>
-                                <div className="">
-                                    <p className="text-sm text-gray-700 leading-relaxed uppercase font-semibold text-[14px]">{selectedBug.description}</p>
-                                </div>
+                            {/* Bug Subject & Details */}
+                            <div className="space-y-3 text-left"> 
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Bug Subject and Details</h4>
+                                <p className="text-[14px] uppercase font-semibold leading-relaxed">
+                                    <span className="text-[#052558]">{selectedBug.title}</span>
+                                    <span className="text-gray-600 mx-2 font-normal">|</span>
+                                    <span className="text-gray-800">{selectedBug.description}</span>
+                                </p>
                             </div>
                         </div>
 
