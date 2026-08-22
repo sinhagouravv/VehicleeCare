@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2 } from 'lucide-react';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const Business = () => {
     const [requests, setRequests] = useState([]);
@@ -9,7 +9,7 @@ const Business = () => {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-    const [refreshing, setRefreshing] = useState(false);
+    const [_refreshing, setRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState(null);
@@ -97,7 +97,7 @@ const Business = () => {
         }
     };
 
-    const getCategoryIcon = (category) => {
+    const _getCategoryIcon = (category) => {
         switch (category) {
             case 'garage': return <Briefcase size={16} className="text-orange-500" />;
             case 'charging': return <Zap size={16} className="text-emerald-500" />;
@@ -127,10 +127,11 @@ const Business = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Business Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {/* {refreshing && <span className="w-1.5 h-1.5 rounded-full bg-[#527FB0] animate-pulse inline-block" />} */}
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -141,12 +142,12 @@ const Business = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[12%]">Request ID</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Business Name</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Contact</th>
+                                <th className="p-4.5 font-bold text-center w-[17%]">Business Name</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[18%]">Date</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -196,23 +197,23 @@ const Business = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center w-[8%]">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                        <div className="flex items-center justify-center gap-4">
+                                            <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500">
                                                 <Eye size={18} />
                                             </button>
 
                                             {req.status === 'Pending' && (
                                                 <>
-                                                    <button onClick={() => handleUpdateStatus(req._id, 'Approved')} className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => handleUpdateStatus(req._id, 'Approved')} className="text-gray-400 hover:text-emerald-600">
                                                         <Check size={18} />
                                                     </button>
-                                                    <button onClick={() => handleUpdateStatus(req._id, 'Rejected')} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => handleUpdateStatus(req._id, 'Rejected')} className="text-gray-400 hover:text-red-600">
                                                         <X size={18} />
                                                     </button>
                                                 </>
                                             )}
                                             {req.status !== 'Pending' && (
-                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600">
                                                     <Trash2 size={18} />
                                                 </button>
                                             )}
