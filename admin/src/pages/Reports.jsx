@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FileBarChart, Loader2, TrendingUp, TrendingDown, ClipboardList, CheckCircle, Clock, AlertCircle, Shield, Briefcase, Activity } from 'lucide-react';
+import { SkeletonBlock } from '../components/Skeleton';
 
 const Reports = () => {
     const [bookings, setBookings] = useState([]);
@@ -59,13 +60,13 @@ const Reports = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">System Operational Reports</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
-                    {loading && !lastRefreshed ? (
-                        <span>Synchronizing...</span>
-                    ) : lastRefreshed ? (
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
                         <span>
                             Last refreshed | {lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                         </span>
-                    ) : null}
+                    )}
                     {loading && lastRefreshed && (
                         <Loader2 size={12} className="animate-spin text-[#527FB0]" />
                     )}
