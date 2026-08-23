@@ -4,7 +4,7 @@ import { Eye, Download, X, RefreshCw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
@@ -13,7 +13,7 @@ const Payments = () => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-    const [refreshing, setRefreshing] = useState(false);
+    const [_refreshing, setRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
     const fetchPayments = useCallback(async (silent = false) => {
@@ -121,7 +121,7 @@ const Payments = () => {
         }
     };
 
-    const getVehicleString = (payment) => {
+    const _getVehicleString = (payment) => {
         const v = payment.booking?.vehicle;
         if (!v) return '';
         return `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
@@ -139,9 +139,11 @@ const Payments = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Payments</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -153,15 +155,15 @@ const Payments = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">ID</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">User</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">User</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">User Type</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Paid At</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Paid At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Method</th>
-                                <th className="p-4.5 font-bold text-center w-[7.5%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[6.5%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Method</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7.5%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -199,9 +201,11 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="font-semibold text-sm">
-                                                {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
-                                            </span>
+                                            <div className="flex justify-center items-center">
+                                                <span className="font-semibold text-sm text-center">
+                                                    {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="font-semibold text-[13px] text-center">{getCustomerName(payment)}</div>
@@ -225,12 +229,16 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="text-sm font-semibold whitespace-nowrap text-center">{payment.method}</span>
+                                            <span className="text-sm font-semibold whitespace-nowrap text-center">
+                                                {payment.method?.toLowerCase().includes('cash on delivery') ? 'COD' : payment.method}
+                                            </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
-                                                {payment.status || 'Pending'}
-                                            </span>
+                                            <div className="flex justify-center items-center">
+                                                <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
+                                                    {payment.status || 'Pending'}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center gap-1.5">
@@ -320,7 +328,9 @@ const Payments = () => {
                                 <div className="space-y-3 w-full md:w-[16%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Method</h4>
                                     <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
-                                        <p className="text-sm font-semibold text-center text-gray-700">{selectedPayment.method}</p>
+                                        <p className="text-sm font-semibold text-center text-gray-700">
+                                            {selectedPayment.method?.toLowerCase().includes('cash on delivery') ? 'COD' : selectedPayment.method}
+                                        </p>
                                     </div>
                                 </div>
 
