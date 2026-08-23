@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2 } from 'lucide-react';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 const EVENT_MAPPING = {
     user_registered: { type: 'User', category: 'Website', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-indigo-100 text-indigo-700' },
@@ -24,10 +24,24 @@ const Notifications = () => {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [unread, setUnread] = useState(0);
+    const [_unread, setUnread] = useState(0);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [expandedIds, setExpandedIds] = useState(new Set());
+
+    const toggleExpand = (id, e) => {
+        if (e) e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     const fetchNotifications = useCallback(async (silent = false) => {
         try {
@@ -188,9 +202,11 @@ const Notifications = () => {
                     Notifications
                 </h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -200,13 +216,13 @@ const Notifications = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">User</th>
-                                <th className="p-4.5 font-bold text-center w-[40%]">Content</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">Received On</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">User</th>
+                                <th className="p-4.5 font-bold text-center w-[45%]">Content</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
+                                <th className="p-4.5 font-bold text-center w-[6.5%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -224,6 +240,7 @@ const Notifications = () => {
                             ) : (
                                 notifications.map((notif) => {
                                     const mapping = getMapping(notif);
+                                    const isExpanded = expandedIds.has(notif._id);
                                     return (
                                         <tr 
                                             key={notif._id} 
@@ -231,12 +248,12 @@ const Notifications = () => {
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
                                             <td className="p-4.5 text-center">
-                                                <span className={`inline-block px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.color}`}>
+                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.color}`}>
                                                     {mapping.category}
                                                 </span>
                                             </td>
                                             <td className="p-4.5 text-center">
-                                                <span className={`inline-block px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
                                                     {mapping.type}
                                                 </span>
                                             </td>
@@ -250,16 +267,29 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4.5 text-center">
-                                                <p className={`text-sm text-center uppercase ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'}`}>
-                                                    {notif.eventType === 'booking_created' 
-                                                        ? notif.message.replace(/^.*booked/i, 'Booked') 
-                                                        : notif.eventType === 'employee_added'
-                                                        ? `A new employee, ${notif.meta?.name || 'Staff Member'}, has been added to the ${notif.meta?.garageName || 'Garage'} ${notif.meta?.garageId || 'ID'} for ${notif.meta?.role || 'Staff'} role.`
-                                                        : notif.eventType === 'user_registered'
-                                                        ? `A new ${notif.meta?.role === 'vendor' ? 'business ' : ''}user, ${notif.meta?.name || 'Someone'}, has created an account with us.`
-                                                        : notif.message}
-                                                </p>
+                                            <td 
+                                                className="p-4.5 cursor-pointer select-none"
+                                                onClick={(e) => {
+                                                    toggleExpand(notif._id, e);
+                                                    if (!notif.isRead) markRead(notif._id);
+                                                }}
+                                            >
+                                                <div 
+                                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                >
+                                                    <p 
+                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
+                                                        style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
+                                                    >
+                                                        {notif.eventType === 'booking_created' 
+                                                            ? notif.message.replace(/^.*booked/i, 'Booked') 
+                                                            : notif.eventType === 'employee_added'
+                                                            ? `A new employee, ${notif.meta?.name || 'Staff Member'}, has been added to the ${notif.meta?.garageName || 'Garage'} ${notif.meta?.garageId || 'ID'} for ${notif.meta?.role || 'Staff'} role.`
+                                                            : notif.eventType === 'user_registered'
+                                                            ? `A new ${notif.meta?.role === 'vendor' ? 'business ' : ''}user, ${notif.meta?.name || 'Someone'}, has created an account with us.`
+                                                            : notif.message}
+                                                    </p>
+                                                </div>
                                             </td>
                                             <td className="p-4.5 uppercase text-center">
                                                 <div className="flex flex-col items-center justify-center">
@@ -267,17 +297,19 @@ const Notifications = () => {
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        {new Date(notif.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(notif.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="p-4.5 text-center">
-                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                    ? 'bg-gray-100 text-gray-600'
-                                                    : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                    {notif.isRead ? 'Read' : 'Unread'}
-                                                </span>
+                                                <div className="flex justify-center">
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
+                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                    : 'bg-blue-100 text-blue-700 border border-blue-100'
+                                                        }`}>
+                                                        {notif.isRead ? 'Read' : 'Unread'}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="p-4.5 text-center">
                                                 <div className="flex justify-center">
