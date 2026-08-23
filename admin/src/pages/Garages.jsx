@@ -6,6 +6,22 @@ import punjabData from '../garagedata/punjab.json';
 import haryanaData from '../garagedata/haryana.json';
 import delhiData from '../garagedata/delhi.json';
 
+const getOrderedTypes = (types = []) => {
+    if (!Array.isArray(types) || types.length === 0) return [];
+    const list = [...types];
+    const hasDiesel = list.some(t => t.toLowerCase() === 'diesel');
+    if (!hasDiesel || list.length <= 1) return list;
+
+    const dieselItem = list.find(t => t.toLowerCase() === 'diesel');
+    const others = list.filter(t => t.toLowerCase() !== 'diesel');
+
+    const mid = Math.ceil(others.length / 2);
+    const left = others.slice(0, mid);
+    const right = others.slice(mid);
+
+    return [...left, dieselItem, ...right];
+};
+
 const GARAGE_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(GARAGE_LOCATIONS.map(l => l.state))].sort();
 
@@ -22,17 +38,20 @@ const Garages = () => {
     const highlightedRow = useHighlight(garages);
     // Add highlightedRow state for visual feedback
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [_search, _setSearch] = useState('');
+    const [_filterState, _setFilterState] = useState('ALL');
+    const [_filterDistrict, _setFilterDistrict] = useState('ALL');
+    const [_filterType, _setFilterType] = useState('ALL');
+    const [_lastRefreshed, setLastRefreshed] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState(null); // null = add, object = edit
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
     const [viewTarget, setViewTarget] = useState(null);
 
     const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
     const [garageEmployees, setGarageEmployees] = useState([]);
-    const [loadingEmployees, setLoadingEmployees] = useState(false);
+    const [_loadingEmployees, setLoadingEmployees] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [garageToDelete, setGarageToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -54,7 +73,7 @@ const Garages = () => {
         }
     };
 
-    const formatDate = (dateStr, includeTime = true) => {
+    const _formatDate = (dateStr, includeTime = true) => {
         if (!dateStr) return '—';
         const date = new Date(dateStr);
         const day = date.toLocaleDateString('en-IN', {
@@ -132,7 +151,7 @@ const Garages = () => {
             } else {
                 alert(data.message || 'Failed to save garage');
             }
-        } catch (err) {
+        } catch {
             alert('Error saving garage');
         } finally {
             setSaving(false);
@@ -143,10 +162,13 @@ const Garages = () => {
         if (!garageToDelete) return;
         setDeleting(true);
         try {
-            await fetch(`${API}/${garageToDelete}`, { method: 'DELETE' });
-            setGarages(prev => prev.filter(g => g._id !== garageToDelete));
-            setIsDeleteModalOpen(false);
-            setGarageToDelete(null);
+            const res = await fetch(`${API}/${garageToDelete}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                setGarages(prev => prev.filter(g => g._id !== garageToDelete));
+                setIsDeleteModalOpen(false);
+                setGarageToDelete(null);
+            }
         } catch (err) {
             console.error('Error deleting garage:', err);
             alert('Error deleting garage');
@@ -157,11 +179,11 @@ const Garages = () => {
 
     const filtered = garages.filter(g =>
         [g.garageId, g.name, g.state, g.district, g.address].some(f =>
-            f?.toLowerCase().includes(search.toLowerCase())
+            f?.toLowerCase().includes(_search.toLowerCase())
         )
     );
 
-    const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
+    const _inputClass = "w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-[#052558] text-[#011023]";
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
@@ -217,13 +239,11 @@ const Garages = () => {
                                         </td>
                                         <td className="p-4 text-center w-[20%]">
                                             <div className="flex flex-wrap gap-1.5 justify-center">
-                                                {(garage.type || []).map(t => (
+                                                {getOrderedTypes(garage.type).map(t => (
                                                     <span key={t} className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
                                                         t.toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
                                                         t.toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
                                                         t.toLowerCase() === 'diesel' ? 'bg-indigo-100 text-indigo-700' :
-                                                        t.toLowerCase() === 'hybrid' ? 'bg-purple-100 text-purple-700' :
-                                                        t.toLowerCase() === 'cng' ? 'bg-blue-100 text-blue-700' :
                                                         'bg-gray-100 text-gray-700'
                                                     }`}>{t}</span>
                                                 ))}
@@ -242,14 +262,14 @@ const Garages = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => openView(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                            <div className="flex items-center justify-center gap-4">
+                                                <button onClick={() => openView(garage)} className="text-gray-400 hover:text-blue-500">
                                                     <Eye size={17} />
                                                 </button>
-                                                <button onClick={() => openEdit(garage)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => openEdit(garage)} className="text-gray-400 hover:text-emerald-500">
                                                     <Edit size={17} />
                                                 </button>
-                                                <button onClick={() => { setGarageToDelete(garage._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                <button onClick={() => { setGarageToDelete(garage._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500">
                                                     <Trash2 size={17} />
                                                 </button>
                                             </div>
@@ -554,8 +574,8 @@ const Garages = () => {
                                         <div className="flex items-center gap-3 mt-4">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Vehicles</h4>
                                             <div className="flex flex-wrap gap-1.5 ml-3">
-                                                {(viewTarget.type || []).length > 0 ? (
-                                                    viewTarget.type.map(t => (
+                                                {getOrderedTypes(viewTarget.type).length > 0 ? (
+                                                    getOrderedTypes(viewTarget.type).map(t => (
                                                         <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
                                                             t.toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
                                                             t.toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
