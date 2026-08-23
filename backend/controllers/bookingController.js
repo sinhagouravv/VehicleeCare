@@ -292,13 +292,57 @@ exports.createBooking = async (req, res) => {
 };
 
 // @desc    Get all bookings (Admin use)
+const normalizeBookingVehicle = (booking) => {
+    if (!booking) return booking;
+    if (!booking.vehicle) booking.vehicle = {};
+    
+    let make = (booking.vehicle.make || booking.vehicle.brand || '').trim();
+    let model = (booking.vehicle.model || booking.vehicle.modelName || booking.vehicle.carModel || booking.vehicle.name || '').trim();
+
+    if (model.toUpperCase() === 'N/A') model = '';
+    if (make.toUpperCase() === 'N/A') make = '';
+
+    if (!make && model) {
+        make = model;
+        model = '';
+    }
+
+    if (make && !model) {
+        const multiWordBrands = ['TATA MOTORS', 'LAND ROVER', 'MARUTI SUZUKI', 'ASTON MARTIN', 'ALFA ROMEO', 'ROLLS ROYCE', 'MERCEDES-BENZ'];
+        let matchedBrand = '';
+        for (const b of multiWordBrands) {
+            if (make.toUpperCase().startsWith(b)) {
+                matchedBrand = b;
+                break;
+            }
+        }
+
+        if (matchedBrand) {
+            const remainder = make.slice(matchedBrand.length).trim();
+            make = matchedBrand;
+            if (remainder) model = remainder;
+        } else {
+            const parts = make.split(/\s+/);
+            if (parts.length > 1) {
+                make = parts[0];
+                model = parts.slice(1).join(' ');
+            }
+        }
+    }
+
+    booking.vehicle.make = make;
+    booking.vehicle.model = model;
+    return booking;
+};
+
+// @desc    Get all bookings
 // @route   GET /api/bookings
 // @access  Private (TODO: Add auth middleware)
 exports.getBookings = async (req, res) => {
     try {
         const bookings = await Booking.find().sort({ createdAt: -1 }).lean();
         
-        // Populate missing paymentId for existing bookings
+        // Populate missing paymentId and normalize vehicle info
         const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
             if (!booking.payment?.paymentId) {
                 const payment = await Payment.findOne({ booking: booking._id });
@@ -307,7 +351,7 @@ exports.getBookings = async (req, res) => {
                     booking.payment.paymentId = payment.paymentId;
                 }
             }
-            return booking;
+            return normalizeBookingVehicle(booking);
         }));
 
         res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
@@ -320,8 +364,9 @@ exports.getBookings = async (req, res) => {
 // @route   GET /api/bookings/user/:userId
 exports.getUserBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({ 'user.id': req.params.userId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, count: bookings.length, data: bookings });
+        const bookings = await Booking.find({ 'user.id': req.params.userId }).sort({ createdAt: -1 }).lean();
+        const enrichedBookings = bookings.map(b => normalizeBookingVehicle(b));
+        res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -337,7 +382,7 @@ exports.getGarageBookings = async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
         
-        // Populate missing paymentId for existing bookings
+        // Populate missing paymentId and normalize vehicle info
         const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
             if (!booking.payment?.paymentId) {
                 const payment = await Payment.findOne({ booking: booking._id });
@@ -346,7 +391,7 @@ exports.getGarageBookings = async (req, res) => {
                     booking.payment.paymentId = payment.paymentId;
                 }
             }
-            return booking;
+            return normalizeBookingVehicle(booking);
         }));
 
         res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
@@ -460,7 +505,7 @@ exports.getEmployeeBookings = async (req, res) => {
                 booking.assignedEmployees.technician.phone = booking.assignedEmployees.technician.id.phone;
                 booking.assignedEmployees.technician.id = booking.assignedEmployees.technician.id._id;
             }
-            return booking;
+            return normalizeBookingVehicle(booking);
         });
 
         res.status(200).json({ success: true, data: bookings });
