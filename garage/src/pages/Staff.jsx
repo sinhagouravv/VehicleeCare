@@ -6,6 +6,8 @@ import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { useAlert } from '../context/AlertContext';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Staff = () => {
     const { triggerAlert } = useAlert();
@@ -14,7 +16,7 @@ const Staff = () => {
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [_lastRefreshed, setLastRefreshed] = useState(null);
     const [saving, setSaving] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [serviceHistory, setServiceHistory] = useState([]);
@@ -28,9 +30,169 @@ const Staff = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [copySuccess, setCopySuccess] = useState('');
+    const [_copySuccess, setCopySuccess] = useState('');
 
-    const highlightedRow = useHighlight(staffMembers);
+    // Filter & Sort states
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [shiftFilter, setShiftFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_staff_row_labels');
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.joiningDate,
+            item.joinedAt,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Staff',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'shift',
+                    label: 'Shift',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Morning', value: 'Morning' },
+                        { label: 'Evening', value: 'Evening' }
+                    ]
+                },
+                {
+                    id: 'role',
+                    label: 'Role',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Admin', value: 'Admin' },
+                        { label: 'Manager', value: 'Manager' },
+                        { label: 'Mechanic', value: 'Mechanic' },
+                        { label: 'Technician', value: 'Technician' },
+                        { label: 'Support', value: 'Support' }
+                    ]
+                }
+            ],
+            initialValues: {
+                role: 'all',
+                shift: 'all',
+                label: 'all',
+                sortOrder: 'latest',
+                timeRange: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.role !== undefined) setRoleFilter(newValues.role);
+                if (newValues.shift !== undefined) setShiftFilter(newValues.shift);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setRoleFilter('all');
+                setShiftFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const filteredStaffMembers = React.useMemo(() => {
+        let filtered = staffMembers.filter((s) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[s._id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (roleFilter && roleFilter !== 'all') {
+                const sRole = (s.role || '').trim().toLowerCase();
+                if (sRole !== roleFilter.trim().toLowerCase()) return false;
+            }
+            if (shiftFilter && shiftFilter !== 'all') {
+                const sShift = (s.shift || '').trim().toLowerCase();
+                if (sShift !== shiftFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(s);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [staffMembers, roleFilter, shiftFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredStaffMembers.length);
+        }
+    }, [filteredStaffMembers.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredStaffMembers);
 
     const [form, setForm] = useState({
         name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
@@ -162,7 +324,7 @@ const Staff = () => {
         return `${day} | ${time}`;
     };
 
-    const getRoleIcon = (role) => {
+    const _getRoleIcon = (role) => {
         switch (role) {
             case 'Mechanic': return <Wrench size={14} />;
             case 'Manager': return <Briefcase size={14} />;
@@ -280,7 +442,7 @@ const Staff = () => {
         }
     };
 
-    const handleCopy = (text, type) => {
+    const _handleCopy = (text, type) => {
         navigator.clipboard.writeText(text);
         setCopySuccess(type);
         setTimeout(() => setCopySuccess(''), 2000);
@@ -312,32 +474,65 @@ const Staff = () => {
                                 <th className="p-4.5 font-bold text-center w-[8%]">Shift</th>
                                 <th className="p-4.5 font-bold text-center w-[14%]">Join Date & Time</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                             {loading && staffMembers.length === 0 ? (
                                 <TableSkeleton rows={15} cols={8} />
-                            ) : staffMembers.length === 0 ? (
+                            ) : filteredStaffMembers.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-16 text-gray-400 text-sm uppercase font-bold tracking-widest opacity-60 text-center">
                                         No staff members found.
                                     </td>
                                 </tr>
-                            ) : staffMembers.map((staff) => {
+                            ) : filteredStaffMembers.map((staff, index) => {
                                 const rowId = staff.employeeId || staff._id;
                                 return (
                                     <tr 
                                         key={staff._id} 
                                         id={`row-${rowId}`}
-                                        className={`transition-all duration-1000 ${
-                                            highlightedRow === rowId 
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === staff._id ? null : staff._id);
+                                            }
+                                        }}
+                                        className={`cursor-pointer transition-all duration-1000 ${
+                                            activeLabelRowId === staff._id
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-3.25 text-center">
-                                        <div className="font-semibold text-[#011023] text-sm tracking-wider text-center">{staff.employeeId || '—'}</div>
+                                    <td className="p-3.25 text-center relative font-semibold text-[#011023] text-sm tracking-wider">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[staff._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === staff._id ? null : staff._id);
+                                                    }}
+                                                    className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[staff._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[staff._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === staff._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={staff._id}
+                                                    currentLabel={rowLabels[staff._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass={index === 0 ? "top-10" : "-top-10"}
+                                                    positionClass="-left-3"
+                                                />
+                                            )}
+                                            <span className="truncate">{staff.employeeId || '—'}</span>
+                                        </div>
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <div className="flex items-center gap-3 justify-center text-center">
@@ -356,7 +551,9 @@ const Staff = () => {
                                         </div>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap  ${staff.shift === 'Morning' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-1000'}`}>
+                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${
+                                            staff.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'
+                                        }`}>
                                             {staff.shift || '—'}
                                         </span>
                                     </td>
@@ -366,7 +563,11 @@ const Staff = () => {
                                         </div>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <span className="uppercase font-semibold text-gray-700 text-center">{staff.isVerified ? 'Verified' : 'Unverified'}</span>
+                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                            staff.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                        }`}>
+                                            {staff.isVerified ? 'Verified' : 'Unverified'}
+                                        </span>
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <div className="flex items-center justify-center gap-4">
@@ -382,9 +583,6 @@ const Staff = () => {
                                             </button>
                                             <button onClick={() => handleDownloadPDF(staff)} className="text-gray-400 hover:text-emerald-500 transition-colors">
                                                 <Download size={17} />
-                                            </button>
-                                            <button onClick={() => { setEmployeeToDelete(staff); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 transition-colors">
-                                                <Trash2 size={17} />
                                             </button>
                                         </div>
                                     </td>
@@ -428,7 +626,7 @@ const Staff = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 {/* Personal Info */}
-                                <div className="space-y-2 w-full md:w-[42%]">
+                                <div className="space-y-2 w-full md:w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedStaff.name || '—'}</span></p>
@@ -441,27 +639,27 @@ const Staff = () => {
                                 <div className="space-y-2 w-full md:w-[22%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="font-semibold ml-2 text-[#011023]">{formatRole(selectedStaff.role)}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className="font-semibold ml-2 text-gray-800">{selectedStaff.shift || '—'}</span></p>
+                                        <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full bg-blue-100 text-blue-700 ml-2">{formatRole(selectedStaff.role)}</span></p>
+                                        <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ml-2 ${selectedStaff.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>{selectedStaff.shift || '—'}</span></p>
                                         <p className="text-sm flex pb-4"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{selectedStaff.salaryType || 'Monthly'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Payment & Status (Other Details) */}
-                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                                <div className="flex flex-col gap-4.5 w-full md:w-[36%]">
                                     <div className="space-y-1.25">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                         <div className="flex items-center  gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
                                             <div className="flex uppercase items-center gap-2">
-                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${selectedStaff.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                                <span className={`inline-block px-3 py-1 ml-3 mt-4 text-xs font-semibold uppercase rounded-full ${selectedStaff.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                                                     {selectedStaff.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Agreement</h4>
-                                            <span className="px-2.5 py-1 ml-3 text-[10px] font-black bg-blue-50 text-blue-600 rounded-lg uppercase tracking-wider border border-blue-100">
+                                            <span className="inline-block px-3 py-1 ml-3 text-xs font-semibold uppercase rounded-full bg-blue-100 text-blue-700">
                                                 Completed
                                             </span>
                                         </div>
