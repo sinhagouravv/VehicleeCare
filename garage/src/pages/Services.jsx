@@ -1,21 +1,114 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2, X } from 'lucide-react';
+import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2, X, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Services = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
-    const highlightedRow = useHighlight(bookings);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookingToDelete, setBookingToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState(null);
 
-    const formatDate = (dateString) => {
+    // Filter states
+    const [fuelTypeFilter, setFuelTypeFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_services_row_labels');
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Services',
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'fuelType',
+                    label: 'Fuel Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Petrol', value: 'Petrol' },
+                        { label: 'Diesel', value: 'Diesel' },
+                        { label: 'EV', value: 'EV' }
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'In Service', value: 'In Service' },
+                        { label: 'In Progress', value: 'In Progress' },
+                        { label: 'Completed', value: 'Completed' },
+                        { label: 'Pending', value: 'Pending' }
+                    ]
+                }
+            ],
+            initialValues: {
+                fuelType: 'all',
+                status: 'all',
+                label: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.fuelType !== undefined) setFuelTypeFilter(newValues.fuelType);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+            },
+            onReset: () => {
+                setFuelTypeFilter('all');
+                setStatusFilter('all');
+                setLabelFilter('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const filteredBookings = React.useMemo(() => {
+        return bookings.filter((b) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[b._id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (fuelTypeFilter && fuelTypeFilter !== 'all') {
+                const fType = (b.vehicle?.fuelType || '').trim().toLowerCase();
+                const targetFType = fuelTypeFilter.trim().toLowerCase();
+                if (targetFType === 'ev') {
+                    if (!fType.includes('ev') && !fType.includes('electric')) return false;
+                } else {
+                    if (!fType.includes(targetFType)) return false;
+                }
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                const bStat = (b.status || '').trim().toLowerCase();
+                if (bStat !== statusFilter.trim().toLowerCase()) return false;
+            }
+            return true;
+        });
+    }, [bookings, fuelTypeFilter, statusFilter, labelFilter, rowLabels]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredBookings.length);
+        }
+    }, [filteredBookings.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredBookings);
+
+    const _formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-IN', {
@@ -89,7 +182,7 @@ const Services = () => {
         }
     }, [bookings, selectedBooking]);
 
-    const toggleStatus = async (bookingId, field, value) => {
+    const _toggleStatus = async (bookingId, field, value) => {
         try {
             const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
@@ -105,7 +198,7 @@ const Services = () => {
         }
     };
 
-    const handleStatusChange = async (bookingId, newStatus) => {
+    const _handleStatusChange = async (bookingId, newStatus) => {
         try {
             const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
@@ -179,7 +272,7 @@ const Services = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Assigned To</th>
                                 <th className="p-4.5 font-bold text-center w-[45%]">Service Details</th>
@@ -189,27 +282,60 @@ const Services = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                            {loading ? (
+                    {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : bookings.length === 0 ? (
+                            ) : filteredBookings.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No bookings found.</td>
                                 </tr>
-                            ) : bookings.map((booking) => {
+                            ) : filteredBookings.map((booking) => {
                                 const rowId = booking.bookingId || booking._id;
                                 return (
                                     <tr 
                                         key={booking._id} 
                                         id={`row-${rowId}`}
-                                        className={`text-center transition-all duration-1000 ${
-                                            highlightedRow === rowId 
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
+                                            }
+                                        }}
+                                        className={`text-center cursor-pointer transition-all duration-1000 ${
+                                            activeLabelRowId === booking._id
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center w-[8%]">
-                                        {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
-                                    </td>
+                                        <td className="p-3.5 font-semibold text-[#052558] text-sm text-center w-[10%] relative">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[booking._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
+                                                        }}
+                                                        className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[booking._id])}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[booking._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === booking._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={booking._id}
+                                                        currentLabel={rowLabels[booking._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        topClass="-top-9.5"
+                                                        positionClass="-left-3.25"
+                                                    />
+                                                )}
+                                                <span className="truncate">{booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}</span>
+                                            </div>
+                                        </td>
                                     {/* <td className="p-4 text-center">
                                         {booking.payment?.paymentId || '—'}
                                     </td> */}
@@ -270,10 +396,10 @@ const Services = () => {
                                                 <Eye size={17} />
                                             </button>
                                             <button 
-                                                onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }}
-                                                className="text-gray-400 hover:text-red-500 transition-colors" 
+                                                onClick={() => { setSelectedBooking(booking); setIsViewModalOpen(true); }}
+                                                className="text-gray-400 hover:text-emerald-500 transition-colors" 
                                             >
-                                                <Trash2 size={17} />
+                                                <MessageSquare size={17} />
                                             </button>
                                         </div>
                                     </td>
