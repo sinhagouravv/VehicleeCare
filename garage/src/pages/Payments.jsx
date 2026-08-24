@@ -5,6 +5,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
@@ -12,7 +14,172 @@ const Payments = () => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
-    const highlightedRow = useHighlight(payments);
+
+    // Filter & Sort states
+    const [methodFilter, setMethodFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_payments_row_labels');
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.bookingDate,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Payments',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'method',
+                    label: 'Method',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'COD', value: 'COD' },
+                        { label: 'Net Banking', value: 'Net Banking' },
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Completed', value: 'Completed' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Partially Paid', value: 'Partially Paid' }
+                    ]
+                }
+            ],
+            initialValues: {
+                method: 'all',
+                status: 'all',
+                label: 'all',
+                sortOrder: 'latest',
+                timeRange: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.method !== undefined) setMethodFilter(newValues.method);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setMethodFilter('all');
+                setStatusFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const filteredPayments = React.useMemo(() => {
+        let filtered = payments.filter((p) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[p._id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (methodFilter && methodFilter !== 'all') {
+                const methodStr = (p.method || '').toLowerCase();
+                const targetMethod = methodFilter.toLowerCase();
+                if (targetMethod === 'cod') {
+                    if (!methodStr.includes('cash on delivery') && !methodStr.includes('cod')) return false;
+                } else {
+                    if (!methodStr.includes(targetMethod)) return false;
+                }
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                const statusStr = (p.status || '').trim().toLowerCase();
+                if (statusStr !== statusFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(p);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [payments, methodFilter, statusFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredPayments.length);
+        }
+    }, [filteredPayments.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredPayments);
 
     const fetchPayments = useCallback(async (silent = false) => {
         try {
@@ -117,11 +284,17 @@ const Payments = () => {
     };
 
     // Derived states for stats
-    const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const inflowThisMonth = payments
-        .filter(p => new Date(p.date).getMonth() === new Date().getMonth())
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
-    const expensesThisMonth = 0;
+    const _totalRevenue = React.useMemo(() => {
+        return filteredPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    }, [filteredPayments]);
+
+    const _inflowThisMonth = React.useMemo(() => {
+        return filteredPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    }, [filteredPayments]);
+
+    const _expensesThisMonth = React.useMemo(() => {
+        return filteredPayments.reduce((acc, p) => acc + (p.expenses || 0), 0);
+    }, [filteredPayments]);
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9rem)] flex flex-col">
@@ -141,7 +314,7 @@ const Payments = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="px-6 py-4.5 font-bold text-center w-[10%]">Payment ID</th>
+                                <th className="px-6 py-4.5 font-bold text-center w-[9%]">Payment ID</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[9%]">Booking ID</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[12%]">User</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[10%]">User ID</th>
@@ -157,26 +330,59 @@ const Payments = () => {
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={9} />
-                            ) : payments.length === 0 ? (
+                            ) : filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan="9" className="p-8 text-center text-sm text-gray-500">
                                         No payment records found.
                                     </td>
                                 </tr>
-                            ) : payments.map((payment) => {
+                            ) : filteredPayments.map((payment, index) => {
                                 const rowId = payment.paymentId || payment._id;
                                 return (
                                     <tr 
                                         key={payment._id} 
                                         id={`row-${rowId}`}
-                                        className={`text-center transition-all duration-1000 ${
-                                            highlightedRow === rowId 
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === payment._id ? null : payment._id);
+                                            }
+                                        }}
+                                        className={`text-center cursor-pointer transition-all duration-1000 ${
+                                            activeLabelRowId === payment._id
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                        <td className="p-3.5 font-semibold text-[#052558] text-sm truncate text-center w-[12%]">
-                                            {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
+                                        <td className="p-3.5 font-semibold text-[#052558] text-sm text-center w-[12%] relative">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[payment._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === payment._id ? null : payment._id);
+                                                        }}
+                                                        className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[payment._id])}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[payment._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === payment._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={payment._id}
+                                                        currentLabel={rowLabels[payment._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        topClass={index === 0 ? "top-6" : "-top-8"}
+                                                        positionClass="-left-3"
+                                                    />
+                                                )}
+                                                <span className="truncate">{payment.paymentId || payment._id.substring(0, 8).toUpperCase()}</span>
+                                            </div>
                                         </td>
                                         <td className="p-3.5 text-center w-[10%]">
                                             <span className="font-semibold text-[#052558] text-sm">
@@ -201,15 +407,17 @@ const Payments = () => {
                                                 ₹{payment.amount?.toLocaleString()}
                                             </span>
                                         </td>
-                                        <td className="p-3.5 text-center w-[7%]">
-                                            <span className="text-sm font-semibold whitespace-nowrap">{payment.method}</span>
+                                        <td className="p-3.5 text-center w-[9.5%]">
+                                            <span className="text-sm font-semibold whitespace-nowrap">
+                                                {payment.method?.toLowerCase().includes('cash on delivery') ? 'COD' : payment.method}
+                                            </span>
                                         </td>
-                                        <td className="p-3.5 text-center w-[7%]">
+                                        <td className="p-3.5 text-center w-[9%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(payment.status)}`}>
                                                 {payment.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-3.5 text-center w-[6%]">
+                                        <td className="p-3.5 text-center w-[7%]">
                                             <div className="flex justify-center gap-4">
                                                 <button onClick={() => handleViewDetails(payment)} className="text-gray-400 hover:text-blue-600 transition-colors">
                                                     <Eye size={18} />
@@ -236,7 +444,6 @@ const Payments = () => {
                         className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header */}
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Payment Details</h3>
@@ -251,9 +458,7 @@ const Payments = () => {
                         </div>
 
                         <div className="p-6 overflow-y-auto flex-1 space-y-6 hide-scrollbar">
-                            {/* Top Row */}
                             <div className="flex flex-col md:flex-row gap-6 w-full">
-                                {/* Customer Info */}
                                 <div className="space-y-3 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
                                     <div className="pt-4 pb-2 rounded-xl uppercase space-y-2">
@@ -263,7 +468,6 @@ const Payments = () => {
                                     </div>
                                 </div>
 
-                                {/* Amount */}
                                 <div className="space-y-3 w-full md:w-[15%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Amount</h4>
                                     <div className="p-4 rounded-xl h-[81px] flex items-center justify-center">
@@ -271,15 +475,13 @@ const Payments = () => {
                                     </div>
                                 </div>
 
-                                {/* Method */}
                                 <div className="space-y-3 w-full md:w-[20%]">
                                     <h4 className="text-sm text-center font-bold text-gray-400 uppercase tracking-wider">Method</h4>
                                     <div className="p-4 text-center rounded-xl uppercase h-[81px] flex items-center justify-center">
-                                        <p className="text-sm font-semibold text-center text-gray-700">{selectedPayment.method}</p>
+                                        <p className="text-sm font-semibold text-center text-gray-700">{selectedPayment.method?.toLowerCase().includes('cash on delivery') ? 'COD' : selectedPayment.method}</p>
                                     </div>
                                 </div>
 
-                                {/* Payment Status */}
                                 <div className="space-y-3 w-full md:w-[20%]">
                                     <h4 className="text-sm font-bold text-center text-gray-400 uppercase tracking-wider">Status</h4>
                                     <div className="p-4 rounded-xl uppercase h-[81px] flex items-center justify-center">
