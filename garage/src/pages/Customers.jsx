@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Search, Trash2, Loader2 } from 'lucide-react';
+import { Eye, X, Search, Trash2, Loader2, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -161,7 +161,7 @@ const Customers = () => {
         setIsViewModalOpen(true);
     };
 
-    const handleDeleteClick = (customer) => {
+    const _handleDeleteClick = (customer) => {
         setCustomerToDelete(customer);
         setIsDeleteModalOpen(true);
     };
@@ -216,7 +216,7 @@ const Customers = () => {
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">No customers found.</td>
                                 </tr>
-                            ) : filteredCustomers.map((customer, index) => {
+                            ) : filteredCustomers.map((customer) => {
                                 const rowId = customer.userId || customer.id;
                                 return (
                                     <tr 
@@ -327,10 +327,10 @@ const Customers = () => {
                                                 <Eye size={17} />
                                             </button>
                                             <button
-                                                onClick={() => handleDeleteClick(customer)}
-                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                onClick={() => handleViewDetails(customer)}
+                                                className="text-gray-400 hover:text-emerald-500 transition-colors"
                                             >
-                                                <Trash2 size={17} />
+                                                <MessageSquare size={17} />
                                             </button>
                                         </div>
                                     </td>
