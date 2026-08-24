@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Trash2, Loader2 } from 'lucide-react';
+import { Eye, X, Trash2, Loader2, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Vehicles = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -13,7 +15,116 @@ const Vehicles = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [vehicleToDelete, setVehicleToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    const highlightedRow = useHighlight(vehicles);
+
+    // Filter & Sort states
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_vehicles_row_labels');
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Vehicles',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'type',
+                    label: 'Vehicle Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Sedan', value: 'Sedan' },
+                        { label: 'SUV', value: 'SUV' },
+                        { label: 'Hatchback', value: 'Hatchback' }
+                    ]
+                }
+            ],
+            initialValues: {
+                type: 'all',
+                label: 'all',
+                sortOrder: 'latest',
+                timeRange: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.type !== undefined) setTypeFilter(newValues.type);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setTypeFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        if (item.lastVisitDate instanceof Date && !isNaN(item.lastVisitDate.getTime())) return item.lastVisitDate;
+        const d = new Date(item.lastVisitDate);
+        if (!isNaN(d.getTime())) return d;
+        return null;
+    };
+
+    const filteredVehicles = React.useMemo(() => {
+        let filtered = vehicles.filter((v) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[v.id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (typeFilter && typeFilter !== 'all') {
+                const vType = (v.type || '').toString().trim().toLowerCase();
+                if (!vType.includes(typeFilter.trim().toLowerCase())) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(v);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [vehicles, typeFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredVehicles.length);
+        }
+    }, [filteredVehicles.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredVehicles);
 
     const fetchVehicles = useCallback(async (silent = false) => {
         try {
@@ -121,7 +232,7 @@ const Vehicles = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Customer Id</th>
+                                <th className="p-4.5 font-bold text-center w-[10.75%]">Customer Id</th>
                                 <th className="p-4.5 font-bold text-center w-[13%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[11.5%]">Brand</th>
@@ -135,22 +246,55 @@ const Vehicles = () => {
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={9} />
-                            ) : vehicles.length === 0 ? (
+                            ) : filteredVehicles.length === 0 ? (
                                 <tr>
                                     <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No vehicles found.</td>
                                 </tr>
-                            ) : vehicles.map((v) => (
+                            ) : filteredVehicles.map((v) => (
                                 <tr 
                                     key={v.id} 
                                     id={`row-${v.id}`}
-                                    className={`text-center transition-all duration-1000 ${
-                                        highlightedRow === v.id 
+                                    onClick={() => {
+                                        if (isLabelMode) {
+                                            setActiveLabelRowId(prev => prev === v.id ? null : v.id);
+                                        }
+                                    }}
+                                    className={`text-center cursor-pointer transition-all duration-1000 ${
+                                        activeLabelRowId === v.id
+                                            ? 'relative z-40 bg-blue-50/50'
+                                            : highlightedRow === v.id 
                                             ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                             : 'hover:bg-blue-50/30'
                                     }`}
                                 >
-                                    <td className="p-3.25 font-semibold text-[#052558] text-sm truncate text-center" title={v.customerId}>
-                                        {v.customerId}
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center relative" title={v.customerId}>
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[v.id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === v.id ? null : v.id);
+                                                    }}
+                                                    className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[v.id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[v.id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === v.id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={v.id}
+                                                    currentLabel={rowLabels[v.id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass="-top-8"
+                                                    positionClass="-left-3"
+                                                />
+                                            )}
+                                            <span className="truncate">{v.customerId}</span>
+                                        </div>
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <div className="font-semibold text-[13.5px] truncate px-2" title={v.ownerName}>{v.ownerName}</div>
@@ -193,10 +337,10 @@ const Vehicles = () => {
                                                 <Eye size={17} />
                                             </button>
                                             <button
-                                                onClick={() => { setVehicleToDelete(v); setIsDeleteModalOpen(true); }}
-                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                onClick={() => handleViewDetails(v)}
+                                                className="text-gray-400 hover:text-emerald-500 transition-colors"
                                             >
-                                                <Trash2 size={17} />
+                                                <MessageSquare size={17} />
                                             </button>
                                         </div>
                                     </td>
