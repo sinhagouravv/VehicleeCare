@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Eye, X, Trash2, Loader2 } from 'lucide-react';
+import { Star, Eye, X, Trash2, Loader2, MessageSquare } from 'lucide-react';
 import { createPortal } from 'react-dom';
 // import useHighlight from '../hooks/useHighlight'; // Keep highlighted row hook
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Reviews = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -18,6 +20,180 @@ const Reviews = () => {
     const [reviewToDelete, setReviewToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
+    // Filter & Sort states
+    const [ratingFilter, setRatingFilter] = useState('all');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_reviews_row_labels');
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.reviewDate,
+            item.date,
+            item.timestamp,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Reviews',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'category',
+                    label: 'Category',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Website', value: 'Website' },
+                        { label: 'Business', value: 'Business' }
+                    ]
+                },
+                {
+                    id: 'rating',
+                    label: 'Rating',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: '5 Stars', value: '5' },
+                        { label: '4 Stars', value: '4' },
+                        { label: '3 Stars', value: '3' },
+                        { label: '2 Stars', value: '2' },
+                        { label: '1 Star', value: '1' }
+                    ]
+                }
+            ],
+            initialValues: {
+                rating: 'all',
+                category: 'all',
+                label: 'all',
+                sortOrder: 'latest',
+                timeRange: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.rating !== undefined) setRatingFilter(newValues.rating);
+                if (newValues.category !== undefined) setCategoryFilter(newValues.category);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setRatingFilter('all');
+                setCategoryFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const getReviewRating = (r) => {
+        if (Array.isArray(r.ratings) && r.ratings.length > 0) {
+            const sum = r.ratings.reduce((a, b) => a + b, 0);
+            return Math.round(sum / r.ratings.length);
+        }
+        if (r.rating !== undefined && r.rating !== null && r.rating !== '') {
+            return Math.round(Number(r.rating));
+        }
+        if (r.stars !== undefined && r.stars !== null) {
+            return Math.round(Number(r.stars));
+        }
+        return 0;
+    };
+
+    const filteredReviews = useMemo(() => {
+        let filtered = reviews.filter((r) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[r._id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (ratingFilter && ratingFilter !== 'all') {
+                const rRating = getReviewRating(r);
+                if (rRating !== Number(ratingFilter)) return false;
+            }
+            if (categoryFilter && categoryFilter !== 'all') {
+                const catStr = (r.category || r.sourceType || 'Website').trim().toLowerCase();
+                if (catStr !== categoryFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(r);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [reviews, ratingFilter, categoryFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredReviews.length);
+        }
+    }, [filteredReviews.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredReviews);
+
     const confirmDeleteReview = async () => {
         if (!reviewToDelete) return;
         setDeleting(true);
@@ -27,8 +203,6 @@ const Reviews = () => {
         setReviewToDelete(null);
         setDeleting(false);
     };
-
-    const highlightedRow = useHighlight(reviews);
 
     const fetchReviews = async () => {
         try {
@@ -137,19 +311,7 @@ const Reviews = () => {
     };
 
     // Derived Statistics
-    const approvedReviews = reviews.filter(r => r.status === 'Approved');
-    const pendingReviews = reviews.filter(r => r.status === 'Pending').length;
-    const rejectedReviews = reviews.filter(r => r.status === 'Rejected').length;
-
-    let totalScore = 0;
-    let totalVotes = 0;
-    const approvedGarageReviews = approvedReviews.filter(r => r.sourceType === 'Garage');
-    approvedGarageReviews.forEach(r => {
-        if (r.ratings) {
-            r.ratings.forEach(val => { totalScore += val; totalVotes++; });
-        }
-    });
-    const avgRating = totalVotes > 0 ? (totalScore / totalVotes).toFixed(1) : "0.0";
+    const _approvedReviews = reviews.filter(r => r.status === 'Approved');
 
     const getAverageForReview = (ratings) => {
         if (!ratings || ratings.length === 0) return 0;
@@ -179,35 +341,68 @@ const Reviews = () => {
                         <table className="w-full text-left border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center w-[7.5%]">Review ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[9.75%]">Review ID</th>
                                     <th className="p-4.5 font-bold text-center w-[11%]">Reviewer</th>
-                                    <th className="p-4.5 font-bold text-center w-[40%]">Review Text</th>
-                                    <th className="p-4.5 font-bold text-center w-[6%]">Rating</th>
-                                    <th className="p-4.5 font-bold text-center w-[13%]">Date</th>
-                                    <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
-                                    <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
+                                    <th className="p-4.5 font-bold text-center w-[43%]">Review Text</th>
+                                    <th className="p-4.5 font-bold text-center w-[8%]">Rating</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Date</th>
+                                    <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                    <th className="p-4.5 font-bold text-center w-[7.5%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                                 {loading && reviews.length === 0 ? (
                                     <TableSkeleton rows={15} cols={7} />
-                                ) : reviews.length === 0 ? (
+                                ) : filteredReviews.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="p-8 text-center text-gray-400 font-medium">No reviews found in the database.</td>
+                                        <td colSpan="7" className="py-20 text-center text-xs font-bold text-gray-400 tracking-widest uppercase opacity-70">No reviews found.</td>
                                     </tr>
                                 ) : null}
-                                {reviews.map((rev) => (
+                                {filteredReviews.map((rev) => (
                                     <tr
                                         key={rev._id}
                                         id={`row-${rev._id}`}
-                                        className={`transition-colors duration-1000 ${
-                                            highlightedRow === rev._id
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === rev._id ? null : rev._id);
+                                            }
+                                        }}
+                                        className={`cursor-pointer transition-colors duration-1000 ${
+                                            activeLabelRowId === rev._id
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rev._id
                                                 ? 'bg-emerald-100/60 relative z-20'
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                        <td className="p-4 text-center font-semibold text-[#052558] text-sm tracking-wide">
-                                            {rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}
+                                        <td className="p-4 text-center font-semibold text-[#052558] text-sm tracking-wide relative">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[rev._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === rev._id ? null : rev._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[rev._id])}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[rev._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === rev._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={rev._id}
+                                                        currentLabel={rowLabels[rev._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        topClass="-top-10"
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span className="truncate">{rev.reviewId || `RE${rev._id.slice(-5).toUpperCase().replace(/0/g, '1')}`}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="font-semibold text-[#011023]">{rev.name}</div>
@@ -238,8 +433,15 @@ const Reviews = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center text-sm font-semibold text-[#011023]">
-                                            {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(rev.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                        <td className="p-4 text-center uppercase">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <span className="text-sm font-semibold text-[#011023]">
+                                                    {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </span>
+                                                <span className="text-xs text-gray-600">
+                                                    {new Date(rev.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center">
@@ -256,8 +458,8 @@ const Reviews = () => {
                                                 <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 ">
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => { setReviewToDelete(rev._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 ">
-                                                    <Trash2 size={16} />
+                                                <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-emerald-500 transition-colors">
+                                                    <MessageSquare size={17} />
                                                 </button>
                                             </div>
                                         </td>
