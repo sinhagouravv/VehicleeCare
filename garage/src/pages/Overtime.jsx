@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
+import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -332,25 +332,26 @@ const Overtime = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[9%]">Overtime ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Date Requested</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Hours</th>
-                                <th className="p-4.5 font-bold text-center w-[40%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">Date Applied</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Applied for</th>
+                                {/* <th className="p-4.5 font-bold text-center w-[6%]">Hours</th> */}
+                                <th className="p-4.5 font-bold text-center w-[37%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[13.5%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && filteredOvertimes.length === 0 ? (
-                                <TableSkeleton rows={15} cols={7} />
+                                <TableSkeleton rows={15} cols={8} />
                             ) : filteredOvertimes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan={8} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No overtime requests found.
                                     </td>
                                 </tr>
-                            ) : filteredOvertimes.map((overtime, index) => (
+                            ) : filteredOvertimes.map((overtime) => (
                                 <tr 
                                     key={overtime._id} 
                                     id={`row-${overtime._id}`}
@@ -367,7 +368,7 @@ const Overtime = () => {
                                             : 'hover:bg-blue-50/30'
                                     }`}
                                 >
-                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center relative">
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center relative uppercase whitespace-nowrap">
                                         <div className="relative flex items-center justify-center w-full">
                                             {Boolean(rowLabels[overtime._id]) && (
                                                 <button
@@ -393,17 +394,20 @@ const Overtime = () => {
                                                     positionClass="-left-4"
                                                 />
                                             )}
-                                            <span className="truncate">{overtime.employeeId}</span>
+                                            <span className="truncate">{overtime.overtimeId || '—'}</span>
                                         </div>
+                                    </td>
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                        <span className="truncate">{overtime.employeeId}</span>
                                     </td>
                                     <td className="p-4 font-semibold text-sm text-[#011023] text-center">
                                         {formatDate(overtime.date)}
                                     </td>
-                                    <td className="p-4 text-center">
+                                    {/* <td className="p-4 text-center">
                                         <span className="font-semibold text-[#011023]">
                                             {overtime.hours} {overtime.hours === 1 ? 'HR' : 'HRS'}
                                         </span>
-                                    </td>
+                                    </td> */}
                                     <td className="p-4 text-center">
                                         <p 
                                             className="whitespace-normal text-center text-[#011023] font-semibold line-clamp-2 leading-snug overflow-hidden"
@@ -458,10 +462,10 @@ const Overtime = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
-                                                        onClick={() => { setSelectedOvertime(overtime); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                                        onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
                                                     >
-                                                        <Trash2 size={18} />
+                                                        <MessageSquare size={18} />
                                                     </button>
                                                 </>
                                             )}
@@ -488,6 +492,7 @@ const Overtime = () => {
                         <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Overtime Details</h3>
+                                <p className="text-sm font-semibold text-gray-500 mt-1 uppercase">ID: <span className="text-[#011023] font-bold">{selectedOvertime.overtimeId || '—'}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
@@ -541,10 +546,10 @@ const Overtime = () => {
                             </div>
 
                             {/* Reason for Overtime */}
-                            <div className="space-y-2">
+                            <div className="space-y-2 mb-5">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Overtime</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
-                                    <h5 className="font-semibold text-[#052558] text-[13px] leading-relaxed whitespace-pre-wrap">{selectedOvertime.reason}</h5>
+                                <div className="pt-1 uppercase">
+                                    <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedOvertime.reason}</h5>
                                 </div>
                             </div>
 
@@ -552,8 +557,8 @@ const Overtime = () => {
                             {selectedOvertime.remarks && (
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks</h4>
-                                    <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
-                                        <h5 className="font-semibold text-[#052558] text-[13px] leading-relaxed whitespace-pre-wrap">
+                                    <div className="pt-1 uppercase">
+                                        <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">
                                             {selectedOvertime.remarks}
                                         </h5>
                                     </div>
