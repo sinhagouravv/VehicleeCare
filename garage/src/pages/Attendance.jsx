@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2 } from 'lucide-react';
+import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -385,12 +385,12 @@ const Attendance = () => {
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'Present': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-            case 'Absent': return 'bg-red-50 text-red-600 border-red-100';
-            case 'Late': return 'bg-orange-50 text-orange-600 border-orange-100';
-            case 'On Leave': return 'bg-blue-50 text-blue-600 border-blue-100';
-            case 'Overtime': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
-            default: return 'bg-gray-50 text-gray-600 border-gray-100';
+            case 'Present': return 'bg-emerald-100 text-emerald-700';
+            case 'Absent': return 'bg-rose-100 text-rose-700';
+            case 'Late': return 'bg-amber-100 text-amber-700';
+            case 'On Leave': return 'bg-blue-100 text-blue-700';
+            case 'Overtime': return 'bg-purple-100 text-purple-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
 
@@ -419,10 +419,10 @@ const Attendance = () => {
     const getShiftBadge = (shift) => {
         const lowerShift = (shift || '').toLowerCase();
         switch (lowerShift) {
-            case 'morning': return 'bg-orange-50 text-orange-600 border-orange-100';
-            case 'evening': return 'bg-purple-50 text-purple-600 border-purple-100';
-            case 'night': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
-            default: return 'bg-gray-50 text-gray-600 border-gray-100';
+            case 'morning': return 'bg-amber-100 text-amber-700';
+            case 'evening': return 'bg-purple-100 text-purple-700';
+            case 'night': return 'bg-indigo-100 text-indigo-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
 
@@ -466,7 +466,7 @@ const Attendance = () => {
                                         No attendance records found.
                                     </td>
                                 </tr>
-                            ) : filteredData.map((r, index) => {
+                            ) : filteredData.map((r) => {
                                 const rowId = r._id || r.id || r.employeeId;
                                 return (
                                     <tr 
@@ -526,7 +526,7 @@ const Attendance = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
                                                 {r.shift}
                                             </span>
                                         </td>
@@ -544,7 +544,7 @@ const Attendance = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getStatusBadge(r.status)}`}>
+                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getStatusBadge(r.status)}`}>
                                                 {r.status === 'On Leave' ? 'On Leave' : r.status}
                                             </span>
                                         </td>
@@ -557,11 +557,11 @@ const Attendance = () => {
                                                     <Eye size={17} />
                                                 </button>
                                                     <button
-                                                    onClick={() => { setRecordToDelete(r); setIsDeleteModalOpen(true); }}
-                                                    className="text-gray-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 size={17} />
-                                                </button>
+                                                        onClick={() => handleViewDetails(r)}
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                    >
+                                                        <MessageSquare size={17} />
+                                                    </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -620,15 +620,15 @@ const Attendance = () => {
                                                             {formatDateStr(record.date)}
                                                         </div>
                                                     </td>
-                                                    <td className="p-4.5">
-                                                        <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider ${getRoleBadge(record.role)}`}>
+                                                    <td className="p-4.5 text-center">
+                                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getRoleBadge(record.role)}`}>
                                                             {record.role}
-                                                        </div>
+                                                        </span>
                                                     </td>
-                                                    <td className="p-4.5">
-                                                        <div className={`mx-auto w-max px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border ${getShiftBadge(record.shift)}`}>
+                                                    <td className="p-4.5 text-center">
+                                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getShiftBadge(record.shift)}`}>
                                                             {record.shift}
-                                                        </div>
+                                                        </span>
                                                     </td>
                                                     <td className="p-4.5 uppercase">
                                                         <div className="font-semibold text-[#011023] text-xs tracking-wide">
@@ -640,8 +640,8 @@ const Attendance = () => {
                                                             {formatTime(record.checkOut)}
                                                         </div>
                                                     </td>
-                                                    <td className="p-4.5">
-                                                        <span className={`px-4 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm ${getStatusBadge(record.status)}`}>
+                                                    <td className="p-4.5 text-center">
+                                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getStatusBadge(record.status)}`}>
                                                             {record.status === 'On Leave' ? 'On Leave' : record.status}
                                                         </span>
                                                     </td>
