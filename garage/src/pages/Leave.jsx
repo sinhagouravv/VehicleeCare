@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, CheckCircle2, XCircle, Check, X,  Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Check, X,  Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -183,7 +183,7 @@ const Leave = () => {
     };
 
     const storedUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
-    const garageId = storedUser.id || storedUser._id;
+    const garageId = storedUser.garageId || storedUser.garage_id || storedUser.id || storedUser._id;
 
     const fetchGarageLeaves = useCallback(async (silent = false) => {
         if (!garageId) return;
@@ -366,7 +366,7 @@ const Leave = () => {
                                         No leave requests found.
                                     </td>
                                 </tr>
-                            ) : filteredLeaves.map((leave, index) => (
+                            ) : filteredLeaves.map((leave) => (
                                 <tr 
                                     key={leave._id} 
                                     id={`row-${leave.leaveId}`}
@@ -481,10 +481,10 @@ const Leave = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
-                                                        onClick={() => { setSelectedLeave(leave); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 "
+                                                        onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
                                                     >
-                                                        <Trash2 size={18} />
+                                                        <MessageSquare size={18} />
                                                     </button>
                                                 </>
                                             )}
