@@ -4,7 +4,26 @@ import { Search, Wrench, Plus, Edit, Trash2, SwitchCamera, X, Loader2 } from 'lu
 import { defaultServicesList } from '../data/servicesData';
 import { TableSkeleton } from '../components/Skeleton';
 
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+
+const getCategoryBadgeClass = (category) => {
+    const cat = (category || '').toLowerCase().trim();
+    if (cat.includes('general') || cat.includes('maintenance')) return 'bg-blue-100 text-blue-700';
+    if (cat.includes('engine') || cat.includes('mechanical')) return 'bg-amber-100 text-amber-700';
+    if (cat.includes('fuel')) return 'bg-rose-100 text-rose-700';
+    if (cat.includes('ac') || cat.includes('electrical')) return 'bg-cyan-100 text-cyan-700';
+    if (cat.includes('body') || cat.includes('exterior')) return 'bg-purple-100 text-purple-700';
+    if (cat.includes('cleaning') || cat.includes('detailing')) return 'bg-emerald-100 text-emerald-700';
+    if (cat.includes('tyre') || cat.includes('wheel')) return 'bg-teal-100 text-teal-700';
+    if (cat.includes('inspection') || cat.includes('diagnostic')) return 'bg-indigo-100 text-indigo-700';
+    if (cat.includes('battery') || cat.includes('charging')) return 'bg-yellow-100 text-yellow-700';
+    if (cat.includes('roadside') || cat.includes('assistance')) return 'bg-orange-100 text-orange-700';
+    return 'bg-blue-100 text-blue-700';
+};
+
 const Services = () => {
+    const [servicesList, setServicesList] = useState(defaultServicesList);
     const [disabledServices, setDisabledServices] = useState([]);
     const [serviceOverrides, setServiceOverrides] = useState({});
 
@@ -21,6 +40,57 @@ const Services = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [serviceToDelete, setServiceToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterFuelType, setFilterFuelType] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_services_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Services',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'fuelType',
+                    label: 'Fuel / Vehicle Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Petrol', value: 'petrol' },
+                        { label: 'Diesel', value: 'diesel' },
+                        { label: 'EV', value: 'ev' },
+                        { label: 'Premium', value: 'premium' },
+                    ]
+                }
+            ],
+            initialValues: {
+                fuelType: filterFuelType,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.fuelType !== undefined) setFilterFuelType(newValues.fuelType);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterFuelType('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterFuelType, labelFilter, sortOrder, timeRange]);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -65,7 +135,7 @@ const Services = () => {
 
                     // Extract the exact sequence of categories as they appear in defaultServicesList
                     const categoryOrderRaw = [...new Set(defaultServicesList.map(s => s.category))];
-                    const getCategoryIndex = (cat, fuel) => {
+                    const getCategoryIndex = (cat) => {
                         // Some categories exist only in EV/Diesel, we just use the first chronological appearance across all fuels
                         const idx = categoryOrderRaw.indexOf(cat);
                         return idx !== -1 ? idx : 999;
@@ -93,8 +163,6 @@ const Services = () => {
         };
         fetchSettings();
     }, []);
-
-    const [servicesList, setServicesList] = useState(defaultServicesList);
 
     const handleSaveService = async (updatedService) => {
         // 1. Update local list state so it reflects instantly
@@ -217,6 +285,44 @@ const Services = () => {
             .map(s => s.category)
     ));
 
+    const filteredServices = React.useMemo(() => {
+        return servicesList.filter(service => {
+            if (filterFuelType !== 'all') {
+                const fuel = (service.fuelType || '').toLowerCase();
+                if (fuel !== filterFuelType.toLowerCase()) return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[service.id || service._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = service.createdAt ? new Date(service.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeA !== timeB && timeA > 0 && timeB > 0) {
+                return sortOrder === 'latest' ? timeB - timeA : timeA - timeB;
+            }
+            const idA = String(a.id || a._id || a.name || '');
+            const idB = String(b.id || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [servicesList, filterFuelType, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredServices.length);
+    }, [filteredServices.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
@@ -232,21 +338,60 @@ const Services = () => {
                     <table className="w-full text-center uppercase border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-center text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold">Service ID</th>
-                                <th className="p-4.5 font-bold">Service Details</th>
-                                <th className="p-4.5 font-bold">Category</th>
-                                <th className="p-4.5 font-bold">Fuel Type</th>
-                                <th className="p-4.5 font-bold">Price</th>
-                                <th className="p-4.5 font-bold">Duration</th>
-                                <th className="p-4.5 font-bold text-center">Status</th>
-                                <th className="p-4.5 font-bold text-center">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[9.25%]">Service ID</th>
+                                <th className="p-4.5 font-bold text-center w-[22%]">Service Details</th>
+                                <th className="p-4.5 font-bold text-center w-[18%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Fuel Type</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Price</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Duration</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-center divide-[#e6f0fa]">
-                            {servicesList.map((service) => (
-                                <tr key={service.id} className="hover:bg-blue-50/30 text-center text-xs transition-colors">
-                                    <td className="p-4">
-                                        <div className="font-semibold text-sm">{service.id}</div>
+                            {filteredServices.length === 0 ? (
+                                <tr><td colSpan="8" className="p-8 text-center text-sm text-gray-500">No services found.</td></tr>
+                            ) : filteredServices.map((service) => (
+                                <tr 
+                                    key={service.id} 
+                                    onClick={(e) => {
+                                        if (isLabelMode) {
+                                            e.stopPropagation();
+                                            const sId = service.id || service._id;
+                                            setActiveLabelRowId(prev => prev === sId ? null : sId);
+                                        }
+                                    }}
+                                    className={`text-center text-xs transition-colors ${
+                                        isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                    }`}
+                                >
+                                    <td className="p-4 relative font-semibold text-[#052558] text-sm text-center">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[service.id || service._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === (service.id || service._id) ? null : (service.id || service._id));
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[service.id || service._id] || 'Add label')}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[service.id || service._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === (service.id || service._id) && (
+                                                <FloatingLabelSelector 
+                                                    rowId={service.id || service._id}
+                                                    currentLabel={rowLabels[service.id || service._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span>{service.id || '—'}</span>
+                                        </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-3">
@@ -254,12 +399,17 @@ const Services = () => {
                                         </div>
                                     </td>
                                     <td className="p-4">
-                                        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-gray-100 text-gray-700">
+                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getCategoryBadgeClass(service.category)}`}>
                                             {service.category}
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-gray-100 text-gray-700">
+                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                            (service.fuelType || '').toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
+                                            (service.fuelType || '').toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
+                                            (service.fuelType || '').toLowerCase() === 'diesel' ? 'bg-indigo-100 text-indigo-700' :
+                                            'bg-gray-100 text-gray-700'
+                                        }`}>
                                             {service.fuelType}
                                         </span>
                                     </td>
@@ -270,21 +420,24 @@ const Services = () => {
                                         {service.duration}
                                     </td>
                                     <td className="p-4 text-center">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full border ${!disabledServices.includes(service.name) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                                            {/* <div className={`w-1.5 h-1.5 rounded-full ${!disabledServices.includes(service.name) ? 'bg-emerald-500' : 'bg-gray-400'}`}></div> */}
+                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                            !disabledServices.includes(service.name) 
+                                                ? 'bg-emerald-100 text-emerald-700' 
+                                                : 'bg-red-100 text-red-700'
+                                        }`}>
                                             {!disabledServices.includes(service.name) ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-1">
+                                        <div className="flex items-center justify-center gap-4">
                                             <button
-                                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-blue-500"
                                                 onClick={() => { setSelectedService(service); setIsEditModalOpen(true); }}
                                             >
                                                 <Edit size={16} />
                                             </button>
                                             <button
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                                className="text-gray-400 hover:text-red-500"
                                                 onClick={() => { setServiceToDelete(service); setIsDeleteModalOpen(true); }}
                                             >
                                                 <Trash2 size={16} />
