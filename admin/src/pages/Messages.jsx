@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Mail, Eye, Trash2, X, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Messages = () => {
     const [messages, setMessages] = useState([]);
@@ -14,6 +16,55 @@ const Messages = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_messages_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Messages',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Read Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Read', value: 'read' },
+                        { label: 'Unread', value: 'unread' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setFilterStatus(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchMessages = useCallback(async (silent = false) => {
         try {
@@ -83,11 +134,47 @@ const Messages = () => {
     const _readMessages = messages.filter(m => m.isRead).length;
     const _unreadMessages = messages.filter(m => !m.isRead).length;
 
+    const filteredMessages = React.useMemo(() => {
+        return messages.filter(m => {
+            if (filterStatus === 'read' && !m.isRead) return false;
+            if (filterStatus === 'unread' && m.isRead) return false;
+            if (labelFilter !== 'all') {
+                const label = rowLabels[m._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = m.createdAt ? new Date(m.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.messageId || a._id || a.name || '');
+            const idB = String(b.messageId || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [messages, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredMessages.length);
+    }, [filteredMessages.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Messages</h1>
-                <div className="text-xs uppercase text-gray-400 font-medium self-center">
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {!lastRefreshed ? (
                         <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
                     ) : (
@@ -95,28 +182,6 @@ const Messages = () => {
                     )}
                 </div>
             </div>
-
-            {/* Stats Overview */}
-            {/* <div className="flex flex-wrap uppercase items-center gap-5">
-                <div className="bg-white border border-[#e2e8f0] px-5 py-3 rounded-2xl shadow-xs flex-1 min-w-[200px]">
-                    <div className="flex justify-between items-center">
-                        <p className="text-gray-500 font-semibold uppercase">Total Messages</p>
-                        <p className="text-2xl font-bold text-[#011023]">{totalMessages}</p>
-                    </div>
-                </div>
-                <div className="bg-white border border-[#e2e8f0] px-5 py-3 rounded-2xl shadow-xs flex-1 min-w-[200px]">
-                    <div className="flex justify-between items-center">
-                        <p className="text-gray-500 font-semibold uppercase">Read Messages</p>
-                        <p className="text-2xl font-bold text-emerald-500">{readMessages}</p>
-                    </div>
-                </div>
-                <div className="bg-white border border-[#e2e8f0] px-5 py-3 rounded-2xl shadow-xs flex-1 min-w-[200px]">
-                    <div className="flex justify-between items-center">
-                        <p className="text-gray-500 font-semibold uppercase">Unread Messages</p>
-                        <p className="text-2xl font-bold text-blue-500">{unreadMessages}</p>
-                    </div>
-                </div>
-            </div> */}
 
             {/* Main Content Table */}
             <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -137,19 +202,54 @@ const Messages = () => {
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : messages.length === 0 ? (
+                            ) : filteredMessages.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="p-8 text-center text-sm text-gray-500">
                                         No messages found.
                                     </td>
                                 </tr>
-                            ) : messages.map((message) => {
+                            ) : filteredMessages.map((message) => {
                                 const rowId = message.messageId || message._id;
                                 return (
-                                    <tr key={message._id} id={`row-${rowId}`} className={`transition-all duration-1000 group ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-white/50'}`}>
-                                        <td className="p-4.5 text-center w-[10%]">
-                                            <div className="flex flex-col items-center">
-                                                <span className="font-semibold text-[#011023] text-sm text-center">{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
+                                    <tr 
+                                        key={message._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                setActiveLabelRowId(prev => prev === message._id ? null : message._id);
+                                            }
+                                        }}
+                                        className={`transition-all duration-1000 group ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-white/50'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4.5 text-center w-[10%] relative font-semibold text-[#052558] text-sm">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[message._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === message._id ? null : message._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[message._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[message._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === message._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={message._id}
+                                                        currentLabel={rowLabels[message._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
                                             </div>
                                         </td>
                                         <td className="p-4.5 text-center w-[14%]">
