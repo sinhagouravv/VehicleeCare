@@ -9,22 +9,45 @@ export default function useHighlight(dataArray) {
 
     useEffect(() => {
         if (highlightId && dataArray && dataArray.length > 0) {
-            // Wait briefly for the DOM to render the list
+            const targetItem = dataArray.find(item => 
+                String(item._id) === String(highlightId) ||
+                String(item.id) === String(highlightId) ||
+                String(item.userId) === String(highlightId) ||
+                String(item.employeeId) === String(highlightId) ||
+                String(item.bookingId) === String(highlightId) ||
+                String(item.stationId) === String(highlightId) ||
+                String(item.garageId) === String(highlightId) ||
+                String(item.messageId) === String(highlightId) ||
+                String(item.reviewId) === String(highlightId)
+            );
+
             const timer1 = setTimeout(() => {
-                const el = document.getElementById(`row-${highlightId}`);
+                let el = document.getElementById(`row-${highlightId}`);
+                let matchedId = highlightId;
+
+                if (targetItem) {
+                    const possibleIds = [targetItem.reviewId, targetItem.bugId, targetItem.userId, targetItem.id, targetItem._id, targetItem.employeeId, targetItem.bookingId, targetItem.garageId, targetItem.stationId, targetItem.messageId].filter(Boolean);
+                    for (const pId of possibleIds) {
+                        const candidateEl = document.getElementById(`row-${pId}`);
+                        if (candidateEl) {
+                            el = candidateEl;
+                            matchedId = pId;
+                            break;
+                        }
+                    }
+                }
+
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    setHighlightedRow(highlightId);
+                    setHighlightedRow(matchedId);
 
-                    // Clear the state so a page refresh doesn't trigger the highlight again
                     navigate(location.pathname, { replace: true, state: {} });
 
-                    // Remove the highlight class after 3 seconds
-                    const timer2 = setTimeout(() => {
+                    setTimeout(() => {
                         setHighlightedRow(null);
-                    }, 3000);
+                    }, 3500);
                 }
-            }, 100);
+            }, 200);
 
             return () => clearTimeout(timer1);
         }
