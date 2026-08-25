@@ -32,6 +32,8 @@ const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV', 'PREMIUM'];
 const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: '', ownerName: '', ownerContact: '', ownerEmail: '' };
 
 import useHighlight from '../hooks/useHighlight';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Garages = () => {
     const [garages, setGarages] = useState([]);
@@ -55,6 +57,57 @@ const Garages = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [garageToDelete, setGarageToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterVehicleType, setFilterVehicleType] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_garages_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Garages',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'vehicleType',
+                    label: 'Vehicle Support',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Petrol', value: 'petrol' },
+                        { label: 'Diesel', value: 'diesel' },
+                        { label: 'EV', value: 'ev' },
+                        { label: 'Premium', value: 'premium' },
+                    ]
+                }
+            ],
+            initialValues: {
+                vehicleType: filterVehicleType,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.vehicleType !== undefined) setFilterVehicleType(newValues.vehicleType);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterVehicleType('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterVehicleType, labelFilter, sortOrder, timeRange]);
 
     const fetchGarageEmployees = async (garageId) => {
         setGarageEmployees([]);
@@ -177,11 +230,49 @@ const Garages = () => {
         }
     };
 
-    const filtered = garages.filter(g =>
-        [g.garageId, g.name, g.state, g.district, g.address].some(f =>
-            f?.toLowerCase().includes(_search.toLowerCase())
-        )
-    );
+    const filteredGarages = React.useMemo(() => {
+        return garages.filter(g => {
+            if (_search) {
+                const matches = [g.garageId, g.name, g.state, g.district, g.address].some(f =>
+                    f?.toLowerCase().includes(_search.toLowerCase())
+                );
+                if (!matches) return false;
+            }
+            if (filterVehicleType !== 'all') {
+                const types = (g.type || []).map(t => t.toLowerCase());
+                if (!types.includes(filterVehicleType.toLowerCase())) return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[g._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = g.createdAt ? new Date(g.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.garageId || a._id || a.name || '');
+            const idB = String(b.garageId || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [garages, _search, filterVehicleType, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredGarages.length);
+    }, [filteredGarages.length, setResultsCount]);
 
     const _inputClass = "w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-[#052558] text-[#011023]";
 
@@ -205,7 +296,7 @@ const Garages = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold text-center w-[10%]">Garage ID</th>
+                                <th className="p-4 font-bold text-center w-[10.75%]">Garage ID</th>
                                 <th className="p-4 font-bold text-center w-[16%]">Garage Name</th>
                                 <th className="p-4 font-bold text-center w-[26%]">Location</th>
                                 <th className="p-4 font-bold text-center w-[20%]">Vehicle Types</th>
@@ -217,14 +308,51 @@ const Garages = () => {
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : filtered.length === 0 ? (
+                            ) : filteredGarages.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No garages found</td></tr>
-                            ) : filtered.map((garage) => {
+                            ) : filteredGarages.map((garage) => {
                                 const rowId = garage.garageId || garage._id;
                                 return (
-                                    <tr key={garage._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 text-center w-[10%]">
-                                            <div className="font-semibold text-sm text-center">{garage.garageId}</div>
+                                    <tr 
+                                        key={garage._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                setActiveLabelRowId(prev => prev === garage._id ? null : garage._id);
+                                            }
+                                        }}
+                                        className={`transition-all duration-1000 ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4 text-center w-[10%] relative font-semibold text-[#052558] text-sm">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[garage._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === garage._id ? null : garage._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[garage._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[garage._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === garage._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={garage._id}
+                                                        currentLabel={rowLabels[garage._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{garage.garageId || garage._id.substring(0, 8).toUpperCase()}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center w-[16%]">
                                             <div className="font-semibold text-sm text-center">{garage.name}</div>
