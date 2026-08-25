@@ -5,6 +5,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
@@ -15,6 +17,60 @@ const Payments = () => {
 
     const [_refreshing, setRefreshing] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_payments_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Payments',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Payment Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Completed', value: 'Completed' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Partially Paid', value: 'Partially Paid' },
+                        { label: 'Failed', value: 'Failed' },
+                        { label: 'Refunded', value: 'Refunded' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus === 'All' ? 'all' : filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) {
+                    setFilterStatus(newValues.status === 'all' ? 'All' : newValues.status);
+                }
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('All');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchPayments = useCallback(async (silent = false) => {
         try {
@@ -134,6 +190,43 @@ const Payments = () => {
         return payment.user?.name || 'Unknown';
     };
 
+    const filteredPayments = React.useMemo(() => {
+        return payments.filter(p => {
+            if (filterStatus !== 'All' && p.status?.toLowerCase() !== filterStatus.toLowerCase()) {
+                return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[p._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = p.date ? new Date(p.date) : (p.createdAt ? new Date(p.createdAt) : null);
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+            const dateB = b.date ? new Date(b.date).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.paymentId || a._id || '');
+            const idB = String(b.paymentId || b._id || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [payments, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredPayments.length);
+    }, [filteredPayments.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9rem)] flex flex-col">
             <div className="flex justify-between items-center">
@@ -153,7 +246,7 @@ const Payments = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Payment ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">ID</th>
@@ -161,26 +254,63 @@ const Payments = () => {
                                 <th className="p-4.5 font-bold text-center w-[9%]">User Type</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Paid At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Method</th>
+                                <th className="p-4.5 font-bold text-center w-[8.5%]">Method</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7.5%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={11} />
-                            ) : payments.length === 0 ? (
+                            ) : filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan="11" className="p-8 text-center text-sm text-gray-500">
                                         No payments found.
                                     </td>
                                 </tr>
-                            ) : payments.map((payment) => {
+                            ) : filteredPayments.map((payment) => {
                                 const rowId = payment.paymentId || payment._id;
                                 return (
-                                    <tr key={payment._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center">
-                                            {payment.paymentId || payment._id.substring(0, 8).toUpperCase()}
+                                    <tr 
+                                        key={payment._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                setActiveLabelRowId(prev => prev === payment._id ? null : payment._id);
+                                            }
+                                        }}
+                                        className={`text-center mt-2 transition-all duration-1000 ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4 relative font-semibold text-[#052558] text-sm text-center">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[payment._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === payment._id ? null : payment._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[payment._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[payment._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === payment._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={payment._id}
+                                                        currentLabel={rowLabels[payment._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{payment.paymentId || payment._id.substring(0, 8).toUpperCase()}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             {payment.type === 'Subscription' ? (
@@ -220,7 +350,7 @@ const Payments = () => {
                                             <span className="text-sm font-semibold whitespace-nowrap text-center">
                                                 {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} <br></br> 
                                                 {' '}
-                                                {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
