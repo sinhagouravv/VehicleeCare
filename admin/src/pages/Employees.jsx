@@ -5,6 +5,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Employees = () => {
     const [employees, setEmployees] = useState([]);
@@ -26,6 +28,57 @@ const Employees = () => {
     const [deleting, setDeleting] = useState(false);
 
     const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    // Filter, Sort & Row Label States
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_employees_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Employees',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'category',
+                    label: 'Employee Category',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Garage', value: 'Garage' },
+                        { label: 'Station', value: 'Station' },
+                        { label: 'Parking', value: 'Parking' },
+                        { label: 'Store', value: 'Store' },
+                    ]
+                }
+            ],
+            initialValues: {
+                category: filterCategory,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.category !== undefined) setFilterCategory(newValues.category);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterCategory('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterCategory, labelFilter, sortOrder, timeRange]);
 
     const fetchEmployees = useCallback(async (silent = false) => {
         try {
@@ -248,11 +301,49 @@ const Employees = () => {
         }
     };
 
+    const filteredEmployees = React.useMemo(() => {
+        return employees.filter(emp => {
+            if (filterCategory !== 'all') {
+                const empCat = (emp.category || '').toLowerCase();
+                if (empCat !== filterCategory.toLowerCase()) return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[emp._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = emp.createdAt ? new Date(emp.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.empId || a.employeeId || a._id || a.name || '');
+            const idB = String(b.empId || b.employeeId || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [employees, filterCategory, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredEmployees.length);
+    }, [filteredEmployees.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Employees</h1>
-                <div className="text-xs uppercase text-gray-400 font-medium self-center">
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {!lastRefreshed ? (
                         <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
                     ) : (
@@ -285,16 +376,53 @@ const Employees = () => {
                                 <tr>
                                     <td colSpan={9} className="p-8 text-center text-red-400 font-medium">{error}</td>
                                 </tr>
-                            ) : employees.length === 0 ? (
+                            ) : filteredEmployees.length === 0 ? (
                                 <tr>
                                     <td colSpan={9} className="py-16 text-gray-400 text-sm text-center">No employees found.</td>
                                 </tr>
-                            ) : employees.map((employee) => {
+                            ) : filteredEmployees.map((employee) => {
                                 const rowId = employee.userId || employee.employeeId || employee._id;
                                 return (
-                                    <tr key={employee._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 text-center">
-                                            <div className="font-semibold text-sm text-center">{employee.userId || employee.employeeId || '—'}</div>
+                                    <tr 
+                                        key={employee._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                setActiveLabelRowId(prev => prev === employee._id ? null : employee._id);
+                                            }
+                                        }}
+                                        className={`transition-all duration-1000 ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4 text-center relative font-semibold text-[#052558] text-sm">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[employee._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === employee._id ? null : employee._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[employee._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[employee._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === employee._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={employee._id}
+                                                        currentLabel={rowLabels[employee._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{employee.userId || employee.employeeId || '—'}</span>
+                                            </div>
                                         </td>
                                             <td className="p-4 text-center">
                                                 <div className="font-semibold uppercase text-sm text-center">{employee.name}</div>
