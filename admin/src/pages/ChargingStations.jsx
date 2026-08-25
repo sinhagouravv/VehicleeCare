@@ -28,6 +28,8 @@ const emptyForm = {
 const initialStations = [];
 
 import useHighlight from '../hooks/useHighlight';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const ChargingStations = () => {
     const [stations, setStations] = useState(initialStations);
@@ -42,6 +44,55 @@ const ChargingStations = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [stationToDelete, setStationToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterChargerType, setFilterChargerType] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_stations_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Charging Stations',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'chargerType',
+                    label: 'Charger Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Fast AC', value: 'ac' },
+                        { label: 'Fast DC', value: 'dc' },
+                    ]
+                }
+            ],
+            initialValues: {
+                chargerType: filterChargerType,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.chargerType !== undefined) setFilterChargerType(newValues.chargerType);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterChargerType('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterChargerType, labelFilter, sortOrder, timeRange]);
 
     const fetchStations = async () => {
         setLoading(true);
@@ -164,11 +215,50 @@ const ChargingStations = () => {
         }
     };
 
-    const filtered = stations.filter(s =>
-        [s.id, s.name, s.state, s.district, s.address].some(f =>
-            f?.toLowerCase().includes(search.toLowerCase())
-        )
-    );
+    const filteredStations = React.useMemo(() => {
+        return stations.filter(s => {
+            if (search) {
+                const matches = [s.id, s.name, s.state, s.district, s.address].some(f =>
+                    f?.toLowerCase().includes(search.toLowerCase())
+                );
+                if (!matches) return false;
+            }
+            if (filterChargerType !== 'all') {
+                const types = (s.type || []).map(t => t.toLowerCase());
+                const matchesType = types.some(t => t.includes(filterChargerType.toLowerCase()));
+                if (!matchesType) return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[s._id || s.id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = s.createdAt ? new Date(s.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.id || a._id || a.name || '');
+            const idB = String(b.id || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [stations, search, filterChargerType, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredStations.length);
+    }, [filteredStations.length, setResultsCount]);
 
     const getStatusColor = (status) => {
         return status === 'Operational' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
@@ -192,7 +282,7 @@ const ChargingStations = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold text-center w-[10%]">Station ID</th>
+                                <th className="p-4 font-bold text-center w-[10.5%]">Station ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Station Name</th>
                                 <th className="p-4 font-bold text-center w-[25%]">Location</th>
                                 <th className="p-4 font-bold text-center w-[8%]">Ports</th>
@@ -204,14 +294,52 @@ const ChargingStations = () => {
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : filtered.length === 0 ? (
+                            ) : filteredStations.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No stations found</td></tr>
-                            ) : filtered.map((station) => {
+                            ) : filteredStations.map((station) => {
                                 const rowId = station.id || station._id;
                                 return (
-                                    <tr key={station.id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 text-center w-[10%]">
-                                            <span className="font-semibold text-sm">{station.id}</span>
+                                    <tr 
+                                        key={station.id || station._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                const sId = station._id || station.id;
+                                                setActiveLabelRowId(prev => prev === sId ? null : sId);
+                                            }
+                                        }}
+                                        className={`transition-all duration-1000 ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4 text-center w-[10%] relative font-semibold text-[#052558] text-sm">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[station._id || station.id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === (station._id || station.id) ? null : (station._id || station.id));
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[station._id || station.id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[station._id || station.id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === (station._id || station.id) && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={station._id || station.id}
+                                                        currentLabel={rowLabels[station._id || station.id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{station.id || (station._id ? station._id.substring(0, 8).toUpperCase() : '—')}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center w-[15%]">
                                             <span className="font-semibold text-sm">{station.name}</span>
