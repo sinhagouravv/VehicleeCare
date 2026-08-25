@@ -4,11 +4,66 @@ import { Bug as BugIcon, Check, Clock, Trash2, X, Loader2, Eye, MessageSquare } 
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+
 const Bug = () => {
     const [bugs, setBugs] = useState([]);
     const highlightedRow = useHighlight(bugs);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_bugs_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Bug Reports',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Bug Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Open', value: 'Open' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Resolved', value: 'Resolved' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus === 'All' ? 'all' : filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) {
+                    setFilterStatus(newValues.status === 'all' ? 'All' : newValues.status);
+                }
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('All');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
 
 
@@ -148,6 +203,43 @@ const Bug = () => {
 
 
 
+    const filteredBugs = React.useMemo(() => {
+        return bugs.filter(b => {
+            if (filterStatus !== 'All' && b.status?.toLowerCase() !== filterStatus.toLowerCase()) {
+                return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[b._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = b.createdAt ? new Date(b.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.bugId || a._id || a.title || '');
+            const idB = String(b.bugId || b._id || b.title || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [bugs, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredBugs.length);
+    }, [filteredBugs.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             {/* Header */}
@@ -171,7 +263,7 @@ const Bug = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[9%]">Bug ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Bug ID</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Portal</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Reporter</th>
                                 <th className="p-4.5 font-bold text-center w-[35%]">Bug Subject</th>
@@ -184,19 +276,56 @@ const Bug = () => {
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
                             {loading && bugs.length === 0 ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : bugs.length === 0 ? (
+                            ) : filteredBugs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-8 text-center text-gray-400 font-bold">No bug reports have been submitted yet.</td>
+                                    <td colSpan={7} className="p-8 text-center text-gray-400 font-bold">No bug reports found.</td>
                                 </tr>
                             ) : (
-                                bugs.map((bug) => (
-                                    <tr 
-                                        key={bug._id} 
-                                        className={`hover:bg-white/50 transition-colors border-b border-[#e6f0fa] group ${
-                                            highlightedRow === bug ? 'bg-emerald-50/50' : ''
-                                        }`}
-                                    >
-                                        <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[10%]">{bug.bugId}</td>
+                                filteredBugs.map((bug) => {
+                                    const rowId = bug.bugId || bug._id;
+                                    return (
+                                        <tr 
+                                            key={bug._id} 
+                                            id={`row-${rowId}`}
+                                            onClick={(e) => {
+                                                if (isLabelMode) {
+                                                    e.stopPropagation();
+                                                    setActiveLabelRowId(prev => prev === bug._id ? null : bug._id);
+                                                }
+                                            }}
+                                             className={`transition-all duration-1000 border-b border-[#e6f0fa] group ${
+                                                 isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-white/50'
+                                             } ${(highlightedRow === rowId || highlightedRow === bug._id || highlightedRow === bug.bugId) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                        >
+                                        <td className="p-4 font-semibold text-[#052558] text-sm text-center relative w-[10%]">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[bug._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === bug._id ? null : bug._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5 z-10"
+                                                        title={`Label: ${stripEmoji(rowLabels[bug._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[bug._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === bug._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={bug._id}
+                                                        currentLabel={rowLabels[bug._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        topClass='-top-8.5'
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{bug.bugId || bug._id.substring(0, 8).toUpperCase()}</span>
+                                            </div>
+                                        </td>
                                         <td className="p-4 text-center w-[12%]">
                                             <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getPortalColor(bug.portal)}`}>
                                                 {getPortalLabel(bug.portal)}
@@ -261,7 +390,8 @@ const Bug = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))
+                                );
+                            })
                             )}
                         </tbody>
                     </table>
