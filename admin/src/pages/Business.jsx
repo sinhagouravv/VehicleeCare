@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2 } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import useHighlight from '../hooks/useHighlight';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Business = () => {
     const [requests, setRequests] = useState([]);
@@ -14,6 +17,58 @@ const Business = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_business_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Business Requests',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Request Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Approved', value: 'Approved' },
+                        { label: 'Rejected', value: 'Rejected' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus === 'All' ? 'all' : filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) {
+                    setFilterStatus(newValues.status === 'all' ? 'All' : newValues.status);
+                }
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('All');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchRequests = useCallback(async (silent = false) => {
         try {
@@ -122,6 +177,43 @@ const Business = () => {
         setIsViewModalOpen(true);
     };
 
+    const filteredRequests = React.useMemo(() => {
+        return requests.filter(r => {
+            if (filterStatus !== 'All' && r.status?.toLowerCase() !== filterStatus.toLowerCase()) {
+                return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[r._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = r.createdAt ? new Date(r.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.displayId || a._id || a.businessName || '');
+            const idB = String(b.displayId || b._id || b.businessName || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [requests, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredRequests.length);
+    }, [filteredRequests.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
@@ -141,7 +233,7 @@ const Business = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[12%]">Request ID</th>
+                                <th className="p-4.5 font-bold text-center w-[10%]">Request ID</th>
                                 <th className="p-4.5 font-bold text-center w-[17%]">Business Name</th>
                                 <th className="p-4.5 font-bold text-center w-[14%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
@@ -153,16 +245,52 @@ const Business = () => {
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : requests.length === 0 ? (
+                            ) : filteredRequests.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" className="p-8 text-center text-sm text-gray-500">
                                         No business requests found.
                                     </td>
                                 </tr>
-                            ) : requests.map((req) => (
-                                <tr key={req._id} className="hover:bg-blue-50/30 text-center mt-2 transition-colors">
-                                    <td className="p-4 font-semibold text-[#052558] text-sm text-center w-[12%]">
-                                        {req.displayId}
+                            ) : filteredRequests.map((req) => (
+                                <tr 
+                                    key={req._id} 
+                                    onClick={(e) => {
+                                        if (isLabelMode) {
+                                            e.stopPropagation();
+                                            setActiveLabelRowId(prev => prev === req._id ? null : req._id);
+                                        }
+                                    }}
+                                    className={`text-center mt-2 transition-colors ${
+                                        isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                    }`}
+                                >
+                                    <td className="p-4 relative font-semibold text-[#052558] text-sm text-center w-[12%]">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[req._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === req._id ? null : req._id);
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[req._id] || 'Add label')}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[req._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === req._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={req._id}
+                                                    currentLabel={rowLabels[req._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span>{req.displayId || req._id.substring(0, 8).toUpperCase()}</span>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center w-[20%]">
                                         <div className="font-semibold text-[#011023] text-sm">{req.businessName}</div>
