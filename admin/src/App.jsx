@@ -22,6 +22,7 @@ import Business from './pages/Business';
 import Parking from './pages/Parking';
 import Store from './pages/Store';
 import { Navigate } from 'react-router-dom';
+import { FilterProvider } from './context/FilterContext';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
@@ -32,7 +33,8 @@ const ProtectedRoute = ({ children }) => {
 const App = () => {
   return (
     <BrowserRouter>
-      <Routes>
+      <FilterProvider>
+        <Routes>
         <Route path="/login" element={<Login />} />
 
         <Route path="/" element={
@@ -64,7 +66,8 @@ const App = () => {
         {/* Catch all redirect to root */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </FilterProvider>
+  </BrowserRouter>
   );
 };
 
