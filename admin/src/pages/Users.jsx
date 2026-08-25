@@ -4,7 +4,9 @@ import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -16,13 +18,64 @@ const Users = () => {
     const [viewUser, setViewUser] = useState(null);
     const [serviceHistory, setServiceHistory] = useState([]);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [loadingBookings, setLoadingBookings] = useState(false);
+    const [_loadingBookings, setLoadingBookings] = useState(false);
     const [banUser, setBanUser] = useState(null);
     const [banReason, setBanReason] = useState('');
     const [banSubmitting, setBanSubmitting] = useState(false);
     const [banSuccess, setBanSuccess] = useState('');
 
     const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    // Filter, Sort & Row Label States
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_users_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Users',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'category',
+                    label: 'User Category / Role',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Customer', value: 'customer' },
+                        { label: 'Franchise', value: 'franchise' },
+                        { label: 'Vendor', value: 'vendor' },
+                        { label: 'Admin', value: 'admin' },
+                    ]
+                }
+            ],
+            initialValues: {
+                category: filterCategory,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.category !== undefined) setFilterCategory(newValues.category);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterCategory('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterCategory, labelFilter, sortOrder, timeRange]);
 
     const fetchUsers = useCallback(async (silent = false) => {
         try {
@@ -82,7 +135,7 @@ const Users = () => {
         });
         if (showTime) {
             const time = new Date(dateStr).toLocaleTimeString('en-IN', {
-                hour: '2-digit', minute: '2-digit', hour12: true
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
             });
             return `${date} | ${time}`;
         }
@@ -90,7 +143,7 @@ const Users = () => {
     };
 
     // ── Open View Modal ────────────────────────────────────────
-    const handleViewUser = (user) => {
+    const _handleViewUser = (user) => {
         setViewUser(user);
     };
 
@@ -175,7 +228,7 @@ const Users = () => {
                     });
                 }
             }
-        } catch (e) { /* skip bookings if fetch fails */ }
+        } catch { /* skip bookings if fetch fails */ }
 
         doc.save(`User_${user.userId || user._id}_Report.pdf`);
     };
@@ -207,14 +260,54 @@ const Users = () => {
         }, 2000);
     };
 
+    const filteredUsers = React.useMemo(() => {
+        return users.filter(user => {
+            if (filterCategory !== 'all') {
+                const userRole = (user.role || 'customer').toLowerCase();
+                if (userRole !== filterCategory.toLowerCase()) return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[user._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = user.createdAt ? new Date(user.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.userId || a._id || a.name || '');
+            const idB = String(b.userId || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [users, filterCategory, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredUsers.length);
+    }, [filteredUsers.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Users</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : 'Loading…'}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -229,66 +322,105 @@ const Users = () => {
                         <table className="w-full text-center border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center w-[11%]">User ID</th>
-                                    <th className="p-4.5 font-bold text-center w-[15%]">User</th>
+                                    <th className="p-4.5 font-bold text-center w-[10.5%]">User ID</th>
+                                    <th className="p-4.5 font-bold text-center w-[13%]">User</th>
                                     <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
-                                    <th className="p-4.5 font-bold text-center w-[19%]">Contact</th>
+                                    <th className="p-4.5 font-bold text-center w-[20%]">Contact</th>
                                     <th className="p-4.5 font-bold text-center w-[9%]">Role</th>
-                                    <th className="p-4.5 font-bold text-center w-[20%]">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                    <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
+                                    <th className="p-4.5 font-bold text-center w-[17%]">Join Date & Time</th>
+                                    <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
+                                    <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                                 {loading ? (
                                     <TableSkeleton rows={15} cols={8} />
-                                ) : users.length === 0 ? (
+                                ) : filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="py-16 text-gray-400 text-sm text-center">No users found.</td>
+                                        <td colSpan="8" className="p-8 text-center text-sm text-gray-500">
+                                            No users found.
+                                        </td>
                                     </tr>
-                                ) : users.map((user) => {
-                                    const rowId = user.userId || user._id;
+                                ) : filteredUsers.map((u) => {
+                                    const rowId = u.userId || u._id;
                                     return (
-                                        <tr key={user._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                            <td className="p-4">
-                                                <div className="font-semibold text-sm">{user.userId || '—'}</div>
+                                        <tr 
+                                            key={u._id} 
+                                            id={`row-${rowId}`} 
+                                            onClick={(e) => {
+                                                if (isLabelMode) {
+                                                    e.stopPropagation();
+                                                    setActiveLabelRowId(prev => prev === u._id ? null : u._id);
+                                                }
+                                            }}
+                                            className={`text-center transition-all duration-1000 ${
+                                                isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                            } ${(highlightedRow === rowId || highlightedRow === u._id || highlightedRow === u.userId) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                        >
+                                            <td className="p-4 font-semibold text-[#052558] text-sm text-center relative">
+                                                <div className="relative flex items-center justify-center w-full">
+                                                    {Boolean(rowLabels[u._id]) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveLabelRowId(prev => prev === u._id ? null : u._id);
+                                                            }}
+                                                            className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                            title={`Label: ${stripEmoji(rowLabels[u._id] || 'Add label')}`}
+                                                        >
+                                                            {renderLabelIcon(rowLabels[u._id], 16)}
+                                                        </button>
+                                                    )}
+
+                                                    {activeLabelRowId === u._id && (
+                                                        <FloatingLabelSelector 
+                                                            rowId={u._id}
+                                                            currentLabel={rowLabels[u._id]}
+                                                            onSaveLabel={handleSaveRowLabel}
+                                                            labelPopupRef={labelPopupRef}
+                                                            positionClass="-left-4"
+                                                        />
+                                                    )}
+                                                    <span>{u.userId || u._id.substring(0, 8).toUpperCase()}</span>
+                                                </div>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-semibold text-sm uppercase">{user.name}</div>
+                                                <div className="font-semibold text-sm uppercase">{u.name}</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block px-3 uppercase py-1 text-xs font-semibold rounded-full ${user.role === 'vendor' || user.role === 'franchise' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                    {user.role === 'vendor' || user.role === 'franchise' ? 'Business' : 'Regular'}
+                                                <span className={`inline-block px-3 uppercase py-1 text-xs font-semibold rounded-full ${u.role === 'vendor' || u.role === 'franchise' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                    {u.role === 'vendor' || u.role === 'franchise' ? 'Business' : 'Regular'}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <div className="text-xs text-gray-500 mt-0.5">{user.phone || '—'}</div>
-                                                <div className="font-medium text-gray-700 text-sm">{user.email}</div>
+                                                <div className="font-medium text-gray-700 text-sm">{u.email}</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">{u.phone || '—'}</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-block uppercase font-semibold rounded-full ${getRoleBadge(user.role)}`}>
-                                                    {formatRole(user.role)}
+                                                <span className={`inline-block uppercase font-semibold rounded-full ${getRoleBadge(u.role)}`}>
+                                                    {formatRole(u.role)}
                                                 </span>
                                             </td>
                                             <td className="p-4">
                                                 <span className="text-sm uppercase font-semibold text-gray-600">
-                                                    {formatDate(user.createdAt, true)}
+                                                    {formatDate(u.createdAt, true)}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase border ${getStatusColor(user.isVerified ? 'Verified' : 'Pending')}`}>
-                                                    {user.isVerified ? 'Verified' : 'Pending'}
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase border ${getStatusColor(u.isVerified ? 'Verified' : 'Pending')}`}>
+                                                    {u.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button onClick={() => setViewUser(user)} className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors">
+                                                <div className="flex items-center justify-center gap-4">
+                                                    <button onClick={() => setViewUser(u)} className="text-gray-400 hover:text-blue-500">
                                                         <Eye size={17} />
                                                     </button>
-                                                    <button onClick={() => handleDownloadPDF(user)} className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => handleDownloadPDF(u)} className="text-gray-400 hover:text-emerald-500">
                                                         <Download size={17} />
                                                     </button>
-                                                    <button onClick={() => { setBanUser(user); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                    <button onClick={() => { setBanUser(u); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500">
                                                         <UserX size={17} />
                                                     </button>
                                                 </div>
@@ -318,7 +450,7 @@ const Users = () => {
                                  <h3 className="text-xl uppercase font-bold text-[#052558]">User Details</h3>
                                  <div className="flex items-center gap-2 mt-1">
                                      <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewUser.userId || viewUser._id?.slice(0, 8)}</span></p>
-                                     <button onClick={() => fetchServiceHistory(viewUser._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
+                                     <button onClick={() => fetchServiceHistory(viewUser._id)} className="text-gray-400 hover:text-blue-600">
                                          <Eye size={17} />
                                      </button>
                                  </div>
@@ -360,7 +492,7 @@ const Users = () => {
                                         <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
                                             <div className="flex uppercase items-center gap-2">
-                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-bold rounded-lg uppercase tracking-wider border ${getStatusColor(viewUser.isVerified ? 'Verified' : 'Pending')}`}>
+                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-xs font-semibold rounded-full uppercase tracking-wider border ${getStatusColor(viewUser.isVerified ? 'Verified' : 'Pending')}`}>
                                                     {viewUser.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </div>
@@ -379,9 +511,8 @@ const Users = () => {
                             {/* Residential Archive */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
-                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
-                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewUser.address || 'No Address Provided'}</h5>
+                                <div className="pt-2 uppercase">
+                                    <h5 className="font-semibold text-[#052558] text-sm">{viewUser.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
