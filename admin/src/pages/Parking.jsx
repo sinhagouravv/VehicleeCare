@@ -5,6 +5,8 @@ import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../../../backend/chargingdata/punjab.json';
 import haryanaData from '../../../backend/chargingdata/haryana.json';
 import delhiData from '../../../backend/chargingdata/delhi.json';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const PARKING_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(PARKING_LOCATIONS.map(l => l.state))].sort();
@@ -36,6 +38,55 @@ const Parking = () => {
     const [viewTarget, setViewTarget] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_parking_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Parkings',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Operational', value: 'Operational' },
+                        { label: 'Under Maintenance', value: 'Under Maintenance' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setFilterStatus(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchParkings = async () => {
         setLoading(true);
@@ -153,11 +204,47 @@ const Parking = () => {
         }
     };
 
-    const filtered = parkings.filter(s =>
-        [s.id, s.name, s.state, s.district, s.address].some(f =>
-            f?.toLowerCase().includes(search.toLowerCase())
-        )
-    );
+    const filtered = React.useMemo(() => {
+        return parkings.filter(s => {
+            const matchesSearch = !search || [s.id, s.name, s.state, s.district, s.address].some(f =>
+                f?.toLowerCase().includes(search.toLowerCase())
+            );
+            if (!matchesSearch) return false;
+
+            if (filterStatus !== 'all' && s.status?.toLowerCase() !== filterStatus.toLowerCase()) {
+                return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[s.id || s._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = s.createdAt ? new Date(s.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.id || a._id || a.name || '');
+            const idB = String(b.id || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [parkings, search, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filtered.length);
+    }, [filtered.length, setResultsCount]);
 
     const getStatusColor = (status) => {
         return status === 'Operational' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
@@ -196,9 +283,46 @@ const Parking = () => {
                             ) : filtered.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-20 text-gray-400 text-sm">No parkings found</td></tr>
                             ) : filtered.map((parking) => (
-                                <tr key={parking.id} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="p-4 text-center w-[10%]">
-                                        <span className="font-bold text-[#011023] tracking-widest">{parking.id}</span>
+                                <tr 
+                                    key={parking.id} 
+                                    onClick={(e) => {
+                                        if (isLabelMode) {
+                                            e.stopPropagation();
+                                            const pId = parking.id || parking._id;
+                                            setActiveLabelRowId(prev => prev === pId ? null : pId);
+                                        }
+                                    }}
+                                    className={`transition-colors ${
+                                        isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                    }`}
+                                >
+                                    <td className="p-4 text-center w-[10%] relative font-bold text-[#011023] tracking-widest">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[parking.id || parking._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === (parking.id || parking._id) ? null : (parking.id || parking._id));
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[parking.id || parking._id] || 'Add label')}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[parking.id || parking._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === (parking.id || parking._id) && (
+                                                <FloatingLabelSelector 
+                                                    rowId={parking.id || parking._id}
+                                                    currentLabel={rowLabels[parking.id || parking._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span>{parking.id}</span>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center w-[15%]">
                                         <span className="font-bold text-[#011023]">{parking.name}</span>
