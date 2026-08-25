@@ -5,6 +5,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Bookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -18,6 +20,61 @@ const Bookings = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookingToDelete, setBookingToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_bookings_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Bookings',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Booking Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'In Progress', value: 'In Progress' },
+                        { label: 'In Service', value: 'In Service' },
+                        { label: 'Completed', value: 'Completed' },
+                        { label: 'Delivered', value: 'Delivered' },
+                        { label: 'Cancelled', value: 'Cancelled' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus === 'All' ? 'all' : filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) {
+                    setFilterStatus(newValues.status === 'all' ? 'All' : newValues.status);
+                }
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('All');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchBookings = useCallback(async (silent = false) => {
         try {
@@ -242,6 +299,38 @@ const Bookings = () => {
         };
     };
 
+    const filteredBookings = React.useMemo(() => {
+        return bookings.filter(booking => {
+            if (filterStatus !== 'All' && booking.status?.toLowerCase() !== filterStatus.toLowerCase()) {
+                return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[booking._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = getItemDate(booking);
+                if (itemDate) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = getItemDate(a) || new Date(0);
+            const dateB = getItemDate(b) || new Date(0);
+            return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+        });
+    }, [bookings, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filteredBookings.length);
+    }, [filteredBookings.length, setResultsCount]);
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
@@ -262,7 +351,7 @@ const Bookings = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[9%]">Booking ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[29%]">Service</th>
@@ -275,19 +364,56 @@ const Bookings = () => {
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={8} />
-                            ) : bookings.length === 0 ? (
+                            ) : filteredBookings.length === 0 ? (
                                 <tr>
                                     <td colSpan="8" className="p-8 text-center text-sm text-gray-500">
                                         No bookings found.
                                     </td>
                                 </tr>
-                            ) : bookings.map((booking) => {
+                            ) : filteredBookings.map((booking) => {
                                 const rowId = booking.bookingId || booking._id;
                                 const { dateStr, timeStr } = getBookedAtParts(booking);
                                 return (
-                                    <tr key={booking._id} id={`row-${rowId}`} className={`text-center mt-2 transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 font-semibold text-[#052558] text-sm truncate text-center">
-                                            {booking.bookingId || booking._id.substring(0, 8).toUpperCase()}
+                                    <tr 
+                                        key={booking._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
+                                            }
+                                        }}
+                                        className={`text-center mt-2 transition-all duration-1000 ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4 font-semibold text-[#052558] text-sm text-center relative">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[booking._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[booking._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[booking._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === booking._id && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={booking._id}
+                                                        currentLabel={rowLabels[booking._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{booking.bookingId || booking._id.substring(0, 8).toUpperCase()}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <div className="text-[13px] font-semibold text-[#011023]">{booking.user?.name || "Unknown"}</div>
