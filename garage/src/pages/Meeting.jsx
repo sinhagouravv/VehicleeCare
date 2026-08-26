@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Check, X, Eye, Trash2, Calendar, User, FileText } from 'lucide-react';
+import { Loader2, Check, X, Eye, Trash2, Calendar, User, FileText, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Meeting = () => {
     const [requests, setRequests] = useState([]);
@@ -15,6 +17,184 @@ const Meeting = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Filter & Sort states
+    const [purposeFilter, setPurposeFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_meeting_row_labels');
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.requestDate,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter ID Card Requests',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'type',
+                    label: 'Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'ID Card', value: 'ID Card' }
+                    ]
+                },
+                {
+                    id: 'purpose',
+                    label: 'Purpose',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Lost', value: 'Lost' },
+                        { label: 'Damaged', value: 'Damaged' },
+                        { label: 'Stolen', value: 'Stolen' }
+                    ]
+                },
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Approved', value: 'Approved' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'Rejected', value: 'Rejected' }
+                    ]
+                }
+            ],
+            initialValues: {
+                purpose: 'all',
+                type: 'all',
+                status: 'all',
+                label: 'all',
+                sortOrder: 'latest',
+                timeRange: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.purpose !== undefined) setPurposeFilter(newValues.purpose);
+                if (newValues.type !== undefined) setTypeFilter(newValues.type);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setPurposeFilter('all');
+                setTypeFilter('all');
+                setStatusFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const filteredRequests = React.useMemo(() => {
+        let filtered = requests.filter((r) => {
+            if (labelFilter && labelFilter !== 'all') {
+                const itemLabel = rowLabels[r._id];
+                if (!itemLabel || itemLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            if (purposeFilter && purposeFilter !== 'all') {
+                const purp = (r.reason || r.purpose || '').trim().toLowerCase();
+                if (!purp.includes(purposeFilter.trim().toLowerCase())) return false;
+            }
+            if (typeFilter && typeFilter !== 'all') {
+                const t = (r.type || 'ID Card').trim().toLowerCase();
+                if (t !== typeFilter.trim().toLowerCase()) return false;
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                const stat = (r.status || '').trim().toLowerCase();
+                if (stat !== statusFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(r);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [requests, purposeFilter, typeFilter, statusFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredRequests.length);
+        }
+    }, [filteredRequests.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredRequests);
 
     // Action Modal States
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -31,8 +211,6 @@ const Meeting = () => {
         setActionRemarks('');
         setIsActionModalOpen(true);
     };
-
-    const highlightedRow = useHighlight(requests);
 
     const storedUser = JSON.parse(localStorage.getItem('garageUser') || '{}');
     const garageId = storedUser.id || storedUser._id;
@@ -156,7 +334,7 @@ const Meeting = () => {
         });
     };
 
-    const formatTime = (dateStr) => {
+    const _formatTime = (dateStr) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return '—';
@@ -192,43 +370,84 @@ const Meeting = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
+                                <th className="p-4.5 font-bold text-center w-[9%]">Meeting ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Employee ID</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Name</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Purpose</th>
-                                <th className="p-4.5 font-bold text-center w-[28%]">Reason</th>
+                                {/* <th className="p-4.5 font-bold text-center w-[8%]">Name</th> */}
+                                <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
+                                {/* <th className="p-4.5 font-bold text-center w-[7%]">Purpose</th> */}
+                                <th className="p-4.5 font-bold text-center w-[36%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Scheduled At</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[6%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
-                            {loading && requests.length === 0 ? (
-                                <TableSkeleton rows={15} cols={8} />
-                            ) : requests.length === 0 ? (
+                            {loading && filteredRequests.length === 0 ? (
+                                <TableSkeleton rows={15} cols={9} />
+                            ) : filteredRequests.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan="9" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No requests found.
                                     </td>
                                 </tr>
-                            ) : requests.map((req) => (
+                            ) : filteredRequests.map((req) => (
                                 <tr 
                                     key={req._id} 
                                     id={`row-${req._id}`}
-                                    className={`transition-all duration-1000 ${highlightedRow === req._id ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                    onClick={() => {
+                                        if (isLabelMode) {
+                                            setActiveLabelRowId(prev => prev === req._id ? null : req._id);
+                                        }
+                                    }}
+                                    className={`cursor-pointer transition-all duration-1000 ${
+                                        activeLabelRowId === req._id
+                                            ? 'relative z-40 bg-blue-50/50'
+                                            : highlightedRow === req._id 
+                                            ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
+                                            : 'hover:bg-blue-50/30'
+                                    }`}
                                 >
-                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center">
-                                        {req.employeeId}
+                                    <td className="p-4 font-semibold text-[#011023] text-sm text-center relative">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[req._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === req._id ? null : req._id);
+                                                    }}
+                                                    className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[req._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[req._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === req._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={req._id}
+                                                    currentLabel={rowLabels[req._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass="-top-8"
+                                                    positionClass="-left-4"
+                                                />
+                                            )}
+                                            <span className="truncate">{req.meetingId || '—'}</span>
+                                        </div>
                                     </td>
                                     <td className="p-4 font-semibold text-sm text-gray-700 text-center">
-                                        {req.employeeName || '—'}
+                                        {req.employeeId}
                                     </td>
+                                    {/* <td className="p-4 font-semibold text-sm text-gray-700 text-center">
+                                        {req.employeeName || '—'}
+                                    </td> */}
                                     <td className="p-4 font-semibold text-sm text-gray-700 text-center">
                                         ID card
                                     </td>
-                                    <td className="p-4 font-semibold text-sm text-gray-700 text-center">
+                                    {/* <td className="p-4 font-semibold text-sm text-gray-700 text-center">
                                         {req.purpose || req.reason || '—'}
-                                    </td>
+                                    </td> */}
                                     <td className="p-4 text-center">
                                         <p 
                                             className="whitespace-normal text-center text-gray-700 font-semibold line-clamp-2 leading-snug overflow-hidden"
@@ -289,10 +508,10 @@ const Meeting = () => {
                                                         <Eye size={18} />
                                                     </button>
                                                     <button 
-                                                        onClick={() => { setSelectedRequest(req); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                                        onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
                                                     >
-                                                        <Trash2 size={18} />
+                                                        <MessageSquare size={18} />
                                                     </button>
                                                 </>
                                             )}
@@ -319,6 +538,7 @@ const Meeting = () => {
                         <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Request Details</h3>
+                                <p className="text-sm font-semibold text-gray-500 mt-1 uppercase">Meeting ID: <span className="text-[#011023] font-semibold">{selectedRequest.meetingId || '—'}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
