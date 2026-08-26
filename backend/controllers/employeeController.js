@@ -159,6 +159,38 @@ const getEmployeeById = async (req, res) => {
 };
 
 
+// Helper: Generate unique 7-char Meeting ID (M + 6 unique non-zero digits)
+const generateMeetingId = async () => {
+    const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    let isUnique = false;
+    let newId = '';
+
+    while (!isUnique) {
+        newId = 'M';
+        let tempDigits = [...digits];
+        for (let i = 0; i < 6; i++) {
+            const randomIndex = Math.floor(Math.random() * tempDigits.length);
+            newId += tempDigits[randomIndex];
+            tempDigits.splice(randomIndex, 1);
+        }
+        const existing = await IdCardRequest.findOne({ meetingId: newId });
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+    return newId;
+};
+
+// Helper: Ensure all fetched requests have a meetingId (backfills existing records if missing)
+const ensureMeetingIds = async (requests) => {
+    for (let req of requests) {
+        if (!req.meetingId) {
+            req.meetingId = await generateMeetingId();
+            await req.save();
+        }
+    }
+};
+
 // @desc    Request a duplicate ID card
 // @route   POST /api/employees/id-card-request
 const requestIdCard = async (req, res) => {
@@ -177,7 +209,10 @@ const requestIdCard = async (req, res) => {
             return res.status(400).json({ success: false, message: 'You already have a pending duplicate ID card request.' });
         }
 
+        const meetingId = await generateMeetingId();
+
         const idRequest = await IdCardRequest.create({
+            meetingId,
             employeeId,
             employeeName: employee.name,
             employeePhone: employee.phone || '',
@@ -203,6 +238,8 @@ const requestIdCard = async (req, res) => {
                 title: 'New Meeting Request',
                 message: msg,
                 meta: { 
+                    meetingId: meetingId,
+                    requestId: idRequest._id,
                     employeeId: employee.employeeId, 
                     name: employee.name, 
                     garageId: employee.garageId,
@@ -226,12 +263,40 @@ const requestIdCard = async (req, res) => {
     }
 };
 
+const enrichIdCardRequests = async (requests) => {
+    await ensureMeetingIds(requests);
+    const garageIds = [...new Set(requests.map(r => r.garageId).filter(Boolean))];
+    const managers = await Employee.find({
+        garageId: { $in: garageIds },
+        role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
+    }).lean();
+
+    const managerMap = {};
+    for (const m of managers) {
+        if (!managerMap[m.garageId]) {
+            managerMap[m.garageId] = m;
+        }
+    }
+
+    return requests.map(r => {
+        const doc = r.toObject ? r.toObject() : { ...r };
+        if (!doc.approvedBy && doc.status !== 'Pending' && doc.garageId && managerMap[doc.garageId]) {
+            const m = managerMap[doc.garageId];
+            doc.approvedBy = m.name;
+            doc.approvedById = m.employeeId || m._id;
+            doc.approvedByRole = m.role || 'Manager';
+        }
+        return doc;
+    });
+};
+
 // @desc    Get all ID card requests for an employee
 // @route   GET /api/employees/id-card-requests/employee/:employeeId
 const getIdCardRequests = async (req, res) => {
     try {
         const requests = await IdCardRequest.find({ employeeId: req.params.employeeId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: requests });
+        const enriched = await enrichIdCardRequests(requests);
+        res.status(200).json({ success: true, data: enriched });
     } catch (err) {
         console.error("Error getting ID card requests:", err);
         res.status(500).json({ success: false, message: 'Server Error' });
@@ -243,7 +308,8 @@ const getIdCardRequests = async (req, res) => {
 const getGarageIdCardRequests = async (req, res) => {
     try {
         const requests = await IdCardRequest.find({ garageId: req.params.garageId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: requests });
+        const enriched = await enrichIdCardRequests(requests);
+        res.status(200).json({ success: true, data: enriched });
     } catch (err) {
         console.error("Error getting garage ID card requests:", err);
         res.status(500).json({ success: false, message: 'Server Error' });
@@ -296,6 +362,12 @@ const updateIdCardRequestStatus = async (req, res) => {
         request.status = status;
         if (remarks !== undefined) {
             request.remarks = remarks;
+        }
+
+        if (garageAdmin) {
+            request.approvedBy = garageAdmin.name || '';
+            request.approvedById = garageAdmin.employeeId || garageAdmin._id || '';
+            request.approvedByRole = garageAdmin.role || 'Manager';
         }
 
         await request.save();
