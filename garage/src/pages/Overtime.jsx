@@ -492,7 +492,7 @@ const Overtime = () => {
                         <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Overtime Details</h3>
-                                <p className="text-sm font-semibold text-gray-500 mt-1 uppercase">ID: <span className="text-[#011023] font-bold">{selectedOvertime.overtimeId || '—'}</span></p>
+                                <p className="text-sm font-semibold text-gray-500 mt-1 uppercase">ID: <span className="text-[#011023] font-semibold">{selectedOvertime.overtimeId || '—'}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
