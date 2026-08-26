@@ -33,8 +33,8 @@ exports.requestLeave = async (req, res) => {
             parentLeaveId // For extension
         } = req.body;
 
-        if (!employeeId || !employeeName || !type || !leaveTime || !startDate || !endDate || !reason || !garageId) {
-            return res.status(400).json({ success: false, message: 'All fields are required' });
+        if (!employeeId || !employeeName || !type || !leaveTime || !startDate || !endDate || !reason) {
+            return res.status(400).json({ success: false, message: 'All required fields must be provided' });
         }
 
         // Fetch latest employee info for contact details (Source of Truth)
@@ -45,6 +45,7 @@ exports.requestLeave = async (req, res) => {
             employee = await Employee.findById(employeeId);
         }
 
+        const finalGarageId = employee?.garageId || (garageId && garageId !== 'undefined' ? garageId : '');
         const finalPhone = employee?.phone || reqPhone || '';
         const finalEmail = employee?.email || reqEmail || '';
 
@@ -80,7 +81,7 @@ exports.requestLeave = async (req, res) => {
             reason,
             totalDays: diffDays,
             leaveId,
-            garageId
+            garageId: finalGarageId
         });
 
         await newLeave.save();
@@ -124,13 +125,43 @@ exports.requestLeave = async (req, res) => {
     }
 };
 
+const enrichLeaves = async (leaves) => {
+    const garageIds = [...new Set(leaves.map(l => l.garageId).filter(Boolean))];
+    const managers = await Employee.find({
+        garageId: { $in: garageIds },
+        role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
+    }).lean();
+
+    const managerMap = {};
+    for (const m of managers) {
+        if (!managerMap[m.garageId]) {
+            managerMap[m.garageId] = m;
+        }
+    }
+
+    return leaves.map(l => {
+        const doc = l.toObject ? l.toObject() : { ...l };
+        if (!doc.approvedBy && !doc.actionBy && doc.status !== 'Pending' && doc.garageId && managerMap[doc.garageId]) {
+            const m = managerMap[doc.garageId];
+            doc.approvedBy = m.name;
+            doc.actionBy = m.name;
+            doc.approvedById = m.employeeId || m._id;
+            doc.actionById = m.employeeId || m._id;
+            doc.approvedByRole = m.role || 'Manager';
+            doc.actionByRole = m.role || 'Manager';
+        }
+        return doc;
+    });
+};
+
 // @desc    Get leave requests for an employee
 // @route   GET /api/leaves/employee/:employeeId
 exports.getEmployeeLeaves = async (req, res) => {
     try {
         const { employeeId } = req.params;
         const leaves = await LeaveRequest.find({ employeeId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: leaves });
+        const enriched = await enrichLeaves(leaves);
+        res.status(200).json({ success: true, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -141,8 +172,28 @@ exports.getEmployeeLeaves = async (req, res) => {
 exports.getGarageLeaves = async (req, res) => {
     try {
         const { garageId } = req.params;
-        const leaves = await LeaveRequest.find({ garageId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: leaves });
+        const targetGarageIds = [garageId];
+
+        try {
+            const Garage = require('../models/Garage');
+            let gDoc = null;
+            if (mongoose.Types.ObjectId.isValid(garageId)) {
+                gDoc = await Garage.findById(garageId);
+            }
+            if (!gDoc) {
+                gDoc = await Garage.findOne({ garageId });
+            }
+            if (gDoc) {
+                if (gDoc.garageId && !targetGarageIds.includes(gDoc.garageId)) targetGarageIds.push(gDoc.garageId);
+                if (gDoc._id && !targetGarageIds.includes(String(gDoc._id))) targetGarageIds.push(String(gDoc._id));
+            }
+        } catch (_gErr) {
+            // Ignore lookup error
+        }
+
+        const leaves = await LeaveRequest.find({ garageId: { $in: targetGarageIds } }).sort({ createdAt: -1 });
+        const enriched = await enrichLeaves(leaves);
+        res.status(200).json({ success: true, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -153,7 +204,8 @@ exports.getGarageLeaves = async (req, res) => {
 exports.getAllLeaves = async (req, res) => {
     try {
         const leaves = await LeaveRequest.find().sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: leaves });
+        const enriched = await enrichLeaves(leaves);
+        res.status(200).json({ success: true, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -163,20 +215,40 @@ exports.getAllLeaves = async (req, res) => {
 // @route   PATCH /api/leaves/:id/status
 exports.updateLeaveStatus = async (req, res) => {
     try {
-        const { status, employeeId, remarks } = req.body;
+        const { status, employeeId, remarks, approvedBy, actionBy } = req.body;
         if (!['Approved', 'Rejected'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
 
+        let approver = null;
+        if (employeeId) {
+            approver = await Employee.findOne({ employeeId: employeeId });
+            if (!approver && mongoose.Types.ObjectId.isValid(employeeId)) {
+                approver = await Employee.findById(employeeId);
+            }
+        }
+
+        const reviewerName = approver ? approver.name : (approvedBy || actionBy || '');
+        const reviewerEmpId = approver ? (approver.employeeId || approver._id) : (employeeId || '');
+        const reviewerRole = approver ? (approver.role || 'Manager') : 'Manager';
+
         const updateData = { status };
+        if (reviewerName) {
+            updateData.approvedBy = reviewerName;
+            updateData.actionBy = reviewerName;
+        }
+        if (reviewerEmpId) {
+            updateData.approvedById = String(reviewerEmpId);
+            updateData.actionById = String(reviewerEmpId);
+        }
+        updateData.approvedByRole = reviewerRole;
+        updateData.actionByRole = reviewerRole;
         if (remarks) updateData.remarks = remarks;
 
         const leave = await LeaveRequest.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!leave) {
             return res.status(404).json({ success: false, message: 'Leave request not found' });
         }
-
-        const approver = await Employee.findOne({ employeeId: employeeId });
 
         // Create Notification
         let message = '';
