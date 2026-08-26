@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const EVENT_MAPPING = {
     booking: { type: 'Booking', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -13,15 +16,143 @@ const EVENT_MAPPING = {
 };
 
 const Notifications = () => {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]); // Added for smart ID mapping
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [unread, setUnread] = useState(0);
+    const [_unread, setUnread] = useState(0);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [expandedIds, setExpandedIds] = useState(new Set());
+
+    // Filter & Sort states
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_notifications_row_labels');
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Notifications',
+            hasSort: true,
+            groups: [
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Unread', value: 'unread' },
+                        { label: 'Read', value: 'read' }
+                    ]
+                },
+                {
+                    id: 'type',
+                    label: 'Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Booking', value: 'Booking' },
+                        { label: 'Leave', value: 'Leave' },
+                        { label: 'Overtime', value: 'Overtime' },
+                        { label: 'Meeting', value: 'Meeting' }
+                    ]
+                },
+                LABEL_FILTER_GROUP
+            ],
+            initialValues: {
+                type: 'all',
+                status: 'all',
+                label: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.type !== undefined) setTypeFilter(newValues.type);
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setTypeFilter('all');
+                setStatusFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+
+    const getItemDate = (item) => {
+        if (!item) return null;
+        if (item.createdAt) {
+            const d = new Date(item.createdAt);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    const filteredNotifications = useMemo(() => {
+        const filtered = notifications.filter((n) => {
+            if (typeFilter && typeFilter !== 'all') {
+                const mapInfo = EVENT_MAPPING[n.event] || { type: 'General' };
+                const nType = (mapInfo.type || '').trim().toLowerCase();
+                if (nType !== typeFilter.trim().toLowerCase()) return false;
+            }
+            if (statusFilter && statusFilter !== 'all') {
+                if (statusFilter === 'unread' && n.read) return false;
+                if (statusFilter === 'read' && !n.read) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(n);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            if (labelFilter !== 'all') {
+                const currentLabel = rowLabels[n._id];
+                if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [notifications, typeFilter, statusFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredNotifications.length);
+        }
+    }, [filteredNotifications.length, setResultsCount]);
 
     const toggleExpand = (id, e) => {
         if (e) e.stopPropagation();
@@ -109,6 +240,22 @@ const Notifications = () => {
         }
     };
 
+    const handleRedirect = (notif, e) => {
+        if (e) e.stopPropagation();
+        if (notif.eventType === 'leave') {
+            const leaveId = notif.meta?.leaveCustomId || notif.meta?.leaveId || notif.message?.match(/LEV-[A-Z0-9-]+/i)?.[0];
+            navigate('/leave', { state: { highlightId: leaveId } });
+        } else if (notif.eventType === 'overtime') {
+            const overtimeId = notif.meta?.overtimeCustomId || notif.meta?.overtimeId || notif.message?.match(/OVT-[A-Z0-9-]+/i)?.[0];
+            navigate('/overtime', { state: { highlightId: overtimeId } });
+        } else if (notif.eventType === 'meeting' || notif.eventType === 'id_card_status_updated' || notif.eventType === 'id_card_requested') {
+            const meetingId = notif.meta?.requestId || notif.meta?.meetingId || notif.meta?.id;
+            navigate('/meeting', { state: { highlightId: meetingId } });
+        } else if (notif.eventType === 'booking_created' || notif.eventType === 'booking') {
+            navigate('/my-bookings', { state: { highlightId: notif.meta?.bookingId } });
+        }
+    };
+
     // Build a map of Name -> userId from all users AND notifications to fill in gaps
     const nameToUserIdMap = useMemo(() => {
         const map = {};
@@ -131,7 +278,7 @@ const Notifications = () => {
         return map;
     }, [users, notifications]);
 
-    const getDisplayUserId = (notif) => {
+    const _getDisplayUserId = (notif) => {
         if (notif.eventType === 'message_received') return 'GUEST';
         if (notif.eventType === 'employee_added') return notif.meta?.employeeId || 'EMP-N/A';
         if (notif.eventType === 'garage_added') return notif.meta?.garageId || 'GAR-N/A';
@@ -152,7 +299,7 @@ const Notifications = () => {
     };
 
     const getMapping = (notif) => {
-        let mapping = { ...EVENT_MAPPING[notif.eventType] } || { type: 'Event', category: 'System', color: 'bg-gray-50 text-gray-600' };
+        let mapping = EVENT_MAPPING[notif.eventType] ? { ...EVENT_MAPPING[notif.eventType] } : { type: 'Event', category: 'System', color: 'bg-gray-50 text-gray-600' };
         
         // Refine based on meta
         if (notif.eventType === 'message_received' && notif.meta?.type === 'business') {
@@ -175,6 +322,13 @@ const Notifications = () => {
                 <div>
                     <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Notifications</h1>
                 </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                        {lastRefreshed
+                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                            : 'Loading…'}
+                    </div>
+                </div>
             </div>
 
             {/* Main Content Table (Glassmorphism) */}
@@ -183,18 +337,18 @@ const Notifications = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
+                                <th className="p-4.5 font-bold text-center w-[11.5%]">Type</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Send By</th>
-                                <th className="p-4.5 font-bold text-center w-[55%]">Content</th>
+                                <th className="p-4.5 font-bold text-center w-[53%]">Content</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
                                 <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {loading && notifications.length === 0 ? (
+                            {loading && filteredNotifications.length === 0 ? (
                                 <TableSkeleton rows={15} cols={6} />
-                            ) : notifications.length === 0 ? (
+                            ) : filteredNotifications.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="p-20 text-center text-gray-300">
                                         <div className="flex flex-col items-center gap-3">
@@ -203,20 +357,52 @@ const Notifications = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : (
-                                notifications.map((notif) => {
+                             ) : (
+                                filteredNotifications.map((notif) => {
                                     const mapping = getMapping(notif);
                                     const isExpanded = expandedIds.has(notif._id);
                                     return (
                                         <tr 
                                             key={notif._id} 
-                                            onClick={() => !notif.isRead && markRead(notif._id)}
+                                            onClick={() => {
+                                                if (isLabelMode) {
+                                                    setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
+                                                } else if (!notif.isRead) {
+                                                    markRead(notif._id);
+                                                }
+                                            }}
                                             className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
                                         >
-                                            <td className="p-4.25 text-center">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
-                                                    {mapping.type}
-                                                </span>
+                                            <td className="p-4.25 text-center relative">
+                                                <div className="relative flex items-center justify-center w-full">
+                                                    {Boolean(rowLabels[notif._id]) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
+                                                            }}
+                                                            className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                            title={`Label: ${stripEmoji(rowLabels[notif._id])}`}
+                                                        >
+                                                            {renderLabelIcon(rowLabels[notif._id], 16)}
+                                                        </button>
+                                                    )}
+
+                                                    {activeLabelRowId === notif._id && (
+                                                        <FloatingLabelSelector 
+                                                            rowId={notif._id}
+                                                            currentLabel={rowLabels[notif._id]}
+                                                            onSaveLabel={handleSaveRowLabel}
+                                                            labelPopupRef={labelPopupRef}
+                                                            positionClass="-left-4"
+                                                        />
+                                                    )}
+
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                                        {mapping.type}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="p-4.25 text-center">
                                                 <div className="flex flex-col items-center justify-center">
@@ -295,13 +481,21 @@ const Notifications = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4.25 text-center">
-                                                <div className="flex justify-center">
+                                                <div className="flex items-center justify-center gap-4">
                                                     <button 
+                                                        onClick={(e) => handleRedirect(notif, e)}
+                                                        className="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="View Details"
+                                                    >
+                                                        <ExternalLink size={18} />
+                                                    </button>
+                                                    {/* <button 
                                                         onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-red-500 "
+                                                        className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors"
+                                                        title="Delete Notification"
                                                     >
                                                         <Trash2 size={18} />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>
