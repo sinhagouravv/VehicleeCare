@@ -1,21 +1,20 @@
 const Bug = require('../models/Bug');
+const { createAdminNotification } = require('./notificationController');
 
-// Helper: Generate unique 8-char Bug ID (BUG + 5 unique non-zero digits)
+// Helper to generate custom Bug ID (e.g. BUG-1001)
 const generateBugId = async () => {
-    const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    let isUnique = false;
-    let newId = '';
-
-    while (!isUnique) {
-        newId = 'BUG';
-        let tempDigits = [...digits];
-        for (let i = 0; i < 5; i++) {
-            const idx = Math.floor(Math.random() * tempDigits.length);
-            newId += tempDigits[idx];
-            tempDigits.splice(idx, 1);
+    const lastBug = await Bug.findOne().sort({ createdAt: -1 });
+    let nextNum = 1001;
+    if (lastBug && lastBug.bugId) {
+        const match = lastBug.bugId.match(/\d+/);
+        if (match) {
+            nextNum = parseInt(match[0], 10) + 1;
         }
-        const existing = await Bug.findOne({ bugId: newId });
-        if (!existing) isUnique = true;
+    }
+    const newId = `BUG-${nextNum}`;
+    const existing = await Bug.findOne({ bugId: newId });
+    if (existing) {
+        return `BUG-${nextNum + Math.floor(Math.random() * 100) + 1}`;
     }
     return newId;
 };
@@ -40,6 +39,21 @@ exports.reportBug = async (req, res) => {
             title,
             description,
             severity: severity || 'Medium'
+        });
+
+        // Notify Admin of new bug report
+        createAdminNotification({
+            eventType: 'bug_reported',
+            superCategory: 'adminNotification',
+            title: 'New Bug Reported',
+            message: `Bug "${title}" was reported by ${reporterName} (${reporterId}) on ${portal} portal.`,
+            meta: {
+                bugId: bug.bugId || bug._id,
+                mongoBugId: bug._id,
+                reporterId,
+                reporterName,
+                portal
+            }
         });
 
         res.status(201).json({ success: true, data: bug });
