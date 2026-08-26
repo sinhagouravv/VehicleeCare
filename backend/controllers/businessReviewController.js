@@ -1,6 +1,7 @@
 const BusinessReview = require('../models/BusinessReview');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { createAdminNotification } = require('./notificationController');
 
 exports.submitReview = async (req, res) => {
     try {
@@ -28,6 +29,21 @@ exports.submitReview = async (req, res) => {
         }
 
         const newReview = await BusinessReview.create(newReviewData);
+
+        // Notify Admin of new business review
+        createAdminNotification({
+            eventType: 'review_submitted',
+            superCategory: 'adminNotification',
+            title: 'New Business Review Submitted',
+            message: `A new business review "${review ? review.substring(0, 60) + (review.length > 60 ? '...' : '') : ''}" has been submitted by ${name}.`,
+            meta: {
+                reviewId: newReview._id,
+                userName: name,
+                displayUserId: businessUserId || 'GUEST',
+                type: 'business',
+                reviewType: 'Business'
+            }
+        });
 
         res.status(201).json({
             success: true,
