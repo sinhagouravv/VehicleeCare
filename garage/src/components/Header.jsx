@@ -124,7 +124,7 @@ const Header = () => {
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center justify-end transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[17rem]' : 'w-9.5'}`}>
                     <div
-                        className={`absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center cursor-pointer z-10 w-10 h-10 transition-all duration-300 rounded-full ${isExpanded ? 'text-gray-500 hover:text-[#527FB0]' : 'text-[#052558] bg-[#e3efff] hover:bg-gray-50 border border-[#e6f0fa] shadow-[0_2px_8px_rgba(5,37,88,0.06)] scale-100 hover:scale-[1.02]'}`}
+                        className={`absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center cursor-pointer z-10 w-10 h-10 transition-all duration-300 rounded-full ${isExpanded ? 'text-gray-500 hover:text-[#527FB0]' : 'border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 active:scale-95'}`}
                         onClick={() => {
                             if (!isExpanded) {
                                 setIsExpanded(true);
@@ -226,10 +226,10 @@ const Header = () => {
                 {/* Profile Icon */}
                 <div 
                     onClick={() => navigate('/profile')}
-                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-[#052558] to-[#527FB0] shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300"
+                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
                 >
-                    <span className="text-white text-sm font-black tracking-wider">
-                        {garageUser?.name?.charAt(0) || ''}
+                    <span className="text-[#052558] group-hover:text-blue-500 transition-colors text-sm font-bold uppercase tracking-wider">
+                        {garageUser?.name?.charAt(0) || 'G'}
                     </span>
                 </div>
 
