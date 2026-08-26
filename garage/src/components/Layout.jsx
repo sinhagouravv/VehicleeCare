@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import FilterButton from './FilterButton';
+import SortButton from './SortButton';
+import LabelButton from './LabelButton';
 import { Bug, X, Send, Loader2 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 
@@ -80,6 +83,11 @@ const Layout = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Floating Action Buttons & Panels */}
+            <FilterButton />
+            <SortButton />
+            <LabelButton />
 
             <button
                 onClick={() => setIsBugModalOpen(true)}
