@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Download, X, Users, Trash2, Loader2 } from 'lucide-react';
+import { Eye, Download, X, Users, Trash2, Loader2, MessageSquare } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
+import { useFilter } from '../context/FilterContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -15,7 +17,167 @@ const MyBookings = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookingToDelete, setBookingToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    const highlightedRow = useHighlight(bookings);
+
+    // Filter & Sort state
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_my_bookings_row_labels');
+
+    // Register filter options with the floating filter button
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Bookings',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Booking Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Pending', value: 'Pending' },
+                        { label: 'In Progress', value: 'In Progress' },
+                        { label: 'In Service', value: 'In Service' },
+                        { label: 'Completed', value: 'Completed' },
+                        { label: 'Delivered', value: 'Delivered' },
+                        { label: 'Cancelled', value: 'Cancelled' }
+                    ]
+                }
+            ],
+            initialValues: {
+                status: 'all',
+                label: 'all'
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setStatusFilter('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+
+        return () => {
+            setFilterConfig(null);
+            setResultsCount(null);
+        };
+    }, [setFilterConfig, setResultsCount]);
+    const getItemDate = (item) => {
+        if (!item) return null;
+        const fields = [
+            item.createdAt,
+            item.bookingDate,
+            item.date,
+            item.timestamp,
+            item.startDate,
+            item.appliedDate,
+            item.scheduledAt,
+            item.updatedAt
+        ];
+        for (const f of fields) {
+            if (!f) continue;
+            if (f instanceof Date && !isNaN(f.getTime())) return f;
+            if (typeof f === 'number') {
+                const d = new Date(f);
+                if (!isNaN(d.getTime())) return d;
+            }
+            if (typeof f === 'string') {
+                const trimmed = f.trim();
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+                if (ddmmyyyy) {
+                    const day = parseInt(ddmmyyyy[1], 10);
+                    const month = parseInt(ddmmyyyy[2], 10) - 1;
+                    const year = parseInt(ddmmyyyy[3], 10);
+                    const d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+        if (typeof item._id === 'string' && item._id.length === 24 && /^[a-f\d]{24}$/i.test(item._id)) {
+            const timestamp = parseInt(item._id.substring(0, 8), 16) * 1000;
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    };
+
+    const getBookedAtParts = (booking) => {
+        const itemDate = getItemDate(booking);
+        if (!itemDate || isNaN(itemDate.getTime())) {
+            if (booking.schedule?.date) {
+                return { dateStr: booking.schedule.date, timeStr: booking.schedule.time || '' };
+            }
+            return { dateStr: '—', timeStr: '' };
+        }
+        const day = itemDate.toLocaleDateString('en-IN', { day: '2-digit' });
+        const month = itemDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+        const year = itemDate.getFullYear();
+        const time = itemDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase();
+        return {
+            dateStr: `${day} ${month} ${year}`,
+            timeStr: time
+        };
+    };
+
+    const filteredBookings = React.useMemo(() => {
+        const filtered = bookings.filter((b) => {
+            if (statusFilter && statusFilter !== 'all') {
+                const bStatus = (b.status || '').trim().toLowerCase();
+                if (bStatus !== statusFilter.trim().toLowerCase()) return false;
+            }
+            if (timeRange && timeRange !== 'all') {
+                const itemDate = getItemDate(b);
+                if (itemDate) {
+                    const now = new Date();
+                    let cutoff;
+                    if (timeRange === 'week') {
+                        cutoff = new Date();
+                        cutoff.setDate(now.getDate() - 7);
+                    } else if (timeRange === 'month') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    }
+                    if (cutoff) {
+                        cutoff.setHours(0, 0, 0, 0);
+                        if (itemDate < cutoff) return false;
+                    }
+                }
+            }
+            if (labelFilter !== 'all') {
+                const currentLabel = rowLabels[b._id];
+                if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
+            }
+            return true;
+        });
+
+        return filtered.sort((a, b) => {
+            const dateA = getItemDate(a)?.getTime() || 0;
+            const dateB = getItemDate(b)?.getTime() || 0;
+            if (sortOrder === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA;
+        });
+    }, [bookings, statusFilter, labelFilter, rowLabels, sortOrder, timeRange]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredBookings.length);
+        }
+    }, [filteredBookings.length, setResultsCount]);
+
+    const highlightedRow = useHighlight(filteredBookings);
 
     const fetchBookings = useCallback(async (silent = false) => {
         try {
@@ -81,7 +243,7 @@ const MyBookings = () => {
         }
     };
 
-    const formatDate = (dateStr) => {
+    const _formatDate = (dateStr) => {
         if (!dateStr) return '—';
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-IN', {
@@ -212,54 +374,99 @@ const MyBookings = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.75 font-bold text-center w-[8.5%]">Booking ID</th>
-                                <th className="p-4.75 font-bold text-center w-[10%]">Customer</th>
-                                <th className="p-4.75 font-bold text-center w-[10%]">Schedule At</th>
-                                <th className="p-4.75 font-bold text-center w-[38%]">Service & Vehicle</th>
-                                {/* <th className="p-4.75 font-bold text-center w-[7%]">Price</th> */}
-                                <th className="p-4.75 font-bold text-center w-[8.5%]">Payment ID</th>
-                                <th className="p-4.75 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.75 font-bold text-center w-[7%]">Actions</th>
+                                <th className="p-4.75 font-bold text-center w-[9.5%]">Booking ID</th>
+                                <th className="p-4.75 font-bold text-center w-[12%]">Customer</th>
+                                <th className="p-4.75 font-bold text-center w-[9.5%]">Payment ID</th>
+                                <th className="p-4.75 font-bold text-center w-[40%]">Service & Vehicle</th>
+                                <th className="p-4.75 font-bold text-center w-[11%]">Booked At</th>
+                                <th className="p-4.75 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4.75 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
-                            ) : bookings.length === 0 ? (
+                            ) : filteredBookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="p-8 text-center text-sm text-gray-500">No bookings found for this garage.</td>
+                                    <td colSpan="7" className="py-20 text-center text-xs font-bold text-gray-400 tracking-widest uppercase opacity-70">No bookings found for this garage.</td>
                                 </tr>
-                            ) : bookings.map((booking) => {
+                            ) : filteredBookings.map((booking, index) => {
                                 const rowId = booking.bookingId || booking._id;
+                                const { dateStr, timeStr } = getBookedAtParts(booking);
                                 return (
                                     <tr 
                                         key={booking._id} 
                                         id={`row-${rowId}`}
-                                        className={`text-center transition-all duration-1000 ${
-                                            highlightedRow === rowId 
+                                        onClick={() => {
+                                            if (isLabelMode) {
+                                                setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
+                                            }
+                                        }}
+                                        className={`text-center cursor-pointer transition-all duration-1000 ${
+                                            activeLabelRowId === booking._id
+                                                ? 'relative z-40 bg-blue-50/50'
+                                                : highlightedRow === rowId 
                                                 ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' 
                                                 : 'hover:bg-blue-50/30'
                                         }`}
                                     >
-                                    <td className="p-3.25 font-semibold text-[#052558] text-sm truncate text-center">
-                                        {booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center relative">
+                                        <div className="relative flex items-center justify-center w-full">
+                                            {Boolean(rowLabels[booking._id]) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
+                                                    }}
+                                                    className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    title={`Label: ${stripEmoji(rowLabels[booking._id])}`}
+                                                >
+                                                    {renderLabelIcon(rowLabels[booking._id], 16)}
+                                                </button>
+                                            )}
+
+                                            {activeLabelRowId === booking._id && (
+                                                <FloatingLabelSelector 
+                                                    rowId={booking._id}
+                                                    currentLabel={rowLabels[booking._id]}
+                                                    onSaveLabel={handleSaveRowLabel}
+                                                    labelPopupRef={labelPopupRef}
+                                                    topClass={index === 0 ? "top-10" : "-top-10"}
+                                                    positionClass="-left-3"
+                                                />
+                                            )}
+                                            <span className="truncate">{booking.bookingId || booking._id?.substring(0, 8).toUpperCase()}</span>
+                                        </div>
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <div className="font-semibold text-[13px] truncate " title={booking.user?.name}>{booking.user?.name || 'Unknown'}</div>
                                         <div className="text-[11.5px] font-medium text-gray-500 tracking-wide">{booking.user?.userId || ''}</div>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <span className="text-sm font-semibold text-gray-600 flex flex-col items-center">
-                                            <span>{booking.schedule?.date}</span>
-                                        <span className="text-[11.5px] font-medium text-gray-500 flex flex-col items-center">    <span>{booking.schedule?.time}</span></span>
+                                        <span className="font-semibold text-[#052558] text-sm truncate block px-1">
+                                            {booking.payment?.paymentId || '—'}
                                         </span>
                                     </td>
+                                    
                                     <td className="p-3.25 text-center">
                                         <div className="font-semibold text-[#0f172a] text-[13px] uppercase line-clamp-1 leading-snug">
                                             {booking.service?.title}
                                         </div>
                                         <div className="text-[11.5px] font-medium text-slate-500 uppercase mt-1 tracking-wide">
-                                            {booking.vehicle?.make} {booking.vehicle?.model}
+                                            {(() => {
+                                                const make = (booking.vehicle?.make || booking.vehicle?.brand || '').trim();
+                                                const model = (booking.vehicle?.model || booking.vehicle?.modelName || booking.vehicle?.carModel || booking.vehicle?.name || '').trim();
+                                                const hasValidModel = model && model.toUpperCase() !== 'N/A';
+                                                const hasValidMake = make && make.toUpperCase() !== 'N/A';
+
+                                                if (hasValidMake && hasValidModel) {
+                                                    return make.toLowerCase().includes(model.toLowerCase()) ? make : `${make} ${model}`;
+                                                }
+                                                if (hasValidMake) return make;
+                                                if (hasValidModel) return model;
+                                                return 'N/A';
+                                            })()}
                                         </div>
                                     </td>
                                     {/* <td className="p-3.25 text-center w-[3%]">
@@ -267,10 +474,9 @@ const MyBookings = () => {
                                             ₹{booking.payment?.amount || booking.service?.price || '0'}
                                         </span>
                                     </td> */}
-                                    <td className="p-3.25 text-center">
-                                        <span className="font-semibold text-[#052558] text-sm truncate block px-1">
-                                            {booking.payment?.paymentId || '—'}
-                                        </span>
+                                    <td className="p-3.25 font-semibold text-[13px] text-center">
+                                        <div className="text-[#011023]">{dateStr}</div>
+                                        {timeStr && <div className="text-gray-500 mt-0.5 text-xs font-normal">{timeStr}</div>}
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full border border-transparent ${getStatusColor(booking.status)}`}>
@@ -278,7 +484,7 @@ const MyBookings = () => {
                                         </span>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <div className="flex items-center justify-center gap-3.5">
+                                        <div className="flex items-center justify-center gap-4">
                                             <button
                                                 onClick={() => handleViewDetails(booking)}
                                                 className="text-gray-400 hover:text-blue-500 transition-colors"
@@ -292,10 +498,10 @@ const MyBookings = () => {
                                                 <Download size={17} />
                                             </button>
                                             <button
-                                                onClick={() => { setBookingToDelete(booking._id); setIsDeleteModalOpen(true); }}
-                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                onClick={() => handleViewDetails(booking)}
+                                                className="text-gray-400 hover:text-emerald-500 transition-colors"
                                             >
-                                                <Trash2 size={17} />
+                                                <MessageSquare size={17} />
                                             </button>
                                         </div>
                                     </td>
@@ -306,9 +512,8 @@ const MyBookings = () => {
             </div>
         </div>
 
-            {/* View Details Modal */ }
-    {
-        isViewModalOpen && selectedBooking && createPortal(
+            {/* View Details Modal */}
+            {isViewModalOpen && selectedBooking && createPortal(
             <div
                 className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
                 onClick={() => setIsViewModalOpen(false)}
@@ -346,8 +551,8 @@ const MyBookings = () => {
                             <div className="space-y-2 w-full md:w-[24%]">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
                                 <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
-                                    <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
-                                    <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
+                                    <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || selectedBooking.vehicle?.brand || 'N/A'}</span></p>
+                                    <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || selectedBooking.vehicle?.modelName || selectedBooking.vehicle?.carModel || selectedBooking.vehicle?.name || 'N/A'}</span></p>
                                     <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
                                 </div>
                             </div>
@@ -419,8 +624,7 @@ const MyBookings = () => {
                 </div>
             </div>,
             document.body
-        )
-    }
+        )}
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
