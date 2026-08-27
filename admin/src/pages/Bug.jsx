@@ -7,7 +7,7 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
-const Bug = () => {
+const Bug = ({ isModal = false, onClose }) => {
     const [bugs, setBugs] = useState([]);
     const highlightedRow = useHighlight(bugs);
     const [loading, setLoading] = useState(true);
@@ -37,6 +37,7 @@ const Bug = () => {
                         { label: 'All', value: 'all' },
                         { label: 'Open', value: 'Open' },
                         { label: 'Pending', value: 'Pending' },
+                        { label: 'In Progress', value: 'In Progress' },
                         { label: 'Resolved', value: 'Resolved' },
                     ]
                 }
@@ -64,8 +65,6 @@ const Bug = () => {
         });
         return () => setFilterConfig(null);
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
-
-
 
     // Modal states
     const [selectedBug, setSelectedBug] = useState(null);
@@ -201,8 +200,6 @@ const Bug = () => {
         return `${day}, ${time.toLowerCase()}`;
     };
 
-
-
     const filteredBugs = React.useMemo(() => {
         return bugs.filter(b => {
             if (filterStatus !== 'All' && b.status?.toLowerCase() !== filterStatus.toLowerCase()) {
@@ -241,18 +238,20 @@ const Bug = () => {
     }, [filteredBugs.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-4 max-w-[97.5rem] mx-auto flex flex-col ${isModal ? 'h-full overflow-hidden' : 'h-[calc(100vh-9.25rem)]'}`}>
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight flex items-center gap-3">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold uppercase text-[#011023] tracking-tight flex items-center gap-2">
                     Bug Tracker
                 </h1>
-                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {!lastRefreshed ? (
-                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
-                    ) : (
-                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                    )}
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                        {!lastRefreshed ? (
+                            <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                        ) : (
+                            `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -261,16 +260,16 @@ const Bug = () => {
             <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
                     <table className="w-full text-center border-collapse table-fixed">
-                        <thead className="sticky top-0 z-10 shadow-sm">
+                        <thead className="sticky top-0 z-20 shadow-sm bg-[#f0f6ff]">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Bug ID</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Portal</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Reporter</th>
-                                <th className="p-4.5 font-bold text-center w-[35%]">Bug Subject</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Reported At</th>
+                                <th className="p-4 font-bold text-center w-[9.25%]">Bug ID</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Portal</th>
+                                <th className="p-4 font-bold text-center w-[9%]">Reporter</th>
+                                <th className="p-4 font-bold text-center w-[35%]">Bug Subject</th>
+                                <th className="p-4 font-bold text-center w-[15%]">Reported At</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Severity</th> */}
-                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
+                                <th className="p-4 font-bold text-center w-[9%]">Status</th>
+                                <th className="p-4 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
@@ -295,7 +294,7 @@ const Bug = () => {
                                             }}
                                              className={`transition-all duration-1000 border-b border-[#e6f0fa] group ${
                                                  isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-white/50'
-                                             } ${(highlightedRow === rowId || highlightedRow === bug._id || highlightedRow === bug.bugId) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                             } ${(highlightedRow === rowId || highlightedRow === bug._id || highlightedRow === bug.bugId) ? 'bg-emerald-100/60 rounded-2xl relative z-10 scale-[1.01]' : ''}`}
                                         >
                                         <td className="p-4 font-semibold text-[#052558] text-sm text-center relative w-[10%]">
                                             <div className="relative flex items-center justify-center w-full">
@@ -323,10 +322,10 @@ const Bug = () => {
                                                         positionClass="-left-4"
                                                     />
                                                 )}
-                                                <span>{bug.bugId || bug._id.substring(0, 8).toUpperCase()}</span>
+                                                <span>{(bug.bugId || bug._id.substring(0, 8)).replace(/-/g, '').toUpperCase()}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[12%]">
+                                        <td className="p-4 text-center w-[10%]">
                                             <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getPortalColor(bug.portal)}`}>
                                                 {getPortalLabel(bug.portal)}
                                             </span>
@@ -334,7 +333,11 @@ const Bug = () => {
                                         <td className="p-4 text-sm font-semibold text-[#052558] text-center w-[12%]">{bug.reporterId}</td>
                                         <td className="p-4 text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase ">{bug.title}</td>
                                         <td className="p-4 text-center whitespace-nowrap text-sm text-gray-800 font-semibold">
-                                            {new Date(bug.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(bug.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                                            <div className="flex items-center justify-center w-full">
+                                                <span className="flex-1 text-right">{new Date(bug.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                                <span className="px-1.5 text-gray-700">|</span>
+                                                <span className="flex-1 text-left">{new Date(bug.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
+                                            </div>
                                         </td>
                                         {/* <td className="p-4 text-center w-[8%]">
                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getSeverityColor(bug.severity)}`}>
@@ -359,7 +362,10 @@ const Bug = () => {
                                                 </button>
                                                 {bug.status !== 'Resolved' && (
                                                     <button
-                                                        onClick={() => handleUpdateStatus(bug._id, 'Resolved')}
+                                                        onClick={() => {
+                                                            const nextStatus = bug.status === 'In Progress' ? 'Resolved' : 'In Progress';
+                                                            handleUpdateStatus(bug._id, nextStatus);
+                                                        }}
                                                         disabled={updatingId === bug._id}
                                                         className="text-gray-400 hover:text-emerald-500 cursor-pointer disabled:opacity-50"
                                                     >
@@ -411,7 +417,7 @@ const Bug = () => {
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Bug Details</h3>
-                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedBug.bugId}</span></p>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedBug.bugId?.replace(/-/g, '')}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
@@ -424,14 +430,14 @@ const Bug = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
                             {/* Info Grid */}
                             <div className="flex flex-col md:flex-row gap-6 w-full text-left">
-                                <div className="space-y-4 w-full md:w-[37%]">
+                                <div className="space-y-4 w-full md:w-[35%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reporter Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0 font-medium">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBug.reporterName}>{selectedBug.reporterName || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0 font-medium">ID:</span> <span className="font-semibold text-gray-800 truncate">{selectedBug.reporterId || 'N/A'}</span></p>
                                     </div>
                                 </div>
-                                <div className="space-y-4 w-full md:w-[23%]">
+                                <div className="space-y-4 w-full md:w-[25%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Issue Meta</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <div className="text-sm flex items-center"><span className="text-gray-500 w-20 shrink-0 font-medium">Severity</span> <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getSeverityColor(selectedBug.severity)}`}>{selectedBug.severity}</span></div>
@@ -450,10 +456,10 @@ const Bug = () => {
                             {/* Bug Subject & Details */}
                             <div className="space-y-3 text-left"> 
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Bug Subject and Details</h4>
-                                <p className="text-[14px] uppercase font-semibold leading-relaxed">
-                                    <span className="text-[#052558]">{selectedBug.title}</span>
-                                    <span className="text-gray-600 mx-2 font-normal">|</span>
-                                    <span className="text-gray-800">{selectedBug.description}</span>
+                                <p className="text-[14px] uppercase font-semibold text-justify leading-relaxed">
+                                    <span className="text-[#052558] font-semibold">{selectedBug.title}</span>
+                                    <span className="text-gray-700 mx-2 font-semibold">|</span>
+                                    <span className="text-gray-800 font-semibold">{selectedBug.description}</span>
                                 </p>
                             </div>
                         </div>
