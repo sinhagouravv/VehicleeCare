@@ -23,12 +23,14 @@ import Reports from './pages/Reports';
 import Meeting from './pages/Meeting';
 import Finance from './pages/Finance';
 import { AlertProvider } from './context/AlertContext';
+import { FilterProvider } from './context/FilterContext';
 
 const App = () => {
   return (
     <AlertProvider>
       <BrowserRouter>
-        <Routes>
+        <FilterProvider>
+          <Routes>
           <Route path="/login" element={<Login />} />
           
           {/* Protected Dashboard Routes */}
@@ -57,6 +59,7 @@ const App = () => {
             </Route>
           </Route>
         </Routes>
+        </FilterProvider>
       </BrowserRouter>
     </AlertProvider>
   );
