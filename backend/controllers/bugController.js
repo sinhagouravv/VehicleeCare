@@ -1,7 +1,7 @@
 const Bug = require('../models/Bug');
 const { createAdminNotification } = require('./notificationController');
 
-// Helper to generate custom Bug ID (e.g. BUG-1001)
+// Helper to generate custom Bug ID (e.g. BUG1001)
 const generateBugId = async () => {
     const lastBug = await Bug.findOne().sort({ createdAt: -1 });
     let nextNum = 1001;
@@ -11,10 +11,10 @@ const generateBugId = async () => {
             nextNum = parseInt(match[0], 10) + 1;
         }
     }
-    const newId = `BUG-${nextNum}`;
+    const newId = `BUG${nextNum}`;
     const existing = await Bug.findOne({ bugId: newId });
     if (existing) {
-        return `BUG-${nextNum + Math.floor(Math.random() * 100) + 1}`;
+        return `BUG${nextNum + Math.floor(Math.random() * 100) + 1}`;
     }
     return newId;
 };
