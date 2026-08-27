@@ -14,6 +14,7 @@ import Garages from './pages/Garages';
 import ChargingStations from './pages/ChargingStations';
 import Messages from './pages/Messages';
 import Bug from './pages/Bug';
+import Remark from './pages/Remark';
 import Reviews from './pages/Reviews';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
@@ -54,6 +55,7 @@ const App = () => {
           <Route path="garages" element={<Garages />} />
           <Route path="charging-stations" element={<ChargingStations />} />
           <Route path="bug" element={<Bug />} />
+          <Route path="remarks" element={<Remark />} />
           <Route path="messages" element={<Messages />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="notifications" element={<Notifications />} />
