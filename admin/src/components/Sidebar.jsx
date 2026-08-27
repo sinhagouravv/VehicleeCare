@@ -26,7 +26,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         // { name: 'Store', path: '/store', icon: <ShoppingBag size={20} /> },
         { name: 'Stations', path: '/charging-stations', icon: <Zap size={20} /> },
         { name: 'Parking', path: '/parking', icon: <Car size={20} /> },
-        { name: 'Bug', path: '/bug', icon: <Bug size={20} /> },
         { name: 'Messages', path: '/messages', icon: <MessagesSquare size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
