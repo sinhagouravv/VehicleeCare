@@ -359,7 +359,7 @@ const Messages = () => {
                                         <div className="bg-blue-50/30 pt-4 rounded-xl space-y-2 border border-blue-50 uppercase">
                                             <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Date:</span> <span className="font-semibold text-[#011023]">{new Date(selectedMessage.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
                                             <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Time:</span> <span className="font-semibold text-gray-800">{new Date(selectedMessage.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></p>
-                                            <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Type:</span> <span className={`px-2 py-0.5 rounded text-[10px] text-center font-bold uppercase ${selectedMessage.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>{selectedMessage.type || 'website'}</span></p>
+                                            <p className="text-sm flex"><span className="text-gray-500 w-20 shrink-0">Type:</span> <span className={`px-3 py-1 rounded-full text-xs text-center font-semibold uppercase ${selectedMessage.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>{selectedMessage.type || 'website'}</span></p>
                                         </div>
                                     </div>
                                 </div>
