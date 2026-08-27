@@ -442,7 +442,7 @@ const autoAssignMechanic = async (booking) => {
 // @access  Private
 exports.updateBookingStatus = async (req, res) => {
     try {
-        const { status, isPickedUp, isDelivered } = req.body;
+        const { status, isPickedUp, isDelivered, remark, remarks, employeeRemark } = req.body;
         const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
@@ -456,6 +456,9 @@ exports.updateBookingStatus = async (req, res) => {
         if (status) booking.status = status;
         if (isPickedUp !== undefined) booking.isPickedUp = isPickedUp;
         if (isDelivered !== undefined) booking.isDelivered = isDelivered;
+        if (remark !== undefined) booking.remark = remark;
+        if (remarks !== undefined) booking.remarks = remarks;
+        if (employeeRemark !== undefined) booking.employeeRemark = employeeRemark;
 
         await booking.save();
         res.status(200).json({ success: true, data: booking });
