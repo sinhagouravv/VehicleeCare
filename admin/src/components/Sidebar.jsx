@@ -14,7 +14,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { name: 'Analytics', path: '/analytics', icon: <BarChart3 size={20} /> },
-        // { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
+        { name: 'Reports', path: '/reports', icon: <FileBarChart size={20} /> },
         { name: 'Payments', path: '/payments', icon: <CreditCard size={20} /> },
         { name: 'Revenue', path: '/revenue', icon: <Wallet size={20} /> },
         { name: 'Business', path: '/business', icon: <Briefcase size={20} /> },
