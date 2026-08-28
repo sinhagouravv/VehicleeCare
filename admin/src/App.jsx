@@ -24,6 +24,7 @@ import Parking from './pages/Parking';
 import Store from './pages/Store';
 import { Navigate } from 'react-router-dom';
 import { FilterProvider } from './context/FilterContext';
+import { AlertProvider } from './context/AlertContext';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
@@ -34,41 +35,43 @@ const ProtectedRoute = ({ children }) => {
 const App = () => {
   return (
     <BrowserRouter>
-      <FilterProvider>
-        <Routes>
-        <Route path="/login" element={<Login />} />
+      <AlertProvider>
+        <FilterProvider>
+          <Routes>
+          <Route path="/login" element={<Login />} />
 
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="revenue" element={<Revenue />} />
-          <Route path="payments" element={<Payments />} />
-          <Route path="services" element={<Services />} />
-          <Route path="bookings" element={<Bookings />} />
-          <Route path="users" element={<Users />} />
-          <Route path="employees" element={<Employees />} />
-          <Route path="garages" element={<Garages />} />
-          <Route path="charging-stations" element={<ChargingStations />} />
-          <Route path="bug" element={<Bug />} />
-          <Route path="remarks" element={<Remark />} />
-          <Route path="messages" element={<Messages />} />
-          <Route path="reviews" element={<Reviews />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="business" element={<Business />} />
-          <Route path="parking" element={<Parking />} />
-          <Route path="store" element={<Store />} />
-        </Route>
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="revenue" element={<Revenue />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="services" element={<Services />} />
+            <Route path="bookings" element={<Bookings />} />
+            <Route path="users" element={<Users />} />
+            <Route path="employees" element={<Employees />} />
+            <Route path="garages" element={<Garages />} />
+            <Route path="charging-stations" element={<ChargingStations />} />
+            <Route path="bug" element={<Bug />} />
+            <Route path="remarks" element={<Remark />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="reviews" element={<Reviews />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="business" element={<Business />} />
+            <Route path="parking" element={<Parking />} />
+            <Route path="store" element={<Store />} />
+          </Route>
 
-        {/* Catch all redirect to root */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </FilterProvider>
+          {/* Catch all redirect to root */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </FilterProvider>
+    </AlertProvider>
   </BrowserRouter>
   );
 };
