@@ -6,9 +6,11 @@ import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Bookings = () => {
+    const { triggerAlert } = useAlert();
     const [bookings, setBookings] = useState([]);
     const highlightedRow = useHighlight(bookings);
     const [loading, setLoading] = useState(true);
@@ -124,14 +126,15 @@ const Bookings = () => {
             const data = await res.json();
             if (data.success) {
                 setBookings(bookings.filter(b => b._id !== bookingToDelete));
+                triggerAlert("Booking deleted successfully", "success");
                 setIsDeleteModalOpen(false);
                 setBookingToDelete(null);
             } else {
-                alert("Failed to delete booking.");
+                triggerAlert(data.message || "Failed to delete booking.", "error");
             }
         } catch (err) {
             console.error("Error deleting booking:", err);
-            alert("Error deleting booking.");
+            triggerAlert("Error deleting booking.", "error");
         } finally {
             setDeleting(false);
         }
@@ -143,13 +146,11 @@ const Bookings = () => {
             const primaryColor = [5, 37, 88];
             const textColor = [100, 100, 100];
 
-            // Header
             doc.setFontSize(22);
             doc.setTextColor(...primaryColor);
             doc.text("VehicleeCare Invoice", 105, 20, null, null, "center");
 
-            // Info Details
-            const displayInvoiceId = booking.bookingId || booking._id;
+            const displayInvoiceId = booking.bookingId || booking._id?.slice(0, 8).toUpperCase();
             doc.setFontSize(11);
             doc.setTextColor(...textColor);
             doc.text(`Booking ID: ${displayInvoiceId}`, 14, 40);
@@ -219,9 +220,10 @@ const Bookings = () => {
             doc.text("Thank you for using VehicleeCare.", 105, finalY + 60, null, null, "center");
 
             doc.save(`${displayInvoiceId}.pdf`);
+            triggerAlert("Invoice downloaded successfully", "success");
         } catch (err) {
             console.error("Error generating PDF:", err);
-            alert("Error downloading invoice. Please try again.");
+            triggerAlert("Error downloading invoice. Please try again.", "error");
         }
     };
 
