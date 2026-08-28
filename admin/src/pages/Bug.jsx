@@ -5,11 +5,13 @@ import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
-const Bug = ({ isModal = false, onClose }) => {
+const Bug = ({ isModal = false, onClose, highlightId }) => {
+    const { triggerAlert } = useAlert();
     const [bugs, setBugs] = useState([]);
-    const highlightedRow = useHighlight(bugs);
+    const highlightedRow = useHighlight(bugs, highlightId);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
@@ -110,12 +112,13 @@ const Bug = ({ isModal = false, onClose }) => {
                 if (selectedBug && selectedBug._id === id) {
                     setSelectedBug(prev => ({ ...prev, status }));
                 }
+                triggerAlert('Bug status updated successfully', 'success');
             } else {
-                alert(data.message || "Failed to update bug status.");
+                triggerAlert(data.message || "Failed to update bug status.", 'error');
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("Network error. Failed to update status.");
+            triggerAlert("Network error. Failed to update status.", 'error');
         } finally {
             setUpdatingId(null);
         }
@@ -131,14 +134,15 @@ const Bug = ({ isModal = false, onClose }) => {
             const data = await res.json();
             if (data.success) {
                 setBugs(prev => prev.filter(b => b._id !== bugToDelete._id));
+                triggerAlert('Bug report deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setBugToDelete(null);
             } else {
-                alert(data.message || "Failed to delete bug report.");
+                triggerAlert(data.message || "Failed to delete bug report.", 'error');
             }
         } catch (error) {
             console.error("Error deleting bug:", error);
-            alert("Network error. Failed to delete bug.");
+            triggerAlert("Network error. Failed to delete bug.", 'error');
         } finally {
             setDeleting(false);
         }
