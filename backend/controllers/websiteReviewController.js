@@ -1,6 +1,7 @@
 const WebsiteReview = require('../models/WebsiteReview');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { createAdminNotification } = require('./notificationController');
 
 // @desc    Create a new Website Review (Defaults to Pending)
 // @route   POST /api/website-reviews
@@ -33,6 +34,21 @@ exports.createReview = async (req, res) => {
         }
 
         const review = await WebsiteReview.create(newReviewData);
+
+        // Notify Admin of new website review
+        createAdminNotification({
+            eventType: 'review_submitted',
+            superCategory: 'adminNotification',
+            title: 'New Review Submitted',
+            message: `A new review "${text ? text.substring(0, 60) + (text.length > 60 ? '...' : '') : ''}" has been submitted by ${name || 'a customer'}.`,
+            meta: {
+                reviewId: review._id,
+                customReviewId: review.reviewId,
+                userName: name,
+                displayUserId: review.reviewId || 'GUEST',
+                reviewType: type || 'Website'
+            }
+        });
 
         res.status(201).json(review);
     } catch (error) {
