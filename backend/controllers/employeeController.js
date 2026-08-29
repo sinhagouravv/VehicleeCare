@@ -1,5 +1,6 @@
 const Employee = require('../models/Employee');
 const IdCardRequest = require('../models/IdCardRequest');
+const Remark = require('../models/Remark');
 const { generateEmployeeId } = require('../utils/generateId');
 const { createAdminNotification } = require('./notificationController');
 const bcrypt = require('bcryptjs');
@@ -266,10 +267,33 @@ const requestIdCard = async (req, res) => {
 const enrichIdCardRequests = async (requests) => {
     await ensureMeetingIds(requests);
     const garageIds = [...new Set(requests.map(r => r.garageId).filter(Boolean))];
-    const managers = await Employee.find({
-        garageId: { $in: garageIds },
-        role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
-    }).lean();
+    const meetingIds = requests.map(r => r.meetingId || String(r._id));
+    const mongoIds = requests.map(r => String(r._id));
+
+    const [managers, existingRemarks] = await Promise.all([
+        Employee.find({
+            garageId: { $in: garageIds },
+            role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
+        }).lean(),
+        Remark.find({
+            $or: [
+                { referenceId: { $in: meetingIds } },
+                { bookingId: { $in: meetingIds } },
+                { bookingMongoId: { $in: mongoIds } }
+            ]
+        }).lean()
+    ]);
+
+    const remarkMap = {};
+    for (const r of existingRemarks) {
+        const k1 = r.referenceId;
+        const k2 = r.bookingId;
+        const k3 = r.bookingMongoId ? String(r.bookingMongoId) : null;
+        const info = { remark: r.remark, remarkId: r.remarkId };
+        if (k1) remarkMap[k1] = info;
+        if (k2) remarkMap[k2] = info;
+        if (k3) remarkMap[k3] = info;
+    }
 
     const managerMap = {};
     for (const m of managers) {
@@ -280,6 +304,15 @@ const enrichIdCardRequests = async (requests) => {
 
     return requests.map(r => {
         const doc = r.toObject ? r.toObject() : { ...r };
+        const key1 = r.meetingId;
+        const key2 = String(r._id);
+        const info = remarkMap[key1] || remarkMap[key2];
+        if (!doc.employeeRemark && info) {
+            doc.employeeRemark = info.remark;
+        }
+        if (!doc.remarkId && info) {
+            doc.remarkId = info.remarkId;
+        }
         if (!doc.approvedBy && doc.status !== 'Pending' && doc.garageId && managerMap[doc.garageId]) {
             const m = managerMap[doc.garageId];
             doc.approvedBy = m.name;
@@ -320,7 +353,7 @@ const getGarageIdCardRequests = async (req, res) => {
 // @route   PATCH /api/employees/id-card-requests/:id/status
 const updateIdCardRequestStatus = async (req, res) => {
     try {
-        const { status, remarks, employeeId } = req.body;
+        const { status, remarks, employeeId, employeeRemark } = req.body;
         
         // Find request
         const request = await IdCardRequest.findById(req.params.id);
@@ -328,103 +361,111 @@ const updateIdCardRequestStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Request not found' });
         }
 
-        // Verify that the status update is done by a verified Manager or Admin of this garage
-        let garageAdmin = null;
-        if (employeeId) {
-            garageAdmin = await Employee.findOne({ 
-                employeeId: employeeId, 
-                garageId: request.garageId, 
-                role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }, 
-                isVerified: true 
-            });
+        if (employeeRemark !== undefined) {
+            request.employeeRemark = employeeRemark;
+        }
+
+        if (status) {
+            // Verify that the status update is done by a verified Manager or Admin of this garage
+            let garageAdmin = null;
+            if (employeeId) {
+                garageAdmin = await Employee.findOne({ 
+                    employeeId: employeeId, 
+                    garageId: request.garageId, 
+                    role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }, 
+                    isVerified: true 
+                });
+                if (!garageAdmin) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: 'Unauthorized: Invalid Employee ID or you do not have Manager/Admin permissions for this garage.' 
+                    });
+                }
+            } else {
+                // Fallback to finding any verified Manager/Admin in that garage (backward/test compatibility)
+                garageAdmin = await Employee.findOne({ 
+                    garageId: request.garageId, 
+                    role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }, 
+                    isVerified: true 
+                });
+            }
+
             if (!garageAdmin) {
                 return res.status(403).json({ 
                     success: false, 
-                    message: 'Unauthorized: Invalid Employee ID or you do not have Manager/Admin permissions for this garage.' 
+                    message: 'Unauthorized: Only verified Manager/Admin employees of this garage can update request status.' 
                 });
             }
+
+            request.status = status;
+            if (remarks !== undefined) {
+                request.remarks = remarks;
+            }
+
+            if (garageAdmin) {
+                request.approvedBy = garageAdmin.name || '';
+                request.approvedById = garageAdmin.employeeId || garageAdmin._id || '';
+                request.approvedByRole = garageAdmin.role || 'Manager';
+            }
+
+            await request.save();
+
+            // Fire admin notification
+            try {
+                createAdminNotification({
+                    eventType: 'id_card_status_updated',
+                    title: 'Duplicate ID Card Request Status Updated',
+                    message: `Duplicate ID card request for employee ID ${request.employeeId} has been ${status.toLowerCase()}.`,
+                    meta: {
+                        requestId: request._id,
+                        employeeId: request.employeeId,
+                        status: status,
+                        remarks: remarks || ''
+                    }
+                });
+            } catch (notifErr) {
+                console.error('Failed to create admin notification for duplicate ID card status update:', notifErr);
+            }
+
+            // Fire employee notification (type: 'meeting')
+            try {
+                const cleanRemarks = remarks || '';
+                let msg = `Dear Employee, Your request for having a duplicate ID card has been ${status.toLowerCase()}`;
+                if (status === 'Rejected') {
+                    msg += ' at the moment.';
+                } else {
+                    msg += '.';
+                }
+                msg += ' ';
+
+                if (status === 'Approved') {
+                    msg += `Your appointment has been scheduled for ${request.appointmentDate} at ${request.appointmentTime}. Kindly be on time. `;
+                }
+                if (cleanRemarks) {
+                    msg += `Remarks: ${cleanRemarks}`;
+                }
+
+                createAdminNotification({
+                    eventType: 'meeting',
+                    superCategory: 'employees_notification',
+                    title: `Duplicate ID Request ${status}`,
+                    message: msg,
+                    meta: {
+                        requestId: request._id,
+                        employeeId: request.employeeId,
+                        adminEmpId: garageAdmin.employeeId,
+                        adminName: garageAdmin.name,
+                        remarks: cleanRemarks,
+                        status: status,
+                        appointmentDate: request.appointmentDate,
+                        appointmentTime: request.appointmentTime
+                    }
+                });
+            } catch (notifErr) {
+                console.error('Failed to create employee notification for duplicate ID card status update:', notifErr);
+            }
         } else {
-            // Fallback to finding any verified Manager/Admin in that garage (backward/test compatibility)
-            garageAdmin = await Employee.findOne({ 
-                garageId: request.garageId, 
-                role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }, 
-                isVerified: true 
-            });
-        }
-
-        if (!garageAdmin) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Unauthorized: Only verified Manager/Admin employees of this garage can update request status.' 
-            });
-        }
-
-        request.status = status;
-        if (remarks !== undefined) {
-            request.remarks = remarks;
-        }
-
-        if (garageAdmin) {
-            request.approvedBy = garageAdmin.name || '';
-            request.approvedById = garageAdmin.employeeId || garageAdmin._id || '';
-            request.approvedByRole = garageAdmin.role || 'Manager';
-        }
-
-        await request.save();
-
-        // Fire admin notification
-        try {
-            createAdminNotification({
-                eventType: 'id_card_status_updated',
-                title: 'Duplicate ID Card Request Status Updated',
-                message: `Duplicate ID card request for employee ID ${request.employeeId} has been ${status.toLowerCase()}.`,
-                meta: {
-                    requestId: request._id,
-                    employeeId: request.employeeId,
-                    status: status,
-                    remarks: remarks || ''
-                }
-            });
-        } catch (notifErr) {
-            console.error('Failed to create admin notification for duplicate ID card status update:', notifErr);
-        }
-
-        // Fire employee notification (type: 'meeting')
-        try {
-            const cleanRemarks = remarks || '';
-            let msg = `Dear Employee, Your request for having a duplicate ID card has been ${status.toLowerCase()}`;
-            if (status === 'Rejected') {
-                msg += ' at the moment.';
-            } else {
-                msg += '.';
-            }
-            msg += ' ';
-
-            if (status === 'Approved') {
-                msg += `Your appointment has been scheduled for ${request.appointmentDate} at ${request.appointmentTime}. Kindly be on time. `;
-            }
-            if (cleanRemarks) {
-                msg += `Remarks: ${cleanRemarks}`;
-            }
-
-            createAdminNotification({
-                eventType: 'meeting',
-                superCategory: 'employees_notification',
-                title: `Duplicate ID Request ${status}`,
-                message: msg,
-                meta: {
-                    requestId: request._id,
-                    employeeId: request.employeeId,
-                    adminEmpId: garageAdmin.employeeId,
-                    adminName: garageAdmin.name,
-                    remarks: cleanRemarks,
-                    status: status,
-                    appointmentDate: request.appointmentDate,
-                    appointmentTime: request.appointmentTime
-                }
-            });
-        } catch (notifErr) {
-            console.error('Failed to create employee notification for duplicate ID card status update:', notifErr);
+            await request.save();
         }
 
         res.status(200).json({ success: true, data: request });
