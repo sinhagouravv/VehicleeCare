@@ -3,6 +3,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const UserNotification = require('../models/UserNotification');
 const Employee = require('../models/Employee');
+const Remark = require('../models/Remark');
 const { createAdminNotification } = require('./notificationController');
 const { generatePaymentId } = require('../utils/generateId');
 const nodemailer = require('nodemailer');
@@ -502,8 +503,39 @@ exports.getEmployeeBookings = async (req, res) => {
             .sort({ createdAt: -1 })
             .populate('assignedEmployees.technician.id', 'phone');
 
+        const bookingIds = bookings.map(b => b.bookingId || String(b._id));
+        const mongoIds = bookings.map(b => String(b._id));
+
+        const existingRemarks = await Remark.find({
+            $or: [
+                { referenceId: { $in: bookingIds } },
+                { bookingId: { $in: bookingIds } },
+                { bookingMongoId: { $in: mongoIds } }
+            ]
+        }).lean();
+
+        const remarkMap = {};
+        for (const r of existingRemarks) {
+            const k1 = r.referenceId;
+            const k2 = r.bookingId;
+            const k3 = r.bookingMongoId ? String(r.bookingMongoId) : null;
+            const info = { remark: r.remark, remarkId: r.remarkId };
+            if (k1) remarkMap[k1] = info;
+            if (k2) remarkMap[k2] = info;
+            if (k3) remarkMap[k3] = info;
+        }
+
         bookings = bookings.map(b => {
             const booking = b.toObject();
+            const k1 = booking.bookingId;
+            const k2 = String(booking._id);
+            const info = remarkMap[k1] || remarkMap[k2];
+            if (!booking.employeeRemark && info) {
+                booking.employeeRemark = info.remark;
+            }
+            if (!booking.remarkId && info) {
+                booking.remarkId = info.remarkId;
+            }
             if (booking.assignedEmployees?.technician?.id) {
                 booking.assignedEmployees.technician.phone = booking.assignedEmployees.technician.id.phone;
                 booking.assignedEmployees.technician.id = booking.assignedEmployees.technician.id._id;
