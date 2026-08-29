@@ -68,7 +68,10 @@ const BookingSchema = new mongoose.Schema({
     isDelivered: { type: Boolean, default: false },
     serviceDuration: { type: String },
     otp: { type: String },
-    otpExpires: { type: Date }
+    otpExpires: { type: Date },
+    remark: { type: String },
+    remarks: { type: String },
+    employeeRemark: { type: String }
 }, { timestamps: true });
 
 BookingSchema.index({ 'assignedEmployees.technician.id': 1 });
