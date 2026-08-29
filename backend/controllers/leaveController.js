@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const LeaveRequest = require('../models/LeaveRequest');
 const Employee = require('../models/Employee');
 const Notification = require('../models/Notification');
+const Remark = require('../models/Remark');
 
 // Helper: Generate unique 7-char Leave ID (LA + 5 unique non-zero digits)
 const generateLeaveId = async () => {
@@ -127,10 +128,33 @@ exports.requestLeave = async (req, res) => {
 
 const enrichLeaves = async (leaves) => {
     const garageIds = [...new Set(leaves.map(l => l.garageId).filter(Boolean))];
-    const managers = await Employee.find({
-        garageId: { $in: garageIds },
-        role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
-    }).lean();
+    const leaveIds = leaves.map(l => l.leaveId || String(l._id));
+    const mongoIds = leaves.map(l => String(l._id));
+
+    const [managers, existingRemarks] = await Promise.all([
+        Employee.find({
+            garageId: { $in: garageIds },
+            role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
+        }).lean(),
+        Remark.find({
+            $or: [
+                { referenceId: { $in: leaveIds } },
+                { bookingId: { $in: leaveIds } },
+                { bookingMongoId: { $in: mongoIds } }
+            ]
+        }).lean()
+    ]);
+
+    const remarkMap = {};
+    for (const r of existingRemarks) {
+        const k1 = r.referenceId;
+        const k2 = r.bookingId;
+        const k3 = r.bookingMongoId ? String(r.bookingMongoId) : null;
+        const info = { remark: r.remark, remarkId: r.remarkId };
+        if (k1) remarkMap[k1] = info;
+        if (k2) remarkMap[k2] = info;
+        if (k3) remarkMap[k3] = info;
+    }
 
     const managerMap = {};
     for (const m of managers) {
@@ -141,6 +165,15 @@ const enrichLeaves = async (leaves) => {
 
     return leaves.map(l => {
         const doc = l.toObject ? l.toObject() : { ...l };
+        const key1 = l.leaveId;
+        const key2 = String(l._id);
+        const info = remarkMap[key1] || remarkMap[key2];
+        if (!doc.employeeRemark && info) {
+            doc.employeeRemark = info.remark;
+        }
+        if (!doc.remarkId && info) {
+            doc.remarkId = info.remarkId;
+        }
         if (!doc.approvedBy && !doc.actionBy && doc.status !== 'Pending' && doc.garageId && managerMap[doc.garageId]) {
             const m = managerMap[doc.garageId];
             doc.approvedBy = m.name;
