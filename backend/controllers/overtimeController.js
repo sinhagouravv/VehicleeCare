@@ -2,7 +2,30 @@ const mongoose = require('mongoose');
 const OvertimeRequest = require('../models/OvertimeRequest');
 const Employee = require('../models/Employee');
 const Notification = require('../models/Notification');
+const Remark = require('../models/Remark');
 
+
+// Helper: Generate unique 7-char Overtime ID (O + 6 unique non-zero digits)
+const generateOvertimeId = async () => {
+    const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    let isUnique = false;
+    let newId = '';
+
+    while (!isUnique) {
+        newId = 'O';
+        let tempDigits = [...digits];
+        for (let i = 0; i < 6; i++) {
+            const randomIndex = Math.floor(Math.random() * tempDigits.length);
+            newId += tempDigits[randomIndex];
+            tempDigits.splice(randomIndex, 1);
+        }
+        const existing = await OvertimeRequest.findOne({ overtimeId: newId });
+        if (!existing) {
+            isUnique = true;
+        }
+    }
+    return newId;
+};
 
 // @desc    Request overtime
 // @route   POST /api/overtime/request
@@ -35,6 +58,7 @@ exports.requestOvertime = async (req, res) => {
             return d; // already in DD-MM-YYYY or unknown, keep as-is
         };
         const formattedDate = formatToDDMMYYYY(date);
+        const overtimeId = await generateOvertimeId();
 
         const newOvertime = new OvertimeRequest({
             employeeId,
@@ -44,7 +68,8 @@ exports.requestOvertime = async (req, res) => {
             date: formattedDate,
             hours,
             reason,
-            garageId
+            garageId,
+            overtimeId
         });
 
         await newOvertime.save();
@@ -87,13 +112,72 @@ exports.requestOvertime = async (req, res) => {
     }
 };
 
+const enrichOvertimes = async (overtimes) => {
+    const garageIds = [...new Set(overtimes.map(o => o.garageId).filter(Boolean))];
+    const otIds = overtimes.map(o => o.overtimeId || String(o._id));
+    const mongoIds = overtimes.map(o => String(o._id));
+
+    const [managers, existingRemarks] = await Promise.all([
+        Employee.find({
+            garageId: { $in: garageIds },
+            role: { $in: ['Manager', 'Admin', 'manager', 'admin'] }
+        }).lean(),
+        Remark.find({
+            $or: [
+                { referenceId: { $in: otIds } },
+                { bookingId: { $in: otIds } },
+                { bookingMongoId: { $in: mongoIds } }
+            ]
+        }).lean()
+    ]);
+
+    const remarkMap = {};
+    for (const r of existingRemarks) {
+        const k1 = r.referenceId;
+        const k2 = r.bookingId;
+        const k3 = r.bookingMongoId ? String(r.bookingMongoId) : null;
+        const info = { remark: r.remark, remarkId: r.remarkId };
+        if (k1) remarkMap[k1] = info;
+        if (k2) remarkMap[k2] = info;
+        if (k3) remarkMap[k3] = info;
+    }
+
+    const managerMap = {};
+    for (const m of managers) {
+        if (!managerMap[m.garageId]) {
+            managerMap[m.garageId] = m;
+        }
+    }
+
+    return overtimes.map(o => {
+        const doc = o.toObject ? o.toObject() : { ...o };
+        const key1 = o.overtimeId;
+        const key2 = String(o._id);
+        const info = remarkMap[key1] || remarkMap[key2];
+        if (!doc.employeeRemark && info) {
+            doc.employeeRemark = info.remark;
+        }
+        if (!doc.remarkId && info) {
+            doc.remarkId = info.remarkId;
+        }
+        if (!doc.approvedBy && doc.status !== 'Pending' && doc.garageId && managerMap[doc.garageId]) {
+            const m = managerMap[doc.garageId];
+            doc.approvedBy = m.name;
+            doc.approvedById = m.employeeId || m._id;
+            doc.approvedByRole = m.role || 'Manager';
+        }
+        return doc;
+    });
+};
+
 // @desc    Get overtime requests for an employee
 // @route   GET /api/overtime/employee/:employeeId
 exports.getEmployeeOvertimes = async (req, res) => {
     try {
         const { employeeId } = req.params;
         const overtimes = await OvertimeRequest.find({ employeeId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: overtimes });
+        const enriched = await enrichOvertimes(overtimes);
+        res.status(200).json({ success: true, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -105,7 +189,8 @@ exports.getGarageOvertimes = async (req, res) => {
     try {
         const { garageId } = req.params;
         const overtimes = await OvertimeRequest.find({ garageId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: overtimes });
+        const enriched = await enrichOvertimes(overtimes);
+        res.status(200).json({ success: true, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -116,7 +201,8 @@ exports.getGarageOvertimes = async (req, res) => {
 exports.getAllOvertimes = async (req, res) => {
     try {
         const overtimes = await OvertimeRequest.find().sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: overtimes });
+        const enriched = await enrichOvertimes(overtimes);
+        res.status(200).json({ success: true, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -126,20 +212,37 @@ exports.getAllOvertimes = async (req, res) => {
 // @route   PATCH /api/overtime/:id/status
 exports.updateOvertimeStatus = async (req, res) => {
     try {
-        const { status, employeeId, remarks } = req.body;
-        if (!['Approved', 'Rejected'].includes(status)) {
+        const { status, employeeId, remarks, employeeRemark } = req.body;
+        if (status && !['Approved', 'Rejected'].includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
 
-        const updateData = { status };
+        let updateData = {};
+        if (status) updateData.status = status;
         if (remarks) updateData.remarks = remarks;
+        if (employeeRemark !== undefined) updateData.employeeRemark = employeeRemark;
+
+        let approver = null;
+        if (employeeId) {
+            approver = await Employee.findOne({ employeeId: employeeId });
+            if (!approver && mongoose.Types.ObjectId.isValid(employeeId)) {
+                approver = await Employee.findById(employeeId);
+            }
+        }
+        if (approver) {
+            updateData.approvedBy = approver.name;
+            updateData.approvedById = approver.employeeId || approver._id;
+            updateData.approvedByRole = approver.role || 'Manager';
+        }
 
         const overtime = await OvertimeRequest.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!overtime) {
             return res.status(404).json({ success: false, message: 'Overtime request not found' });
         }
 
-        const approver = await Employee.findOne({ employeeId: employeeId });
+        if (!approver && employeeId) {
+            approver = await Employee.findOne({ employeeId: employeeId });
+        }
 
         let message = '';
         if (status === 'Approved') {
