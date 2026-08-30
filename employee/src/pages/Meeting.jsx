@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, Clock, Loader2, AlertCircle, Plus, X, Eye, Trash2, User, FileText, CheckCircle, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, Loader2, AlertCircle, Plus, X, Eye, Trash2, User, FileText, CheckCircle, Check, MessageSquare, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 
 const Meeting = () => {
+    const { triggerAlert } = useAlert();
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -17,6 +19,12 @@ const Meeting = () => {
     const [selectedMeeting, setSelectedMeeting] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Remark Modal States
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkMeeting, setSelectedRemarkMeeting] = useState(null);
+    const [remarkText, setRemarkText] = useState('');
+    const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
 
     // Filter states
     const [purposeFilter, setPurposeFilter] = useState('all');
@@ -178,18 +186,8 @@ const Meeting = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.purpose) {
-            setError("Please select a valid purpose.");
-            return;
-        }
-
-        if (!formData.appointmentDate) {
-            setError("Please select an appointment date.");
-            return;
-        }
-
-        if (!formData.reason.trim()) {
-            setError("Please provide a reason for the meeting request.");
+        if (!formData.purpose || !formData.appointmentDate || !formData.reason || !formData.reason.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
             return;
         }
 
@@ -271,6 +269,84 @@ const Meeting = () => {
     const handleView = (meeting) => {
         setSelectedMeeting(meeting);
         setIsViewModalOpen(true);
+    };
+
+    const handleOpenRemarkModal = (meeting) => {
+        setSelectedRemarkMeeting(meeting);
+        setRemarkText(meeting.employeeRemark || '');
+        setIsRemarkModalOpen(true);
+    };
+
+    const handleRemarkSubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedRemarkMeeting) return;
+        if (!remarkText || !remarkText.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+        setIsSubmittingRemark(true);
+        try {
+            let empName = selectedRemarkMeeting.employeeName || 'Employee';
+            let empId = selectedRemarkMeeting.employeeId || 'EMPLOYEE';
+            let empRole = 'Technician';
+            const storedUser = localStorage.getItem('employeeUser');
+            if (storedUser) {
+                try {
+                    const u = JSON.parse(storedUser);
+                    empName = u.name || u.employeeName || empName;
+                    empId = u.employeeId || u.userId || u._id || empId;
+                    empRole = u.role || empRole;
+                } catch (_) {}
+            }
+
+            const refId = selectedRemarkMeeting.meetingId || selectedRemarkMeeting.requestId || String(selectedRemarkMeeting._id);
+            const targetId = selectedRemarkMeeting.approvedById || selectedRemarkMeeting.actionById || selectedRemarkMeeting.approvedBy || selectedRemarkMeeting.employeeId || '—';
+            const targetRole = selectedRemarkMeeting.status === 'Pending' 
+                ? 'Manager' 
+                : (selectedRemarkMeeting.approvedByRole || selectedRemarkMeeting.actionByRole || 'Manager');
+
+            // Post new Remark to backend (/api/remarks)
+            const remarkRes = await fetch('http://localhost:5001/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referenceId: refId,
+                    bookingId: refId,
+                    bookingMongoId: selectedRemarkMeeting._id,
+                    reporterId: empId,
+                    reporterName: empName,
+                    remarkerRole: empRole,
+                    remarkedRole: targetRole,
+                    role: targetRole,
+                    customerDetails: targetId,
+                    remark: remarkText,
+                    status: selectedRemarkMeeting.status || 'Pending'
+                })
+            });
+            const remarkData = await remarkRes.json();
+            const createdRemarkId = remarkData.data?.remarkId;
+
+            const res = await fetch(`http://localhost:5001/api/employees/id-card-requests/${selectedRemarkMeeting._id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ remark: remarkText, remarks: remarkText, employeeRemark: remarkText })
+            });
+            const data = await res.json();
+            if (data.success) {
+                fetchMeetings(true);
+            } else {
+                setMeetings(prev => prev.map(m => m._id === selectedRemarkMeeting._id ? { ...m, remark: remarkText, remarks: remarkText, employeeRemark: remarkText, remarkId: createdRemarkId } : m));
+            }
+            triggerAlert('Remark submitted successfully!', 'success');
+        } catch (err) {
+            console.error('[Meeting] Error submitting remark:', err);
+            triggerAlert('Failed to submit remark.', 'error');
+        } finally {
+            setIsSubmittingRemark(false);
+            setIsRemarkModalOpen(false);
+            setSelectedRemarkMeeting(null);
+            setRemarkText('');
+        }
     };
 
     const getStatusStyle = (status) => {
@@ -374,10 +450,12 @@ const Meeting = () => {
                     <button
                         onClick={handleOpenModal}
                         disabled={!!pendingMeeting}
-                        className={`flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r ${pendingMeeting ? 'from-gray-400 to-gray-500 opacity-75 cursor-not-allowed' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase text-xs`}
+                        className={`px-12 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                            pendingMeeting ? 'opacity-70 cursor-not-allowed' : ''
+                        }`}
                     >
-                        <Plus size={18} />
-                        Apply Meeting
+                        <Plus size={16} />
+                        APPLY MEETING
                     </button>
 
                     {pendingMeeting && (
@@ -394,13 +472,14 @@ const Meeting = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold text-center w-[16%]">Appointment Date</th>
-                                <th className="p-4.5 font-bold text-center w-[8.5%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Purpose</th>
-                                <th className="p-4.5 font-bold text-center w-[37%]">Reason</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">Date Applied</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Meeting ID</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Appointment Date</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
+                                {/* <th className="p-4.5 font-bold text-center w-[7%]">Purpose</th> */}
+                                <th className="p-4.5 font-bold text-center w-[32%]">Reason</th>
+                                <th className="p-4.5 font-bold text-center w-[13.5%]">Date Applied</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7.5%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
@@ -419,6 +498,9 @@ const Meeting = () => {
                                         id={`row-${meeting._id}`}
                                         className={`text-center transition-all duration-1000 ${highlightedRow === meeting._id ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                     >
+                                        <td className="p-4 font-semibold text-[#011023] text-sm text-center uppercase whitespace-nowrap">
+                                            {meeting.meetingId || '—'}
+                                        </td>
                                         <td className="p-4 font-semibold text-[#052558] text-sm text-center whitespace-nowrap">
                                             <span>{formatDate(meeting.appointmentDate)}</span>
                                             {meeting.appointmentTime && (
@@ -433,9 +515,9 @@ const Meeting = () => {
                                         <td className="p-4 font-semibold text-[#011023] text-sm text-center">
                                             ID Card
                                         </td>
-                                        <td className="p-4 font-semibold text-[#011023] text-sm text-center">
+                                        {/* <td className="p-4 font-semibold text-[#011023] text-sm text-center">
                                             {meeting.purpose || '—'}
-                                        </td>
+                                        </td> */}
                                         <td className="p-4 text-center text-[#011023] font-semibold max-w-xs text-sm truncate">
                                             {meeting.reason}
                                         </td>
@@ -472,22 +554,22 @@ const Meeting = () => {
                                                 >
                                                     <Eye size={18} />
                                                 </button>
-                                                {meeting.status === 'Approved' && (
-                                                    <button
-                                                        type="button"
-                                                        className="text-gray-400 hover:text-emerald-600 cursor-pointer"
-                                                        title={meeting.remarks || "Remarks"}
-                                                    >
-                                                        <MessageSquare size={18} />
-                                                    </button>
-                                                )}
-                                                {meeting.status !== 'Approved' && (
+                                                {meeting.status === 'Pending' ? (
                                                     <button 
                                                         onClick={() => openDeleteModal(meeting)}
                                                         className="text-gray-400 hover:text-red-500 cursor-pointer"
                                                         title="Delete"
                                                     >
                                                         <Trash2 size={18} />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenRemarkModal(meeting)}
+                                                        className="text-gray-400 hover:text-emerald-600 cursor-pointer"
+                                                        title={meeting.remarks || "Remarks"}
+                                                    >
+                                                        <MessageSquare size={18} />
                                                     </button>
                                                 )}
                                             </div>
@@ -504,134 +586,117 @@ const Meeting = () => {
             {showModal && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Apply for Meeting</h2>
-                                </div>
-                            </div>
-                            <button onClick={() => setShowModal(false)} className="p-2 rounded-full transition-colors text-gray-400 hover:text-gray-700 cursor-pointer">
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Apply for Meeting
+                            </h3>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
 
                         {/* Body */}
-                        <form onSubmit={handleSubmit}>
-                            <div className="p-6 space-y-6 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar">
+                        <form onSubmit={handleSubmit} className="space-y-4 uppercase text-left">
+                            <div className="space-y-4 overflow-y-auto max-h-[70vh] hide-scrollbar">
                                 {error && (
-                                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                                    <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 font-bold">
                                         <AlertCircle size={16} />
                                         {error}
                                     </div>
                                 )}
                                 {success && (
-                                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
+                                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2 font-bold">
                                         <CheckCircle size={16} />
                                         {success}
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Request Type</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Request Type</label>
                                         <input
                                             type="text"
                                             value="ID Card Duplicate"
                                             disabled
-                                            className="w-full uppercase px-4 font-semibold text-xs py-2.75 bg-gray-100/70 border border-gray-200 rounded-xl text-gray-700 outline-none"
+                                            className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-600 outline-none"
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Purpose</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Purpose</label>
                                         <select
-                                            className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                            className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
                                             value={formData.purpose}
                                             onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                                            required
                                         >
-                                            <option value="">Select Purpose</option>
+                                            <option value=""></option>
                                             <option value="Lost">Lost</option>
                                             <option value="Damaged">Damaged</option>
                                             <option value="Stolen">Stolen</option>
                                         </select>
                                     </div>
+                                </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                             Appointment Date
                                         </label>
                                         <input
                                             type="date"
-                                            className="w-full uppercase px-4 font-bold text-[#011023] text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-blue-200/50 shadow-sm"
+                                            className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
                                             value={formData.appointmentDate}
                                             onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
-                                            required
                                         />
                                     </div>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                             Appointment Time
                                         </label>
                                         <div className="relative group">
                                             <input
                                                 type="time"
-                                                className="w-full uppercase pl-4 pr-10 font-bold text-[#011023] text-xs py-2.75 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-blue-200/50 shadow-sm appearance-none"
+                                                className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none"
                                                 value={formData.appointmentTime}
                                                 onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                                                required
                                             />
                                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#527FB0] opacity-60">
                                                 {parseInt(formData.appointmentTime?.split(':')[0]) >= 12 ? 'PM' : 'AM'}
                                             </span>
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Employee ID</label>
-                                        <input
-                                            type="text"
-                                            value={empId || ''}
-                                            disabled
-                                            className="w-full uppercase px-4 font-semibold text-xs py-2.75 bg-gray-100/70 border border-gray-200 rounded-xl text-gray-700 outline-none"
-                                        />
-                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Reason for Request</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Reason for Request</label>
                                     <textarea
-                                        className="w-full uppercase px-4 font-semibold text-xs py-3 bg-white/50 border border-white/60 rounded-xl transition-all outline-none h-24 resize-none"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] h-24 resize-none"
                                         value={formData.reason}
                                         onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                        placeholder="Kindly describe the reason for your meeting request..."
-                                        required
                                     />
                                 </div>
                             </div>
 
-                            {/* Footer */}
-                            <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all uppercase cursor-pointer"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#011023] to-[#052558] hover:opacity-95 rounded-xl transition-all shadow-lg shadow-blue-900/10 disabled:opacity-50 flex items-center gap-2 uppercase cursor-pointer"
-                                >
-                                    {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Submit Request'}
-                                </button>
-                            </div>
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="w-full py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> SUBMITTING...
+                                    </>
+                                ) : (
+                                    'SUBMIT REQUEST'
+                                )}
+                            </button>
                         </form>
                     </div>
                 </div>,
@@ -652,8 +717,8 @@ const Meeting = () => {
                         <div className="p-6 flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Meeting Details</h3>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-sm text-gray-500">Employee ID: <span className="font-semibold text-gray-700">{selectedMeeting.employeeId}</span></p>
+                                <div className="flex items-center gap-3 mt-0.5">
+                                    <p className="text-sm uppercase text-gray-500">Meeting ID: <span className="text-[#011023] font-semibold">{selectedMeeting.meetingId || '—'}</span></p>
                                 </div>
                             </div>
                             <button
@@ -672,7 +737,7 @@ const Meeting = () => {
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-left">Type</p>
                                     <p className="text-sm font-semibold text-[#011023] uppercase text-left truncate">ID Card</p>
                                 </div>
-                                <div className="w-[20%]">
+                                <div className="w-[18%]">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-left">Purpose</p>
                                     <p className="text-sm font-semibold text-gray-800 uppercase text-left">{selectedMeeting.purpose || '—'}</p>
                                 </div>
@@ -682,16 +747,16 @@ const Meeting = () => {
                                         {formatDate(selectedMeeting.createdAt)} <span className="text-gray-400 mx-1">|</span> {formatAppliedTime(selectedMeeting.createdAt)}
                                     </p>
                                 </div>
-                                <div className="w-[18%] text-center border-x border-blue-100/30 pl-5 text-left">
+                                <div className="w-[18%] text-center pl-5 text-left">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-3">Time Slot</p>
                                     <p className="text-sm font-bold text-gray-700 uppercase">
                                         {selectedMeeting.appointmentTime || '—'}
                                     </p>
                                 </div>
-                                <div className="w-[12%] text-left pl-3">
+                                <div className="w-[15%] text-left pl-3">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-2">Status</p>
                                     <div className="flex">
-                                        <span className={`px-3 py-1.5 text-[10px] font-bold rounded-lg uppercase tracking-widest border ${getStatusStyle(selectedMeeting.status)}`}>
+                                        <span className={`px-2.5 py-1.25 text-[11px] font-semibold rounded-full uppercase tracking-widest border ${getStatusStyle(selectedMeeting.status)}`}>
                                             {selectedMeeting.status}
                                         </span>
                                     </div>
@@ -701,7 +766,7 @@ const Meeting = () => {
                             {/* Scheduled Appointment Timing */}
                             <div className="space-y-2 mb-7 text-left">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Appointment Timing</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div className="pt-2">
                                     <p className="text-sm font-semibold text-[#052558] uppercase">
                                         {selectedMeeting.appointmentDate ? `${formatDate(selectedMeeting.appointmentDate)} at ${selectedMeeting.appointmentTime || '10:00 AM'}` : 'Not scheduled yet'}
                                     </p>
@@ -709,9 +774,9 @@ const Meeting = () => {
                             </div>
 
                             {/* Reason for Request */}
-                            <div className="space-y-2 text-left">
+                            <div className="space-y-2 mb-7 text-left">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Request</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm uppercase border border-gray-100">
+                                <div className="pt-2 uppercase">
                                     <h5 className="font-semibold text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedMeeting.reason}</h5>
                                 </div>
                             </div>
@@ -719,8 +784,8 @@ const Meeting = () => {
                             {/* Remarks */}
                             {selectedMeeting.remarks && (
                                 <div className="space-y-2 text-left">
-                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks / Review Details</h4>
-                                    <div className="bg-white p-4 rounded-xl shadow-sm uppercase border border-gray-100">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks by Authority</h4>
+                                    <div className="pt-2 uppercase">
                                         <h5 className="font-semibold text-gray-700 text-[14px] leading-relaxed whitespace-pre-wrap">{selectedMeeting.remarks}</h5>
                                     </div>
                                 </div>
@@ -763,6 +828,115 @@ const Meeting = () => {
                                 {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Remark Modal */}
+            {isRemarkModalOpen && selectedRemarkMeeting && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkMeeting(null); setRemarkText(''); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <div className="flex flex-col items-start text-left">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                    Meeting Remark
+                                </h3>
+                                {selectedRemarkMeeting.remarkId && (
+                                    <p className="flex items-center text-sm uppercase gap-2 mt-0.5">
+                                        ID: <span className="text-sm font-semibold text-gray-700 uppercase">{selectedRemarkMeeting.remarkId}</span>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkMeeting(null); setRemarkText(''); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Meeting Info Header Details */}
+                        <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex flex-col items-start justify-center text-left">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Meeting ID</p>
+                                <p className="text-sm font-semibold text-[#011023] uppercase">{selectedRemarkMeeting.meetingId || selectedRemarkMeeting._id}</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Role</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    {selectedRemarkMeeting.status === 'Pending' ? '—' : (
+                                        selectedRemarkMeeting.approvedByRole || 
+                                        selectedRemarkMeeting.actionByRole || 
+                                        selectedRemarkMeeting.approverRole || 
+                                        selectedRemarkMeeting.reviewerRole || 
+                                        'Manager'
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Details</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    {selectedRemarkMeeting.status === 'Pending' ? '—' : (
+                                        selectedRemarkMeeting.approvedById || 
+                                        selectedRemarkMeeting.actionById || 
+                                        selectedRemarkMeeting.approvedBy || 
+                                        selectedRemarkMeeting.actionBy || 
+                                        '—'
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-end justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase mr-4.5 tracking-wider mb-1">Status</p>
+                                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedRemarkMeeting.status)}`}>
+                                    {selectedRemarkMeeting.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Remark Textarea Form */}
+                        {(() => {
+                            const hasExistingRemark = Boolean(selectedRemarkMeeting.employeeRemark);
+                            return (
+                                <form onSubmit={handleRemarkSubmit} className="space-y-4.5 text-left">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Remark</label>
+                                        <textarea
+                                            rows="4"
+                                            disabled={hasExistingRemark}
+                                            value={remarkText}
+                                            onChange={(e) => setRemarkText(e.target.value)}
+                                            className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold text-sm text-[#011023] resize-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingRemark || hasExistingRemark}
+                                        className={`w-full py-2 border rounded-xl text-sm font-bold uppercase tracking-wider transition-all shadow-sm mt-4 flex items-center justify-center gap-2 ${
+                                            hasExistingRemark 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isSubmittingRemark ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> Submitting REMARK...
+                                            </>
+                                        ) : hasExistingRemark ? (
+                                            <>
+                                                <Check size={14} /> REMARK SUBMITTED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send size={14} /> Submit REMARK
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>,
                 document.body
