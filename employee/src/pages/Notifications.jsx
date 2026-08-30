@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Bell, Loader2, Trash2, Star, ExternalLink, Tag, X, Flame, Zap, Pin, AlertTriangle, CircleAlert, CheckCircle2, AlertOctagon, Search } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const EVENT_MAPPING = {
@@ -11,10 +12,14 @@ const EVENT_MAPPING = {
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
     overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
     meeting: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    review: { type: 'Review', category: 'Remark', color: 'bg-indigo-100 text-indigo-700', typeColor: 'bg-indigo-100 text-indigo-700 border border-indigo-200' },
+    reminder: { type: 'Reminder', category: 'General', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
+    warning: { type: 'Warning', category: 'General', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
 };
 
 const Notifications = () => {
     const navigate = useNavigate();
+    const { triggerAlert } = useAlert();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]); 
     const [employees, setEmployees] = useState([]);
@@ -61,6 +66,7 @@ const Notifications = () => {
                         { label: 'Read Only', value: 'read' },
                     ]
                 },
+                LABEL_FILTER_GROUP,
                 {
                     id: 'type',
                     label: 'Type / Category',
@@ -71,9 +77,11 @@ const Notifications = () => {
                         { label: 'Leave', value: 'leave' },
                         { label: 'Overtime', value: 'overtime' },
                         { label: 'Meeting', value: 'meeting' },
+                        { label: 'Review', value: 'review' },
+                        { label: 'Reminder', value: 'reminder' },
+                        { label: 'Warning', value: 'warning' },
                     ]
-                },
-                LABEL_FILTER_GROUP
+                }
             ],
             initialValues: {
                 status: 'all',
@@ -137,28 +145,40 @@ const Notifications = () => {
             
             // Filter notifications for this employee ONLY
             const employeeNotifs = allNotifs.filter(n => {
-                if (n.superCategory === 'garageNotification') return false;
+                if (n.superCategory === 'garageNotification' || n.superCategory === 'adminNotification' || n.superCategory === 'admin_notification') return false;
 
-                if (n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting') {
-                    const user = JSON.parse(storedUser || '{}');
-                    const isTargetEmp = n.meta?.employeeId === empId || n.meta?.employeeId === user.employeeId || n.meta?.employeeId === user.id || n.meta?.employeeId === user._id;
-                    return isTargetEmp && (n.superCategory === 'employees_notification' || n.meta?.status);
+                const user = JSON.parse(storedUser || '{}');
+                const userEmpId = user.employeeId || user.id || user._id;
+
+                if (n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting' || n.eventType === 'review' || n.eventType === 'remark' || n.eventType === 'reminder' || n.eventType === 'warning') {
+                    const isTargetEmp = 
+                        !n.meta?.employeeId ||
+                        String(n.meta?.employeeId) === String(empId) ||
+                        String(n.meta?.employeeId) === String(userEmpId) ||
+                        String(n.meta?.employeeId) === String(user.employeeId) ||
+                        String(n.meta?.employeeId) === String(user.id) ||
+                        String(n.meta?.employeeId) === String(user._id) ||
+                        String(n.meta?.reporterId) === String(empId) ||
+                        String(n.meta?.reporterId) === String(userEmpId);
+                    return isTargetEmp && (n.superCategory === 'employees_notification' || n.meta?.status || n.eventType === 'review' || n.eventType === 'reminder' || n.eventType === 'warning');
                 }
 
-                if (n.eventType !== 'booking_created') return false;
-                
-                const assignment = n.meta?.assignedEmployees;
-                if (!assignment) return false;
+                if (n.eventType === 'booking_created') {
+                    const assignment = n.meta?.assignedEmployees;
+                    if (!assignment) return false;
 
-                const isAssigned = 
-                    assignment.technician?.id === empId ||
-                    assignment.technician?.employeeId === empId ||
-                    assignment.support?.id === empId ||
-                    assignment.support?.employeeId === empId ||
-                    assignment.mechanic?.id === empId ||
-                    assignment.mechanic?.employeeId === empId;
-                
-                return isAssigned;
+                    const isAssigned = 
+                        assignment.technician?.id === empId ||
+                        assignment.technician?.employeeId === empId ||
+                        assignment.support?.id === empId ||
+                        assignment.support?.employeeId === empId ||
+                        assignment.mechanic?.id === empId ||
+                        assignment.mechanic?.employeeId === empId;
+                    
+                    return isAssigned;
+                }
+
+                return n.superCategory === 'employees_notification';
             });
 
             setNotifications(employeeNotifs);
@@ -239,6 +259,8 @@ const Notifications = () => {
             navigate('/meeting', { state: { highlightId: meetingId } });
         } else if (notif.eventType === 'booking_created' || notif.eventType === 'booking') {
             navigate('/tasks', { state: { highlightId: notif.meta?.bookingId } });
+        } else {
+            triggerAlert('No destination link available for this notification.', 'error');
         }
     };
 
@@ -436,12 +458,12 @@ const Notifications = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold w-[11%]">Type</th>
-                                <th className="p-4.5 font-bold w-[10%]">Sent By</th>
-                                <th className="p-4.5 font-bold w-[55%]">Notification Details</th>
-                                <th className="p-4.5 font-bold w-[10%]">Received On</th>
+                                <th className="p-4.5 font-bold w-[11%] ">Type</th>
+                                <th className="p-4.5 font-bold w-[9%]">Sent By</th>
+                                <th className="p-4.5 font-bold w-[57%]">Notification Details</th>
+                                <th className="p-4.5 font-bold w-[11%]">Received On</th>
                                 <th className="p-4.5 font-bold w-[6.5%]">Status</th>
-                                <th className="p-4.5 font-bold w-[6.5%]">Action</th>
+                                <th className="p-4.5 font-bold w-[5%]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -485,7 +507,7 @@ const Notifications = () => {
                                                                 e.stopPropagation();
                                                                 setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
                                                             }}
-                                                            className="absolute -left-2 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                            className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
                                                             title={`Label: ${stripEmoji(rowLabels[notif._id])} (Click to change)`}
                                                         >
                                                             {renderLabelIcon(rowLabels[notif._id], 16)}
@@ -513,9 +535,11 @@ const Notifications = () => {
                                                     <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
                                                         {getSenderName(notif)}
                                                     </span>
-                                                    <span className="text-[11px] font-semibold uppercase tracking-tight text-slate-700">
-                                                        {getDisplayUserId(notif)}
-                                                    </span>
+                                                    {getDisplayUserId(notif) && getDisplayUserId(notif) !== 'SYSTEM' && getSenderName(notif) !== 'ADMINISTRATOR' && (
+                                                        <span className="text-[11px] font-semibold uppercase tracking-tight text-slate-700">
+                                                            {getDisplayUserId(notif)}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td 
@@ -562,20 +586,6 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.25">
                                                 <div className="flex items-center justify-center gap-4">
-                                                    <button 
-                                                        onClick={(e) => handleToggleStar(notif._id, e)}
-                                                        className=" cursor-pointer"
-                                                    >
-                                                        <Star 
-                                                            size={18} 
-                                                            className={`transition-all duration-150 active:scale-125 ${
-                                                                notif.isStarred 
-                                                                    ? 'fill-amber-400 text-amber-400' 
-                                                                    : 'text-gray-400 hover:text-amber-400'
-                                                            }`} 
-                                                        />
-                                                    </button>
-
                                                     <button 
                                                         onClick={(e) => handleRedirect(notif, e)}
                                                         className="cursor-pointer text-gray-400 hover:text-blue-600"
