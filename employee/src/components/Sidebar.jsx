@@ -26,7 +26,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         { name: 'Leave', path: '/leave', icon: <CalendarDays size={20} /> },
         { name: 'Overtime', path: '/overtime', icon: <Clock size={20} /> },
         { name: 'Meeting', path: '/meeting', icon: <MessageCircleMore size={20} /> },
-        { name: 'Upload Documents', path: '/upload-documents', icon: <UploadCloud size={20} /> },
         // { name: 'Virtual ID Card', path: '/virtual-id-card', icon: <Contact size={20} /> },
         { name: 'Reviews', path: '/reviews', icon: <Star size={20} /> },
         { name: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
