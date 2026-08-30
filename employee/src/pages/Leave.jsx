@@ -1,25 +1,33 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText } from 'lucide-react';
+import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText, Check, MessageSquare, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Leave = () => {
+    const { triggerAlert } = useAlert();
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
+    const [_error, setError] = useState(null);
+    const [_success, setSuccess] = useState(null);
     const [leaves, setLeaves] = useState([]);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [_lastRefreshed, setLastRefreshed] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState(null);
     const [parentLeaveId, setParentLeaveId] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Remark Modal States
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkLeave, setSelectedRemarkLeave] = useState(null);
+    const [remarkText, setRemarkText] = useState('');
+    const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
     
     // Filter states
     const [statusFilter, setStatusFilter] = useState('all');
@@ -101,7 +109,7 @@ const Leave = () => {
     const highlightedRow = useHighlight(leaves);
 
     const pendingLeave = leaves.find(l => l.status === 'Pending');
-    const approvedLeave = leaves.find(l => l.status === 'Approved');
+    const _approvedLeave = leaves.find(l => l.status === 'Approved');
 
     const [formData, setFormData] = useState({
         type: '',
@@ -178,7 +186,18 @@ const Leave = () => {
         if (!endDateStr) return false;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const endDate = new Date(endDateStr);
+        let endDate;
+        if (typeof endDateStr === 'string' && endDateStr.includes('-') && !endDateStr.includes('T')) {
+            const parts = endDateStr.split('-');
+            if (parts[0].length === 4) {
+                endDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            } else {
+                endDate = new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+        } else {
+            endDate = new Date(endDateStr);
+        }
+        if (isNaN(endDate.getTime())) return false;
         endDate.setHours(0, 0, 0, 0);
         return today > endDate;
     };
@@ -207,9 +226,14 @@ const Leave = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!formData.type || !formData.leaveTime || !formData.startDate || !formData.endDate || !formData.reason || !formData.reason.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+
         const words = formData.reason.trim().split(/\s+/).filter(word => word.length > 0);
         if (words.length < 10) {
-            setError("Reason must be at least 10 words long.");
+            triggerAlert('Reason must be at least 10 words long.', 'error');
             return;
         }
 
@@ -226,7 +250,7 @@ const Leave = () => {
                     employeeName: storedUser.name,
                     employeePhone: storedUser.phone,
                     employeeEmail: storedUser.email,
-                    garageId: storedUser.garageId,
+                    garageId: storedUser.garageId || storedUser.garage_id || storedUser.garage || '',
                     parentLeaveId,
                     ...formData
                 })
@@ -252,7 +276,7 @@ const Leave = () => {
             } else {
                 setError(data.message || "Failed to submit request.");
             }
-        } catch (err) {
+        } catch {
             setError("Connection error. Please try again.");
         } finally {
             setSubmitting(false);
@@ -296,9 +320,86 @@ const Leave = () => {
         setShowModal(true);
     };
 
-    const openDeleteModal = (leave) => {
+    const handleOpenDeleteModal = (leave) => {
         setSelectedLeave(leave);
         setIsDeleteModalOpen(true);
+    };
+
+    const handleOpenRemarkModal = (leave) => {
+        setSelectedRemarkLeave(leave);
+        setRemarkText(leave.employeeRemark || '');
+        setIsRemarkModalOpen(true);
+    };
+
+    const handleRemarkSubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedRemarkLeave) return;
+        if (!remarkText || !remarkText.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+        setIsSubmittingRemark(true);
+        try {
+            let empName = selectedRemarkLeave.employeeName || 'Employee';
+            let empId = selectedRemarkLeave.employeeId || 'EMPLOYEE';
+            let empRole = 'Technician';
+            const storedUser = localStorage.getItem('employeeUser');
+            if (storedUser) {
+                try {
+                    const u = JSON.parse(storedUser);
+                    empName = u.name || u.employeeName || empName;
+                    empId = u.employeeId || u.userId || u._id || empId;
+                    empRole = u.role || empRole;
+                } catch (_) {}
+            }
+
+            const refId = selectedRemarkLeave.leaveId || String(selectedRemarkLeave._id);
+            const targetId = selectedRemarkLeave.approvedById || selectedRemarkLeave.actionById || selectedRemarkLeave.approvedBy || selectedRemarkLeave.actionBy || selectedRemarkLeave.employeeId || '—';
+            const targetRole = selectedRemarkLeave.status === 'Pending' 
+                ? 'Manager' 
+                : (selectedRemarkLeave.approvedByRole || selectedRemarkLeave.actionByRole || selectedRemarkLeave.approverRole || selectedRemarkLeave.reviewerRole || 'Manager');
+
+            const remarkRes = await fetch('http://localhost:5001/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referenceId: refId,
+                    bookingId: refId,
+                    bookingMongoId: selectedRemarkLeave._id,
+                    reporterId: empId,
+                    reporterName: empName,
+                    remarkerRole: empRole,
+                    remarkedRole: targetRole,
+                    role: targetRole,
+                    customerDetails: targetId,
+                    remark: remarkText,
+                    status: selectedRemarkLeave.status || 'Pending'
+                })
+            });
+            const remarkData = await remarkRes.json();
+            const createdRemarkId = remarkData.data?.remarkId;
+
+            const res = await fetch(`http://localhost:5001/api/leaves/${selectedRemarkLeave._id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeRemark: remarkText })
+            });
+            const data = await res.json();
+            if (data.success) {
+                fetchLeaves(true);
+            } else {
+                setLeaves(prev => prev.map(l => l._id === selectedRemarkLeave._id ? { ...l, employeeRemark: remarkText, remarkId: createdRemarkId } : l));
+            }
+            triggerAlert('Remark submitted successfully!', 'success');
+        } catch (err) {
+            console.error('[Leave] Error submitting remark:', err);
+            triggerAlert('Failed to submit remark.', 'error');
+        } finally {
+            setIsSubmittingRemark(false);
+            setIsRemarkModalOpen(false);
+            setSelectedRemarkLeave(null);
+            setRemarkText('');
+        }
     };
 
     const confirmDelete = async () => {
@@ -354,7 +455,7 @@ const Leave = () => {
             }
             if (typeof f === 'string') {
                 const trimmed = f.trim();
-                const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                const ddmmyyyy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
                 if (ddmmyyyy) {
                     const day = parseInt(ddmmyyyy[1], 10);
                     const month = parseInt(ddmmyyyy[2], 10) - 1;
@@ -435,10 +536,12 @@ const Leave = () => {
                     <button
                         onClick={() => handleOpenModal()}
                         disabled={!!pendingLeave}
-                        className={`flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r ${pendingLeave ? 'from-gray-400 to-gray-500 opacity-75 cursor-not-allowed' : 'from-[#052558] to-[#527FB0] hover:opacity-90'} text-white font-bold rounded-xl shadow-md transition-all uppercase text-xs`}
+                        className={`px-14 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                            pendingLeave ? 'opacity-70 cursor-not-allowed' : ''
+                        }`}
                     >
-                        <Plus size={18} />
-                        Apply Leave
+                        <Plus size={16} />
+                        APPLY LEAVE
                     </button>
 
                     {pendingLeave && (
@@ -455,7 +558,7 @@ const Leave = () => {
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f2f7ff] text-[15px] text-center uppercase tracking-wider text-gray-500 border-b border-[#f0f6fc]">
-                                <th className="p-4.5 font-bold text-center w-[7.5%]">Leave ID</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Leave ID</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Leave</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Applied At</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
@@ -464,7 +567,7 @@ const Leave = () => {
                                 <th className="p-4.5 font-bold text-center w-[7.5%]"> End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[6.5%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
@@ -496,7 +599,7 @@ const Leave = () => {
                                                         e.stopPropagation();
                                                         setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
                                                     }}
-                                                    className="absolute -left-3 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    className="absolute -left-2.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
                                                     title={`Label: ${stripEmoji(rowLabels[leave._id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[leave._id], 16)}
@@ -553,32 +656,48 @@ const Leave = () => {
                                     </td>
                                     <td className="p-5">
                                         <div className="flex items-center justify-center gap-4">
-                                            {leave.status === 'Approved' && (
-                                                <button
-                                                    onClick={() => handleOpenModal(leave)}
-                                                    disabled={isLeaveEnded(leave.endDate)}
-                                                    className={`text-gray-400 rounded-lg transition-colors ${
-                                                        isLeaveEnded(leave.endDate) 
-                                                            ? 'opacity-30 cursor-not-allowed' 
-                                                            : 'hover:text-emerald-500 hover:bg-emerald-50'
-                                                    }`}
-                                                    title={isLeaveEnded(leave.endDate) ? "The leave has ended you cannot extend the leave now" : "Extend Leave"}
-                                                >
-                                                    <History size={18} />
-                                                </button>
-                                            )}
                                             <button
                                                 onClick={() => handleView(leave)}
                                                 className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="View Details"
                                             >
                                                 <Eye size={18} />
                                             </button>
-                                            {leave.status !== 'Approved' && (
-                                                <button 
-                                                    onClick={() => openDeleteModal(leave)}
-                                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            {leave.status === 'Pending' && (
+                                                <button
+                                                    onClick={() => handleOpenDeleteModal(leave)}
+                                                    className="text-gray-400 hover:text-rose-500 transition-colors"
+                                                    title="Delete Request"
                                                 >
                                                     <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                            {leave.status === 'Approved' && (
+                                                isLeaveEnded(leave.endDate) ? (
+                                                    <button
+                                                        onClick={() => handleOpenRemarkModal(leave)}
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                        title="Leave Remark"
+                                                    >
+                                                        <MessageSquare size={18} />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleOpenModal(leave)}
+                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                        title="Extend Leave"
+                                                    >
+                                                        <History size={18} />
+                                                    </button>
+                                                )
+                                            )}
+                                            {leave.status === 'Rejected' && (
+                                                <button 
+                                                    onClick={() => handleOpenRemarkModal(leave)}
+                                                    className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                    title="Leave Remark"
+                                                >
+                                                    <MessageSquare size={18} />
                                                 </button>
                                             )}
                                         </div>
@@ -594,30 +713,29 @@ const Leave = () => {
             {showModal && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Apply for Leave</h2>
-                                    {/* <p className="text-xs text-gray-500 font-medium mt-0.5">Complete the details below to submit your request</p> */}
-                                </div>
-                            </div>
-                            <button onClick={() => setShowModal(false)} className="p-2 rounded-full transition-colors text-gray-400 hover:text-gray-700">
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Apply for Leave
+                            </h3>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 space-y-6 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar">
+                        <div className="space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar text-left">
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Leave Type</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Leave Type</label>
                                     <select
-                                        className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        required
                                     >
                                         <option value=""></option>
                                         <option>Sick Leave</option>
@@ -626,10 +744,10 @@ const Leave = () => {
                                         <option>Emergency Leave</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Leave Time</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Leave Time</label>
                                     <select
-                                        className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
                                         value={formData.leaveTime}
                                         onChange={(e) => {
                                             const newType = e.target.value;
@@ -639,7 +757,6 @@ const Leave = () => {
                                                 endTime: calculateEndTime(formData.startTime, newType)
                                             });
                                         }}
-                                        required
                                     >
                                         <option value=""></option>
                                         <option>Full Day</option>
@@ -648,16 +765,16 @@ const Leave = () => {
                                 </div>
                             </div>
 
-                            {/* Date & Time Grid (Upgraded Metric Layout) */}
+                            {/* Date & Time Grid */}
                             <div className="grid grid-cols-4 gap-3">
                                 {/* Start Date */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         Start Date
                                     </label>
                                     <input
                                         type="date"
-                                        className="w-full uppercase px-4 font-bold text-[#011023] text-xs py-3 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-blue-200/50 shadow-sm"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
                                         value={formData.startDate}
                                         onChange={(e) => {
                                             const newStart = e.target.value;
@@ -667,19 +784,18 @@ const Leave = () => {
                                             }
                                             setFormData(updates);
                                         }}
-                                        required
                                     />
                                 </div>
 
                                 {/* Start Time */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         Start Time
                                     </label>
                                     <div className="relative group">
                                         <input
                                             type="time"
-                                            className="w-full uppercase pl-4 pr-10 font-bold text-[#011023] text-xs py-2.75 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-blue-200/50 shadow-sm appearance-none"
+                                            className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none"
                                             value={formData.startTime}
                                             onChange={(e) => {
                                                 const newStart = e.target.value;
@@ -689,7 +805,6 @@ const Leave = () => {
                                                     endTime: calculateEndTime(newStart, formData.leaveTime)
                                                 });
                                             }}
-                                            required
                                         />
                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#527FB0] opacity-60">
                                             {parseInt(formData.startTime?.split(':')[0]) >= 12 ? 'PM' : 'AM'}
@@ -698,31 +813,29 @@ const Leave = () => {
                                 </div>
 
                                 {/* End Date */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         End Date
                                     </label>
                                     <input
                                         type="date"
-                                        className="w-full uppercase px-4 font-bold text-[#011023] text-xs py-3 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-blue-200/50 shadow-sm"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
                                         value={formData.endDate}
                                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                        required
                                     />
                                 </div>
 
                                 {/* End Time */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         End Time
                                     </label>
                                     <div className="relative group">
                                         <input
                                             type="time"
-                                            className="w-full uppercase pl-4 pr-10 font-bold text-[#011023] text-xs py-2.75 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-blue-200/50 shadow-sm appearance-none"
+                                            className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none"
                                             value={formData.endTime}
                                             onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                                            required
                                         />
                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#527FB0] opacity-60">
                                             {parseInt(formData.endTime?.split(':')[0]) >= 12 ? 'PM' : 'AM'}
@@ -731,33 +844,38 @@ const Leave = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Reason for Leave</label>
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Reason for Leave</label>
                                 <textarea
-                                    className="w-full uppercase px-4 font-semibold text-xs py-3 bg-white/50 border border-white/60 rounded-xl transition-all outline-none h-24 resize-none"
+                                    className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] h-25 resize-none"
                                     value={formData.reason}
                                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                    required
                                 />
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button
+                        {/* Action Buttons (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            {/* <button
                                 type="button"
                                 onClick={() => setShowModal(false)}
-                                className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all uppercase"
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
                             >
                                 Cancel
-                            </button>
+                            </button> */}
                             <button
                                 type="submit"
                                 onClick={handleSubmit}
                                 disabled={submitting}
-                                className="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#011023] to-[#052558] hover:opacity-95 rounded-xl transition-all shadow-lg shadow-blue-900/10 disabled:opacity-50 flex items-center gap-2 uppercase"
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Submit Request'}
+                                {submitting ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> SUBMITTING...
+                                    </>
+                                ) : (
+                                    'SUBMIT REQUEST'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -811,7 +929,7 @@ const Leave = () => {
                                 <div className="w-[15%] text-center">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-2 text-center">Status</p>
                                     <div className="flex justify-center">
-                                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedLeave.status)}`}>
+                                        <span className={`px-3 py-1.25 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedLeave.status)}`}>
                                             {selectedLeave.status}
                                         </span>
                                     </div>
@@ -845,9 +963,19 @@ const Leave = () => {
                                     <h5 className="font-semibold uppercase text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">{selectedLeave.reason}</h5>
                                 </div>
                             </div>
+
+                            {/* Manager Remark / Note */}
+                            <div className="space-y-2 text-left pt-3 border-t border-blue-50">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remark by Authority</h4>
+                                <div className="pt-2">
+                                    <h5 className="font-semibold uppercase text-[#052558] text-[14px] leading-relaxed whitespace-pre-wrap">
+                                        {selectedLeave.managerRemark || selectedLeave.adminRemark || selectedLeave.remarks || selectedLeave.remark || selectedLeave.reviewRemark || 'No remark provided by manager.'}
+                                    </h5>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>,
+                </div>, 
                 document.body
             )}
 
@@ -883,6 +1011,116 @@ const Leave = () => {
                                 {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Remark Modal */}
+            {isRemarkModalOpen && selectedRemarkLeave && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkLeave(null); setRemarkText(''); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <div className="flex flex-col items-start text-left">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                    Leave Remark
+                                </h3>
+                                {selectedRemarkLeave.remarkId && (
+                                    <p className="flex items-center text-sm uppercase gap-2 mt-0.5">
+                                        ID: <span className="text-sm font-semibold text-gray-700 uppercase">{selectedRemarkLeave.remarkId}</span>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkLeave(null); setRemarkText(''); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Leave Info Header Details */}
+                        <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex flex-col items-start justify-center text-left">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Leave ID</p>
+                                <p className="text-sm font-semibold text-[#011023] uppercase">{selectedRemarkLeave.leaveId || selectedRemarkLeave._id}</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Role</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    {selectedRemarkLeave.status === 'Pending' ? '—' : (
+                                        selectedRemarkLeave.approvedByRole || 
+                                        selectedRemarkLeave.actionByRole || 
+                                        selectedRemarkLeave.approverRole || 
+                                        selectedRemarkLeave.reviewerRole || 
+                                        'Manager'
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Details</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    {selectedRemarkLeave.status === 'Pending' ? '—' : (
+                                        selectedRemarkLeave.approvedById || 
+                                        selectedRemarkLeave.actionById || 
+                                        selectedRemarkLeave.approvedBy || 
+                                        selectedRemarkLeave.actionBy || 
+                                        '—'
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-end justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase mr-4.5 tracking-wider mb-1">Status</p>
+                                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedRemarkLeave.status)}`}>
+                                    {selectedRemarkLeave.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Remark Textarea Form */}
+                        {(() => {
+                            const hasExistingRemark = Boolean(selectedRemarkLeave.employeeRemark);
+                            return (
+                                <form onSubmit={handleRemarkSubmit} className="space-y-4.5 text-left">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Remark</label>
+                                        <textarea
+                                            rows="4"
+                                            disabled={hasExistingRemark}
+                                            value={remarkText}
+                                            onChange={(e) => setRemarkText(e.target.value)}
+                                            className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold text-sm text-[#011023] resize-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingRemark || hasExistingRemark}
+                                        className={`w-full py-2 border rounded-xl text-sm font-bold uppercase tracking-wider transition-all shadow-sm mt-4 flex items-center justify-center gap-2 ${
+                                            hasExistingRemark 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isSubmittingRemark ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> Submitting REMARK...
+                                            </>
+                                        ) : hasExistingRemark ? (
+                                            <>
+                                                REMARK SUBMITTED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send size={14} /> Submit REMARK
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>,
                 document.body
