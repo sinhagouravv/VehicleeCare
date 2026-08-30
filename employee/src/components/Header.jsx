@@ -114,10 +114,32 @@ const Header = () => {
     }, [searchTerm]);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('employeeUser');
-        if (storedUser) setEmployeeUser(JSON.parse(storedUser));
-    }, []);
+        const fetchEmployeeProfile = async () => {
+            const storedUser = localStorage.getItem('employeeUser');
+            if (!storedUser) return;
+            const parsed = JSON.parse(storedUser);
+            setEmployeeUser(parsed);
 
+            const targetId = parsed._id || parsed.id || parsed.employeeId;
+            if (targetId) {
+                try {
+                    const res = await fetch(`http://localhost:5001/api/employees/${targetId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.data) {
+                            const updated = { ...parsed, ...data.data };
+                            setEmployeeUser(updated);
+                            localStorage.setItem('employeeUser', JSON.stringify(updated));
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to sync employee profile in Header", err);
+                }
+            }
+        };
+
+        fetchEmployeeProfile();
+    }, []);
 
     const handleSelect = (path, id = null) => {
         navigate(path, { state: { highlightId: id } });
@@ -127,13 +149,15 @@ const Header = () => {
 
     const [isExpanded, setIsExpanded] = useState(false);
 
+    const profileImgSrc = employeeUser?.avatar || employeeUser?.profilePhoto || employeeUser?.profilePicture || employeeUser?.documents?.avatar;
+
     return (
         <header className="h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)]">
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center justify-end transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[17rem]' : 'w-9.5'}`}>
                     <div
-                        className={`absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center cursor-pointer z-10 w-10 h-10 transition-all duration-300 rounded-full ${isExpanded ? 'text-gray-500 hover:text-[#527FB0]' : 'text-[#052558] bg-[#e3efff] hover:bg-gray-50 border border-[#e6f0fa] shadow-[0_2px_8px_rgba(5,37,88,0.06)] scale-100 hover:scale-[1.02]'}`}
+                        className={`absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center cursor-pointer z-10 w-10 h-10 transition-all duration-300 rounded-full ${isExpanded ? 'text-gray-500 hover:text-[#527FB0]' : 'border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 active:scale-95'}`}
                         onClick={() => {
                             if (!isExpanded) {
                                 setIsExpanded(true);
@@ -233,12 +257,21 @@ const Header = () => {
                 {/* Profile Icon */}
                 <div 
                     onClick={() => navigate('/profile')}
-                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-[#052558] to-[#527FB0] shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300"
+                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer  active:scale-95 duration-300 group overflow-hidden"
+                    title="My Profile"
                 >
-                    <span className="text-white text-sm font-black tracking-wider tooltip-trigger relative group">
-                        {employeeUser?.name?.charAt(0) || 'E'}
-                        <span className="absolute invisible group-hover:visible -bottom-10 right-0 bg-[#052558] text-white text-[10px] py-1 px-3 rounded whitespace-nowrap shadow-xl font-bold uppercase tracking-widest z-[60] border border-white/10 opacity-0 group-hover:opacity-100 transition-all">My Profile</span>
-                    </span>
+                    {profileImgSrc ? (
+                        <img 
+                            src={profileImgSrc} 
+                            alt={employeeUser?.name || "Profile"} 
+                            className="w-full h-full object-cover rounded-full"
+                        />
+                    ) : (
+                        <span className="text-[#052558] group-hover:text-blue-500 transition-colors text-sm font-bold uppercase tracking-wider tooltip-trigger relative">
+                            {employeeUser?.name?.charAt(0) || 'E'}
+                            {/* <span className="absolute invisible group-hover:visible -bottom-10 right-0 bg-[#052558] text-white text-[10px] py-1 px-3 rounded whitespace-nowrap shadow-xl font-bold uppercase tracking-widest z-[60] border border-white/10 opacity-0 group-hover:opacity-100 transition-all">My Profile</span> */}
+                        </span>
+                    )}
                 </div>
 
             </div>
