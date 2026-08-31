@@ -15,6 +15,7 @@ const EVENT_MAPPING = {
     review: { type: 'Review', category: 'Remark', color: 'bg-indigo-100 text-indigo-700', typeColor: 'bg-indigo-100 text-indigo-700 border border-indigo-200' },
     reminder: { type: 'Reminder', category: 'General', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
     warning: { type: 'Warning', category: 'General', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
+    document: { type: 'Document', category: 'Document', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-sky-100 text-sky-700 border border-sky-200' },
 };
 
 const Notifications = () => {
@@ -80,6 +81,7 @@ const Notifications = () => {
                         { label: 'Review', value: 'review' },
                         { label: 'Reminder', value: 'reminder' },
                         { label: 'Warning', value: 'warning' },
+                        { label: 'Document', value: 'document' },
                     ]
                 }
             ],
@@ -149,6 +151,19 @@ const Notifications = () => {
 
                 const user = JSON.parse(storedUser || '{}');
                 const userEmpId = user.employeeId || user.id || user._id;
+
+                if (n.eventType === 'document') {
+                    const title = (n.title || '').toLowerCase();
+                    const isApprovedOrRejected = title.includes('approved') || title.includes('rejected') || n.meta?.status === 'Approved' || n.meta?.status === 'Rejected';
+                    const isTargetEmp = 
+                        !n.meta?.employeeId ||
+                        String(n.meta?.employeeId) === String(empId) ||
+                        String(n.meta?.employeeId) === String(userEmpId) ||
+                        String(n.meta?.employeeId) === String(user.employeeId) ||
+                        String(n.meta?.employeeId) === String(user.id) ||
+                        String(n.meta?.employeeId) === String(user._id);
+                    return isTargetEmp && (n.superCategory === 'employees_notification' || n.superCategory === 'user_notification') && isApprovedOrRejected;
+                }
 
                 if (n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting' || n.eventType === 'review' || n.eventType === 'remark' || n.eventType === 'reminder' || n.eventType === 'warning') {
                     const isTargetEmp = 
@@ -249,16 +264,18 @@ const Notifications = () => {
     const handleRedirect = (notif, e) => {
         if (e) e.stopPropagation();
         if (notif.eventType === 'leave') {
-            const leaveId = notif.meta?.leaveCustomId || notif.meta?.leaveId || notif.message?.match(/LEV-[A-Z0-9-]+/i)?.[0];
+            const leaveId = notif.meta?.leaveId || notif.meta?.leaveCustomId || notif.meta?._id || notif.meta?.id || notif.message?.match(/LEV-[A-Z0-9-]+/i)?.[0];
             navigate('/leave', { state: { highlightId: leaveId } });
         } else if (notif.eventType === 'overtime') {
-            const overtimeId = notif.meta?.overtimeCustomId || notif.meta?.overtimeId || notif.message?.match(/OVT-[A-Z0-9-]+/i)?.[0];
+            const overtimeId = notif.meta?.overtimeId || notif.meta?.overtimeCustomId || notif.meta?._id || notif.meta?.id || notif.message?.match(/OVT-[A-Z0-9-]+/i)?.[0];
             navigate('/overtime', { state: { highlightId: overtimeId } });
         } else if (notif.eventType === 'meeting' || notif.eventType === 'id_card_status_updated' || notif.eventType === 'id_card_requested') {
-            const meetingId = notif.meta?.requestId || notif.meta?.meetingId || notif.meta?.id;
+            const meetingId = notif.meta?.meetingId || notif.meta?.requestId || notif.meta?._id || notif.meta?.id;
             navigate('/meeting', { state: { highlightId: meetingId } });
         } else if (notif.eventType === 'booking_created' || notif.eventType === 'booking') {
-            navigate('/tasks', { state: { highlightId: notif.meta?.bookingId } });
+            navigate('/tasks', { state: { highlightId: notif.meta?.bookingId || notif.meta?._id } });
+        } else if (notif.eventType === 'document') {
+            navigate('/upload-documents');
         } else {
             triggerAlert('No destination link available for this notification.', 'error');
         }
@@ -301,6 +318,9 @@ const Notifications = () => {
     }, [users, notifications]);
 
     const getDisplayUserId = (notif) => {
+        if (notif.eventType === 'document') {
+            return 'SYSTEM';
+        }
         if (notif.eventType === 'leave' || notif.eventType === 'overtime') {
             return notif.meta?.approverEmpId || 'MANAGER';
         }
@@ -311,6 +331,9 @@ const Notifications = () => {
     };
 
     const getSenderName = (notif) => {
+        if (notif.eventType === 'document') {
+            return 'ADMINISTRATOR';
+        }
         const senderId = getDisplayUserId(notif);
         if (senderId && senderId !== 'SYSTEM' && empIdToNameMap[String(senderId).trim()]) {
             return empIdToNameMap[String(senderId).trim()];
@@ -321,7 +344,7 @@ const Notifications = () => {
         if (notif.eventType === 'booking_created' || notif.eventType === 'meeting') {
             return notif.meta?.adminName || 'ADMIN';
         }
-        return notif.meta?.adminName || notif.meta?.approverName || notif.meta?.senderName || 'ADMIN';
+        return notif.meta?.adminName || notif.meta?.approverName || notif.meta?.senderName || 'ADMINISTRATOR';
     };
 
     const getMapping = (notif) => {
@@ -532,7 +555,7 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.25">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
+                                                    <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
                                                         {getSenderName(notif)}
                                                     </span>
                                                     {getDisplayUserId(notif) && getDisplayUserId(notif) !== 'SYSTEM' && getSenderName(notif) !== 'ADMINISTRATOR' && (
@@ -555,12 +578,26 @@ const Notifications = () => {
                                                     className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
                                                 >
                                                     <p 
-                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
+                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
                                                         style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
                                                     >
-                                                        {notif.eventType === 'booking_created'
-                                                            ? `Dear Employee, A new task is assigned to you, for ${notif.meta?.service || 'service'} of ${notif.meta?.vehicle || 'vehicle'}. Kindly contact with the assigned team member's and complete the task within the time.`
-                                                            : notif.message}
+                                                        {(() => {
+                                                            if (notif.eventType === 'document') {
+                                                                const empName = notif.meta?.employeeName || notif.meta?.name || 'Employee';
+                                                                const docName = notif.meta?.docLabel || notif.meta?.documentType || 'Document';
+                                                                const docIdStr = notif.meta?.docId ? ` (${notif.meta.docId})` : '';
+                                                                const isApproved = (notif.title || '').toLowerCase().includes('approved') || notif.meta?.status === 'Approved';
+                                                                if (isApproved) {
+                                                                    return `Dear Employee, Your ${docName}${docIdStr} has been approved.`;
+                                                                } else {
+                                                                    return `Dear Employee, Your ${docName}${docIdStr} has been rejected. Kindly review the remarks provided by the administration and re-upload the document. Please ensure that you upload it correctly, as this is the final attempt to do so.`;
+                                                                }
+                                                            }
+                                                            if (notif.eventType === 'booking_created') {
+                                                                return `Dear Employee, A new task is assigned to you, for ${notif.meta?.service || 'service'} of ${notif.meta?.vehicle || 'vehicle'}. Kindly contact with the assigned team member's and complete the task within the time.`;
+                                                            }
+                                                            return notif.message;
+                                                        })()}
                                                     </p>
                                                 </div>
                                             </td>
@@ -577,7 +614,7 @@ const Notifications = () => {
                                             <td className="p-4.25">
                                                 <div className="flex justify-center">
                                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                        ? 'bg-gray-100 text-gray-700 border border-gray-300'
                                                         : 'bg-blue-100 text-blue-700 border border-blue-100'
                                                         }`}>
                                                         {notif.isRead ? 'Read' : 'Unread'}
