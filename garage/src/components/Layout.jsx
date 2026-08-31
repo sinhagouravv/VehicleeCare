@@ -5,12 +5,14 @@ import Header from './Header';
 import FilterButton from './FilterButton';
 import SortButton from './SortButton';
 import LabelButton from './LabelButton';
-import { Bug, X, Send, Loader2 } from 'lucide-react';
+import { Bug, X, Send, Loader2, UploadCloud } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
+import UploadDocuments from '../pages/UploadDocuments';
 
 const Layout = () => {
     const { triggerAlert } = useAlert();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
     const [bugTitle, setBugTitle] = useState('');
     const [bugDesc, setBugDesc] = useState('');
@@ -23,8 +25,12 @@ const Layout = () => {
 
     const handleBugSubmit = async (e) => {
         e.preventDefault();
-        if (!bugTitle.trim() || !bugDesc.trim()) {
-            triggerAlert('Please fill out all fields.', 'error');
+        if (!bugTitle.trim()) {
+            triggerAlert('Please enter the bug subject title', 'error');
+            return;
+        }
+        if (!bugDesc.trim()) {
+            triggerAlert('Please describe the bug before submitting', 'error');
             return;
         }
 
@@ -89,13 +95,40 @@ const Layout = () => {
             <SortButton />
             <LabelButton />
 
+            {/* Floating Upload Documents Button */}
+            <button
+                onClick={() => setIsUploadDocModalOpen(true)}
+                className="fixed bottom-[6.15rem] right-9 z-50 p-3 rounded-full bg-white/80 backdrop-blur-md border border-blue-200 flex items-center justify-center text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group">
+                <UploadCloud size={24} className="group-hover:scale-110 transition-transform duration-300" />
+            </button>
+
+            {/* Floating Bug Report Button */}
             <button
                 onClick={() => setIsBugModalOpen(true)}
-                className="fixed bottom-9 right-9 z-50 p-3 rounded-full bg-blue-0 border border-blue-200 flex items-center justify-center text-[#527FB0] hover:bg-blue-50 hover:text-blue-300 transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
+                className="fixed bottom-9 right-9 z-50 p-3 rounded-full border border-blue-200 flex items-center justify-center text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
             >
                 <Bug size={24} className="group-hover:scale-110 transition-transform duration-300" />
-                {/* <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-out whitespace-nowrap text-xs font-bold uppercase tracking-wider pl-0 group-hover:pl-2">Report a Bug</span> */}
             </button>
+
+            {/* Upload Documents Modal */}
+            {isUploadDocModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsUploadDocModalOpen(false)} />
+                    <div className="bg-white/95 backdrop-blur-2xl border border-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto hide-scrollbar relative z-10 p-5 space-y-4 animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex justify-start items-center">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide">
+                                Upload Documents
+                            </h3>
+                        </div>
+
+                        {/* Modal Body: UploadDocuments Component */}
+                        <div className="pt-1">
+                            <UploadDocuments />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Bug Report Modal */}
             {isBugModalOpen && (
@@ -117,7 +150,7 @@ const Layout = () => {
 
                         <form onSubmit={handleBugSubmit} className="space-y-4.5 text-left">
                             <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Bug Title / Subject</label>
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Subject</label>
                                 <input
                                     type="text"
                                     required
@@ -128,23 +161,7 @@ const Layout = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Severity Level</label>
-                                <select
-                                    required
-                                    value={bugSeverity}
-                                    onChange={(e) => setBugSeverity(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold normal-case text-sm text-[#011023] appearance-none cursor-pointer"
-                                >
-                                    <option value="" disabled hidden></option>
-                                    <option value="Low">Low - Cosmetic/Typo</option>
-                                    <option value="Medium">Medium - Feature malfunctioning</option>
-                                    <option value="High">High - Broken workflow/major issue</option>
-                                    <option value="Critical">Critical - App crash/data loss</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Description / Steps to Reproduce</label>
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Description</label>
                                 <textarea
                                     required
                                     rows="4"
