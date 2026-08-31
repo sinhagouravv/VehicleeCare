@@ -118,7 +118,7 @@ const Layout = () => {
             {isUploadDocModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center">
                     <div className="absolute inset-0  bg-[#011023]/10 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsUploadDocModalOpen(false)} />
-                    <div className="bg-white/95 backdrop-blur-2xl border border-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto hide-scrollbar relative z-10 p-5 space-y-4 animate-in zoom-in-95 duration-200">
+                    <div className="bg-white/95 backdrop-blur-2xl border border-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto hide-scrollbar relative z-10 p-5 space-y-4 animate-in zoom-in-95 duration-200">
                         {/* Header */}
                         <div className="flex justify-start items-center">
                             <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide">
