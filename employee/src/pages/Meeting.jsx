@@ -496,7 +496,9 @@ const Meeting = () => {
                                     <tr 
                                         key={meeting._id} 
                                         id={`row-${meeting._id}`}
-                                        className={`text-center transition-all duration-1000 ${highlightedRow === meeting._id ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                        data-row-id={meeting._id}
+                                        data-meeting-id={meeting.meetingId}
+                                        className={`text-center transition-all duration-1000 ${(highlightedRow && (String(highlightedRow).toLowerCase() === String(meeting._id).toLowerCase() || String(highlightedRow).toLowerCase() === String(meeting.meetingId || '').toLowerCase())) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                     >
                                         <td className="p-4 font-semibold text-[#011023] text-sm text-center uppercase whitespace-nowrap">
                                             {meeting.meetingId || '—'}
