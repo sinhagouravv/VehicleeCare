@@ -1414,8 +1414,8 @@ const ProfilePage = () => {
                                 <div className="space-y-4 w-full md:w-[28%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Vehicle Info</h4>
                                     <div className="pt-4 pb-2 rounded-xl uppercase space-y-2">
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || 'N/A'}</span></p>
-                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Brand:</span> <span className="font-semibold text-[#011023]">{selectedBooking.vehicle?.make || selectedBooking.vehicle?.brand || 'N/A'}</span></p>
+                                        <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Model:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.model || selectedBooking.vehicle?.modelName || selectedBooking.vehicle?.carModel || selectedBooking.vehicle?.name || 'N/A'}</span></p>
                                         <p className="text-sm"><span className="text-gray-500 w-16 inline-block">Year:</span> <span className="font-semibold text-gray-800">{selectedBooking.vehicle?.year || 'N/A'}</span></p>
                                     </div>
                                 </div>
