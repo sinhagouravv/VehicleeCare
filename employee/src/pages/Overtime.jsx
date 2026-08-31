@@ -522,8 +522,8 @@ const Overtime = () => {
                                 filteredOvertimes.map((ot) => (
                                     <tr 
                                         key={ot._id} 
-                                        id={`row-${ot.overtimeId || ot._id}`}
-                                        className={`text-center transition-all duration-1000 ${(highlightedRow === ot.overtimeId || highlightedRow === ot._id) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
+                                        id={`row-${ot._id}`}
+                                        className={`text-center transition-all duration-1000 ${(String(highlightedRow) === String(ot._id) || String(highlightedRow) === String(ot.overtimeId)) ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}
                                     >
                                         <td className="p-4 font-semibold text-[#011023] text-sm text-center uppercase whitespace-nowrap">
                                             {ot.overtimeId || '—'}
