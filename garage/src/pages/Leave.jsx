@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, CheckCircle2, XCircle, Check, X,  Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Check, X, Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Leave = () => {
+    const { triggerAlert } = useAlert();
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -17,6 +19,18 @@ const Leave = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Close 3 dots action menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (openMenuId && !e.target.closest('.row-action-menu')) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openMenuId]);
 
     // Filter & Sort states
     const [durationFilter, setDurationFilter] = useState('all');
@@ -219,7 +233,7 @@ const Leave = () => {
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
         if(!actionEmpId || !actionRemarks.trim()) {
-            alert('Please select a Manager ID and provide Reason for Action');
+            triggerAlert('Please select a Manager ID and provide Reason for Action', 'error');
             return;
         }
 
@@ -234,12 +248,13 @@ const Leave = () => {
             const data = await res.json();
             if (data.success) {
                 setLeaves(prev => prev.map(l => l._id === actionLeaveId ? { ...l, status: actionType } : l));
+                triggerAlert('Status updated successfully', 'success');
             } else {
-                alert(data.message || "Failed to update status");
+                triggerAlert(data.message || "Failed to update status", 'error');
             }
         } catch (error) {
             console.error("Error updating leave status:", error);
-            alert("Error updating status");
+            triggerAlert("Error updating status", 'error');
         } finally {
             setUpdatingId(null);
         }
@@ -255,14 +270,15 @@ const Leave = () => {
             const data = await res.json();
             if (data.success) {
                 setLeaves(prev => prev.filter(l => l._id !== selectedLeave._id));
+                triggerAlert('Leave request deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setSelectedLeave(null);
             } else {
-                alert(data.message || "Failed to delete request");
+                triggerAlert(data.message || "Failed to delete request", 'error');
             }
         } catch (error) {
             console.error("Error deleting leave request:", error);
-            alert("Error deleting request");
+            triggerAlert("Error deleting request", 'error');
         } finally {
             setDeleting(false);
         }
@@ -447,46 +463,73 @@ const Leave = () => {
                                             {leave.status}
                                         </span>
                                     </td>
-                                    <td className="p-3.25 text-center">
+                                    <td className="p-3.25 text-center relative" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-4">
+                                            <button 
+                                                onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
+                                                className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye size={18} />
+                                            </button>
+
                                             {leave.status === 'Pending' ? (
-                                                <>
-                                                    {/* <button 
-                                                        onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 "
+                                                /* 3-Dots Action Button & Dropdown */
+                                                <div className="relative inline-flex items-center justify-center row-action-menu">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenMenuId(prev => prev === leave._id ? null : leave._id);
+                                                        }}
+                                                        className={`flex items-center justify-center transition-colors cursor-pointer ${
+                                                            openMenuId === leave._id
+                                                                ? 'text-blue-600'
+                                                                : 'text-gray-400 hover:text-gray-700'
+                                                        }`}
                                                     >
-                                                        <Eye size={18} />
-                                                    </button> */}
-                                                    <button 
-                                                        onClick={() => openActionModal(leave._id, 'Approved')}
-                                                        disabled={updatingId === leave._id}
-                                                        className="text-gray-400 hover:text-emerald-500 "
-                                                    >
-                                                        <Check size={18} />
+                                                        <MoreVertical size={18} />
                                                     </button>
-                                                    <button 
-                                                        onClick={() => openActionModal(leave._id, 'Rejected')}
-                                                        disabled={updatingId === leave._id}
-                                                        className="text-gray-400 hover:text-red-500 "
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-                                                </>
+
+                                                    {/* Popover Menu with Check ✓ (Up) and Cross ✕ (Down) just above 3-dots */}
+                                                    {openMenuId === leave._id && (
+                                                        <div className="absolute shadow-xs left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 rounded-2xl p-1 flex flex-col items-center gap-1 justify-center animate-in fade-in zoom-in-95 duration-150">
+                                                            {/* Check ✓ (Up - Approve) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    openActionModal(leave._id, 'Approved');
+                                                                }}
+                                                                className="text-slate-500 hover:text-emerald-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-emerald-50 rounded-2xl"
+                                                            >
+                                                                <Check size={18} className="stroke-[2]" />
+                                                            </button>
+
+                                                            {/* Cross ✕ (Down - Reject) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    openActionModal(leave._id, 'Rejected');
+                                                                }}
+                                                                className="text-slate-500 hover:text-rose-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-rose-50 rounded-2xl"
+                                                            >
+                                                                <X size={18} className="stroke-[2]" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ) : (
-                                                <>
-                                                    <button 
-                                                        onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 "
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    >
-                                                        <MessageSquare size={18} />
-                                                    </button>
-                                                </>
+                                                <button 
+                                                    onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
+                                                    className="text-gray-400 hover:text-emerald-500 transition-colors flex items-center justify-center cursor-pointer"
+                                                    title="Leave Remarks"
+                                                >
+                                                    <MessageSquare size={18} />
+                                                </button>
                                             )}
                                         </div>
                                     </td>
@@ -551,7 +594,7 @@ const Leave = () => {
                                         <div className="space-y-2 mt-4">
                                             <div className="flex items-center gap-6">
                                                 <p className="text-sm font-semibold text-gray-500 w-16 shrink-0 uppercase">Status</p>
-                                                <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg uppercase tracking-wider  ${getStatusStyle(selectedLeave.status)}`}>
+                                                <span className={`px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wider  ${getStatusStyle(selectedLeave.status)}`}>
                                                     {selectedLeave.status}
                                                 </span>
                                             </div>
