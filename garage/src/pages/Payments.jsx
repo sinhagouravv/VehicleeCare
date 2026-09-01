@@ -6,9 +6,11 @@ import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Payments = () => {
+    const { triggerAlert } = useAlert();
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -270,9 +272,10 @@ const Payments = () => {
             doc.text(`Total Paid: Rs. ${payment.amount}`, 195, finalY, { align: 'right' });
 
             doc.save(`Invoice_${payment.paymentId}.pdf`);
+            triggerAlert("Invoice downloaded successfully", "success");
         } catch (err) {
             console.error("Error generating PDF:", err);
-            alert("Failed to generate invoice.");
+            triggerAlert("Failed to generate invoice.", "error");
         }
     };
 
