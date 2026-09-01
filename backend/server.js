@@ -45,6 +45,7 @@ app.use('/api/leaves', require('./routes/leaveRoutes'));
 app.use('/api/overtime', require('./routes/overtimeRoutes'));
 app.use('/api/bugs', require('./routes/bugRoutes'));
 app.use('/api/remarks', require('./routes/remarkRoutes'));
+app.use('/api/requests', require('./routes/requestRoutes'));
 
 app.get('/', (req, res) => {
     res.send('VehicleeCare Backend API');
