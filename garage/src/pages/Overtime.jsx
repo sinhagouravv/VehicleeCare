@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText, MessageSquare } from 'lucide-react';
+import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Overtime = () => {
+    const { triggerAlert } = useAlert();
     const [overtimes, setOvertimes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -17,6 +19,18 @@ const Overtime = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Close 3 dots action menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (openMenuId && !e.target.closest('.row-action-menu')) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openMenuId]);
 
     // Filter & Sort states
     const [hoursFilter, setHoursFilter] = useState('all');
@@ -233,7 +247,7 @@ const Overtime = () => {
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
         if(!actionEmpId || !actionRemarks.trim()) {
-            alert('Please select a Manager ID and provide Reason for Action');
+            triggerAlert('Please select a Manager ID and provide Reason for Action', 'error');
             return;
         }
 
@@ -248,12 +262,13 @@ const Overtime = () => {
             const data = await res.json();
             if (data.success) {
                 setOvertimes(prev => prev.map(o => o._id === actionOvertimeId ? { ...o, status: actionType } : o));
+                triggerAlert('Status updated successfully', 'success');
             } else {
-                alert(data.message || "Failed to update status");
+                triggerAlert(data.message || "Failed to update status", 'error');
             }
         } catch (error) {
             console.error("Error updating overtime status:", error);
-            alert("Error updating status");
+            triggerAlert("Error updating status", 'error');
         } finally {
             setUpdatingId(null);
         }
@@ -269,14 +284,15 @@ const Overtime = () => {
             const data = await res.json();
             if (data.success) {
                 setOvertimes(prev => prev.filter(o => o._id !== selectedOvertime._id));
+                triggerAlert('Overtime request deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setSelectedOvertime(null);
             } else {
-                alert(data.message || "Failed to delete request");
+                triggerAlert(data.message || "Failed to delete request", 'error');
             }
         } catch (error) {
             console.error("Error deleting overtime request:", error);
-            alert("Error deleting request");
+            triggerAlert("Error deleting request", 'error');
         } finally {
             setDeleting(false);
         }
@@ -344,10 +360,10 @@ const Overtime = () => {
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && filteredOvertimes.length === 0 ? (
-                                <TableSkeleton rows={15} cols={8} />
+                                <TableSkeleton rows={15} cols={7} />
                             ) : filteredOvertimes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan={7} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No overtime requests found.
                                     </td>
                                 </tr>
@@ -428,46 +444,73 @@ const Overtime = () => {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4 text-center relative" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-4">
+                                            <button 
+                                                onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
+                                                className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye size={18} />
+                                            </button>
+
                                             {overtime.status === 'Pending' ? (
-                                                <>
-                                                    {/* <button 
-                                                        onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                /* 3-Dots Action Button & Dropdown */
+                                                <div className="relative inline-flex items-center justify-center row-action-menu">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenMenuId(prev => prev === overtime._id ? null : overtime._id);
+                                                        }}
+                                                        className={`flex items-center justify-center transition-colors cursor-pointer ${
+                                                            openMenuId === overtime._id
+                                                                ? 'text-blue-600'
+                                                                : 'text-gray-400 hover:text-gray-700'
+                                                        }`}
                                                     >
-                                                        <Eye size={18} />
-                                                    </button> */}
-                                                    <button 
-                                                        onClick={() => openActionModal(overtime._id, 'Approved')}
-                                                        disabled={updatingId === overtime._id}
-                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    >
-                                                        <Check size={18} />
+                                                        <MoreVertical size={18} />
                                                     </button>
-                                                    <button 
-                                                        onClick={() => openActionModal(overtime._id, 'Rejected')}
-                                                        disabled={updatingId === overtime._id}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-                                                </>
+
+                                                    {/* Popover Menu with Check ✓ (Up) and Cross ✕ (Down) just above 3-dots */}
+                                                    {openMenuId === overtime._id && (
+                                                        <div className="absolute shadow-xs left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 rounded-2xl p-1 flex flex-col items-center gap-1 justify-center animate-in fade-in zoom-in-95 duration-150">
+                                                            {/* Check ✓ (Up - Approve) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    openActionModal(overtime._id, 'Approved');
+                                                                }}
+                                                                className="text-slate-500 hover:text-emerald-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-emerald-50 rounded-2xl"
+                                                            >
+                                                                <Check size={18} className="stroke-[2]" />
+                                                            </button>
+
+                                                            {/* Cross ✕ (Down - Reject) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    openActionModal(overtime._id, 'Rejected');
+                                                                }}
+                                                                className="text-slate-500 hover:text-rose-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-rose-50 rounded-2xl"
+                                                            >
+                                                                <X size={18} className="stroke-[2]" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ) : (
-                                                <>
-                                                    <button 
-                                                        onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    >
-                                                        <MessageSquare size={18} />
-                                                    </button>
-                                                </>
+                                                <button 
+                                                    onClick={() => { setSelectedOvertime(overtime); setIsViewModalOpen(true); }}
+                                                    className="text-gray-400 hover:text-emerald-500 transition-colors flex items-center justify-center cursor-pointer"
+                                                    title="Overtime Remarks"
+                                                >
+                                                    <MessageSquare size={18} />
+                                                </button>
                                             )}
                                         </div>
                                     </td>
