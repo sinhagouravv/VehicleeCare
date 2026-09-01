@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Check, X, Eye, Trash2, Calendar, User, FileText, MessageSquare } from 'lucide-react';
+import { Loader2, Check, X, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Meeting = () => {
+    const { triggerAlert } = useAlert();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -17,6 +19,18 @@ const Meeting = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Close 3 dots action menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (openMenuId && !e.target.closest('.row-action-menu')) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openMenuId]);
 
     // Filter & Sort states
     const [purposeFilter, setPurposeFilter] = useState('all');
@@ -249,7 +263,7 @@ const Meeting = () => {
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
         if(!actionEmpId || !actionRemarks.trim()) {
-            alert('Please select a Manager ID and provide Reason for Action');
+            triggerAlert('Please select a Manager ID and provide Reason for Action', 'error');
             return;
         }
 
@@ -264,12 +278,13 @@ const Meeting = () => {
             const data = await res.json();
             if (data.success) {
                 setRequests(prev => prev.map(r => r._id === actionRequestId ? { ...r, status: actionType, remarks: actionRemarks } : r));
+                triggerAlert('Status updated successfully', 'success');
             } else {
-                alert(data.message || "Failed to update status");
+                triggerAlert(data.message || "Failed to update status", 'error');
             }
         } catch (error) {
             console.error("Error updating ID card request status:", error);
-            alert("Error updating status");
+            triggerAlert("Error updating status", 'error');
         } finally {
             setUpdatingId(null);
         }
@@ -285,14 +300,15 @@ const Meeting = () => {
             const data = await res.json();
             if (data.success) {
                 setRequests(prev => prev.filter(r => r._id !== selectedRequest._id));
+                triggerAlert('Request deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setSelectedRequest(null);
             } else {
-                alert(data.message || "Failed to delete request");
+                triggerAlert(data.message || "Failed to delete request", 'error');
             }
         } catch (error) {
             console.error("Error deleting ID card request:", error);
-            alert("Error deleting request");
+            triggerAlert("Error deleting request", 'error');
         } finally {
             setDeleting(false);
         }
@@ -383,10 +399,10 @@ const Meeting = () => {
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && filteredRequests.length === 0 ? (
-                                <TableSkeleton rows={15} cols={9} />
+                                <TableSkeleton rows={15} cols={7} />
                             ) : filteredRequests.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan="7" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No requests found.
                                     </td>
                                 </tr>
@@ -474,46 +490,73 @@ const Meeting = () => {
                                             {req.status}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4 text-center relative" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-4">
+                                            <button 
+                                                onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
+                                                className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye size={18} />
+                                            </button>
+
                                             {req.status === 'Pending' ? (
-                                                <>
-                                                    <button 
-                                                        onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                /* 3-Dots Action Button & Dropdown */
+                                                <div className="relative inline-flex items-center justify-center row-action-menu">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenMenuId(prev => prev === req._id ? null : req._id);
+                                                        }}
+                                                        className={`flex items-center justify-center transition-colors cursor-pointer ${
+                                                            openMenuId === req._id
+                                                                ? 'text-blue-600'
+                                                                : 'text-gray-400 hover:text-gray-700'
+                                                        }`}
                                                     >
-                                                        <Eye size={18} />
+                                                        <MoreVertical size={18} />
                                                     </button>
-                                                    <button 
-                                                        onClick={() => openActionModal(req._id, 'Approved')}
-                                                        disabled={updatingId === req._id}
-                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    >
-                                                        <Check size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => openActionModal(req._id, 'Rejected')}
-                                                        disabled={updatingId === req._id}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-                                                </>
+
+                                                    {/* Popover Menu with Check ✓ (Up) and Cross ✕ (Down) just above 3-dots */}
+                                                    {openMenuId === req._id && (
+                                                        <div className="absolute shadow-xs left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 rounded-2xl p-1 flex flex-col items-center gap-1 justify-center animate-in fade-in zoom-in-95 duration-150">
+                                                            {/* Check ✓ (Up - Approve) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    openActionModal(req._id, 'Approved');
+                                                                }}
+                                                                className="text-slate-500 hover:text-emerald-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-emerald-50 rounded-2xl"
+                                                            >
+                                                                <Check size={18} className="stroke-[2]" />
+                                                            </button>
+
+                                                            {/* Cross ✕ (Down - Reject) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    openActionModal(req._id, 'Rejected');
+                                                                }}
+                                                                className="text-slate-500 hover:text-rose-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-rose-50 rounded-2xl"
+                                                            >
+                                                                <X size={18} className="stroke-[2]" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ) : (
-                                                <>
-                                                    <button 
-                                                        onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-blue-500 transition-colors"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
-                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    >
-                                                        <MessageSquare size={18} />
-                                                    </button>
-                                                </>
+                                                <button 
+                                                    onClick={() => { setSelectedRequest(req); setIsViewModalOpen(true); }}
+                                                    className="text-gray-400 hover:text-emerald-500 transition-colors flex items-center justify-center cursor-pointer"
+                                                    title="Meeting Remarks"
+                                                >
+                                                    <MessageSquare size={18} />
+                                                </button>
                                             )}
                                         </div>
                                     </td>
