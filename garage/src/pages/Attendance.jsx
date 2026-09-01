@@ -4,9 +4,11 @@ import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Lo
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Attendance = () => {
+    const { triggerAlert } = useAlert();
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -286,9 +288,10 @@ const Attendance = () => {
                 });
                 const data = await res.json();
                 if (!data.success && !data.message?.includes('Absent')) {
-                    alert(data.message || 'Check-in failed');
+                    triggerAlert(data.message || 'Check-in failed', 'error');
                     return;
                 }
+                triggerAlert('Check-in successful', 'success');
             } else if (action === 'check-out') {
                 if (!attendanceStatus || !attendanceStatus._id) return;
                 const res = await fetch(`http://localhost:5001/api/attendance/check-out/${attendanceStatus._id}`, {
@@ -296,9 +299,10 @@ const Attendance = () => {
                 });
                 const data = await res.json();
                 if (!data.success) {
-                    alert(data.message || 'Check-out failed');
+                    triggerAlert(data.message || 'Check-out failed', 'error');
                     return;
                 }
+                triggerAlert('Check-out successful', 'success');
             }
             await fetchAttendance();
             await checkStatus(selectedEmployeeId);
@@ -307,7 +311,7 @@ const Attendance = () => {
             setAttendanceStatus(null);
         } catch (error) {
             console.error('Action failed', error);
-            alert('Something went wrong');
+            triggerAlert('Something went wrong', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -556,12 +560,12 @@ const Attendance = () => {
                                                 >
                                                     <Eye size={17} />
                                                 </button>
-                                                    <button
-                                                        onClick={() => handleViewDetails(r)}
-                                                        className="text-gray-400 hover:text-emerald-500 transition-colors"
-                                                    >
-                                                        <MessageSquare size={17} />
-                                                    </button>
+                                                <button
+                                                    onClick={() => handleViewDetails(r)}
+                                                    className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                >
+                                                    <MessageSquare size={17} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
