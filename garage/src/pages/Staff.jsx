@@ -42,6 +42,18 @@ const Staff = () => {
     const { setFilterConfig, setResultsCount } = useFilter();
     const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('garage_staff_row_labels');
 
+    const formatDocNumber = (...vals) => {
+        for (const val of vals) {
+            if (val && typeof val === 'string') {
+                const trimmed = val.trim();
+                if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.includes('cloudinary')) {
+                    return trimmed;
+                }
+            }
+        }
+        return '—';
+    };
+
     const getItemDate = (item) => {
         if (!item) return null;
         const fields = [
@@ -194,10 +206,18 @@ const Staff = () => {
 
     const highlightedRow = useHighlight(filteredStaffMembers);
 
-    const [form, setForm] = useState({
+    const defaultForm = {
         name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
         shift: '', panCard: '', adharCard: '', voterId: '', agreement: '', salaryType: ''
-    });
+    };
+
+    const [form, setForm] = useState(defaultForm);
+
+    const handleCloseAddModal = () => {
+        setIsAddModalOpen(false);
+        setIsEditMode(false);
+        setForm(defaultForm);
+    };
 
     const fetchStaff = useCallback(async (silent = false) => {
         try {
@@ -244,14 +264,40 @@ const Staff = () => {
     };
 
     const handleSave = async () => {
-        const cleanPhone = form.phone?.replace(/\s/g, '') || '';
+        const cleanPhone = form.phone?.replace(/\D/g, '') || '';
         const cleanPAN = form.panCard?.replace(/\s/g, '') || '';
         const cleanAadhar = form.adharCard?.replace(/\s/g, '') || '';
         const cleanVoter = form.voterId?.replace(/\s/g, '') || '';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        if (!form.name || !form.email || !cleanPhone) return triggerAlert('Please fill all required fields', 'error');
-        
-        if (cleanPhone && cleanPhone.length !== 10) return triggerAlert('Kindly enter the PHONE NUMBER details correctly', 'error');
+        if (!form.name || !form.name.trim()) {
+            return triggerAlert('Full Name is required', 'error');
+        }
+        if (!form.phone || !cleanPhone) {
+            return triggerAlert('Phone Number is required', 'error');
+        }
+        if (cleanPhone.length !== 10) {
+            return triggerAlert('Phone Number must be exactly 10 digits', 'error');
+        }
+        if (!form.email || !form.email.trim()) {
+            return triggerAlert('Email Address is required', 'error');
+        }
+        if (!emailRegex.test(form.email.trim())) {
+            return triggerAlert('Please enter a valid Email Address', 'error');
+        }
+        if (!form.role) {
+            return triggerAlert('Role is required', 'error');
+        }
+        if (!form.shift) {
+            return triggerAlert('Shift is required', 'error');
+        }
+        if (!form.salaryType) {
+            return triggerAlert('Salary Type is required', 'error');
+        }
+        if (!form.address || !form.address.trim()) {
+            return triggerAlert('Residential Address is required', 'error');
+        }
+
         if (cleanPAN && cleanPAN.length !== 10) return triggerAlert('Kindly enter the PAN CARD details correctly', 'error');
         if (cleanAadhar && cleanAadhar.length !== 12) return triggerAlert('Kindly enter the AADHAR CARD details correctly', 'error');
         if (cleanVoter && cleanVoter.length !== 10) return triggerAlert('Kindly enter the VOTER ID details correctly', 'error');
@@ -376,9 +422,9 @@ const Staff = () => {
                 ['Shift', staff.shift || '—'],
                 ['Salary Type', staff.salaryType || '—'],
                 ['Role', formatRole(staff.role)],
-                ['PAN Card', staff.panCard || '—'],
-                ['Aadhar Card', staff.adharCard || '—'],
-                ['Voter ID', staff.voterId || '—'],
+                ['PAN Card', formatDocNumber(staff.panCardNumber, staff.panNumber, staff.panCard)],
+                ['Aadhar Card', formatDocNumber(staff.adharCardNumber, staff.adharNumber, staff.aadhaarCard, staff.adharCard)],
+                ['Voter ID', formatDocNumber(staff.voterIdNumber, staff.voterNumber, staff.voterId)],
                 ['Joined', formatDate(staff.createdAt)],
             ],
             theme: 'grid',
@@ -454,9 +500,12 @@ const Staff = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Employee Management</h1>
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 text-[13px] px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity uppercase tracking-tighter text-sm">
-                        <Plus size={18} />
-                        Add Employee
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="px-8 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        <Plus size={16} />
+                        ADD EMPLOYEE
                     </button>
                 </div>
             </div>
@@ -467,7 +516,7 @@ const Staff = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
+                                <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Employee</th>
                                 <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Role</th>
@@ -514,7 +563,7 @@ const Staff = () => {
                                                         e.stopPropagation();
                                                         setActiveLabelRowId(prev => prev === staff._id ? null : staff._id);
                                                     }}
-                                                    className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                    className="absolute -left-0.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
                                                     title={`Label: ${stripEmoji(rowLabels[staff._id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[staff._id], 16)}
@@ -566,7 +615,7 @@ const Staff = () => {
                                         <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
                                             staff.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                                         }`}>
-                                            {staff.isVerified ? 'Verified' : 'Unverified'}
+                                            {staff.isVerified ? 'Verified' : 'Pending'}
                                         </span>
                                     </td>
                                     <td className="p-3.25 text-center">
@@ -600,7 +649,7 @@ const Staff = () => {
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-[950px] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -609,7 +658,7 @@ const Staff = () => {
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Staff Details</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{selectedStaff.employeeId || '—'}</span></p>
-                                    <button onClick={() => fetchServiceHistory(selectedStaff._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
+                                    <button onClick={() => fetchServiceHistory(selectedStaff._id)} className="text-gray-400 transition-colors hover:text-blue-600">
                                         <Eye size={17} />
                                     </button>
                                 </div>
@@ -626,7 +675,7 @@ const Staff = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 {/* Personal Info */}
-                                <div className="space-y-2 w-full md:w-[40%]">
+                                <div className="space-y-2 w-full md:w-[38%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedStaff.name || '—'}</span></p>
@@ -636,18 +685,18 @@ const Staff = () => {
                                 </div>
 
                                 {/* Employment Info */}
-                                <div className="space-y-2 w-full md:w-[22%]">
+                                <div className="space-y-2 w-full md:w-[25%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-1 border border-blue-50 min-h-[110px]">
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full bg-blue-100 text-blue-700 ml-2">{formatRole(selectedStaff.role)}</span></p>
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ml-2 ${selectedStaff.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>{selectedStaff.shift || '—'}</span></p>
-                                        <p className="text-sm flex pb-4"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{selectedStaff.salaryType || 'Monthly'}</span></p>
+                                        <p className="text-sm flex pb-"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{selectedStaff.salaryType || 'Monthly'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Payment & Status (Other Details) */}
-                                <div className="flex flex-col gap-4.5 w-full md:w-[36%]">
-                                    <div className="space-y-1.25">
+                                <div className="flex flex-col gap-4.5 w-full md:w-[38%]">
+                                    <div className="space-y-1.5">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                         <div className="flex items-center  gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
@@ -666,7 +715,7 @@ const Staff = () => {
 
                                         <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Joined At</h4>
-                                            <span className="text-xs ml-3 font-bold text-gray-600 uppercase">
+                                            <span className="text-sm ml-3 font-bold text-gray-600 uppercase">
                                                 {formatDate(selectedStaff.createdAt, true)}
                                             </span>
                                         </div>
@@ -677,19 +726,31 @@ const Staff = () => {
                             {/* Service Details (Legal Documentation style) */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Legal Documentation</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-6 rounded-xl shadow-sm">
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">PAN Card Number</p>
-                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{selectedStaff.panCard || '—'}</p>
+                                <div className="pt-3 pb-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+                                        <div className="flex justify-start">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">PAN Card Number</p>
+                                                <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{formatDocNumber(selectedStaff.panCardNumber, selectedStaff.panNumber, selectedStaff.panCard)}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Adhar Protocol</p>
-                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{selectedStaff.adharCard || '—'}</p>
+                                        <div className="flex justify-center">
+                                            <div className="flex flex-col items-center text-center mr-5">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Aadhaar Card</p>
+                                                <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{formatDocNumber(selectedStaff.adharCardNumber, selectedStaff.adharNumber, selectedStaff.aadhaarCard, selectedStaff.adharCard)}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Voter ID Registry</p>
-                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{selectedStaff.voterId || '—'}</p>
+                                        <div className="flex justify-center">
+                                            <div className="flex flex-col items-center text-center ml-5">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Voter ID Card</p>
+                                                <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{formatDocNumber(selectedStaff.voterIdNumber, selectedStaff.voterNumber, selectedStaff.voterId)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <div className="flex flex-col items-center text-center mr-2">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Driving License</p>
+                                                <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{formatDocNumber(selectedStaff.drivingLicenseNumber, selectedStaff.drivingLicense, selectedStaff.licenseNumber, selectedStaff.dlNumber)}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -698,9 +759,8 @@ const Staff = () => {
                             {/* Residential Archive (Full Width) */}
                             <div className="space-y-2 ">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
-                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
-                                    <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedStaff.address || 'No Address Provided'}</h5>
+                                <div className="pt-2 uppercase">
+                                    <h5 className="font-bold text-[#052558] text-sm">{selectedStaff.address || 'No Address Provided'}</h5>
                                     {/* <p className="text-sm text-gray-500 mt-1 uppercase">Physical Deployment Address Registry</p> */}
                                 </div>
                             </div>
@@ -716,42 +776,42 @@ const Staff = () => {
             {/* Add Employee Modal */}
             {isAddModalOpen && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
-                    <div className="relative w-full max-w-5xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                        {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">{isEditMode ? 'Update Employee' : 'Add New Employee'}</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5">{isEditMode ? 'Update existing credentials' : 'Register a new staff member'}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditMode(false); }} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={handleCloseAddModal} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                {isEditMode ? 'Update Employee' : 'Add New Employee'}
+                            </h3>
+                            <button
+                                onClick={handleCloseAddModal}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar">
+                        <div className="space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar text-left">
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Full Name</label>
-                                    <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Full Name</label>
+                                    <input autoComplete="off" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Phone Number</label>
-                                    <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Phone Number</label>
+                                    <input autoComplete="off" type="tel" maxLength={10} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Email Address</label>
-                                    <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none lowercase" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Email Address</label>
+                                    <input autoComplete="off" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] lowercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Role</label>
-                                    <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Role</label>
+                                    <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="Mechanic">MECHANIC</option>
                                         <option value="Manager">MANAGER</option>
@@ -760,17 +820,17 @@ const Staff = () => {
                                         <option value="Admin">ADMIN</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Shift</label>
-                                    <select value={form.shift} onChange={e => setForm({ ...form, shift: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Shift</label>
+                                    <select value={form.shift} onChange={e => setForm({ ...form, shift: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="Morning">MORNING</option>
                                         <option value="Evening">EVENING</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Salary Type</label>
-                                    <select value={form.salaryType} onChange={e => setForm({ ...form, salaryType: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Salary Type</label>
+                                    <select value={form.salaryType} onChange={e => setForm({ ...form, salaryType: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="Monthly">MONTHLY</option>
                                         <option value="Weekly">WEEKLY</option>
@@ -780,32 +840,42 @@ const Staff = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">PAN Card Number</label>
-                                    <input value={form.panCard} onChange={e => setForm({ ...form, panCard: formatPAN(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                            {/* <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">PAN Card Number</label>
+                                    <input value={form.panCard} onChange={e => setForm({ ...form, panCard: formatPAN(e.target.value) })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" maxLength={10} />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Aadhar Card Number</label>
-                                    <input value={form.adharCard} onChange={e => setForm({ ...form, adharCard: formatAadhar(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={14} />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Aadhar Card Number</label>
+                                    <input value={form.adharCard} onChange={e => setForm({ ...form, adharCard: formatAadhar(e.target.value) })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" maxLength={14} />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Voter ID</label>
-                                    <input value={form.voterId} onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" maxLength={10} />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Voter ID</label>
+                                    <input value={form.voterId} onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" maxLength={10} />
                                 </div>
-                            </div>
+                            </div> */}
 
-                            <div>
-                                <label className="block text-sm font-bold text-[#011023] mb-1.5">Residential Address</label>
-                                <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none h-16 resize-none" />
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Residential Address</label>
+                                <textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] h-16 resize-none" />
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={() => { setIsAddModalOpen(false); setIsEditMode(false); }} className="px-5 py-2.5 uppercase text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 uppercase text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
-                                {saving ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Employee' : 'Add Employee')}
+                        {/* Action Buttons (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> {isEditMode ? 'UPDATING...' : 'ADDING...'}
+                                    </>
+                                ) : (
+                                    isEditMode ? 'UPDATE EMPLOYEE' : 'ADD EMPLOYEE'
+                                )}
                             </button>
                         </div>
                     </div>
