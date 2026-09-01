@@ -13,6 +13,9 @@ const EVENT_MAPPING = {
     id_card_requested: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
     overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
+    reminder: { type: 'Reminder', category: 'General', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
+    warning: { type: 'Warning', category: 'General', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
+    document: { type: 'Document', category: 'Document', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-sky-100 text-sky-700 border border-sky-200' },
 };
 
 const Notifications = () => {
@@ -62,7 +65,9 @@ const Notifications = () => {
                         { label: 'Booking', value: 'Booking' },
                         { label: 'Leave', value: 'Leave' },
                         { label: 'Overtime', value: 'Overtime' },
-                        { label: 'Meeting', value: 'Meeting' }
+                        { label: 'Meeting', value: 'Meeting' },
+                        { label: 'Reminder', value: 'Reminder' },
+                        { label: 'Warning', value: 'Warning' }
                     ]
                 },
                 LABEL_FILTER_GROUP
@@ -185,13 +190,21 @@ const Notifications = () => {
             
             // Filter notifications for this garage ONLY
             const garageNotifs = allNotifs.filter(n => {
-                if (n.superCategory === 'employees_notification') return false;
+                if (n.superCategory === 'employees_notification' || n.superCategory === 'adminNotification' || n.superCategory === 'admin_notification') return false;
 
-                const isMatchingGarage = n.meta?.garageId === garageId;
+                if (n.eventType === 'document') {
+                    const title = (n.title || '').toLowerCase();
+                    const isApprovedOrRejected = title.includes('approved') || title.includes('rejected') || n.meta?.status === 'Approved' || n.meta?.status === 'Rejected';
+                    const isMatchingGarage = !n.meta?.garageId || String(n.meta?.garageId) === String(garageId);
+                    return (n.superCategory === 'garageNotification' || n.superCategory === 'garage_notification') && isMatchingGarage && isApprovedOrRejected;
+                }
+
+                if (n.superCategory === 'garageNotification' || n.superCategory === 'garage_notification') return true;
+
+                const isMatchingGarage = !n.meta?.garageId || n.meta?.garageId === garageId;
                 if (!isMatchingGarage) return false;
                 
-                if (n.superCategory === 'garageNotification') return true;
-                return n.eventType === 'booking_created' || n.eventType === 'booking' || n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting' || n.eventType === 'id_card_requested';
+                return n.eventType === 'booking_created' || n.eventType === 'booking' || n.eventType === 'leave' || n.eventType === 'overtime' || n.eventType === 'meeting' || n.eventType === 'id_card_requested' || n.eventType === 'reminder' || n.eventType === 'warning';
             });
 
             setNotifications(garageNotifs);
@@ -409,9 +422,9 @@ const Notifications = () => {
                                                     <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
                                                         {notif.meta?.senderName || 'ADMINISTRATOR'}
                                                     </span>
-                                                    <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
+                                                    {/* <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
                                                         {notif.meta?.senderId || '184592037461'}
-                                                    </span>
+                                                    </span> */}
                                                 </div>
                                             </td>
                                             <td 
@@ -429,6 +442,17 @@ const Notifications = () => {
                                                         style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
                                                     >
                                                         {(() => {
+                                                            if (notif.eventType === 'document') {
+                                                                const garageName = notif.meta?.garageName || notif.meta?.name || 'Garage';
+                                                                const docName = notif.meta?.docLabel || notif.meta?.documentType || 'Document';
+                                                                const docIdStr = notif.meta?.docId ? ` (${notif.meta.docId})` : '';
+                                                                const isApproved = (notif.title || '').toLowerCase().includes('approved') || notif.meta?.status === 'Approved';
+                                                                if (isApproved) {
+                                                                    return `Dear ${garageName}, Your ${docName}${docIdStr} has been approved.`;
+                                                                } else {
+                                                                    return `Dear ${garageName}, Your ${docName}${docIdStr} has been rejected. Kindly review the remarks provided by the administration and re-upload the document. Please ensure that you upload it correctly, as this is the final attempt to do so.`;
+                                                                }
+                                                            }
                                                             if (notif.message && notif.message.startsWith('Dear ')) return notif.message;
                                                             if (notif.eventType === 'booking' || notif.eventType === 'booking_created') {
                                                                 const garageName = notif.meta?.garageName || 'Garage';
@@ -441,19 +465,19 @@ const Notifications = () => {
                                                                 const garageName = notif.meta?.garageName || 'Garage';
                                                                 const employeeName = notif.meta?.name || notif.meta?.employeeName || 'Employee';
                                                                 const employeeId = notif.meta?.employeeId || '';
-                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a meeting. Kindly review the details of the meeting and approved or reject according.`;
+                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a meeting. Kindly review the details of the meeting and approved or reject accordingly.`;
                                                             }
                                                             if (notif.eventType === 'leave') {
                                                                 const garageName = notif.meta?.garageName || 'Garage';
                                                                 const employeeName = notif.meta?.employeeName || notif.meta?.name || 'Employee';
                                                                 const employeeId = notif.meta?.employeeId || '';
-                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a leave. Kindly review the details of the leave and approved or reject according.`;
+                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a leave. Kindly review the details of the leave and approved or reject accordingly.`;
                                                             }
                                                             if (notif.eventType === 'overtime') {
                                                                 const garageName = notif.meta?.garageName || 'Garage';
                                                                 const employeeName = notif.meta?.employeeName || notif.meta?.name || 'Employee';
                                                                 const employeeId = notif.meta?.employeeId || '';
-                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a overtime. Kindly review the details of the overtime and approved or reject according.`;
+                                                                return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a overtime. Kindly review the details of the overtime and approved or reject accordingly.`;
                                                             }
                                                             return notif.message;
                                                         })()}
