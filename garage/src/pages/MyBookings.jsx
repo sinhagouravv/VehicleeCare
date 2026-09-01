@@ -6,9 +6,11 @@ import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const MyBookings = () => {
+    const { triggerAlert } = useAlert();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -232,12 +234,15 @@ const MyBookings = () => {
             const data = await res.json();
             if (data.success) {
                 setBookings(prev => prev.filter(b => b._id !== bookingToDelete));
+                triggerAlert("Booking deleted successfully", "success");
                 setIsDeleteModalOpen(false);
                 setBookingToDelete(null);
+            } else {
+                triggerAlert(data.message || "Failed to delete booking.", "error");
             }
         } catch (error) {
             console.error("Failed to delete booking", error);
-            alert("Failed to delete booking. Please try again.");
+            triggerAlert("Failed to delete booking. Please try again.", "error");
         } finally {
             setDeleting(false);
         }
@@ -351,9 +356,10 @@ const MyBookings = () => {
             doc.text("Thank you for using VehicleeCare.", 105, finalY + 55, null, null, "center");
 
             doc.save(`Invoice-${booking.bookingId || booking._id}.pdf`);
+            triggerAlert("Invoice downloaded successfully", "success");
         } catch (err) {
             console.error("Error generating PDF:", err);
-            alert("Error downloading invoice. Please try again.");
+            triggerAlert("Error downloading invoice. Please try again.", "error");
         }
     };
 
