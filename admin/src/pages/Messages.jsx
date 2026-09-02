@@ -4,9 +4,11 @@ import { Mail, Eye, Trash2, X, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Messages = () => {
+    const { triggerAlert } = useAlert();
     const [messages, setMessages] = useState([]);
     const highlightedRow = useHighlight(messages);
     const [loading, setLoading] = useState(true);
@@ -98,14 +100,15 @@ const Messages = () => {
             const data = await res.json();
             if (data.success) {
                 setMessages(messages.filter(m => m._id !== messageToDelete));
+                triggerAlert('Message deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setMessageToDelete(null);
             } else {
-                alert("Failed to delete message.");
+                triggerAlert(data.message || "Failed to delete message.", 'error');
             }
         } catch (err) {
             console.error("Error deleting message:", err);
-            alert("Error deleting message.");
+            triggerAlert("Error deleting message.", 'error');
         } finally {
             setDeleting(false);
         }
