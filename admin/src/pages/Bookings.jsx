@@ -336,7 +336,7 @@ const Bookings = () => {
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Bookings</h1>
+                <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Bookings</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
                     {!lastRefreshed ? (
                         <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
@@ -356,8 +356,8 @@ const Bookings = () => {
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[29%]">Service</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Booked At</th>
+                                <th className="p-4.5 font-bold text-center w-[31%]">Service</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Booked At</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Payment ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
