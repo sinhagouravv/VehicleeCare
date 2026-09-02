@@ -17,9 +17,9 @@ const emptyForm = {
     district: '',
     address: '',
     coordinates: '',
-    ports: 1,
+    ports: '',
     type: [],
-    status: 'Operational',
+    status: '',
     ownerName: '',
     ownerContact: '',
     ownerEmail: ''
@@ -29,9 +29,11 @@ const initialStations = [];
 
 import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const ChargingStations = () => {
+    const { triggerAlert } = useAlert();
     const [stations, setStations] = useState(initialStations);
     const highlightedRow = useHighlight(stations);
     const [loading, setLoading] = useState(false);
@@ -121,9 +123,9 @@ const ChargingStations = () => {
             district: s.district,
             address: s.address,
             coordinates: s.coordinates || '',
-            ports: s.ports || 1,
+            ports: s.ports || '',
             type: s.type || [],
-            status: s.status || 'Operational',
+            status: s.status || '',
             ownerName: s.ownerName || '',
             ownerContact: s.ownerContact || '',
             ownerEmail: s.ownerEmail || ''
@@ -159,7 +161,7 @@ const ChargingStations = () => {
     }, [form.state, form.district, form.address]);
 
     const handleSave = async () => {
-        if (!form.name.trim()) return alert('Station name is required');
+        if (!form.name.trim()) return triggerAlert('Station name is required', 'error');
         setSaving(true);
         try {
             const url = editTarget
@@ -182,16 +184,18 @@ const ChargingStations = () => {
             if (data.success) {
                 if (editTarget) {
                     setStations(prev => prev.map(s => s.id === editTarget.id ? data.data : s));
+                    triggerAlert('Charging station updated successfully', 'success');
                 } else {
                     setStations(prev => [data.data, ...prev]);
+                    triggerAlert('Charging station added successfully', 'success');
                 }
                 closeModal();
             } else {
-                alert(data.message || 'Error saving station');
+                triggerAlert(data.message || 'Error saving station', 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to save charging station');
+            triggerAlert('Failed to save charging station', 'error');
         } finally {
             setSaving(false);
         }
@@ -204,12 +208,13 @@ const ChargingStations = () => {
             const res = await fetch(`http://localhost:5001/api/charging-stations/${stationToDelete}`, { method: 'DELETE' });
             if (res.ok) {
                 setStations(prev => prev.filter(s => s.id !== stationToDelete));
+                triggerAlert('Charging station deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setStationToDelete(null);
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to delete charging station');
+            triggerAlert('Failed to delete charging station', 'error');
         } finally {
             setDeleting(false);
         }
@@ -261,7 +266,9 @@ const ChargingStations = () => {
     }, [filteredStations.length, setResultsCount]);
 
     const getStatusColor = (status) => {
-        return status === 'Operational' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
+        return (status === 'Operational' || status === 'Working' || status === 'Active' || status === 'Verified')
+            ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+            : 'bg-amber-100 text-amber-800 border-amber-200';
     };
 
     const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
@@ -271,8 +278,11 @@ const ChargingStations = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Charging Stations</h1>
                 <div className="flex items-center gap-3">
-                    <button onClick={openAdd} className="flex items-center text-[13px] gap-2 uppercase px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                        <Plus size={18} /> Add Station
+                    <button
+                        onClick={openAdd}
+                        className="px-12 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        <Plus size={16} /> ADD STATION
                     </button>
                 </div>
             </div>
@@ -287,7 +297,7 @@ const ChargingStations = () => {
                                 <th className="p-4 font-bold text-center w-[25%]">Location</th>
                                 <th className="p-4 font-bold text-center w-[8%]">Ports</th>
                                 <th className="p-4 font-bold text-center w-[25%]">Charger Type</th>
-                                <th className="p-4 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Is working</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Manage</th>
                             </tr>
                         </thead>
@@ -394,64 +404,64 @@ const ChargingStations = () => {
                 </div>
             </div>
 
-            {/* ─── ADD STATION MODAL (emerald) ─── */}
+            {/* Add Station Modal */}
             {showModal && !editTarget && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={closeModal} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Add New  Station</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Create a new station entry</p>
-                                </div>
-                            </div>
-                            <button onClick={closeModal} className="p-2 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Add Station
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 space-y-4 uppercase">
-                            {/* Row 1 — Owner Details */}
+                        <div className="space-y-4 uppercase text-left overflow-y-auto max-h-[70vh] hide-scrollbar">
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Name</label>
-                                    <input value={form.ownerName} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Name</label>
+                                    <input value={form.ownerName} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Contact</label>
-                                    <input value={form.ownerContact} onChange={e => setForm(p => ({ ...p, ownerContact: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Contact</label>
+                                    <input value={form.ownerContact} onChange={e => setForm(p => ({ ...p, ownerContact: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Email</label>
-                                    <input value={form.ownerEmail} onChange={e => setForm(p => ({ ...p, ownerEmail: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none normal-case" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Email</label>
+                                    <input value={form.ownerEmail} onChange={e => setForm(p => ({ ...p, ownerEmail: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
                             </div>
 
-                            {/* Row 2 — Station Name, State, District */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Station Name</label>
-                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Station Name</label>
+                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">State</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">State</label>
                                     <select
                                         value={form.state}
                                         onChange={e => setForm(p => ({ ...p, state: e.target.value, district: '', address: '', coordinates: '' }))}
-                                        className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
                                     >
                                         <option value=""></option>
                                         {STATES.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">District</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">District</label>
                                     <select
                                         value={form.district}
                                         onChange={e => setForm(p => ({ ...p, district: e.target.value, address: '', coordinates: '' }))}
                                         disabled={!form.state}
-                                        className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer disabled:opacity-40"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer disabled:opacity-40"
                                     >
                                         <option value=""></option>
                                         {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -459,10 +469,9 @@ const ChargingStations = () => {
                                 </div>
                             </div>
 
-                            {/* Row 3 — Coordinates + Address */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Coordinates</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Coordinates</label>
                                     <select
                                         value={form.coordinates}
                                         onChange={e => {
@@ -475,7 +484,7 @@ const ChargingStations = () => {
                                             }));
                                         }}
                                         disabled={!form.district}
-                                        className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer disabled:opacity-40"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer disabled:opacity-40"
                                     >
                                         <option value=""></option>
                                         {STATION_LOCATIONS.filter(l => l.state === form.state && l.district === form.district).map((l, i) => (
@@ -483,38 +492,39 @@ const ChargingStations = () => {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Address / Place</label>
-                                    <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="col-span-2 space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Address / Place</label>
+                                    <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
                             </div>
 
-                            {/* Row 4 — Ports, Status, Charger Types */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Ports</label>
-                                    <select value={form.ports} onChange={e => setForm(p => ({ ...p, ports: parseInt(e.target.value) || 1 }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Ports</label>
+                                    <select value={form.ports} onChange={e => setForm(p => ({ ...p, ports: e.target.value ? parseInt(e.target.value) : '' }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
+                                        <option value=""></option>
                                         {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
                                             <option key={num} value={num}>{num}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Status</label>
-                                    <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Status</label>
+                                    <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
+                                        <option value=""></option>
                                         <option value="Operational">Operational</option>
                                         <option value="Maintenance">Maintenance</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Charger Types</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Charger Types</label>
                                     <div className="flex flex-wrap gap-2">
                                         {CHARGER_TYPES.map(t => (
                                             <button
                                                 key={t}
                                                 type="button"
                                                 onClick={() => toggleType(t)}
-                                                className={`flex-1 py-2.5 uppercase rounded-lg text-xs font-bold border transition-all ${form.type.includes(t) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white/60 text-gray-500 border-gray-200 hover:border-emerald-400'}`}
+                                                className={`flex-1 py-2.5 rounded-xl text-xs font-semibold uppercase border border-[#cbd5e1] transition-all cursor-pointer ${form.type.includes(t) ? 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3]' : 'bg-[#f8fafc] border-[#cbd5e1] text-[#011023] hover:bg-slate-100'}`}
                                             >
                                                 {t}
                                             </button>
@@ -524,11 +534,28 @@ const ChargingStations = () => {
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm uppercase font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm uppercase font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
-                                {saving ? 'Adding…' : 'Add Station'}
+                        {/* Footer (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            {/* <button
+                                type="button"
+                                onClick={closeModal}
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                            >
+                                Cancel
+                            </button> */}
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> ADDING...
+                                    </>
+                                ) : (
+                                    'ADD STATION'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -536,94 +563,93 @@ const ChargingStations = () => {
                 document.body
             )}
 
-            {/* ─── EDIT STATION MODAL (blue) ─── */}
+            {/* Edit Station Modal */}
             {showModal && editTarget && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={closeModal} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Edit Station</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5 tracking-widest">ID: {editTarget.id}</p>
-                                </div>
-                            </div>
-                            <button onClick={closeModal} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Edit Station
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 space-y-4 uppercase">
-                            {/* Row 1 — Owner Details */}
+                        <div className="space-y-4 uppercase text-left overflow-y-auto max-h-[70vh] hide-scrollbar">
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Name</label>
-                                    <input value={form.ownerName || ''} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Name</label>
+                                    <input value={form.ownerName || ''} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Contact</label>
-                                    <input readOnly value={form.ownerContact || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Contact</label>
+                                    <input readOnly value={form.ownerContact || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Email</label>
-                                    <input readOnly value={form.ownerEmail || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed normal-case" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Email</label>
+                                    <input readOnly value={form.ownerEmail || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
                             </div>
 
-                            {/* Row 2 — Station Name, State, District */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Station Name</label>
-                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Station Name</label>
+                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">State</label>
-                                    <input readOnly value={form.state || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">State</label>
+                                    <input readOnly value={form.state || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">District</label>
-                                    <input readOnly value={form.district || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">District</label>
+                                    <input readOnly value={form.district || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
                             </div>
 
-                            {/* Row 3 — Coordinates + Address */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Coordinates</label>
-                                    <input readOnly value={form.coordinates || ''} placeholder="—" className="w-full px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed normal-case" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Coordinates</label>
+                                    <input readOnly value={form.coordinates || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Address / Place</label>
-                                    <input readOnly value={form.address || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="col-span-2 space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Address / Place</label>
+                                    <input readOnly value={form.address || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
                             </div>
 
-                            {/* Row 4 — Ports, Status, Charger Types */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Ports</label>
-                                    <select value={form.ports} onChange={e => setForm(p => ({ ...p, ports: parseInt(e.target.value) || 1 }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Ports</label>
+                                    <select value={form.ports} onChange={e => setForm(p => ({ ...p, ports: parseInt(e.target.value) || '' }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
+                                        <option value=""></option>
                                         {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
                                             <option key={num} value={num}>{num}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Status</label>
-                                    <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Status</label>
+                                    <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value="Operational">Operational</option>
                                         <option value="Maintenance">Maintenance</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Charger Types</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Charger Types</label>
                                     <div className="flex flex-wrap gap-2">
                                         {CHARGER_TYPES.map(t => (
                                             <button
                                                 key={t}
                                                 type="button"
                                                 onClick={() => toggleType(t)}
-                                                className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${form.type.includes(t) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/60 text-gray-500 border-gray-200 hover:border-blue-400'}`}
+                                                className={`flex-1 py-2.5 rounded-xl text-xs uppercase font-semibold border transition-all cursor-pointer ${form.type.includes(t) ? 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3]' : 'bg-[#f8fafc] border-[#cbd5e1] text-[#011023] hover:bg-slate-100'}`}
                                             >
                                                 {t}
                                             </button>
@@ -633,11 +659,28 @@ const ChargingStations = () => {
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg hover:shadow-blue-600/25 disabled:opacity-60">
-                                {saving ? 'Saving…' : 'Save Changes'}
+                        {/* Footer (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            {/* <button
+                                type="button"
+                                onClick={closeModal}
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                            >
+                                Cancel
+                            </button> */}
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> SAVING...
+                                    </>
+                                ) : (
+                                    'SAVE CHANGES'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -686,7 +729,7 @@ const ChargingStations = () => {
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Ports:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.ports ?? '—'}</span></p>
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Status:</span>
-                                            <span className={`ml-2 inline-block px-3 py-0.5 text-[10px] font-bold uppercase rounded-full ${viewTarget.status === 'Operational' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            <span className={`ml-2 inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${viewTarget.status === 'Operational' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                                                 {viewTarget.status || '—'}
                                             </span>
                                         </p>
@@ -713,12 +756,8 @@ const ChargingStations = () => {
                             {/* Location Archive */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Location Archive</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
-                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1 flex justify-between items-center">
-                                        <span>Geographic Allocation</span>
-                                        <span className="text-[10px] text-gray-400 font-semibold normal-case"></span>
-                                    </p>
-                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
+                                <div className="pt-2 uppercase">
+                                    <h5 className="font-semibold text-[#052558] text-sm">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
