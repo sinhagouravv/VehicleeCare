@@ -76,6 +76,12 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     const [deleting, setDeleting] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
 
+    // Severity Assignment Modal State
+    const [isSeverityModalOpen, setIsSeverityModalOpen] = useState(false);
+    const [bugForSeverity, setBugForSeverity] = useState(null);
+    const [selectedSeverityOption, setSelectedSeverityOption] = useState('Medium');
+    const [submittingSeverity, setSubmittingSeverity] = useState(false);
+
     const fetchBugs = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
@@ -121,6 +127,35 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
             triggerAlert("Network error. Failed to update status.", 'error');
         } finally {
             setUpdatingId(null);
+        }
+    };
+
+    const handleConfirmSeverityAndProgress = async () => {
+        if (!bugForSeverity) return;
+        setSubmittingSeverity(true);
+        try {
+            const res = await fetch(`http://localhost:5001/api/bugs/${bugForSeverity._id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'In Progress', severity: selectedSeverityOption })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBugs(prev => prev.map(b => b._id === bugForSeverity._id ? { ...b, status: 'In Progress', severity: selectedSeverityOption } : b));
+                if (selectedBug && selectedBug._id === bugForSeverity._id) {
+                    setSelectedBug(prev => ({ ...prev, status: 'In Progress', severity: selectedSeverityOption }));
+                }
+                triggerAlert('Bug severity assigned & status moved to In Progress', 'success');
+                setIsSeverityModalOpen(false);
+                setBugForSeverity(null);
+            } else {
+                triggerAlert(data.message || 'Failed to update bug.', 'error');
+            }
+        } catch (err) {
+            console.error("Error setting severity and status:", err);
+            triggerAlert('Network error while updating bug.', 'error');
+        } finally {
+            setSubmittingSeverity(false);
         }
     };
 
@@ -264,16 +299,16 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
             <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
                     <table className="w-full text-center border-collapse table-fixed">
-                        <thead className="sticky top-0 z-20 shadow-sm bg-[#f0f6ff]">
+                        <thead className="sticky top-0 z-30 shadow-sm bg-[#f0f6ff]">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[9.25%]">Bug ID</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Portal</th>
                                 <th className="p-4 font-bold text-center w-[9%]">Reporter</th>
-                                <th className="p-4 font-bold text-center w-[35%]">Bug Subject</th>
+                                <th className="p-4 font-bold text-center w-[38%]">Bug Subject</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Reported At</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Severity</th> */}
                                 <th className="p-4 font-bold text-center w-[9%]">Status</th>
-                                <th className="p-4 font-bold text-center w-[7%]">Actions</th>
+                                <th className="p-4 font-bold text-center w-[4%]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
@@ -354,7 +389,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center " onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center justify-center gap-4">
+                                            <div className="flex items-center justify-center mr-2.5 gap-4.5">
                                                 <button
                                                     onClick={() => {
                                                         setSelectedBug(bug);
@@ -364,11 +399,16 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
                                                 >
                                                     <Eye size={18} />
                                                 </button>
-                                                {bug.status !== 'Resolved' && (
+                                                {/* {bug.status !== 'Resolved' && (
                                                     <button
                                                         onClick={() => {
-                                                            const nextStatus = bug.status === 'In Progress' ? 'Resolved' : 'In Progress';
-                                                            handleUpdateStatus(bug._id, nextStatus);
+                                                            if (bug.status === 'Pending') {
+                                                                setBugForSeverity(bug);
+                                                                setSelectedSeverityOption(bug.severity || 'Medium');
+                                                                setIsSeverityModalOpen(true);
+                                                            } else if (bug.status === 'In Progress') {
+                                                                handleUpdateStatus(bug._id, 'Resolved');
+                                                            }
                                                         }}
                                                         disabled={updatingId === bug._id}
                                                         className="text-gray-400 hover:text-emerald-500 cursor-pointer disabled:opacity-50"
@@ -386,7 +426,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
                                                     >
                                                         <MessageSquare size={18} />
                                                     </button>
-                                                )}
+                                                )} */}
                                                 {/* <button
                                                     onClick={() => {
                                                         setBugToDelete(bug);
@@ -500,6 +540,91 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
                                 className="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition-all"
                             >
                                 Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Assign Severity Level Modal */}
+            {isSeverityModalOpen && bugForSeverity && createPortal(
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => {
+                        setIsSeverityModalOpen(false);
+                        setBugForSeverity(null);
+                    }}
+                >
+                    <div 
+                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-7 space-y-5 text-left">
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide">
+                                    Assign Severity Level
+                                </h3>
+                                <button 
+                                    onClick={() => {
+                                        setIsSeverityModalOpen(false);
+                                        setBugForSeverity(null);
+                                    }}
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Select severity level for bug <span className="text-[#011023] font-bold">#{bugForSeverity.bugId || bugForSeverity._id}</span> to move status to <span className="text-emerald-600 font-bold">IN PROGRESS</span>:
+                            </p>
+
+                            <div className="space-y-2">
+                                {[
+                                    { value: 'Low', label: 'Low - Cosmetic / Typo' },
+                                    { value: 'Medium', label: 'Medium - Feature malfunctioning' },
+                                    { value: 'High', label: 'High - Broken workflow / major issue' },
+                                    { value: 'Critical', label: 'Critical - App crash / data loss' }
+                                ].map((option) => (
+                                    <label 
+                                        key={option.value}
+                                        onClick={() => setSelectedSeverityOption(option.value)}
+                                        className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                                            selectedSeverityOption === option.value
+                                                ? 'bg-blue-50/60 border-blue-300 text-[#011023] shadow-xs'
+                                                : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold uppercase tracking-wider">{option.label}</span>
+                                        <input 
+                                            type="radio"
+                                            name="severity"
+                                            value={option.value}
+                                            checked={selectedSeverityOption === option.value}
+                                            onChange={() => setSelectedSeverityOption(option.value)}
+                                            className="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer"
+                                        />
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 px-7 pb-6">
+                            <button 
+                                onClick={() => {
+                                    setIsSeverityModalOpen(false);
+                                    setBugForSeverity(null);
+                                }}
+                                className="px-4 py-3 bg-white border border-gray-200 text-gray-400 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95 cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleConfirmSeverityAndProgress}
+                                disabled={submittingSeverity}
+                                className="px-4 py-3 bg-[#052558] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-[#011023] transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
+                            >
+                                {submittingSeverity ? <Loader2 size={16} className="animate-spin" /> : 'Confirm & Move to Progress'}
                             </button>
                         </div>
                     </div>
