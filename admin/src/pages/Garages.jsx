@@ -22,20 +22,34 @@ const getOrderedTypes = (types = []) => {
     return [...left, dieselItem, ...right];
 };
 
+const formatDocNumber = (...vals) => {
+    for (const val of vals) {
+        if (val && typeof val === 'string') {
+            const trimmed = val.trim();
+            if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.includes('cloudinary')) {
+                return trimmed;
+            }
+        }
+    }
+    return '—';
+};
+
 const GARAGE_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(GARAGE_LOCATIONS.map(l => l.state))].sort();
 
 const API = 'http://localhost:5001/api/garages';
 
-const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV', 'PREMIUM'];
+const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV'];
 
-const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: '', ownerName: '', ownerContact: '', ownerEmail: '' };
+const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: '', workingHours: '', workingDays: '', ownerName: '', ownerContact: '', ownerEmail: '' };
 
 import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Garages = () => {
+    const { triggerAlert } = useAlert();
     const [garages, setGarages] = useState([]);
     const highlightedRow = useHighlight(garages);
     // Add highlightedRow state for visual feedback
@@ -173,7 +187,22 @@ const Garages = () => {
 
     const openAdd = () => { setForm(emptyForm); setEditTarget(null); setShowModal(true); };
     const openEdit = (g) => {
-        setForm({ name: g.name, state: g.state, district: g.district, address: g.address, coordinates: g.coordinates || '', type: g.type || [], rating: g.rating, partner: g.partner, pickupDrop: g.pickupDrop, ownerName: g.ownerName || '', ownerContact: g.ownerContact || '', ownerEmail: g.ownerEmail || '' });
+        setForm({ 
+            name: g.name || '', 
+            state: g.state || '', 
+            district: g.district || '', 
+            address: g.address || '', 
+            coordinates: g.coordinates || '', 
+            type: g.type || [], 
+            rating: g.rating, 
+            partner: g.partner, 
+            pickupDrop: g.pickupDrop === true ? 'yes' : g.pickupDrop === false ? 'no' : '', 
+            workingHours: g.workingHours || '',
+            workingDays: g.workingDays || '',
+            ownerName: g.ownerName || '', 
+            ownerContact: g.ownerContact || '', 
+            ownerEmail: g.ownerEmail || '' 
+        });
         setEditTarget(g);
         setShowModal(true);
     };
@@ -187,25 +216,46 @@ const Garages = () => {
     }));
 
     const handleSave = async () => {
-        if (!form.name.trim()) return alert('Garage name is required');
+        if (!form.ownerName?.trim()) return triggerAlert('Owner Name is required', 'error');
+        if (!form.ownerContact?.trim()) return triggerAlert('Owner Contact Number is required', 'error');
+        if (form.ownerContact.trim().length !== 10) return triggerAlert('Contact Number must be 10 digits', 'error');
+        if (!form.ownerEmail?.trim()) return triggerAlert('Owner Email Address is required', 'error');
+        if (!form.name?.trim()) return triggerAlert('Garage Name is required', 'error');
+        if (!form.state?.trim()) return triggerAlert('State is required', 'error');
+        if (!form.district?.trim()) return triggerAlert('District is required', 'error');
+        if (!form.coordinates?.trim()) return triggerAlert('Coordinates are required', 'error');
+        if (!form.address?.trim()) return triggerAlert('Address is required', 'error');
+        if (!Array.isArray(form.type) || form.type.length === 0) return triggerAlert('Please select at least one Vehicle Type', 'error');
+
         setSaving(true);
         try {
             const method = editTarget ? 'PUT' : 'POST';
             const url = editTarget ? `${API}/${editTarget._id}` : API;
+            const payload = {
+                ...form,
+                pickupDrop: form.pickupDrop === 'yes' || form.pickupDrop === true ? true : false
+            };
+            if (payload.rating !== '' && payload.rating !== null && payload.rating !== undefined) {
+                payload.rating = parseFloat(payload.rating);
+            } else {
+                delete payload.rating;
+            }
+
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...form, rating: form.rating !== '' ? parseFloat(form.rating) : null })
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (data.success) {
                 await fetchGarages(true);
+                triggerAlert(editTarget ? 'Garage updated successfully' : 'Garage added successfully', 'success');
                 closeModal();
             } else {
-                alert(data.message || 'Failed to save garage');
+                triggerAlert(data.message || 'Failed to save garage', 'error');
             }
         } catch {
-            alert('Error saving garage');
+            triggerAlert('Error saving garage', 'error');
         } finally {
             setSaving(false);
         }
@@ -219,12 +269,15 @@ const Garages = () => {
             const data = await res.json();
             if (data.success) {
                 setGarages(prev => prev.filter(g => g._id !== garageToDelete));
+                triggerAlert('Garage deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setGarageToDelete(null);
+            } else {
+                triggerAlert(data.message || 'Failed to delete garage', 'error');
             }
         } catch (err) {
             console.error('Error deleting garage:', err);
-            alert('Error deleting garage');
+            triggerAlert('Error deleting garage', 'error');
         } finally {
             setDeleting(false);
         }
@@ -283,9 +336,9 @@ const Garages = () => {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={openAdd}
-                        className="flex items-center gap-2 uppercase text-[13px] px-12 py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity"
+                        className="px-12.5 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        <Plus size={18} /> Add Garage
+                        <Plus size={16} /> ADD GARAGE
                     </button>
                 </div>
             </div>
@@ -296,13 +349,14 @@ const Garages = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4 font-bold text-center w-[10.75%]">Garage ID</th>
-                                <th className="p-4 font-bold text-center w-[16%]">Garage Name</th>
-                                <th className="p-4 font-bold text-center w-[26%]">Location</th>
-                                <th className="p-4 font-bold text-center w-[20%]">Vehicle Types</th>
-                                <th className="p-4 font-bold text-center w-[10%]">Pickup</th>
-                                <th className="p-4 font-bold text-center w-[8%]">Rating</th>
-                                <th className="p-4 font-bold text-center w-[10%]">Actions</th>
+                                <th className="p-4 font-bold text-center w-[10.5%]">Garage ID</th>
+                                <th className="p-4 font-bold text-center w-[15%]">Garage Name</th>
+                                <th className="p-4 font-bold text-center w-[23%]">Location</th>
+                                <th className="p-4 font-bold text-center w-[18%]">Vehicle Types</th>
+                                <th className="p-4 font-bold text-center w-[8%]">Pickup</th>
+                                <th className="p-4 font-bold text-center w-[7%]">Rating</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
@@ -390,6 +444,13 @@ const Garages = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center w-[10%]">
+                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                                garage.partner || garage.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                                {garage.partner || garage.isVerified ? 'VERIFIED' : 'PENDING'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center w-[10%]">
                                             <div className="flex items-center justify-center gap-4">
                                                 <button onClick={() => openView(garage)} className="text-gray-400 hover:text-blue-500">
                                                     <Eye size={17} />
@@ -410,70 +471,99 @@ const Garages = () => {
                 </div>
             </div>
 
-            {/* ─── ADD GARAGE MODAL (emerald, matches Services Add style) ─── */}
+            {/* ─── ADD GARAGE MODAL ─── */}
             {showModal && !editTarget && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={closeModal} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Add New Garage</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Create a new garage entry</p>
-                                </div>
-                            </div>
-                            <button onClick={closeModal} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Add New Garage
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
+
                         {/* Body */}
-                        <div className="p-6 space-y-4 uppercase">
+                        <div className="space-y-4 uppercase text-left overflow-y-auto max-h-[70vh] hide-scrollbar">
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Name</label>
-                                    <input value={form.ownerName} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Name</label>
+                                    <input value={form.ownerName} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Contact</label>
-                                    <input value={form.ownerContact} onChange={e => setForm(p => ({ ...p, ownerContact: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Contact</label>
+                                    <input type="tel" maxLength={10} value={form.ownerContact} onChange={e => setForm(p => ({ ...p, ownerContact: e.target.value.replace(/\D/g, '').slice(0, 10) }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Email</label>
-                                    <input value={form.ownerEmail} onChange={e => setForm(p => ({ ...p, ownerEmail: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Email</label>
+                                    <input type="email" value={form.ownerEmail} onChange={e => setForm(p => ({ ...p, ownerEmail: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] lowercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
                             </div>
+
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Garage Name</label>
-                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Garage Name</label>
+                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">State</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Working Hours</label>
                                     <select
-                                        value={form.state}
-                                        onChange={e => setForm(p => ({ ...p, state: e.target.value, district: '', coordinates: '' }))}
-                                        className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer"
+                                        value={form.workingHours || ''}
+                                        onChange={e => setForm(p => ({ ...p, workingHours: e.target.value }))}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
                                     >
                                         <option value=""></option>
-                                        {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                        <option value="09:00 AM - 09:00 PM">09:00 AM - 09:00 PM</option>
+                                        <option value="09:00 AM - 08:00 PM">09:00 AM - 08:00 PM</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">District</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Operating Cycles</label>
                                     <select
-                                        value={form.district}
-                                        onChange={e => setForm(p => ({ ...p, district: e.target.value, coordinates: '' }))}
-                                        disabled={!form.state}
-                                        className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer disabled:opacity-40"
+                                        value={form.workingDays || ''}
+                                        onChange={e => setForm(p => ({ ...p, workingDays: e.target.value }))}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
                                     >
                                         <option value=""></option>
-                                        {[...new Set(GARAGE_LOCATIONS.filter(l => l.state === form.state).map(l => l.district))].sort().map(d => <option key={d} value={d}>{d}</option>)}
+                                        <option value="Monday - Friday">Monday - Friday</option>
+                                        <option value="Monday - Saturday">Monday - Saturday</option>
+                                        <option value="Monday - Sunday">Monday - Sunday</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Coordinates</label>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">State</label>
+                                    <select
+                                        value={form.state}
+                                        onChange={e => setForm(p => ({ ...p, state: e.target.value, district: '', coordinates: '' }))}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                    >
+                                        <option value=""></option>
+                                        {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">District</label>
+                                    <select
+                                        value={form.district}
+                                        onChange={e => setForm(p => ({ ...p, district: e.target.value, coordinates: '' }))}
+                                        disabled={!form.state}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer disabled:opacity-40"
+                                    >
+                                        <option value=""></option>
+                                        {[...new Set(GARAGE_LOCATIONS.filter(l => l.state === form.state).map(l => l.district))].sort().map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Coordinates</label>
                                     <select
                                         value={form.coordinates}
                                         onChange={e => {
@@ -486,7 +576,7 @@ const Garages = () => {
                                             }));
                                         }}
                                         disabled={!form.district}
-                                        className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer disabled:opacity-40"
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer disabled:opacity-40"
                                     >
                                         <option value=""></option>
                                         {GARAGE_LOCATIONS.filter(l => l.state === form.state && l.district === form.district).map(l => (
@@ -494,44 +584,57 @@ const Garages = () => {
                                         ))}
                                     </select>
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Address</label>
-                                    <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
-                                </div>
-
                             </div>
+
+                            <div className="space-y-2 w-full">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Address</label>
+                                <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
+                            </div>
+
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Rating </label>
-                                    <input type="number" min="0" max="5" step="0.1" value={form.rating} onChange={e => setForm(p => ({ ...p, rating: e.target.value }))} className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 uppercase">Pickup &amp; Drop</label>
-                                    <select value={form.pickupDrop === true ? 'yes' : form.pickupDrop === false ? 'no' : ''} onChange={e => setForm(p => ({ ...p, pickupDrop: e.target.value === '' ? '' : e.target.value === 'yes' }))} className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Pickup &amp; Drop</label>
+                                    <select value={form.pickupDrop === true || form.pickupDrop === 'yes' ? 'yes' : form.pickupDrop === false || form.pickupDrop === 'no' ? 'no' : ''} onChange={e => setForm(p => ({ ...p, pickupDrop: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="yes">YES</option>
                                         <option value="no">NO</option>
                                     </select>
-
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Vehicle Types</label>
-                                    <div className="grid gap-2" style={{ gridTemplateColumns: '1fr 1fr 0.55fr 1.3fr' }}>
+                                <div className="col-span-2 space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Vehicle Types</label>
+                                    <div className="flex flex-wrap gap-2">
                                         {VEHICLE_TYPES.map(t => (
                                             <button key={t} type="button" onClick={() => toggleType(t)}
-                                                className={`w-full py-2.5 rounded-lg text-xs font-bold border transition-all ${form.type.includes(t) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white/60 text-gray-500 border-gray-200 hover:border-emerald-400'}`}
+                                                className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border border-[#cbd5e1] transition-all cursor-pointer ${form.type.includes(t) ? 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3]' : 'bg-[#f8fafc] border-[#cbd5e1] text-[#011023] hover:bg-slate-100'}`}
                                             >{t}</button>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-
                         </div>
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 disabled:opacity-60">
-                                {saving ? 'Adding…' : 'Add Garage'}
+
+                        {/* Footer (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            {/* <button
+                                type="button"
+                                onClick={closeModal}
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                            >
+                                Cancel
+                            </button> */}
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> ADDING...
+                                    </>
+                                ) : (
+                                    'ADD GARAGE'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -539,94 +642,137 @@ const Garages = () => {
                 document.body
             )}
 
-            {/* ─── EDIT GARAGE MODAL (blue, matches Services Edit style) ─── */}
+            {/* ─── EDIT GARAGE MODAL ─── */}
             {showModal && editTarget && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={closeModal} />
-                    <div className="relative w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/60 to-transparent">
-                            <div className="flex uppercase items-center gap-3">
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Edit Garage</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5 tracking-widest">ID: {editTarget.garageId}</p>
-                                </div>
-                            </div>
-                            <button onClick={closeModal} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700"><X size={20} /></button>
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Edit Garage
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
+
                         {/* Body */}
-                        <div className="p-6 space-y-4 uppercase">
-                            {/* Row 1 — Owner fields */}
+                        <div className="space-y-4 uppercase text-left overflow-y-auto max-h-[70vh] hide-scrollbar">
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Name</label>
-                                    <input value={form.ownerName || ''} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none " />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Name</label>
+                                    <input value={form.ownerName || ''} onChange={e => setForm(p => ({ ...p, ownerName: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Contact</label>
-                                    <input readOnly value={form.ownerContact || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Contact</label>
+                                    <input readOnly value={form.ownerContact || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Owner Email</label>
-                                    <input readOnly value={form.ownerEmail || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Email</label>
+                                    <input readOnly value={form.ownerEmail || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
                             </div>
-                            {/* Row 2 — Garage Name, State, District */}
+
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Garage Name</label>
-                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none " />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Garage Name</label>
+                                    <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">State</label>
-                                    <input readOnly value={form.state || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Working Hours</label>
+                                    <select
+                                        value={form.workingHours || ''}
+                                        onChange={e => setForm(p => ({ ...p, workingHours: e.target.value }))}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                    >
+                                        <option value=""></option>
+                                        <option value="09:00 AM - 09:00 PM">09:00 AM - 09:00 PM</option>
+                                        <option value="09:00 AM - 08:00 PM">09:00 AM - 08:00 PM</option>
+                                    </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">District</label>
-                                    <input readOnly value={form.district || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Operating Cycles</label>
+                                    <select
+                                        value={form.workingDays || ''}
+                                        onChange={e => setForm(p => ({ ...p, workingDays: e.target.value }))}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                    >
+                                        <option value=""></option>
+                                        <option value="Monday - Friday">Monday - Friday</option>
+                                        <option value="Monday - Saturday">Monday - Saturday</option>
+                                        <option value="Monday - Sunday">Monday - Sunday</option>
+                                    </select>
                                 </div>
                             </div>
-                            {/* Row 3 — Coordinates + Address */}
+
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Coordinates</label>
-                                    <input readOnly value={form.coordinates || ''} placeholder="—" className="w-full px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">State</label>
+                                    <input readOnly value={form.state || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Address</label>
-                                    <input readOnly value={form.address || ''} placeholder="—" className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">District</label>
+                                    <input readOnly value={form.district || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Coordinates</label>
+                                    <input readOnly value={form.coordinates || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
                             </div>
-                            {/* Row 4 — Rating, Pickup & Drop, Vehicle Types */}
+
+                            <div className="space-y-2 w-full">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Address</label>
+                                <input readOnly value={form.address || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
+                            </div>
+
                             <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Rating</label>
-                                    <input readOnly type="number" value={form.rating || ''} placeholder="—" className="w-full px-4 font-semibold text-xs py-2.5 bg-gray-100/60 border border-white/40 rounded-xl outline-none text-gray-400 cursor-not-allowed" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Pickup &amp; Drop</label>
-                                    <select value={form.pickupDrop ? 'yes' : 'no'} onChange={e => setForm(p => ({ ...p, pickupDrop: e.target.value === 'yes' }))} className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none cursor-pointer focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Pickup &amp; Drop</label>
+                                    <select value={form.pickupDrop === true || form.pickupDrop === 'yes' ? 'yes' : form.pickupDrop === false || form.pickupDrop === 'no' ? 'no' : ''} onChange={e => setForm(p => ({ ...p, pickupDrop: e.target.value }))} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
+                                        <option value=""></option>
                                         <option value="yes">YES</option>
                                         <option value="no">NO</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Vehicle Types</label>
-                                    <div className="grid gap-2" style={{ gridTemplateColumns: '1fr 1fr 0.55fr 1.3fr' }}>
+                                <div className="col-span-2 space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Vehicle Types</label>
+                                    <div className="flex flex-wrap gap-2">
                                         {VEHICLE_TYPES.map(t => (
                                             <button key={t} type="button" onClick={() => toggleType(t)}
-                                                className={`w-full py-2.5 rounded-lg text-xs font-bold border transition-all ${form.type.includes(t) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/60 text-gray-500 border-gray-200 hover:border-blue-400'}`}
+                                                className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border border-[#cbd5e1] transition-all cursor-pointer ${form.type.includes(t) ? 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3]' : 'bg-[#f8fafc] border-[#cbd5e1] text-[#011023] hover:bg-slate-100'}`}
                                             >{t}</button>
                                         ))}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-5 py-2.5 text-sm font-bold uppercase text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 uppercase text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg hover:shadow-blue-600/25 disabled:opacity-60">
-                                {saving ? 'Saving…' : 'Save Changes'}
+
+                        {/* Footer (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            {/* <button
+                                type="button"
+                                onClick={closeModal}
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                            >
+                                Cancel
+                            </button> */}
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> SAVING...
+                                    </>
+                                ) : (
+                                    'SAVE CHANGES'
+                                )}
                             </button>
                         </div>
                     </div>
@@ -641,7 +787,7 @@ const Garages = () => {
                     onClick={closeView}
                 >
                     <div 
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -650,14 +796,14 @@ const Garages = () => {
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Garage Details</h3>
                                 <div className="flex items-center gap-2 mt-1">
                                     <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewTarget.garageId || viewTarget._id?.slice(0, 8)}</span></p>
-                                    <button onClick={() => fetchGarageEmployees(viewTarget.garageId || viewTarget._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
-                                        <Eye size={15} />
+                                    <button onClick={() => fetchGarageEmployees(viewTarget.garageId || viewTarget._id)} className="text-gray-400 transition-colors hover:text-blue-600 hover:bg-blue-50">
+                                        <Eye size={17} />
                                     </button>
                                 </div>
                             </div>
                             <button
                                 onClick={closeView}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X size={20} />
                             </button>
@@ -665,72 +811,127 @@ const Garages = () => {
 
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
-                            <div className="flex flex-col md:flex-row gap-6 w-full">
+                            <div className="flex flex-col md:flex-row gap-10 w-full">
                                 {/* Owner Info */}
-                                <div className="space-y-2 w-full md:w-[42%]">
+                                <div className="space-y-2 w-full md:w-[33%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Garage Info */}
-                                <div className="space-y-2 w-full md:w-[42%]">
+                                <div className="space-y-2 w-full md:w-[30%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Garage Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2 min-h-[110px]">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Rating:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.rating ? `${viewTarget.rating} ★` : 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Pickup:</span> <span className="font-semibold ml-2 text-gray-800">{viewTarget.pickupDrop ? 'Yes' : 'No'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Name:</span> <span className="font-semibold ml-2 text-[#011023] truncate">{viewTarget.name || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Phone:</span> <span className="font-semibold ml-2 text-gray-800 truncate">{viewTarget.garageContact || viewTarget.whatsapp || viewTarget.phone || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Email:</span> <span className="font-semibold ml-2 text-gray-800 truncate">{viewTarget.garageEmail || '—'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Other Details */}
-                                {/* <div className="flex flex-col gap-4.5 w-full md:w-[32%]">
-                                    <div className="space-y-1.25">
-                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
-                                        <div className="flex items-center gap-3">
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Partner</h4>
-                                            <div className="flex uppercase items-center gap-2">
-                                                <span className={`px-2.5 py-1 ml-3 mt-4 text-[10px] font-black rounded-lg uppercase tracking-wider ${viewTarget.partner ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-600 border border-gray-100'}`}>
-                                                    {viewTarget.partner ? 'Active' : 'No'}
-                                                </span>
-                                            </div>
+                                <div className="space-y-2 w-full md:w-[37%]">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
+                                    <div className="pt-4 rounded-xl uppercase space-y-1.75">
+                                        <div className="text-sm flex items-center">
+                                            <span className="text-gray-500 w-29 shrink-0">Verification:</span>
+                                            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full uppercase tracking-wider ${
+                                                (viewTarget.partner === true || viewTarget.partner === 'Active' || viewTarget.partner === 'active' || viewTarget.partner === 'completed' || viewTarget.partner === 'Completed' || viewTarget.verificationStatus === 'completed' || viewTarget.verificationStatus === 'Completed')
+                                                    ? 'bg-emerald-100 text-emerald-700'
+                                                    : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                                {(viewTarget.partner === true || viewTarget.partner === 'Active' || viewTarget.partner === 'active' || viewTarget.partner === 'completed' || viewTarget.partner === 'Completed' || viewTarget.verificationStatus === 'completed' || viewTarget.verificationStatus === 'Completed')
+                                                    ? 'COMPLETED'
+                                                    : 'PENDING'}
+                                            </span>
                                         </div>
 
-                                        <div className="flex items-center gap-3 mt-4">
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Vehicles</h4>
-                                            <div className="flex flex-wrap gap-1.5 ml-3">
+                                        <div className="text-sm flex items-center">
+                                            <span className="text-gray-500 w-29 shrink-0">Vehicles:</span>
+                                            <div className="flex flex-wrap gap-1.5">
                                                 {getOrderedTypes(viewTarget.type).length > 0 ? (
                                                     getOrderedTypes(viewTarget.type).map(t => (
-                                                        <span key={t} className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                                                        <span key={t} className={`inline-block px-2.5 py-1 text-xs font-semibold uppercase rounded-full ${
                                                             t.toLowerCase() === 'ev' ? 'bg-emerald-100 text-emerald-700' :
                                                             t.toLowerCase() === 'petrol' ? 'bg-amber-100 text-amber-700' :
                                                             t.toLowerCase() === 'diesel' ? 'bg-indigo-100 text-indigo-700' :
-                                                            t.toLowerCase() === 'hybrid' ? 'bg-purple-100 text-purple-700' :
-                                                            t.toLowerCase() === 'cng' ? 'bg-blue-100 text-blue-700' :
                                                             'bg-gray-100 text-gray-700'
                                                         }`}>{t}</span>
                                                     ))
                                                 ) : (
-                                                    <span className="text-xs font-bold text-gray-600 uppercase">—</span>
+                                                    <span className="text-xs font-semibold text-gray-600 uppercase">—</span>
                                                 )}
                                             </div>
                                         </div>
-                                    </div> 
-                                </div>*/}
+
+                                        <p className="text-sm flex items-center">
+                                            <span className="text-gray-500 w-29 shrink-0">Joined At:</span>
+                                            <span className="font-semibold text-gray-800 flex items-center gap-1.5">
+                                                <span>{viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (viewTarget.joiningDate || viewTarget.joinedDate || viewTarget.date || '—')}</span>
+                                                <span className="text-gray-800 font-semibold">|</span>
+                                                <span>{viewTarget.createdAt ? new Date(viewTarget.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : (viewTarget.joiningTime || viewTarget.joinedTime || viewTarget.time || '—')}</span>
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Legal Details */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Legal Details</h4>
+                                <div className="pt-3 pb-6">
+                                    <div className="flex flex-wrap md:flex-nowrap justify-between items-center w-full gap-2">
+                                        <div className="flex justify-start w-[15%] shrink-0">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">Owner's PAN Card</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewTarget.panCardNumber, viewTarget.panNumber, viewTarget.panCard)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center w-[20%] shrink-0">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">Owner's Aadhaar Card</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewTarget.adharCardNumber, viewTarget.adharNumber, viewTarget.aadhaarCard, viewTarget.adharCard)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center w-[17%] shrink-0">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">Owner's Voter ID</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewTarget.voterIdNumber, viewTarget.voterNumber, viewTarget.voterId)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center w-[18%] shrink-0">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">GST Number</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{viewTarget.gstNumber || '—'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center w-[10%] shrink-0">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">SAC Code</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{viewTarget.sacCode || '—'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end mr-1 w-[9%] shrink-0">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">HSN Code</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{viewTarget.hsnCode || '—'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Location Archive */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Location Archive</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
-                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1 flex justify-between items-center">
-                                        <span>Geographic Allocation</span>
+                                <div className="rounded-xl uppercase">
+                                    <p className="text-xs font-semibold text-gray-400 tracking-tight mb-1 flex justify-between items-center">
                                         {/* <span className="text-[10px] text-gray-400 font-semibold">{viewTarget.district || '—'}, {viewTarget.state || '—'} &bull; {viewTarget.coordinates || '—'}</span> */}
                                     </p>
-                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewTarget.address || 'No Address Provided'}</h5>
+                                    <h5 className="font-semibold text-[#052558] text-sm">{viewTarget.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
