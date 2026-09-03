@@ -22,6 +22,8 @@ import Login from './pages/Login';
 import Business from './pages/Business';
 import Parking from './pages/Parking';
 import Store from './pages/Store';
+import UploadDocuments from './pages/UploadDocuments';
+import Request from './pages/Request';
 import { Navigate } from 'react-router-dom';
 import { FilterProvider } from './context/FilterContext';
 import { AlertProvider } from './context/AlertContext';
@@ -65,6 +67,8 @@ const App = () => {
             <Route path="business" element={<Business />} />
             <Route path="parking" element={<Parking />} />
             <Route path="store" element={<Store />} />
+            <Route path="upload-documents" element={<UploadDocuments />} />
+            <Route path="request" element={<Request />} />
           </Route>
 
           {/* Catch all redirect to root */}
