@@ -5,6 +5,7 @@ import { defaultServicesList } from '../data/servicesData';
 import { TableSkeleton } from '../components/Skeleton';
 
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const getCategoryBadgeClass = (category) => {
@@ -23,6 +24,7 @@ const getCategoryBadgeClass = (category) => {
 };
 
 const Services = () => {
+    const { triggerAlert } = useAlert();
     const [servicesList, setServicesList] = useState(defaultServicesList);
     const [disabledServices, setDisabledServices] = useState([]);
     const [serviceOverrides, setServiceOverrides] = useState({});
@@ -192,7 +194,7 @@ const Services = () => {
 
     const handleAddNewService = async () => {
         if (!newService.name || !newService.category || !newService.fuelType) {
-            alert("Please fill out Name, Category, and Fuel Type");
+            triggerAlert("Please fill out Name, Category, and Fuel Type", "error");
             return;
         }
 
@@ -234,6 +236,7 @@ const Services = () => {
 
         setIsAddModalOpen(false);
         setNewService({ name: '', category: '', fuelType: '', price: '', duration: '', active: true });
+        triggerAlert("New service added successfully", "success");
 
         // Save back to DB Settings key customServices
         try {
@@ -252,7 +255,7 @@ const Services = () => {
 
         const isCustom = customServices.some(s => s.id === serviceToDelete.id);
         if (!isCustom) {
-            alert("Cannot delete default system services. To hide them, toggle their status to Inactive.");
+            triggerAlert("Cannot delete default system services. Toggle status to Inactive instead.", "error");
             setIsDeleteModalOpen(false);
             setServiceToDelete(null);
             return;
@@ -269,11 +272,12 @@ const Services = () => {
             });
             setCustomServices(updatedCustomServices);
             setServicesList(prev => prev.filter(s => s.id !== serviceToDelete.id));
+            triggerAlert("Service deleted successfully", "success");
             setIsDeleteModalOpen(false);
             setServiceToDelete(null);
         } catch (err) {
             console.error("Failed to delete custom service:", err);
-            alert("Failed to delete service. Please try again.");
+            triggerAlert("Failed to delete service. Please try again.", "error");
         } finally {
             setDeleting(false);
         }
@@ -327,9 +331,11 @@ const Services = () => {
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Services</h1>
-                <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-12 uppercase text-[13px] py-2 bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold rounded-xl shadow-md hover:opacity-90 transition-opacity">
-                    <Plus size={18} />
-                    Add Service
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="px-12 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                    <Plus size={16} /> ADD SERVICE
                 </button>
             </div>
 
@@ -429,7 +435,7 @@ const Services = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center gap-4">
+                                        <div className="flex items-center justify-center gap-4.5">
                                             <button
                                                 className="text-gray-400 hover:text-blue-500"
                                                 onClick={() => { setSelectedService(service); setIsEditModalOpen(true); }}
@@ -451,103 +457,102 @@ const Services = () => {
                 </div>
             </div>
 
-            {/* Edit Service Modal via createPortal */}
+            {/* Edit Service Modal */}
             {isEditModalOpen && selectedService && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
-                    <div className="relative w-full max-w-md bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-blue-50/50 to-transparent">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
-                                    <Wrench size={20} />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Edit Service</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5">ID: {selectedService.id}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700">
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Edit Service
+                            </h3>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
+
                         {/* Body */}
-                        <div className="p-6 space-y-5">
-                            <div>
-                                <label className="flex items-center justify-between text-sm font-bold text-[#011023] mb-1.5">
-                                    <span>Service Name</span>
-                                    {/* <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Fixed</span> */}
-                                </label>
-                                <input type="text" value={selectedService.name} readOnly className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200/50 text-gray-500 cursor-not-allowed rounded-xl outline-none" />
+                        <div className="space-y-4 uppercase text-left">
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Service Name</label>
+                                <input type="text" value={selectedService.name} readOnly className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 flex items-center justify-between">
-                                        <span>Category</span>
-                                    </label>
-                                    <input type="text" value={selectedService.category} readOnly className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200/50 text-gray-500 cursor-not-allowed rounded-xl outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Category</label>
+                                    <input type="text" value={selectedService.category} readOnly className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 flex items-center justify-between">
-                                        <span>Fuel Type</span>
-                                    </label>
-                                    <input type="text" value={selectedService.fuelType} readOnly className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200/50 text-gray-500 cursor-not-allowed rounded-xl outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Fuel Type</label>
+                                    <input type="text" value={selectedService.fuelType} readOnly className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Price</label>
-                                    <input type="text" value={selectedService.price} onChange={(e) => setSelectedService({ ...selectedService, price: e.target.value })} className="w-full px-4 py-2.5 bg-white/50 border border-white/60 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Price</label>
+                                    <input type="text" value={selectedService.price} onChange={(e) => setSelectedService({ ...selectedService, price: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Duration</label>
-                                    <input type="text" value={selectedService.duration} onChange={(e) => setSelectedService({ ...selectedService, duration: e.target.value })} className="w-full px-4 py-2.5 bg-white/50 border border-white/60 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Duration</label>
+                                    <input type="text" value={selectedService.duration} onChange={(e) => setSelectedService({ ...selectedService, duration: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
                             </div>
                         </div>
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex justify-end gap-3">
-                            <button onClick={() => setIsEditModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={() => handleSaveService(selectedService)} className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg hover:shadow-blue-600/25">Save Changes</button>
+
+                        {/* Footer (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            <button
+                                type="button"
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSaveService(selectedService)}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                SAVE CHANGES
+                            </button>
                         </div>
                     </div>
                 </div>,
                 document.body
             )}
 
-            {/* Add Service Modal via createPortal */}
+            {/* Add Service Modal */}
             {isAddModalOpen && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
-                    <div className="relative w-full uppercase max-w-xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100/50 flex items-center justify-between bg-gradient-to-r from-emerald-50/50 to-transparent">
-                            <div className="flex items-center gap-3">
-                                {/* <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
-                                    <Plus size={20} />
-                                </div> */}
-                                <div>
-                                    <h2 className="text-xl font-bold text-[#011023]">Add New Service</h2>
-                                    <p className="text-xs text-gray-500 font-medium mt-0.5">Create a new entry</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-white/80 rounded-full transition-colors text-gray-400 hover:text-gray-700">
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Add New Service
+                            </h3>
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
                                 <X size={20} />
                             </button>
                         </div>
+
                         {/* Body */}
-                        <div className="p-6 uppercase space-y-5">
-                            <div>
-                                <label className="block text-sm font-bold text-[#011023] mb-1.5">Service Name</label>
-                                <input type="text" value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                        <div className="space-y-4 uppercase text-left">
+                            <div className="space-y-2">
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Service Name</label>
+                                <input type="text" value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 flex items-center justify-between">
-                                        <span>Fuel Type</span>
-                                    </label>
-                                    <select value={newService.fuelType} onChange={(e) => setNewService({ ...newService, fuelType: e.target.value })} className="w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Fuel Type</label>
+                                    <select value={newService.fuelType} onChange={(e) => setNewService({ ...newService, fuelType: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value=""></option>
                                         <option value="Petrol">PETROL</option>
                                         <option value="Diesel">DIESEL</option>
@@ -555,11 +560,9 @@ const Services = () => {
                                         <option value="Premium">PREMIUM</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5 flex items-center justify-between">
-                                        <span>Category</span>
-                                    </label>
-                                    <select value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none appearance-none">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Category</label>
+                                    <select value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer">
                                         <option value=""></option>
                                         {availableCategories.map(cat => (
                                             <option key={cat} value={cat}>{cat}</option>
@@ -568,20 +571,33 @@ const Services = () => {
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Price</label>
-                                    <input type="text" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Price</label>
+                                    <input type="text" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-[#011023] mb-1.5">Duration</label>
-                                    <input type="text" value={newService.duration} onChange={(e) => setNewService({ ...newService, duration: e.target.value })} className="w-full uppercase px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none" />
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Duration</label>
+                                    <input type="text" value={newService.duration} onChange={(e) => setNewService({ ...newService, duration: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
                                 </div>
                             </div>
                         </div>
-                        {/* Footer */}
-                        <div className="p-6 bg-white/30 border-t border-white/40 flex align-items-center justify-end gap-3">
-                            <button onClick={() => setIsAddModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-white/60 rounded-xl transition-all">Cancel</button>
-                            <button onClick={handleAddNewService} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25">Add Service</button>
+
+                        {/* Footer (50-50) */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            <button
+                                type="button"
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleAddNewService}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                ADD SERVICE
+                            </button>
                         </div>
                     </div>
                 </div>,
