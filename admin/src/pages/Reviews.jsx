@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Trash2, Eye, Check, X, Loader2 } from 'lucide-react';
+import { Star, Trash2, Eye, Check, X, Loader2, MoreVertical } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 
 import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Reviews = () => {
+    const { triggerAlert } = useAlert();
     const [reviews, setReviews] = useState([]);
     const highlightedRow = useHighlight(reviews);
     const [allUsers, setAllUsers] = useState([]);
@@ -18,6 +20,18 @@ const Reviews = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Close 3 dots action menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (openMenuId && !e.target.closest('.row-action-menu')) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openMenuId]);
 
     // Filter, Sort & Row Label States
     const [filterStatus, setFilterStatus] = useState('All');
@@ -190,9 +204,10 @@ const Reviews = () => {
                 await axios.put(`${API_URL}/api/business-reviews/${id}/status`, { status: newStatus.toLowerCase() });
             }
             setReviews(prev => prev.map(rev => rev._id === id ? { ...rev, status: newStatus } : rev));
+            triggerAlert('Review status updated successfully', 'success');
         } catch (error) {
             console.error("Failed to update status", error);
-            alert("Failed to update review status.");
+            triggerAlert("Failed to update review status.", 'error');
         }
     };
 
@@ -207,11 +222,12 @@ const Reviews = () => {
                 await axios.delete(`${API_URL}/api/business-reviews/${id}`);
             }
             setReviews(prev => prev.filter(rev => rev._id !== id));
+            triggerAlert('Review deleted successfully', 'success');
             setIsDeleteModalOpen(false);
             setReviewToDelete(null);
         } catch (error) {
             console.error("Failed to delete review", error);
-            alert("Failed to delete review.");
+            triggerAlert("Failed to delete review.", 'error');
         } finally {
             setDeleting(false);
         }
@@ -406,41 +422,65 @@ const Reviews = () => {
                                             </span>
                                         </td>
 
-                                        <td className="p-4 text-center">
+                                        <td className="p-4 text-center relative" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-4">
-                                                {rev.status === 'Pending' && (
-                                                    <>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Approved')} className="text-gray-400 hover:text-emerald-500 cursor-pointer">
-                                                            <Check size={18} />
-                                                        </button>
-                                                        <button onClick={() => handleUpdateStatus(rev._id, rev.type, 'Rejected')} className="text-gray-400 hover:text-red-500 cursor-pointer">
-                                                            <X size={18} />
-                                                        </button>
-                                                    </>
-                                                )}
+                                                <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors" title="View Review">
+                                                    <Eye size={18} />
+                                                </button>
 
-                                                {rev.status === 'Rejected' && (
-                                                    <>
-                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 cursor-pointer">
-                                                            <Eye size={18} />
+                                                {rev.status === 'Pending' ? (
+                                                    /* 3-Dots Action Button & Dropdown */
+                                                    <div className="relative inline-flex items-center justify-center row-action-menu">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setOpenMenuId(prev => prev === rev._id ? null : rev._id);
+                                                            }}
+                                                            className={`flex items-center justify-center transition-colors cursor-pointer ${
+                                                                openMenuId === rev._id
+                                                                    ? 'text-blue-600'
+                                                                    : 'text-gray-400 hover:text-gray-700'
+                                                            }`}
+                                                        >
+                                                            <MoreVertical size={18} />
                                                         </button>
-                                                        {/* User requested: 'the reject icon should not be there' for approved status */}
-                                                        <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 cursor-pointer">
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </>
-                                                )}
 
-                                                {rev.status === 'Approved' && (
-                                                    <>
-                                                        <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 cursor-pointer">
-                                                            <Eye size={18} />
-                                                        </button>
-                                                        {/* User requested: 'the reject icon should not be there' for approved status */}
-                                                        <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500 cursor-pointer">
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </>
+                                                        {/* Popover Menu with Check ✓ (Up) and Cross ✕ (Down) just above 3-dots */}
+                                                        {openMenuId === rev._id && (
+                                                            <div className="absolute shadow-xs left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 rounded-2xl p-1 flex flex-col items-center gap-1 justify-center animate-in fade-in zoom-in-95 duration-150">
+                                                                {/* Check ✓ (Up - Approve) */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuId(null);
+                                                                        handleUpdateStatus(rev._id, rev.type, 'Approved');
+                                                                    }}
+                                                                    className="text-slate-500 hover:text-emerald-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-emerald-50 rounded-2xl"
+                                                                >
+                                                                    <Check size={18} className="stroke-[2]" />
+                                                                </button>
+
+                                                                {/* Cross ✕ (Down - Reject) */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuId(null);
+                                                                        handleUpdateStatus(rev._id, rev.type, 'Rejected');
+                                                                    }}
+                                                                    className="text-slate-500 hover:text-rose-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-rose-50 rounded-2xl"
+                                                                >
+                                                                    <X size={18} className="stroke-[2]" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 cursor-pointer transition-colors" title="Delete Review">
+                                                        <Trash2 size={18} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </td>
