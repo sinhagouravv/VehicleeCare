@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car, Database, FileText, Users, Zap, MapPin, Briefcase, Star, MessageSquare, Activity, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
+import { useAlert } from '../context/AlertContext';
 
 const Settings = () => {
+    const { triggerAlert } = useAlert();
     const [activeTab, setActiveTab] = useState('general');
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
     const [activeRecordTab, setActiveRecordTab] = useState('booking');
@@ -112,11 +114,11 @@ const Settings = () => {
 
     const handlePasswordChange = (e) => {
         e.preventDefault();
-        alert('Password update functionality will connect to auth service.');
+        triggerAlert('Password update functionality will connect to auth service.', 'error');
     };
 
     const handleLogoutAllDevices = () => {
-        alert('Logging out of all other devices...');
+        triggerAlert('Logging out of all other devices...', 'success');
     };
 
     const [generalSettings, setGeneralSettings] = useState({
@@ -231,10 +233,10 @@ const Settings = () => {
                     body: JSON.stringify({ key: 'securitySettings', value: securitySettings })
                 })
             ]);
-            alert('Settings saved successfully!');
+            triggerAlert('Settings saved successfully!', 'success');
         } catch (err) {
             console.error("Error saving settings:", err);
-            alert('Error saving settings.');
+            triggerAlert('Error saving settings.', 'error');
         } finally {
             setIsSaving(false);
         }
