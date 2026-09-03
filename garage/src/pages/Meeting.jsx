@@ -630,9 +630,9 @@ const Meeting = () => {
                             </div>
 
                             {/* Reason for Request */}
-                            <div className="space-y-2">
+                            <div className="space-y-2 mb-7">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Reason for Request</h4>
-                                <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
+                                <div className="pt-2 uppercase">
                                     <h5 className="font-semibold text-slate-600 text-[13px] leading-relaxed whitespace-pre-wrap">
                                         {selectedRequest.purpose ? selectedRequest.reason : (selectedRequest.additionalInfo || '—')}
                                     </h5>
@@ -643,7 +643,7 @@ const Meeting = () => {
                             {selectedRequest.remarks && (
                                 <div className="space-y-2">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Remarks</h4>
-                                    <div className="bg-white p-4 rounded-xl shadow-sm uppercase">
+                                    <div className="pt-2 uppercase">
                                         <h5 className="font-semibold text-gray-700 text-[13px] leading-relaxed whitespace-pre-wrap">
                                             {selectedRequest.remarks}
                                         </h5>
