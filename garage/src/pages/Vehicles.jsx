@@ -209,6 +209,7 @@ const Vehicles = () => {
         const time = d.toLocaleTimeString('en-IN', {
             hour: '2-digit',
             minute: '2-digit',
+            second: '2-digit',
             hour12: true
         }).toLowerCase();
         return `${day} ${month} ${year} | ${time}`;
@@ -233,13 +234,13 @@ const Vehicles = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10.75%]">Customer Id</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[11.5%]">Brand</th>
                                 <th className="p-4.5 font-bold text-center w-[11.5%]">Model</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Number</th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Other Details</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">Visit At</th>
+                                <th className="p-4.5 font-bold text-center w-[15%]">Visited At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
@@ -267,7 +268,7 @@ const Vehicles = () => {
                                             : 'hover:bg-blue-50/30'
                                     }`}
                                 >
-                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center relative" title={v.customerId}>
+                                    <td className="p-3.25 font-semibold text-[#052558] text-sm text-center relative">
                                         <div className="relative flex items-center justify-center w-full">
                                             {Boolean(rowLabels[v.id]) && (
                                                 <button
@@ -297,10 +298,10 @@ const Vehicles = () => {
                                         </div>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <div className="font-semibold text-[13.5px] truncate px-2" title={v.ownerName}>{v.ownerName}</div>
+                                        <div className="font-semibold text-[13.5px] truncate px-2">{v.ownerName}</div>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <div className="font-semibold text-[13.5px] truncate px-1" title={v.bookingId}>{v.bookingId}</div>
+                                        <div className="font-semibold text-[13.5px] truncate px-1">{v.bookingId}</div>
                                     </td>
                                     <td className="p-3.25 text-center font-semibold text-[13.5px]">
                                         {v.brand}
