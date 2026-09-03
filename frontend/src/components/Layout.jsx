@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import Navbar from './Navbar';
 import { Bug, X, Send, Loader2 } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const Layout = ({ children }) => {
+    const { triggerAlert } = useAlert();
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
     const [bugTitle, setBugTitle] = useState('');
     const [bugDesc, setBugDesc] = useState('');
-    const [bugSeverity, setBugSeverity] = useState('');
     const [isSubmittingBug, setIsSubmittingBug] = useState(false);
 
     const handleBugSubmit = async (e) => {
         e.preventDefault();
-        if (!bugTitle.trim() || !bugDesc.trim()) {
-            alert('Please fill out all fields.');
+        if (!bugTitle.trim()) {
+            triggerAlert('Please enter the bug subject title', 'error');
+            return;
+        }
+        if (!bugDesc.trim()) {
+            triggerAlert('Please describe the bug before submitting', 'error');
             return;
         }
 
@@ -29,24 +34,22 @@ const Layout = ({ children }) => {
                     reporterName: user.name || 'Customer Portal User',
                     portal: 'frontend',
                     title: bugTitle,
-                    description: bugDesc,
-                    severity: bugSeverity
+                    description: bugDesc
                 })
             });
 
             const data = await res.json();
             if (res.ok && data.success) {
-                alert('Bug reported successfully! Thank you for your feedback.');
+                triggerAlert('Bug reported successfully! Thank you for your feedback.', 'success');
                 setBugTitle('');
                 setBugDesc('');
-                setBugSeverity('');
                 setIsBugModalOpen(false);
             } else {
-                alert(data.message || 'Failed to submit bug report.');
+                triggerAlert(data.message || 'Failed to submit bug report.', 'error');
             }
         } catch (error) {
             console.error('Error reporting bug:', error);
-            alert('Network error. Failed to connect to server.');
+            triggerAlert('Network error. Failed to connect to server.', 'error');
         } finally {
             setIsSubmittingBug(false);
         }
@@ -88,7 +91,7 @@ const Layout = ({ children }) => {
 
                         <form onSubmit={handleBugSubmit} className="space-y-4.5 text-left">
                             <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Bug Title / Subject</label>
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Subject</label>
                                 <input
                                     type="text"
                                     required
@@ -99,23 +102,7 @@ const Layout = ({ children }) => {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Severity Level</label>
-                                <select
-                                    required
-                                    value={bugSeverity}
-                                    onChange={(e) => setBugSeverity(e.target.value)}
-                                    className="w-full px-4 py-2.5 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold normal-case text-sm text-[#011023] appearance-none cursor-pointer"
-                                >
-                                    <option value="" disabled hidden></option>
-                                    <option value="Low">Low - Cosmetic/Typo</option>
-                                    <option value="Medium">Medium - Feature malfunctioning</option>
-                                    <option value="High">High - Broken workflow/major issue</option>
-                                    <option value="Critical">Critical - App crash/data loss</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Description / Steps to Reproduce</label>
+                                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Description</label>
                                 <textarea
                                     required
                                     rows="4"
