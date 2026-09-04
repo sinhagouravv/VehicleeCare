@@ -70,17 +70,8 @@ const AverageDuration = () => {
 
     // Filter to completed or delivered bookings
     const completedJobs = bookings.filter(b => b.status === 'Completed' || b.status === 'Delivered');
-
-    // Calculate aggregated metrics
-    const mockJobsList = [
-        { _id: 'mock1', bookingId: 'BC-24936', vehicle: { make: 'Toyota', model: 'Fortuner' }, service: { title: 'Engine Diagnostic & Tuning' }, serviceDuration: '1.5 hours' },
-        { _id: 'mock2', bookingId: 'BC-62435', vehicle: { make: 'Honda', model: 'City' }, service: { title: 'Standard Oil Service' }, serviceDuration: '45 mins' },
-        { _id: 'mock3', bookingId: 'BC-64853', vehicle: { make: 'Maruti', model: 'Baleno' }, service: { title: 'Brake Disc Replacement' }, serviceDuration: '1 hour' },
-        { _id: 'mock4', bookingId: 'BC-11204', vehicle: { make: 'Hyundai', model: 'Creta' }, service: { title: 'Tire Rotation & Alignment' }, serviceDuration: '30 mins' },
-        { _id: 'mock5', bookingId: 'BC-98421', vehicle: { make: 'Ford', model: 'EcoSport' }, service: { title: 'General AC Servicing' }, serviceDuration: '1.5 hours' }
-    ];
-
-    const displayJobs = completedJobs.length > 0 ? completedJobs : mockJobsList;
+    const hasData = completedJobs.length > 0;
+    const displayJobs = completedJobs;
 
     let totalSLA = 0;
     let totalActual = 0;
@@ -96,13 +87,14 @@ const AverageDuration = () => {
         }
     });
 
-    const avgSLAMins = Math.round(totalSLA / displayJobs.length);
-    const avgActualMins = Math.round(totalActual / displayJobs.length);
-    const slaComplianceRate = Math.round((metSLACount / displayJobs.length) * 100);
-    const totalTimeSaved = Math.max(0, totalSLA - totalActual);
+    const avgSLAMins = displayJobs.length > 0 ? Math.round(totalSLA / displayJobs.length) : 0;
+    const avgActualMins = displayJobs.length > 0 ? Math.round(totalActual / displayJobs.length) : 0;
+    const slaComplianceRate = displayJobs.length > 0 ? Math.round((metSLACount / displayJobs.length) * 100) : 0;
+    const totalTimeSaved = displayJobs.length > 0 ? Math.max(0, totalSLA - totalActual) : 0;
 
     // Format minutes to string
     const formatDuration = (mins) => {
+        if (!mins || mins === 0) return '0m';
         const hrs = Math.floor(mins / 60);
         const rem = mins % 60;
         return hrs > 0 ? `${hrs}h ${rem}m` : `${rem}m`;
@@ -184,10 +176,10 @@ const AverageDuration = () => {
 
                     <div className="space-y-5 flex-1 flex flex-col justify-center">
                         {[
-                            { name: 'General Checkup', actual: 35, sla: 45, color: 'bg-emerald-500' },
-                            { name: 'Engine Tuning', actual: 80, sla: 90, color: 'bg-blue-500' },
-                            { name: 'Wheel Alignment', actual: 25, sla: 30, color: 'bg-purple-500' },
-                            { name: 'AC / Electrics', actual: 95, sla: 90, color: 'bg-amber-500' }
+                            { name: 'General Checkup', actual: 0, sla: 0, color: 'bg-emerald-500' },
+                            { name: 'Engine Tuning', actual: 0, sla: 0, color: 'bg-blue-500' },
+                            { name: 'Wheel Alignment', actual: 0, sla: 0, color: 'bg-purple-500' },
+                            { name: 'AC / Electrics', actual: 0, sla: 0, color: 'bg-amber-500' }
                         ].map((cat, i) => {
                             const maxVal = 100;
                             const actualPct = `${(cat.actual / maxVal) * 100}%`;
@@ -227,7 +219,7 @@ const AverageDuration = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px] font-semibold text-gray-700">
-                                {displayJobs.map((job) => {
+                                {displayJobs.length > 0 ? displayJobs.map((job) => {
                                     const sla = getSLAMinutes(job);
                                     const actual = getActualMinutes(job);
                                     const diff = actual - sla;
@@ -252,7 +244,13 @@ const AverageDuration = () => {
                                             </td>
                                         </tr>
                                     );
-                                })}
+                                }) : (
+                                    <tr>
+                                        <td colSpan={6} className="py-12 text-center text-gray-400 text-sm font-semibold uppercase">
+                                            No Job Duration Records Found
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
