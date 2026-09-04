@@ -4,6 +4,8 @@ import { TrendingUp, BarChart2, CheckCircle2, UserCheck, Star, Clock, Trophy, Ta
 const Analytics = () => {
     const [lastRefreshed, setLastRefreshed] = useState(new Date());
     const [employeeUser, setEmployeeUser] = useState(null);
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('employeeUser');
@@ -12,22 +14,42 @@ const Analytics = () => {
         }
     }, []);
 
+    const empId = employeeUser?.employeeId || employeeUser?.id || employeeUser?._id;
+
+    useEffect(() => {
+        const fetchBookings = async () => {
+            if (!empId) return;
+            try {
+                const res = await fetch(`http://localhost:5001/api/bookings/employee/${empId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        setBookings(data.data || []);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch bookings for analytics", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchBookings();
+    }, [empId]);
+
+    const completedCount = bookings.filter(b => b.status === 'Completed' || b.status === 'Delivered').length;
+    const totalAssigned = bookings.length;
+
     const weeklyData = [
-        { day: 'Mon', hours: 8.5, percentage: '85%' },
-        { day: 'Tue', hours: 9.0, percentage: '90%' },
-        { day: 'Wed', hours: 10.5, percentage: '100%' }, // includes overtime
-        { day: 'Thu', hours: 8.0, percentage: '80%' },
-        { day: 'Fri', hours: 8.5, percentage: '85%' },
-        { day: 'Sat', hours: 6.0, percentage: '60%' },
+        { day: 'Mon', hours: 0.0, percentage: '0%' },
+        { day: 'Tue', hours: 0.0, percentage: '0%' },
+        { day: 'Wed', hours: 0.0, percentage: '0%' },
+        { day: 'Thu', hours: 0.0, percentage: '0%' },
+        { day: 'Fri', hours: 0.0, percentage: '0%' },
+        { day: 'Sat', hours: 0.0, percentage: '0%' },
         { day: 'Sun', hours: 0.0, percentage: '0%' }
     ];
 
-    const milestones = [
-        { title: 'Task Crusher', desc: 'Completed all assigned tasks for 3 consecutive weeks', date: '08 Jul 2026', icon: <Target size={16} className="text-emerald-500" /> },
-        { title: 'Overtime Champion', desc: 'Logged 10+ hours of approved overtime shifts', date: '04 Jul 2026', icon: <Clock size={16} className="text-blue-500" /> },
-        { title: 'Perfect Attendance', desc: 'Zero delayed punch-ins this month', date: '01 Jul 2026', icon: <UserCheck size={16} className="text-purple-500" /> },
-        { title: 'Customer Favorite', desc: 'Received 5-star rating feedback from client reviews', date: '28 Jun 2026', icon: <Star size={16} className="text-yellow-500" fill="currentColor" /> }
-    ];
+    const milestones = [];
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
@@ -49,12 +71,12 @@ const Analytics = () => {
                         <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
                             <CheckCircle2 size={22} />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded shadow-sm">Active</span>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm ${totalAssigned > 0 ? 'text-emerald-600 bg-emerald-100/50' : 'text-gray-500 bg-gray-100'}`}>{totalAssigned > 0 ? 'Active' : 'No Data'}</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Tasks Completed</p>
-                    <h3 className="text-2xl font-black text-[#011023] mt-1">24 <span className="text-xs text-gray-400 font-medium">/ 28 Assigned</span></h3>
+                    <h3 className="text-2xl font-black text-[#011023] mt-1">{completedCount} <span className="text-xs text-gray-400 font-medium">/ {totalAssigned} Assigned</span></h3>
                     <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: '85.7%' }}></div>
+                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${totalAssigned > 0 ? (completedCount / totalAssigned) * 100 : 0}%` }}></div>
                     </div>
                 </div>
 
@@ -64,12 +86,12 @@ const Analytics = () => {
                         <div className="p-3 bg-purple-50 text-purple-500 rounded-xl group-hover:scale-110 transition-transform">
                             <UserCheck size={22} />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-purple-600 bg-purple-100/50 px-2 py-0.5 rounded shadow-sm">Target Met</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm text-gray-500 bg-gray-100">No Data</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Attendance Score</p>
-                    <h3 className="text-2xl font-black text-[#011023] mt-1">96.4% <span className="text-xs text-gray-400 font-medium">Present</span></h3>
+                    <h3 className="text-2xl font-black text-[#011023] mt-1">0% <span className="text-xs text-gray-400 font-medium">Present</span></h3>
                     <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                        <div className="bg-purple-500 h-full rounded-full" style={{ width: '96.4%' }}></div>
+                        <div className="bg-purple-500 h-full rounded-full" style={{ width: '0%' }}></div>
                     </div>
                 </div>
 
@@ -79,12 +101,12 @@ const Analytics = () => {
                         <div className="p-3 bg-yellow-50 text-yellow-500 rounded-xl group-hover:scale-110 transition-transform">
                             <Star size={22} fill="currentColor" />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-yellow-600 bg-yellow-100/50 px-2 py-0.5 rounded shadow-sm">Highly Rated</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm text-gray-500 bg-gray-100">No Rating</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Efficiency Rating</p>
-                    <h3 className="text-2xl font-black text-[#011023] mt-1">4.8 <span className="text-xs text-gray-400 font-medium">/ 5.0 Rating</span></h3>
+                    <h3 className="text-2xl font-black text-[#011023] mt-1">0.0 <span className="text-xs text-gray-400 font-medium">/ 5.0 Rating</span></h3>
                     <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                        <div className="bg-yellow-500 h-full rounded-full" style={{ width: '96%' }}></div>
+                        <div className="bg-yellow-500 h-full rounded-full" style={{ width: '0%' }}></div>
                     </div>
                 </div>
 
@@ -94,12 +116,12 @@ const Analytics = () => {
                         <div className="p-3 bg-blue-50 text-blue-500 rounded-xl group-hover:scale-110 transition-transform">
                             <Clock size={22} />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded shadow-sm">Approved</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm text-gray-500 bg-gray-100">No Overtime</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Overtime Logged</p>
-                    <h3 className="text-2xl font-black text-[#011023] mt-1">12.5 <span className="text-xs text-gray-400 font-medium">Hours This Month</span></h3>
+                    <h3 className="text-2xl font-black text-[#011023] mt-1">0 <span className="text-xs text-gray-400 font-medium">Hours This Month</span></h3>
                     <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                        <div className="bg-blue-500 h-full rounded-full" style={{ width: '65%' }}></div>
+                        <div className="bg-blue-500 h-full rounded-full" style={{ width: '0%' }}></div>
                     </div>
                 </div>
             </div>
@@ -114,7 +136,7 @@ const Analytics = () => {
                             <p className="text-[10px] text-gray-400 font-semibold uppercase">Daily hours tracked in current shift pattern</p>
                         </div>
                         <div className="flex items-center gap-2 text-xs font-bold text-[#527FB0] bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100">
-                            <TrendingUp size={14} /> AVG: 8.5 HRS / DAY
+                            <TrendingUp size={14} /> AVG: 0.0 HRS / DAY
                         </div>
                     </div>
 
@@ -157,7 +179,7 @@ const Analytics = () => {
                     </div>
 
                     <div className="space-y-4 flex-1 overflow-y-auto pr-1">
-                        {milestones.map((m, idx) => (
+                        {milestones.length > 0 ? milestones.map((m, idx) => (
                             <div key={idx} className="flex items-center gap-4 bg-white/40 border border-[#e6f0fa] p-4 rounded-xl hover:bg-white transition-colors">
                                 <div className="p-2.5 bg-[#f0f6ff] rounded-xl flex-shrink-0">
                                     {m.icon}
@@ -170,7 +192,11 @@ const Analytics = () => {
                                     <p className="text-[10.5px] text-gray-500 font-medium leading-tight">{m.desc}</p>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <div className="flex-1 flex items-center justify-center py-16 text-center text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                No Milestones Unlocked Yet
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
