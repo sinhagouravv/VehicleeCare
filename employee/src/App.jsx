@@ -23,43 +23,46 @@ import SuccessRate from './pages/SuccessRate';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import { FilterProvider } from './context/FilterContext';
+import { AlertProvider } from './context/AlertContext';
 
 const App = () => {
   return (
     <BrowserRouter>
-      <FilterProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-        
-        {/* Protected Dashboard Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="leave" element={<Leave />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="reviews" element={<Reviews />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="details" element={<Details />} />
-            <Route path="finance" element={<Finance />} />
-            <Route path="makeup" element={<Makeup />} />
-            <Route path="overtime" element={<Overtime />} />
-            <Route path="meeting" element={<Meeting />} />
-            <Route path="upload-documents" element={<UploadDocuments />} />
-            <Route path="virtual-id-card" element={<VirtualIDCard />} />
-            <Route path="average-duration" element={<AverageDuration />} />
-            <Route path="success-rate" element={<SuccessRate />} />
-          </Route>
+      <AlertProvider>
+        <FilterProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+          
+          {/* Protected Dashboard Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="attendance" element={<Attendance />} />
+              <Route path="leave" element={<Leave />} />
+              <Route path="tasks" element={<Tasks />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="reviews" element={<Reviews />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="details" element={<Details />} />
+              <Route path="finance" element={<Finance />} />
+              <Route path="makeup" element={<Makeup />} />
+              <Route path="overtime" element={<Overtime />} />
+              <Route path="meeting" element={<Meeting />} />
+              <Route path="upload-documents" element={<UploadDocuments />} />
+              <Route path="virtual-id-card" element={<VirtualIDCard />} />
+              <Route path="average-duration" element={<AverageDuration />} />
+              <Route path="success-rate" element={<SuccessRate />} />
+            </Route>
 
-        </Route>
-        
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </FilterProvider>
+          </Route>
+          
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </FilterProvider>
+    </AlertProvider>
     </BrowserRouter>
   );
 };
