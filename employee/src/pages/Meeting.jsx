@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, Clock, Loader2, AlertCircle, Plus, X, Eye, Trash2, User, FileText, CheckCircle, Check, MessageSquare, Send } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Loader2, AlertCircle, Plus, X, Eye, Trash2, User, FileText, CheckCircle, Check, MessageSquare, Send } from 'lucide-react';
+import { Calendar } from '../components/ui/calendar';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -25,6 +26,41 @@ const Meeting = () => {
     const [selectedRemarkMeeting, setSelectedRemarkMeeting] = useState(null);
     const [remarkText, setRemarkText] = useState('');
     const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
+
+    // Date Picker Popover States & Refs
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [datePickerPos, setDatePickerPos] = useState(null);
+    const dateBtnRef = useRef(null);
+    const datePopoverRef = useRef(null);
+
+    const toggleDatePicker = () => {
+        if (!showDatePicker && dateBtnRef.current) {
+            const rect = dateBtnRef.current.getBoundingClientRect();
+            setDatePickerPos({
+                top: rect.bottom + 6,
+                left: rect.left + rect.width / 2
+            });
+            setShowDatePicker(true);
+        } else {
+            setShowDatePicker(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                showDatePicker &&
+                dateBtnRef.current &&
+                !dateBtnRef.current.contains(event.target) &&
+                datePopoverRef.current &&
+                !datePopoverRef.current.contains(event.target)
+            ) {
+                setShowDatePicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showDatePicker]);
 
     // Filter states
     const [purposeFilter, setPurposeFilter] = useState('all');
@@ -101,17 +137,33 @@ const Meeting = () => {
     const [formData, setFormData] = useState({
         purpose: '',
         appointmentDate: '',
-        appointmentTime: '10:00',
+        appointmentTime: '',
         reason: ''
     });
 
+    const formatDisplayDate = (dateStr) => {
+        if (!dateStr) return '';
+        const [y, m, d] = dateStr.split('-');
+        if (!y || !m || !d) return dateStr;
+        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        if (isNaN(date.getTime())) return dateStr;
+        const dayStr = String(date.getDate()).padStart(2, '0');
+        const monthShort = date.toLocaleDateString('en-US', { month: 'short' });
+        const yearStr = date.getFullYear();
+        return `${dayStr} ${monthShort} ${yearStr}`;
+    };
+
+    const isDateDisabled = (dateObj) => {
+        if (!dateObj) return true;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const targetDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        return targetDate <= today;
+    };
+
     const formatTimeTo12h = (time24) => {
         if (!time24) return '—';
-        const [h, m] = time24.split(':');
-        const hr = parseInt(h);
-        const suffix = hr >= 12 ? 'PM' : 'AM';
-        const hr12 = hr % 12 || 12;
-        return `${String(hr12).padStart(2, '0')}:${m} ${suffix}`;
+        return time24;
     };
 
     const formatDate = (dateStr) => {
@@ -645,33 +697,39 @@ const Meeting = () => {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 relative">
                                         <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                             Appointment Date
                                         </label>
-                                        <input
-                                            type="date"
-                                            className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
-                                            value={formData.appointmentDate}
-                                            onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
-                                        />
+                                        <button
+                                            ref={dateBtnRef}
+                                            type="button"
+                                            onClick={toggleDatePicker}
+                                            className="w-full h-[38px] px-4 py-2 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] flex items-center justify-between text-left cursor-pointer"
+                                        >
+                                            <span className={formData.appointmentDate ? "text-[#011023]" : "text-gray-400"}>
+                                                {formData.appointmentDate ? formatDisplayDate(formData.appointmentDate) : "\u00A0"}
+                                            </span>
+                                        </button>
                                     </div>
 
                                     <div className="space-y-2">
                                         <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                             Appointment Time
                                         </label>
-                                        <div className="relative group">
-                                            <input
-                                                type="time"
-                                                className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none"
-                                                value={formData.appointmentTime}
-                                                onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                                            />
-                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#527FB0] opacity-60">
-                                                {parseInt(formData.appointmentTime?.split(':')[0]) >= 12 ? 'PM' : 'AM'}
-                                            </span>
-                                        </div>
+                                        <select
+                                            className="w-full h-[38px] px-4 py-2 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                            value={formData.appointmentTime}
+                                            onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
+                                        >
+                                            <option value=""></option>
+                                            <option value="12:00 - 12:30">12:00 - 12:30</option>
+                                            <option value="12:30 - 13:00">12:30 - 13:00</option>
+                                            <option value="13:00 - 13:30">13:00 - 13:30</option>
+                                            <option value="13:30 - 14:00">13:30 - 14:00</option>
+                                            <option value="14:00 - 14:30">14:00 - 14:30</option>
+                                            <option value="14:30 - 15:00">14:30 - 15:00</option>
+                                        </select>
                                     </div>
                                 </div>
 
@@ -701,6 +759,37 @@ const Meeting = () => {
                             </button>
                         </form>
                     </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Appointment Date Calendar Portal */}
+            {showModal && showDatePicker && datePickerPos && createPortal(
+                <div
+                    ref={datePopoverRef}
+                    style={{
+                        position: 'fixed',
+                        top: `${datePickerPos.top}px`,
+                        left: `${datePickerPos.left}px`,
+                        transform: 'translateX(-50%)',
+                        zIndex: 9999
+                    }}
+                    className="animate-in fade-in zoom-in duration-150"
+                >
+                    <Calendar
+                        selected={formData.appointmentDate ? new Date(formData.appointmentDate) : undefined}
+                        isDateDisabled={isDateDisabled}
+                        onSelect={(date) => {
+                            if (date) {
+                                const yyyy = date.getFullYear();
+                                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                                const dd = String(date.getDate()).padStart(2, '0');
+                                const dateStr = `${yyyy}-${mm}-${dd}`;
+                                setFormData({ ...formData, appointmentDate: dateStr });
+                                setShowDatePicker(false);
+                            }
+                        }}
+                    />
                 </div>,
                 document.body
             )}

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Plane, Calendar, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText, Check, MessageSquare, Send } from 'lucide-react';
+import { Plane, Calendar as CalendarIcon, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText, Check, MessageSquare, Send } from 'lucide-react';
+import { Calendar } from '../components/ui/calendar';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -28,6 +29,126 @@ const Leave = () => {
     const [selectedRemarkLeave, setSelectedRemarkLeave] = useState(null);
     const [remarkText, setRemarkText] = useState('');
     const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
+    
+    // Date Picker Popover States & Refs
+    const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+    const [startDatePickerPos, setStartDatePickerPos] = useState(null);
+    const [endDatePickerPos, setEndDatePickerPos] = useState(null);
+
+    const startDateBtnRef = useRef(null);
+    const endDateBtnRef = useRef(null);
+    const startDatePopoverRef = useRef(null);
+    const endDatePopoverRef = useRef(null);
+
+    const toggleStartDatePicker = () => {
+        if (!showStartDatePicker && startDateBtnRef.current) {
+            const rect = startDateBtnRef.current.getBoundingClientRect();
+            setStartDatePickerPos({
+                top: rect.bottom + 6,
+                left: rect.left + rect.width / 2
+            });
+            setShowStartDatePicker(true);
+            setShowEndDatePicker(false);
+        } else {
+            setShowStartDatePicker(false);
+        }
+    };
+
+    const toggleEndDatePicker = () => {
+        if (!formData.startDate || formData.leaveTime === 'Half Day') return;
+        if (!showEndDatePicker && endDateBtnRef.current) {
+            const rect = endDateBtnRef.current.getBoundingClientRect();
+            setEndDatePickerPos({
+                top: rect.bottom + 6,
+                left: rect.left + rect.width / 2
+            });
+            setShowEndDatePicker(true);
+            setShowStartDatePicker(false);
+        } else {
+            setShowEndDatePicker(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                showStartDatePicker &&
+                startDateBtnRef.current &&
+                !startDateBtnRef.current.contains(event.target) &&
+                startDatePopoverRef.current &&
+                !startDatePopoverRef.current.contains(event.target)
+            ) {
+                setShowStartDatePicker(false);
+            }
+            if (
+                showEndDatePicker &&
+                endDateBtnRef.current &&
+                !endDateBtnRef.current.contains(event.target) &&
+                endDatePopoverRef.current &&
+                !endDatePopoverRef.current.contains(event.target)
+            ) {
+                setShowEndDatePicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showStartDatePicker, showEndDatePicker]);
+
+    const formatDisplayDate = (dateStr) => {
+        if (!dateStr) return '';
+        const [y, m, d] = dateStr.split('-');
+        if (!y || !m || !d) return dateStr;
+        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        if (isNaN(date.getTime())) return dateStr;
+        const dayStr = String(date.getDate()).padStart(2, '0');
+        const monthShort = date.toLocaleDateString('en-US', { month: 'short' });
+        const yearStr = date.getFullYear();
+        return `${dayStr} ${monthShort} ${yearStr}`;
+    };
+
+    const isDateDisabled = (dateObj) => {
+        if (!dateObj) return true;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const targetDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+
+        if (targetDate < today) {
+            return true;
+        }
+
+        if (targetDate.getTime() === today.getTime()) {
+            if (formData.leaveTime !== 'Half Day') {
+                return true;
+            }
+
+            const cutoffHour = isDeveloper ? 12 : 14;
+            const cutoffMinute = 30;
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            if (currentHour > cutoffHour || (currentHour === cutoffHour && currentMinute >= cutoffMinute)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    };
+
+    const isEndDateDisabled = (dateObj) => {
+        if (isDateDisabled(dateObj)) return true;
+        if (formData.startDate) {
+            const [sy, sm, sd] = formData.startDate.split('-').map(Number);
+            const startDate = new Date(sy, sm - 1, sd);
+            const targetDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            if (targetDate < startDate) {
+                return true;
+            }
+        }
+        return false;
+    };
     
     // Filter states
     const [statusFilter, setStatusFilter] = useState('all');
@@ -111,29 +232,34 @@ const Leave = () => {
     const pendingLeave = leaves.find(l => l.status === 'Pending');
     const _approvedLeave = leaves.find(l => l.status === 'Approved');
 
+    const storedUser = JSON.parse(localStorage.getItem('employeeUser') || '{}');
+    const empId = storedUser.employeeId || storedUser.id || storedUser._id;
+    const isDeveloper = (storedUser.category || '').toLowerCase() === 'developer';
+
     const [formData, setFormData] = useState({
         type: '',
         leaveTime: '',
         startDate: '',
-        startTime: '09:00',
+        startTime: '',
         endDate: '',
-        endTime: '21:00', // 09:00 PM (12 hours after 09:00 AM)
+        endTime: '',
         reason: ''
     });
 
     const formatTimeTo12h = (time24) => {
         if (!time24) return '—';
-        const [h, m] = time24.split(':');
-        const hr = parseInt(h);
-        const suffix = hr >= 12 ? 'PM' : 'AM';
-        const hr12 = hr % 12 || 12;
-        return `${String(hr12).padStart(2, '0')}:${m} ${suffix}`;
+        return time24;
     };
 
     const calculateEndTime = (startTime, leaveType) => {
-        if (!startTime) return '21:00';
+        if (!startTime) return '';
         const [h, m] = startTime.split(':').map(Number);
-        const hoursToAdd = leaveType === 'Half Day' ? 6 : 12;
+        let hoursToAdd = 12;
+        if (isDeveloper) {
+            hoursToAdd = leaveType === 'Half Day' ? 4 : 8;
+        } else {
+            hoursToAdd = leaveType === 'Half Day' ? 6 : 12;
+        }
         const endH = (h + hoursToAdd) % 24;
         return `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     };
@@ -178,9 +304,6 @@ const Leave = () => {
             hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
         });
     };
-
-    const storedUser = JSON.parse(localStorage.getItem('employeeUser') || '{}');
-    const empId = storedUser.employeeId || storedUser.id || storedUser._id;
 
     const isLeaveEnded = (endDateStr) => {
         if (!endDateStr) return false;
@@ -262,9 +385,9 @@ const Leave = () => {
                     type: '',
                     leaveTime: '',
                     startDate: '',
-                    startTime: '09:00',
+                    startTime: '',
                     endDate: '',
-                    endTime: '21:00',
+                    endTime: '',
                     reason: ''
                 });
                 fetchLeaves(true);
@@ -300,7 +423,7 @@ const Leave = () => {
                 startDate: nextStartDateStr,
                 startTime: leaveToExtend.startTime || '09:00',
                 endDate: nextStartDateStr,
-                endTime: leaveToExtend.endTime || '21:00',
+                endTime: leaveToExtend.endTime || (isDeveloper ? (leaveToExtend.leaveTime === 'Half Day' ? '13:00' : '17:00') : '21:00'),
                 reason: `Extension of previous leave (${leaveToExtend.leaveId}) ending on ${leaveToExtend.endDate}.`
             });
             setParentLeaveId(leaveToExtend.leaveId);
@@ -310,9 +433,9 @@ const Leave = () => {
                 type: '',
                 leaveTime: '',
                 startDate: '',
-                startTime: '09:00',
+                startTime: '',
                 endDate: '',
-                endTime: '21:00',
+                endTime: '',
                 reason: ''
             });
             setParentLeaveId(null);
@@ -713,7 +836,7 @@ const Leave = () => {
             {showModal && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
                         <div className="flex justify-between items-center pb-2">
                             <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
@@ -728,7 +851,7 @@ const Leave = () => {
                         </div>
 
                         {/* Body */}
-                        <div className="space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar text-left">
+                        <div className="space-y-4 uppercase text-left">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Leave Type</label>
@@ -768,23 +891,20 @@ const Leave = () => {
                             {/* Date & Time Grid */}
                             <div className="grid grid-cols-4 gap-3">
                                 {/* Start Date */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 relative">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         Start Date
                                     </label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
-                                        value={formData.startDate}
-                                        onChange={(e) => {
-                                            const newStart = e.target.value;
-                                            const updates = { ...formData, startDate: newStart };
-                                            if (formData.leaveTime === 'Half Day') {
-                                                updates.endDate = newStart;
-                                            }
-                                            setFormData(updates);
-                                        }}
-                                    />
+                                    <button
+                                        ref={startDateBtnRef}
+                                        type="button"
+                                        onClick={toggleStartDatePicker}
+                                        className="w-full h-[38px] px-4 py-2 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] flex items-center justify-between text-left cursor-pointer"
+                                    >
+                                        <span className={formData.startDate ? "text-[#011023]" : "text-gray-400"}>
+                                            {formData.startDate ? formatDisplayDate(formData.startDate) : "\u00A0"}
+                                        </span>
+                                    </button>
                                 </div>
 
                                 {/* Start Time */}
@@ -792,37 +912,57 @@ const Leave = () => {
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         Start Time
                                     </label>
-                                    <div className="relative group">
-                                        <input
-                                            type="time"
-                                            className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none"
-                                            value={formData.startTime}
-                                            onChange={(e) => {
-                                                const newStart = e.target.value;
-                                                setFormData({
-                                                    ...formData,
-                                                    startTime: newStart,
-                                                    endTime: calculateEndTime(newStart, formData.leaveTime)
-                                                });
-                                            }}
-                                        />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#527FB0] opacity-60">
-                                            {parseInt(formData.startTime?.split(':')[0]) >= 12 ? 'PM' : 'AM'}
-                                        </span>
-                                    </div>
+                                    <select
+                                        className="w-full h-[38px] px-4 py-2 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                        value={formData.startTime}
+                                        onChange={(e) => {
+                                            const newStart = e.target.value;
+                                            setFormData({
+                                                ...formData,
+                                                startTime: newStart,
+                                                endTime: calculateEndTime(newStart, formData.leaveTime)
+                                            });
+                                        }}
+                                    >
+                                        <option value=""></option>
+                                        {isDeveloper ? (
+                                            <>
+                                                <option value="09:00">09:00</option>
+                                                <option value="10:00">10:00</option>
+                                                <option value="11:00">11:00</option>
+                                                <option value="12:00">12:00</option>
+                                                <option value="13:00">13:00</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="09:00">09:00</option>
+                                                <option value="10:00">10:00</option>
+                                                <option value="11:00">11:00</option>
+                                                <option value="12:00">12:00</option>
+                                                <option value="13:00">13:00</option>
+                                                <option value="14:00">14:00</option>
+                                                <option value="15:00">15:00</option>
+                                            </>
+                                        )}
+                                    </select>
                                 </div>
 
                                 {/* End Date */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 relative">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">
                                         End Date
                                     </label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
-                                        value={formData.endDate}
-                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                    />
+                                    <button
+                                        ref={endDateBtnRef}
+                                        type="button"
+                                        disabled={!formData.startDate || formData.leaveTime === 'Half Day'}
+                                        onClick={toggleEndDatePicker}
+                                        className="w-full h-[38px] px-4 py-2 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] flex items-center justify-between text-left cursor-pointer disabled:cursor-not-allowed"
+                                    >
+                                        <span className={formData.endDate ? "text-[#011023]" : "text-gray-400"}>
+                                            {formData.endDate ? formatDisplayDate(formData.endDate) : "\u00A0"}
+                                        </span>
+                                    </button>
                                 </div>
 
                                 {/* End Time */}
@@ -832,14 +972,13 @@ const Leave = () => {
                                     </label>
                                     <div className="relative group">
                                         <input
-                                            type="time"
-                                            className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none"
+                                            type="text"
+                                            readOnly
+                                            placeholder=""
+                                            className="w-full h-[38px] px-4 py-2 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] cursor-not-allowed"
                                             value={formData.endTime}
                                             onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#527FB0] opacity-60">
-                                            {parseInt(formData.endTime?.split(':')[0]) >= 12 ? 'PM' : 'AM'}
-                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -856,13 +995,6 @@ const Leave = () => {
 
                         {/* Action Buttons (50-50) */}
                         <div className="flex items-center gap-3 pt-2 w-full">
-                            {/* <button
-                                type="button"
-                                onClick={() => setShowModal(false)}
-                                className="flex-1 py-1.5 bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center cursor-pointer"
-                            >
-                                Cancel
-                            </button> */}
                             <button
                                 type="submit"
                                 onClick={handleSubmit}
@@ -879,6 +1011,73 @@ const Leave = () => {
                             </button>
                         </div>
                     </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Start Date Calendar Portal */}
+            {showModal && showStartDatePicker && startDatePickerPos && createPortal(
+                <div
+                    ref={startDatePopoverRef}
+                    style={{
+                        position: 'fixed',
+                        top: `${startDatePickerPos.top}px`,
+                        left: `${startDatePickerPos.left}px`,
+                        transform: 'translateX(-50%)',
+                        zIndex: 9999
+                    }}
+                    className="animate-in fade-in zoom-in duration-150"
+                >
+                    <Calendar
+                        selected={formData.startDate ? new Date(formData.startDate) : undefined}
+                        isDateDisabled={isDateDisabled}
+                        onSelect={(date) => {
+                            if (date) {
+                                const yyyy = date.getFullYear();
+                                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                                const dd = String(date.getDate()).padStart(2, '0');
+                                const dateStr = `${yyyy}-${mm}-${dd}`;
+                                
+                                const updates = { ...formData, startDate: dateStr };
+                                if (formData.leaveTime === 'Half Day') {
+                                    updates.endDate = dateStr;
+                                }
+                                setFormData(updates);
+                                setShowStartDatePicker(false);
+                            }
+                        }}
+                    />
+                </div>,
+                document.body
+            )}
+
+            {/* End Date Calendar Portal */}
+            {showModal && showEndDatePicker && endDatePickerPos && formData.startDate && formData.leaveTime !== 'Half Day' && createPortal(
+                <div
+                    ref={endDatePopoverRef}
+                    style={{
+                        position: 'fixed',
+                        top: `${endDatePickerPos.top}px`,
+                        left: `${endDatePickerPos.left}px`,
+                        transform: 'translateX(-50%)',
+                        zIndex: 9999
+                    }}
+                    className="animate-in fade-in zoom-in duration-150"
+                >
+                    <Calendar
+                        selected={formData.endDate ? new Date(formData.endDate) : undefined}
+                        isDateDisabled={isEndDateDisabled}
+                        onSelect={(date) => {
+                            if (date) {
+                                const yyyy = date.getFullYear();
+                                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                                const dd = String(date.getDate()).padStart(2, '0');
+                                const dateStr = `${yyyy}-${mm}-${dd}`;
+                                setFormData({ ...formData, endDate: dateStr });
+                                setShowEndDatePicker(false);
+                            }
+                        }}
+                    />
                 </div>,
                 document.body
             )}
