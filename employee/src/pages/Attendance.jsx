@@ -326,10 +326,13 @@ const Attendance = () => {
     const getShiftBadge = (shift) => {
         const lowerShift = (shift || '').toLowerCase();
         switch (lowerShift) {
+            case 'full day':
+            case 'full_day':
+            case 'fullday': return 'bg-sky-50 text-sky-600 border-sky-100';
             case 'morning': return 'bg-orange-50 text-orange-600 border-orange-100';
-            case 'evening': return 'bg-purple-50 text-purple-600 border-purple-100';
+            case 'evening': return 'bg-[#faf5ff] text-purple-600 border-purple-100';
             case 'night': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
-            default: return 'bg-gray-50 text-gray-600 border-gray-100';
+            default: return 'bg-sky-50 text-sky-600 border-sky-100';
         }
     };
 
