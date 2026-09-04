@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Landmark, Download, FileText, CreditCard, ArrowUpRight, HelpCircle } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
 
 const Finance = () => {
+    const { triggerAlert } = useAlert();
     const [employee, setEmployee] = useState(null);
     const [downloadingId, setDownloadingId] = useState(null);
 
@@ -12,20 +14,16 @@ const Finance = () => {
         }
     }, []);
 
-    const payslips = [
-        { id: 'PS-2026-06', month: 'June 2026', basic: 32000, deductions: 1200, net: 30800 },
-        { id: 'PS-2026-05', month: 'May 2026', basic: 32000, deductions: 1200, net: 30800 },
-        { id: 'PS-2026-04', month: 'April 2026', basic: 32000, deductions: 1200, net: 30800 },
-        { id: 'PS-2026-03', month: 'March 2026', basic: 30000, deductions: 1000, net: 29000 },
-        { id: 'PS-2026-02', month: 'February 2026', basic: 30000, deductions: 1000, net: 29000 },
-        { id: 'PS-2026-01', month: 'January 2026', basic: 30000, deductions: 1000, net: 29000 }
-    ];
+    const payslips = [];
+
+    const totalEarned = payslips.reduce((sum, p) => sum + p.net, 0);
+    const totalDeductions = payslips.reduce((sum, p) => sum + p.deductions, 0);
 
     const handleDownload = (id) => {
         setDownloadingId(id);
         setTimeout(() => {
             setDownloadingId(null);
-            alert(`Payslip ${id} downloaded successfully.`);
+            triggerAlert(`Payslip ${id} downloaded successfully.`, 'success');
         }, 1000);
     };
 
@@ -54,19 +52,19 @@ const Finance = () => {
 
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-md transition-all">
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Total Earned (YTD)</p>
-                    <h3 className="text-2xl font-black text-[#011023] mt-1">₹1,81,200</h3>
+                    <h3 className="text-2xl font-black text-[#011023] mt-1">₹{totalEarned.toLocaleString('en-IN')}</h3>
                     <div className="mt-4 flex items-center gap-2">
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md text-[9px] font-black tracking-widest">credited</span>
-                        <span className="text-[11px] font-bold text-gray-500">Jan - Jun 2026 cumulative</span>
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest bg-gray-100 text-gray-600">no earnings</span>
+                        <span className="text-[11px] font-bold text-gray-500">No YTD earnings recorded</span>
                     </div>
                 </div>
 
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-md transition-all">
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Deductions (YTD)</p>
-                    <h3 className="text-2xl font-black text-rose-600 mt-1">₹6,600</h3>
+                    <h3 className="text-2xl font-black text-rose-600 mt-1">₹{totalDeductions.toLocaleString('en-IN')}</h3>
                     <div className="mt-4 flex items-center gap-2">
-                        <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[9px] font-black tracking-widest">Tax & PF</span>
-                        <span className="text-[11px] font-bold text-gray-500">Professional tax deductions</span>
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest bg-gray-100 text-gray-600">no deductions</span>
+                        <span className="text-[11px] font-bold text-gray-500">No tax deductions logged</span>
                     </div>
                 </div>
             </div>
@@ -92,7 +90,7 @@ const Finance = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[12px] uppercase divide-[#e6f0fa]">
-                                {payslips.map((slip) => (
+                                {payslips.length > 0 ? payslips.map((slip) => (
                                     <tr key={slip.id} className="hover:bg-blue-50/30 transition-colors">
                                         <td className="p-4 text-center font-bold text-[#011023]">{slip.month}</td>
                                         <td className="p-4 text-center font-semibold text-gray-600">₹{slip.basic.toLocaleString('en-IN')}</td>
@@ -112,7 +110,13 @@ const Finance = () => {
                                             </button>
                                         </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr>
+                                        <td colSpan={5} className="py-16 text-center text-gray-400 text-sm font-semibold uppercase">
+                                            No Salary Slips Available
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -134,13 +138,13 @@ const Finance = () => {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <p className="text-[9px] uppercase tracking-widest text-blue-200">Disbursement Channel</p>
-                                        <h5 className="text-sm font-black uppercase tracking-wider mt-0.5">HDFC BANK LTD</h5>
+                                        <h5 className="text-sm font-black uppercase tracking-wider mt-0.5">{employee?.bankName ? employee.bankName.toUpperCase() : 'PENDING MAPPING'}</h5>
                                     </div>
                                     <CreditCard size={24} className="text-blue-200" />
                                 </div>
                                 <div>
                                     <p className="text-[9px] uppercase tracking-widest text-blue-200">Account Number</p>
-                                    <p className="text-base font-black tracking-widest mt-0.5">•••• •••• •••• 9845</p>
+                                    <p className="text-base font-black tracking-widest mt-0.5">{employee?.accountNumber ? `•••• •••• •••• ${employee.accountNumber.slice(-4)}` : '•••• •••• •••• ••••'}</p>
                                 </div>
                             </div>
                         </div>
@@ -148,7 +152,7 @@ const Finance = () => {
                         <div className="space-y-4 text-sm">
                             <div className="flex justify-between border-b border-[#e6f0fa] pb-2">
                                 <span className="text-[10px] font-black text-gray-400 uppercase">IFSC Code:</span>
-                                <span className="font-bold text-gray-700">HDFC0000240</span>
+                                <span className="font-bold text-gray-700 font-mono">{employee?.ifscCode || '—'}</span>
                             </div>
                             <div className="flex justify-between border-b border-[#e6f0fa] pb-2">
                                 <span className="text-[10px] font-black text-gray-400 uppercase">PAN Card Mapping:</span>
@@ -156,7 +160,7 @@ const Finance = () => {
                             </div>
                             <div className="flex justify-between border-b border-[#e6f0fa] pb-2">
                                 <span className="text-[10px] font-black text-gray-400 uppercase">Provident Fund (PF):</span>
-                                <span className="font-bold text-gray-700 font-mono">MH/BAN/0045231/000</span>
+                                <span className="font-bold text-gray-700 font-mono">{employee?.pfNumber || '—'}</span>
                             </div>
                         </div>
                     </div>
