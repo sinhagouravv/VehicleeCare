@@ -63,7 +63,7 @@ const createEmployee = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const password = await bcrypt.hash(plainPassword, salt);
 
-        const employee = await Employee.create({ ...req.body, employeeId, password, isVerified: true });
+        const employee = await Employee.create({ ...req.body, employeeId, password, isVerified: false, verificationStatus: 'Pending' });
         
         // Fetch garage name for better notification
         const Garage = require('../models/Garage'); // Ensure Garage is available
@@ -118,17 +118,87 @@ const createEmployee = async (req, res) => {
 // @route   PUT /api/employees/:id
 const updateEmployee = async (req, res) => {
     try {
-        const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
-        });
+        const { id } = req.params;
+        let oldEmployee;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            oldEmployee = await Employee.findById(id);
+        }
+        if (!oldEmployee) {
+            oldEmployee = await Employee.findOne({ employeeId: id });
+        }
+
+        const employee = oldEmployee
+            ? await Employee.findByIdAndUpdate(oldEmployee._id, req.body, { new: true, runValidators: true })
+            : null;
+
         if (!employee) {
             return res.status(404).json({ success: false, message: 'Employee not found' });
         }
+
+        // Fire document notifications if any document status was changed
+        try {
+            const Notification = require('../models/Notification');
+            const docFields = ['panCard', 'adharCard', 'aadhaarCard', 'voterId', 'drivingLicense', 'agreement', 'signature', 'bankDetails', 'experienceLetter'];
+            for (let docKey of docFields) {
+                const statusKey = `${docKey}Status`;
+                const remarkKey = `${docKey}Remark`;
+                if (req.body[statusKey]) {
+                    const newStatus = req.body[statusKey];
+                    const docId = employee[`${docKey}DocId`] || 'D0000000';
+                    let docLabel = docKey.replace(/([A-Z])/g, ' $1').toUpperCase();
+                    if (docKey === 'adharCard' || docKey === 'aadhaarCard') docLabel = 'AADHAR CARD';
+                    if (docKey === 'panCard') docLabel = 'PAN CARD';
+                    if (docKey === 'voterId') docLabel = 'VOTER CARD';
+                    if (docKey === 'drivingLicense') docLabel = 'DRIVING LICENSE';
+                    if (docKey === 'agreement') docLabel = 'EMPLOYMENT AGREEMENT';
+                    if (docKey === 'signature') docLabel = 'SIGNATURE';
+
+                    const remark = req.body[remarkKey] || employee[remarkKey] || '';
+
+                    if (newStatus === 'APPROVED' || newStatus === 'Approved' || newStatus === 'VERIFIED' || newStatus === 'Verified') {
+                        await Notification.create({
+                            eventType: 'document',
+                            superCategory: 'employees_notification',
+                            title: 'Document Approved',
+                            message: `Dear Employee, Your ${docLabel} (${docId}) has been approved.`,
+                            meta: {
+                                employeeId: employee.employeeId || employee._id,
+                                employeeMongoId: employee._id,
+                                employeeName: employee.name,
+                                docLabel,
+                                documentType: docLabel,
+                                docId,
+                                status: 'Approved'
+                            }
+                        });
+                    } else if (newStatus === 'REJECTED' || newStatus === 'Rejected') {
+                        await Notification.create({
+                            eventType: 'document',
+                            superCategory: 'employees_notification',
+                            title: 'Document Rejected',
+                            message: `Dear Employee, Your ${docLabel} (${docId}) has been rejected. Kindly review the remarks provided by the administration and re-upload the document. Please ensure that you upload it correctly, as this is the final attempt to do so.`,
+                            meta: {
+                                employeeId: employee.employeeId || employee._id,
+                                employeeMongoId: employee._id,
+                                employeeName: employee.name,
+                                docLabel,
+                                documentType: docLabel,
+                                docId,
+                                status: 'Rejected',
+                                remark
+                            }
+                        });
+                    }
+                }
+            }
+        } catch (notifErr) {
+            console.error('Error creating document update notification:', notifErr);
+        }
+
         res.status(200).json({ success: true, data: employee });
     } catch (err) {
         console.error("Error updating employee:", err);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        res.status(500).json({ success: false, message: err.message || 'Server Error' });
     }
 };
 
@@ -545,7 +615,7 @@ const uploadEmployeeDocument = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please upload a document file.' });
         }
 
-        const validDocumentTypes = ['adharCard', 'voterId', 'panCard', 'drivingLicense', 'agreement', 'signature'];
+        const validDocumentTypes = ['adharCard', 'aadhaarCard', 'voterId', 'panCard', 'drivingLicense', 'agreement', 'signature', 'bankDetails', 'experienceLetter'];
         if (!validDocumentTypes.includes(documentType)) {
             return res.status(400).json({ success: false, message: `Invalid document type. Allowed types: ${validDocumentTypes.join(', ')}` });
         }
@@ -565,11 +635,59 @@ const uploadEmployeeDocument = async (req, res) => {
 
         // Upload memory buffer to Cloudinary
         const { uploadStream } = require('../utils/cloudinary');
-        const result = await uploadStream(req.file.buffer, 'employee_documents');
+        const result = await uploadStream(req.file.buffer, 'employee_documents', req.file.mimetype);
 
         // Save secure url to the specified field in database
+        const generateDocId = () => 'D' + Math.floor(1000000 + Math.random() * 9000000).toString();
+        const currentStatus = (employee[`${documentType}Status`] || '').toUpperCase();
+
+        if (currentStatus === 'REJECTED' && employee[documentType]) {
+            if (!employee[`${documentType}History`]) {
+                employee[`${documentType}History`] = [];
+            }
+            const historyId = employee[`${documentType}DocId`] || generateDocId();
+            employee[`${documentType}History`].push({
+                docId: historyId,
+                fileUrl: employee[documentType],
+                uploadedAt: employee[`${documentType}UploadedAt`] || new Date(),
+                status: 'Rejected'
+            });
+            let newDocId = historyId.toUpperCase();
+            if (!newDocId.endsWith('R')) {
+                newDocId += 'R';
+            }
+            employee[`${documentType}DocId`] = newDocId;
+        } else if (!employee[`${documentType}DocId`]) {
+            employee[`${documentType}DocId`] = generateDocId();
+        }
+
         employee[documentType] = result.secure_url;
+        employee[`${documentType}UploadedAt`] = new Date();
+        employee[`${documentType}Status`] = 'Pending';
         await employee.save();
+
+        // Fire Notifications for Admin supercategory
+        try {
+            const Notification = require('../models/Notification');
+            const docId = employee[`${documentType}DocId`];
+            const uppercaseType = documentType.replace(/([A-Z])/g, ' $1').toUpperCase();
+
+            // Admin Notification ONLY
+            await Notification.create({
+                eventType: 'document',
+                superCategory: 'adminNotification',
+                title: 'Document Uploaded',
+                message: `Employee ${employee.name || 'Employee'} (${employee.employeeId || ''}) uploaded ${uppercaseType} (Doc ID: ${docId}).`,
+                meta: {
+                    employeeId: employee.employeeId || employee._id,
+                    documentType: uppercaseType,
+                    docId,
+                    portal: 'employee'
+                }
+            });
+        } catch (notifErr) {
+            console.error('Error creating document upload notification:', notifErr);
+        }
 
         res.status(200).json({
             success: true,
@@ -578,6 +696,76 @@ const uploadEmployeeDocument = async (req, res) => {
         });
     } catch (err) {
         console.error('Error uploading employee document:', err);
+        res.status(500).json({ success: false, message: err.message || 'Server Error' });
+    }
+};
+
+// @desc Delete Employee Document
+// @route DELETE /api/employees/:id/document/:documentType
+const deleteEmployeeDocument = async (req, res) => {
+    try {
+        const { id, documentType } = req.params;
+        let employee;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            employee = await Employee.findById(id);
+        }
+        if (!employee) {
+            employee = await Employee.findOne({ employeeId: id });
+        }
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+
+        const history = employee[`${documentType}History`] || [];
+        const currentDocId = (employee[`${documentType}DocId`] || '').toUpperCase();
+        const isReuploaded = currentDocId.endsWith('R') || history.length > 0;
+
+        if (isReuploaded && (history.length > 0 || currentDocId.endsWith('R'))) {
+            if (history.length > 0) {
+                const prevDoc = history.pop();
+                employee[documentType] = prevDoc.fileUrl;
+                employee[`${documentType}UploadedAt`] = prevDoc.uploadedAt;
+                employee[`${documentType}Status`] = prevDoc.status || 'Rejected';
+                employee[`${documentType}DocId`] = prevDoc.docId || (currentDocId.endsWith('R') ? currentDocId.slice(0, -1) : currentDocId);
+                employee[`${documentType}Remark`] = prevDoc.remark || '';
+            } else if (currentDocId.endsWith('R')) {
+                // Fallback for legacy test data without history array
+                employee[`${documentType}DocId`] = currentDocId.slice(0, -1);
+                employee[`${documentType}Status`] = 'Rejected';
+            }
+        } else {
+            employee[documentType] = '';
+            employee[`${documentType}UploadedAt`] = null;
+            employee[`${documentType}DocId`] = '';
+            employee[`${documentType}Status`] = 'Pending';
+            employee[`${documentType}Remark`] = '';
+            employee[`${documentType}History`] = [];
+        }
+        await employee.save();
+
+        // Fire Notifications for Admin supercategory ONLY
+        try {
+            const Notification = require('../models/Notification');
+            const uppercaseType = documentType.replace(/([A-Z])/g, ' $1').toUpperCase();
+
+            await Notification.create({
+                eventType: 'document',
+                superCategory: 'adminNotification',
+                title: 'Document Removed',
+                message: `${uppercaseType} for Employee ${employee.name || 'Employee'} (${employee.employeeId || ''}) was removed.`,
+                meta: { employeeId: employee.employeeId || employee._id }
+            });
+        } catch (notifErr) {
+            console.error('Error creating document delete notification:', notifErr);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `${documentType} deleted successfully`,
+            data: employee
+        });
+    } catch (err) {
+        console.error('Error deleting employee document:', err);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
@@ -595,6 +783,7 @@ module.exports = {
     updateIdCardRequestStatus,
     deleteIdCardRequest,
     uploadEmployeeAvatar,
-    uploadEmployeeDocument
+    uploadEmployeeDocument,
+    deleteEmployeeDocument
 };
 
