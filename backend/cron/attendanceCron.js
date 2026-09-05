@@ -20,8 +20,9 @@ const autoMarkAllAbsences = async () => {
             if (await isNewEmployeeBlocked(emp)) {
                 continue;
             }
-            const shift = emp.shift || 'Morning';
-            const rules = SHIFT_RULES[shift];
+            const isDev = (emp.category || '').toLowerCase() === 'developer';
+            const shift = isDev ? 'Full Day' : (emp.shift || 'Morning');
+            const rules = SHIFT_RULES[shift] || SHIFT_RULES['Full Day'] || SHIFT_RULES.Morning;
             const today = getTodayIST(shift);
 
             let adjustedTotal = currentTotalMinutes;
@@ -90,7 +91,8 @@ const autoCheckOutAllEmployees = async () => {
         let count = 0;
         for (const rec of recordsToCheckout) {
             const employee = await Employee.findOne({ employeeId: rec.employeeId });
-            const shift = employee?.shift || rec.shift || 'Morning';
+            const isDev = (employee?.category || '').toLowerCase() === 'developer';
+            const shift = isDev ? 'Full Day' : (employee?.shift || rec.shift || 'Morning');
 
             // Skip today's Night shift record (since it just started at 21:00)
             if (rec.date === todayStr && shift === 'Night') {
@@ -100,7 +102,27 @@ const autoCheckOutAllEmployees = async () => {
             let threshold = 21 * 60 + 20; // Default: 9:20 PM (21:20 IST)
             let checkoutTimeStr = 'T15:50:00.000Z'; // 21:20 IST in UTC
 
-            if (shift === 'Morning') {
+            if (shift === 'Full Day' || shift === 'FULL DAY') {
+                threshold = 17 * 60 + 20; // 5:20 PM
+                checkoutTimeStr = 'T11:50:00.000Z'; // 5:20 PM IST in UTC
+
+                // Query for approved overtime request for this employee on this date
+                const approvedOvertime = await OvertimeRequest.findOne({
+                    employeeId: rec.employeeId,
+                    date: rec.date,
+                    status: 'Approved'
+                });
+
+                if (approvedOvertime) {
+                    const otHours = approvedOvertime.hours || 0;
+                    threshold += otHours * 60;
+                    
+                    const totalUTCMinutes = 11 * 60 + 50 + (otHours * 60);
+                    const hrUTC = Math.floor(totalUTCMinutes / 60) % 24;
+                    const minUTC = totalUTCMinutes % 60;
+                    checkoutTimeStr = `T${hrUTC.toString().padStart(2, '0')}:${minUTC.toString().padStart(2, '0')}:00.000Z`;
+                }
+            } else if (shift === 'Morning') {
                 threshold = 15 * 60 + 20; // 3:20 PM
                 checkoutTimeStr = 'T09:50:00.000Z'; // 3:20 PM IST in UTC
 
