@@ -66,7 +66,8 @@ const checkIn = async (req, res) => {
             });
         }
 
-        const shift = employee.shift || 'Morning';
+        const isDev = (employee.category || '').toLowerCase() === 'developer';
+        const shift = isDev ? 'Full Day' : (employee.shift || 'Morning');
 
         // Find approved overtime hours for this employee on calendar date today
         const { date: istDate } = getISTTime();
