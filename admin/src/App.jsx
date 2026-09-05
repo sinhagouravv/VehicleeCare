@@ -24,7 +24,7 @@ import Parking from './pages/Parking';
 import Store from './pages/Store';
 import UploadDocuments from './pages/UploadDocuments';
 import Request from './pages/Request';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { FilterProvider } from './context/FilterContext';
 import { AlertProvider } from './context/AlertContext';
 
@@ -32,6 +32,11 @@ const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
   if (!token) return <Navigate to="/login" replace />;
   return children;
+};
+
+const ModalRedirect = ({ modalKey }) => {
+  const location = useLocation();
+  return <Navigate to="/" replace state={{ ...location.state, [modalKey]: true }} />;
 };
 
 const App = () => {
@@ -58,8 +63,8 @@ const App = () => {
             <Route path="employees" element={<Employees />} />
             <Route path="garages" element={<Garages />} />
             <Route path="charging-stations" element={<ChargingStations />} />
-            <Route path="bug" element={<Bug />} />
-            <Route path="remarks" element={<Remark />} />
+            <Route path="bug" element={<ModalRedirect modalKey="openBugModal" />} />
+            <Route path="remarks" element={<ModalRedirect modalKey="openRemarkModal" />} />
             <Route path="messages" element={<Messages />} />
             <Route path="reviews" element={<Reviews />} />
             <Route path="notifications" element={<Notifications />} />
@@ -67,8 +72,8 @@ const App = () => {
             <Route path="business" element={<Business />} />
             <Route path="parking" element={<Parking />} />
             <Route path="store" element={<Store />} />
-            <Route path="upload-documents" element={<UploadDocuments />} />
-            <Route path="request" element={<Request />} />
+            <Route path="upload-documents" element={<ModalRedirect modalKey="openDocumentModal" />} />
+            <Route path="request" element={<ModalRedirect modalKey="openRequestModal" />} />
           </Route>
 
           {/* Catch all redirect to root */}
