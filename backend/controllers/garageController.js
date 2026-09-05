@@ -64,7 +64,7 @@ exports.createGarage = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(tempPassword, salt);
 
-        const garage = await Garage.create({ ...req.body, garageId, password: hashedPassword });
+        const garage = await Garage.create({ ...req.body, garageId, password: hashedPassword, partner: false, isVerified: false, status: 'Pending' });
 
         // Fire admin notification
         createAdminNotification({
@@ -119,19 +119,68 @@ exports.createGarage = async (req, res) => {
 exports.updateGarage = async (req, res) => {
     try {
         const { id } = req.params;
-        let garage;
+        let oldGarage;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            oldGarage = await Garage.findById(id);
+        }
+        if (!oldGarage) {
+            oldGarage = await Garage.findOne({ garageId: id });
+        }
 
-        // Try updating by MongoDB _id if it's a valid ObjectId
+        let garage;
         if (id.match(/^[0-9a-fA-F]{24}$/)) {
             garage = await Garage.findByIdAndUpdate(id, req.body, { new: true });
         }
 
-        // Fallback to custom 9-digit garageId
         if (!garage) {
             garage = await Garage.findOneAndUpdate({ garageId: id }, req.body, { new: true });
         }
 
         if (!garage) return res.status(404).json({ success: false, message: 'Garage not found' });
+
+        // Fire document notifications if any document status was changed
+        try {
+            const Notification = require('../models/Notification');
+            const docFields = ['panCard', 'adharCard', 'aadhaarCard', 'voterId', 'gstCert', 'gstCertificate', 'canceledCheque', 'tradeLicense', 'addressProof', 'agreement', 'signature'];
+            for (let docKey of docFields) {
+                const statusKey = `${docKey}Status`;
+                const remarkKey = `${docKey}Remark`;
+                if (req.body[statusKey] && oldGarage && oldGarage[statusKey] !== req.body[statusKey]) {
+                    const newStatus = req.body[statusKey];
+                    const docId = garage[`${docKey}DocId`] || 'D0000000';
+                    let docLabel = docKey.replace(/([A-Z])/g, ' $1').toUpperCase();
+                    if (docKey === 'adharCard' || docKey === 'aadhaarCard') docLabel = 'AADHAR CARD';
+                    if (docKey === 'panCard') docLabel = 'PAN CARD';
+                    if (docKey === 'voterId') docLabel = 'VOTER CARD';
+                    if (docKey === 'gstCert' || docKey === 'gstCertificate') docLabel = 'GST CERTIFICATE';
+                    if (docKey === 'tradeLicense') docLabel = 'TRADE LICENSE';
+                    if (docKey === 'canceledCheque') docLabel = 'CANCELLED CHEQUE';
+
+                    const remark = req.body[remarkKey] || garage[remarkKey] || '';
+
+                    if (newStatus === 'APPROVED' || newStatus === 'Approved' || newStatus === 'VERIFIED' || newStatus === 'Verified') {
+                        await Notification.create({
+                            eventType: 'document',
+                            superCategory: 'garageNotification',
+                            title: 'Document Approved',
+                            message: `Dear ${garage.name || 'Garage'}, Your ${docLabel} (${docId}) has been approved.`,
+                            meta: { garageId: garage.garageId || garage._id, garageName: garage.name, docLabel, documentType: docLabel, docId, status: 'Approved' }
+                        });
+                    } else if (newStatus === 'REJECTED' || newStatus === 'Rejected') {
+                        await Notification.create({
+                            eventType: 'document',
+                            superCategory: 'garageNotification',
+                            title: 'Document Rejected',
+                            message: `Dear ${garage.name || 'Garage'}, Your ${docLabel} (${docId}) has been rejected. Kindly review the remarks provided by the administration and re-upload the document. Please ensure that you upload it correctly, as this is the final attempt to do so.`,
+                            meta: { garageId: garage.garageId || garage._id, garageName: garage.name, docLabel, documentType: docLabel, docId, status: 'Rejected', remark }
+                        });
+                    }
+                }
+            }
+        } catch (notifErr) {
+            console.error('Error creating garage document update notification:', notifErr);
+        }
+
         res.json({ success: true, data: garage });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -169,6 +218,171 @@ exports.getGarageById = async (req, res) => {
         res.json({ success: true, data: garage });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// @desc Upload Garage Document to Cloudinary
+// @route POST /api/garages/:id/document
+exports.uploadGarageDocument = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { documentType } = req.body;
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload a document file.' });
+        }
+
+        const validDocumentTypes = ['adharCard', 'aadhaarCard', 'voterId', 'panCard', 'tradeLicense', 'agreement', 'signature', 'gstCert', 'gstCertificate', 'canceledCheque', 'addressProof'];
+        if (!validDocumentTypes.includes(documentType)) {
+            return res.status(400).json({ success: false, message: `Invalid document type. Allowed types: ${validDocumentTypes.join(', ')}` });
+        }
+
+        // Find garage first
+        let garage;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            garage = await Garage.findById(id);
+        }
+        if (!garage) {
+            garage = await Garage.findOne({ garageId: id });
+        }
+
+        if (!garage) {
+            return res.status(404).json({ success: false, message: 'Garage not found' });
+        }
+
+        // Upload memory buffer to Cloudinary
+        const { uploadStream } = require('../utils/cloudinary');
+        const result = await uploadStream(req.file.buffer, 'garage_documents', req.file.mimetype);
+
+        // Save secure url to the specified field in database
+        const generateDocId = () => 'D' + Math.floor(1000000 + Math.random() * 9000000).toString();
+        const currentStatus = (garage[`${documentType}Status`] || '').toUpperCase();
+
+        if (currentStatus === 'REJECTED' && garage[documentType]) {
+            if (!garage[`${documentType}History`]) {
+                garage[`${documentType}History`] = [];
+            }
+            const historyId = garage[`${documentType}DocId`] || generateDocId();
+            garage[`${documentType}History`].push({
+                docId: historyId,
+                fileUrl: garage[documentType],
+                uploadedAt: garage[`${documentType}UploadedAt`] || new Date(),
+                status: 'Rejected'
+            });
+            let newDocId = historyId.toUpperCase();
+            if (!newDocId.endsWith('R')) {
+                newDocId += 'R';
+            }
+            garage[`${documentType}DocId`] = newDocId;
+        } else if (!garage[`${documentType}DocId`]) {
+            garage[`${documentType}DocId`] = generateDocId();
+        }
+
+        garage[documentType] = result.secure_url;
+        garage[`${documentType}UploadedAt`] = new Date();
+        garage[`${documentType}Status`] = 'Pending';
+        await garage.save();
+
+        // Fire Notifications for Admin supercategory ONLY
+        try {
+            const Notification = require('../models/Notification');
+            const docId = garage[`${documentType}DocId`];
+            const uppercaseType = documentType.replace(/([A-Z])/g, ' $1').toUpperCase();
+
+            await Notification.create({
+                eventType: 'document',
+                superCategory: 'adminNotification',
+                title: 'Document Uploaded',
+                message: `Garage ${garage.name || 'Garage'} (${garage.garageId || ''}) uploaded ${uppercaseType} (Doc ID: ${docId}).`,
+                meta: {
+                    garageId: garage.garageId || garage._id,
+                    documentType: uppercaseType,
+                    docId,
+                    portal: 'garage'
+                }
+            });
+        } catch (notifErr) {
+            console.error('Error creating garage document upload notification:', notifErr);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `${documentType} uploaded successfully`,
+            data: garage
+        });
+    } catch (err) {
+        console.error('Error uploading garage document:', err);
+        res.status(500).json({ success: false, message: err.message || 'Server Error' });
+    }
+};
+
+// @desc Delete Garage Document
+// @route DELETE /api/garages/:id/document/:documentType
+exports.deleteGarageDocument = async (req, res) => {
+    try {
+        const { id, documentType } = req.params;
+        let garage;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            garage = await Garage.findById(id);
+        }
+        if (!garage) {
+            garage = await Garage.findOne({ garageId: id });
+        }
+        if (!garage) {
+            return res.status(404).json({ success: false, message: 'Garage not found' });
+        }
+
+        const history = garage[`${documentType}History`] || [];
+        const currentDocId = (garage[`${documentType}DocId`] || '').toUpperCase();
+        const isReuploaded = currentDocId.endsWith('R') || history.length > 0;
+
+        if (isReuploaded && (history.length > 0 || currentDocId.endsWith('R'))) {
+            if (history.length > 0) {
+                const prevDoc = history.pop();
+                garage[documentType] = prevDoc.fileUrl;
+                garage[`${documentType}UploadedAt`] = prevDoc.uploadedAt;
+                garage[`${documentType}Status`] = prevDoc.status || 'Rejected';
+                garage[`${documentType}DocId`] = prevDoc.docId || (currentDocId.endsWith('R') ? currentDocId.slice(0, -1) : currentDocId);
+                garage[`${documentType}Remark`] = prevDoc.remark || '';
+            } else if (currentDocId.endsWith('R')) {
+                // Fallback for legacy test data without history array
+                garage[`${documentType}DocId`] = currentDocId.slice(0, -1);
+                garage[`${documentType}Status`] = 'Rejected';
+            }
+        } else {
+            garage[documentType] = '';
+            garage[`${documentType}UploadedAt`] = null;
+            garage[`${documentType}DocId`] = '';
+            garage[`${documentType}Status`] = 'Pending';
+            garage[`${documentType}Remark`] = '';
+            garage[`${documentType}History`] = [];
+        }
+        await garage.save();
+
+        // Fire Notifications for Admin supercategory ONLY
+        try {
+            const Notification = require('../models/Notification');
+            const uppercaseType = documentType.replace(/([A-Z])/g, ' $1').toUpperCase();
+
+            await Notification.create({
+                eventType: 'document',
+                superCategory: 'adminNotification',
+                title: 'Document Removed',
+                message: `${uppercaseType} for Garage ${garage.name || 'Garage'} (${garage.garageId || ''}) was removed.`,
+                meta: { garageId: garage.garageId || garage._id }
+            });
+        } catch (notifErr) {
+            console.error('Error creating garage document delete notification:', notifErr);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `${documentType} deleted successfully`,
+            data: garage
+        });
+    } catch (err) {
+        console.error('Error deleting garage document:', err);
+        res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 
