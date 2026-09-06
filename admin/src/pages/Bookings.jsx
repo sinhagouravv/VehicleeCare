@@ -427,10 +427,10 @@ const Bookings = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="font-semibold text-gray-800 text-sm">
+                                            <div className="font-semibold text-gray-800 text-sm line-clamp-2">
                                                 {booking.service?.title}
                                             </div>
-                                             <div className="text-xs text-gray-500 uppercase font-medium">
+                                            <div className="text-xs text-gray-500 uppercase font-medium">
                                                  {(() => {
                                                      const make = (booking.vehicle?.make || booking.vehicle?.brand || '').trim();
                                                      const model = (booking.vehicle?.model || booking.vehicle?.modelName || booking.vehicle?.carModel || booking.vehicle?.name || '').trim();
