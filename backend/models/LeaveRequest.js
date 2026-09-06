@@ -60,6 +60,10 @@ const LeaveRequestSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    employeeRemark: {
+        type: String,
+        required: false
+    },
     leaveId: {
         type: String,
         required: true,
@@ -67,7 +71,31 @@ const LeaveRequestSchema = new mongoose.Schema({
     },
     garageId: {
         type: String,
-        required: true
+        required: false
+    },
+    approvedBy: {
+        type: String,
+        required: false
+    },
+    approvedById: {
+        type: String,
+        required: false
+    },
+    actionBy: {
+        type: String,
+        required: false
+    },
+    actionById: {
+        type: String,
+        required: false
+    },
+    approvedByRole: {
+        type: String,
+        required: false
+    },
+    actionByRole: {
+        type: String,
+        required: false
     }
 }, { timestamps: true });
 
