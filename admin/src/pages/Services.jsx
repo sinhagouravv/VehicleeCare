@@ -58,10 +58,9 @@ const Services = () => {
             title: 'Filter Services',
             hasSort: true,
             groups: [
-                LABEL_FILTER_GROUP,
                 {
                     id: 'fuelType',
-                    label: 'Fuel / Vehicle Type',
+                    label: 'Fuel Type',
                     defaultValue: 'all',
                     options: [
                         { label: 'All', value: 'all' },
@@ -70,7 +69,8 @@ const Services = () => {
                         { label: 'EV', value: 'ev' },
                         { label: 'Premium', value: 'premium' },
                     ]
-                }
+                },
+                LABEL_FILTER_GROUP,
             ],
             initialValues: {
                 fuelType: filterFuelType,
