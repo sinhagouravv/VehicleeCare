@@ -480,22 +480,7 @@ const updateIdCardRequestStatus = async (req, res) => {
 
             await request.save();
 
-            // Fire admin notification
-            try {
-                createAdminNotification({
-                    eventType: 'id_card_status_updated',
-                    title: 'Duplicate ID Card Request Status Updated',
-                    message: `Duplicate ID card request for employee ID ${request.employeeId} has been ${status.toLowerCase()}.`,
-                    meta: {
-                        requestId: request._id,
-                        employeeId: request.employeeId,
-                        status: status,
-                        remarks: remarks || ''
-                    }
-                });
-            } catch (notifErr) {
-                console.error('Failed to create admin notification for duplicate ID card status update:', notifErr);
-            }
+
 
             // Fire employee notification (type: 'meeting')
             try {
