@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard, Zap, ShoppingBag } from 'lucide-react';
+import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard, Zap, ShoppingBag, Pencil, Edit } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Employees = () => {
+    const { triggerAlert } = useAlert();
     const [employees, setEmployees] = useState([]);
     const highlightedRow = useHighlight(employees);
     const [loading, setLoading] = useState(true);
@@ -26,6 +28,57 @@ const Employees = () => {
     const [employeeToDelete, setEmployeeToDelete] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Edit Developer state
+    const [editDevTarget, setEditDevTarget] = useState(null);
+    const [editDevForm, setEditDevForm] = useState({ employmentType: 'Full Time', designation: 'SDE I' });
+    const [savingDev, setSavingDev] = useState(false);
+
+    const handleOpenEditDeveloper = (emp) => {
+        setEditDevTarget(emp);
+        setEditDevForm({
+            employmentType: emp.employmentType || emp.type || emp.employeeType || 'Full Time',
+            designation: emp.designation || emp.role || 'SDE I'
+        });
+    };
+
+    const handleSaveDeveloperEdit = async () => {
+        if (!editDevTarget) return;
+        setSavingDev(true);
+        try {
+            const payload = {
+                employmentType: editDevForm.employmentType,
+                type: editDevForm.employmentType,
+                designation: editDevForm.designation,
+                role: editDevForm.designation
+            };
+
+            const targetId = editDevTarget._id || editDevTarget.id || editDevTarget.employeeId;
+            const res = await fetch(`http://localhost:5001/api/employees/${targetId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                const updated = data.data || { ...editDevTarget, ...payload };
+                setEmployees(prev => prev.map(e => (e._id === updated._id || e.employeeId === updated.employeeId) ? { ...e, ...payload } : e));
+                if (viewEmployee && (viewEmployee._id === updated._id || viewEmployee.employeeId === updated.employeeId)) {
+                    setViewEmployee(prev => ({ ...prev, ...payload }));
+                }
+                triggerAlert('Developer details updated successfully!', 'success');
+                setEditDevTarget(null);
+            } else {
+                throw new Error(data.message || 'Failed to update developer');
+            }
+        } catch (err) {
+            console.error('Error updating developer:', err);
+            triggerAlert(err.message || 'Failed to update developer', 'error');
+        } finally {
+            setSavingDev(false);
+        }
+    };
 
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
@@ -103,17 +156,32 @@ const Employees = () => {
     }, [fetchEmployees]);
 
     const getRoleBadge = (role) => {
-        switch (role) {
-            case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
-            case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
-            case 'Staff': return 'bg-emerald-100 text-emerald-700 font-bold';
-            case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
-            case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
-            case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
-            case 'Chef': return 'bg-orange-100 text-orange-700 font-bold';
-            case 'Waiter': return 'bg-pink-100 text-pink-700 font-bold';
-            case 'Cashier': return 'bg-cyan-100 text-cyan-700 font-bold';
-            case 'Delivery': return 'bg-lime-100 text-lime-700 font-bold';
+        const r = (role || '').toUpperCase().replace(/\s+/g, '');
+        switch (r) {
+            case 'ADMIN': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'MANAGER': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'STAFF': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'MECHANIC': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'TECHNICIAN': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'SUPPORT': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'CHEF': return 'bg-orange-100 text-orange-700 font-bold';
+            case 'WAITER': return 'bg-pink-100 text-pink-700 font-bold';
+            case 'CASHIER': return 'bg-cyan-100 text-cyan-700 font-bold';
+            case 'DELIVERY': return 'bg-lime-100 text-lime-700 font-bold';
+            // Developer Roles
+            case 'SDEI': return 'bg-sky-100 text-sky-700 font-bold';
+            case 'SDEII': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'SDEIII': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'JUNIOR': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'SENIOR': return 'bg-violet-100 text-violet-700 font-bold';
+            case 'ASSOCIATE': return 'bg-teal-100 text-teal-700 font-bold';
+            case 'DEVELOPER': return 'bg-indigo-100 text-indigo-700 font-bold';
+            // QA / Tester Roles
+            case 'QAI': return 'bg-rose-100 text-rose-700 font-bold';
+            case 'QAII': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'QAIII': return 'bg-fuchsia-100 text-fuchsia-700 font-bold';
+            case 'SENIORQA': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'TESTER': return 'bg-rose-100 text-rose-700 font-bold';
             default: return 'bg-gray-100 text-gray-700 font-bold';
         }
     };
@@ -128,7 +196,28 @@ const Employees = () => {
     };
 
     const formatRole = (role) => {
-        return role || 'Employee';
+        if (!role) return 'Employee';
+        const r = role.toUpperCase().replace(/\s+/g, '');
+        if (r === 'SDEI') return 'SDE I';
+        if (r === 'SDEII') return 'SDE II';
+        if (r === 'SDEIII') return 'SDE III';
+        if (r === 'QAI') return 'QA I';
+        if (r === 'QAII') return 'QA II';
+        if (r === 'QAIII') return 'QA III';
+        if (r === 'SENIORQA') return 'Senior QA';
+        return role;
+    };
+
+    const formatDocNumber = (...vals) => {
+        for (const val of vals) {
+            if (val && typeof val === 'string') {
+                const trimmed = val.trim();
+                if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.includes('cloudinary')) {
+                    return trimmed;
+                }
+            }
+        }
+        return '—';
     };
 
     const _getRoleIcon = (role) => {
@@ -154,7 +243,7 @@ const Employees = () => {
         });
         if (!includeTime) return day;
         const time = date.toLocaleTimeString('en-IN', {
-            hour: '2-digit', minute: '2-digit', hour12: true
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
         });
         return `${day} | ${time}`;
     };
@@ -209,7 +298,7 @@ const Employees = () => {
                 ['Address', employee.address || '—'],
                 ['Category', employee.category || 'System'],
                 ['Role', formatRole(employee.role)],
-                ['Verification', employee.isVerified ? 'Verified' : 'Unverified'],
+                ['Verification', employee.isVerified ? 'Verified' : 'Pending'],
                 ['Joined', formatDate(employee.createdAt)],
             ],
             theme: 'grid',
@@ -288,14 +377,15 @@ const Employees = () => {
             const data = await res.json();
             if (data.success) {
                 setEmployees(prev => prev.filter(emp => emp._id !== employeeToDelete._id));
+                triggerAlert('Employee deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setEmployeeToDelete(null);
             } else {
-                alert(data.message || 'Failed to delete employee');
+                triggerAlert(data.message || 'Failed to delete employee', 'error');
             }
         } catch (error) {
             console.error("Error deleting employee:", error);
-            alert('Error deleting employee');
+            triggerAlert('Error deleting employee', 'error');
         } finally {
             setDeleting(false);
         }
@@ -471,7 +561,7 @@ const Employees = () => {
                                                  <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
                                                      employee.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                                                  }`}>
-                                                     {employee.isVerified ? 'Verified' : 'Unverified'}
+                                                     {employee.isVerified ? 'Verified' : 'Pending'}
                                                  </span>
                                              </td>
                                             <td className="p-4 text-center">
@@ -505,7 +595,7 @@ const Employees = () => {
                     onClick={() => setViewEmployee(null)}
                 >
                     <div 
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-[950px] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -514,14 +604,20 @@ const Employees = () => {
                                  <h3 className="text-xl uppercase font-bold text-[#052558]">Employee Details</h3>
                                  <div className="flex items-center gap-2 mt-1">
                                      <p className="text-sm text-gray-500">ID: <span className="font-semibold text-gray-700">{viewEmployee.userId || viewEmployee.employeeId || viewEmployee._id?.slice(0, 8)}</span></p>
-                                     <button onClick={() => fetchServiceHistory(viewEmployee._id)} className="text-gray-400 p-1.5 rounded-lg transition-colors hover:text-blue-600 hover:bg-blue-50">
-                                         <Eye size={17} />
-                                     </button>
+                                     {(viewEmployee.category || '').toLowerCase() === 'developer' ? (
+                                         <button onClick={() => handleOpenEditDeveloper(viewEmployee)} title="Edit Type & Designation" className="text-gray-400 transition-colors hover:text-blue-600 hover:bg-blue-50">
+                                             <Edit size={14} />
+                                         </button>
+                                     ) : (
+                                         <button onClick={() => fetchServiceHistory(viewEmployee._id)} className="text-gray-400 transition-colors hover:text-blue-600 hover:bg-blue-50">
+                                             <Eye size={17} />
+                                         </button>
+                                     )}
                                  </div>
                              </div>
                             <button 
                                 onClick={() => setViewEmployee(null)} 
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
                                 <X size={20} />
                             </button>
@@ -531,7 +627,7 @@ const Employees = () => {
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             <div className="flex flex-col md:flex-row gap-6 w-full">
                                 {/* Personal Info */}
-                                <div className="space-y-2 w-full md:w-[42%]">
+                                <div className="space-y-2 w-full md:w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewEmployee.name || '—'}</span></p>
@@ -541,63 +637,113 @@ const Employees = () => {
                                 </div>
 
                                 {/* Employment Info */}
-                                <div className="space-y-2 w-full md:w-[22%]">
+                                <div className="space-y-2 w-full md:w-[26%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment Info</h4>
                                     <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="font-semibold ml-2 text-[#011023]">{formatRole(viewEmployee.role)}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className="font-semibold ml-2 text-gray-800">{viewEmployee.shift || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{viewEmployee.salaryType || 'Monthly'}</span></p>
+                                        {['developer', 'tester'].includes((viewEmployee.category || '').toLowerCase()) ? (
+                                            <>
+                                                <p className="text-sm flex items-center">
+                                                    <span className="text-gray-500 w-24 shrink-0">Type:</span> 
+                                                    <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${
+                                                        (viewEmployee.employmentType || viewEmployee.type || '').toUpperCase().includes('INTERN') ? 'bg-purple-100 text-purple-700' :
+                                                        (viewEmployee.employmentType || viewEmployee.type || '').toUpperCase().includes('PART') ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {viewEmployee.employmentType || viewEmployee.type || viewEmployee.employeeType || 'Full Time'}
+                                                    </span>
+                                                </p>
+                                                <p className="text-sm flex items-center">
+                                                    <span className="text-gray-500 w-24 shrink-0">Shift:</span> 
+                                                    <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${
+                                                        viewEmployee.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 
+                                                        viewEmployee.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 
+                                                        viewEmployee.shift === 'Evening' ? 'bg-indigo-100 text-indigo-700' : 
+                                                        'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {viewEmployee.shift || 'Full Time'}
+                                                    </span>
+                                                </p>
+                                                <p className="text-sm flex items-center">
+                                                    <span className="text-gray-500 w-24 shrink-0">Design:</span> 
+                                                    <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${getRoleBadge(viewEmployee.role)}`}>
+                                                        {viewEmployee.designation || formatRole(viewEmployee.role) || 'Developer'}
+                                                    </span>
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${getRoleBadge(viewEmployee.role)}`}>{formatRole(viewEmployee.role)}</span></p>
+                                                <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${viewEmployee.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : viewEmployee.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{viewEmployee.shift || '—'}</span></p>
+                                                <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{viewEmployee.salaryType || 'Monthly'}</span></p>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Status & Join Info */}
-                                <div className="flex flex-col gap-4.5 w-full md:w-[35%]">
+                                <div className="flex flex-col gap-4.5 w-full md:w-[38%]">
                                     <div className="space-y-1.25">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
-                                        <div className="flex items-center gap-3">
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase mt-5 tracking-wider w-24">Status</h4>
-                                            <div className="flex uppercase items-center gap-2">
-                                                <span className={`px-2 py-0.5 ml-3 mt-4 text-xs font-bold rounded-lg uppercase tracking-wider ${viewEmployee.isVerified ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
+                                        <div className="space-y-1.75 pt-4">
+                                            <div className="flex items-center gap-3">
+                                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${viewEmployee.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                                                     {viewEmployee.isVerified ? 'Verified' : 'Pending'}
                                                 </span>
                                             </div>
-                                        </div>
 
-                                        <div className="flex items-center gap-3">
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Category</h4>
-                                            <span className="text-xs ml-3 font-bold text-blue-600 border border-blue-100 bg-blue-50 px-2 py-0.5 rounded-lg uppercase">
-                                                {viewEmployee.category || 'System'}
-                                            </span>
-                                        </div>
+                                            <div className="flex items-center gap-3">
+                                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Category</h4>
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                                    viewEmployee.category === 'Store' ? 'bg-orange-100 text-orange-700' : 
+                                                    viewEmployee.category === 'Garage' ? 'bg-emerald-100 text-emerald-700' :
+                                                    viewEmployee.category === 'Station' ? 'bg-amber-100 text-amber-700' :
+                                                    viewEmployee.category === 'Parking' ? 'bg-indigo-100 text-indigo-700' :
+                                                    'bg-purple-100 text-purple-700'
+                                                }`}>
+                                                    {viewEmployee.category || 'System'}
+                                                </span>
+                                            </div>
 
-                                        <div className="flex items-center gap-3">
-                                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Joined At</h4>
-                                            <span className="text-xs ml-3 font-bold text-gray-600 uppercase">
-                                                {formatDate(viewEmployee.createdAt, true)}
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Joined At</h4>
+                                                <span className="text-sm font-bold text-gray-600 uppercase">
+                                                    {formatDate(viewEmployee.createdAt, true)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-
-
                             {/* Legal Documentation Archive */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Legal Documentation</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-6 rounded-xl shadow-sm">
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">PAN Card Number</p>
-                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{viewEmployee.panCard || '—'}</p>
+                                <div className="pt-3 pb-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+                                        <div className="flex justify-start">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">PAN Card Number</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.panCardNumber, viewEmployee.panNumber, viewEmployee.panCard)}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Adhar Protocol</p>
-                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{viewEmployee.adharCard || '—'}</p>
+                                        <div className="flex justify-center mr-5">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Aadhaar Card</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.adharCardNumber, viewEmployee.adharNumber, viewEmployee.aadhaarCard, viewEmployee.adharCard)}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Voter ID Registry</p>
-                                            <p className="text-[14px] font-bold text-[#052558] uppercase tracking-wider">{viewEmployee.voterId || '—'}</p>
+                                        <div className="flex justify-center ml-5">
+                                            <div className="flex flex-col items-center text-center">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Voter ID Card</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.voterIdNumber, viewEmployee.voterNumber, viewEmployee.voterId)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <div className="flex flex-col items-center text-center mr-2">
+                                                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Driving License</p>
+                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.drivingLicenseNumber, viewEmployee.drivingLicense, viewEmployee.licenseNumber, viewEmployee.dlNumber)}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -606,10 +752,8 @@ const Employees = () => {
                             {/* Residential Archive */}
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-5 rounded-xl shadow-sm uppercase">
-                                    <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Geographic Allocation</p>
-                                    <h5 className="font-semibold text-[#052558] text-[15.5px]">{viewEmployee.address || 'No Address Provided'}</h5>
-                                    {/* <p className="text-sm text-gray-500 mt-1 uppercase">Physical Deployment Address Registry</p> */}
+                                <div className="pt-2 uppercase">
+                                    <h5 className="font-semibold text-[#052558] text-sm">{viewEmployee.address || 'No Address Provided'}</h5>
                                 </div>
                             </div>
                         </div>
@@ -799,6 +943,79 @@ const Employees = () => {
                                     </table>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Edit Developer Modal */}
+            {editDevTarget && createPortal(
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setEditDevTarget(null)} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Edit Developer Details
+                            </h3>
+                            <button
+                                onClick={() => setEditDevTarget(null)}
+                                className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="space-y-4 uppercase overflow-y-auto max-h-[70vh] hide-scrollbar text-left">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Employment Type</label>
+                                    <select
+                                        value={editDevForm.employmentType}
+                                        onChange={e => setEditDevForm({ ...editDevForm, employmentType: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                    >
+                                        <option value="Intern">INTERN</option>
+                                        <option value="Full Time">FULL TIME</option>
+                                        <option value="Part Time">PART TIME</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Designation</label>
+                                    <select
+                                        value={editDevForm.designation}
+                                        onChange={e => setEditDevForm({ ...editDevForm, designation: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023] appearance-none cursor-pointer"
+                                    >
+                                        <option value="SDE I">SDE I</option>
+                                        <option value="SDE II">SDE II</option>
+                                        <option value="SDE III">SDE III</option>
+                                        <option value="Junior">JUNIOR</option>
+                                        <option value="Senior">SENIOR</option>
+                                        <option value="Associate">ASSOCIATE</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-3 pt-2 w-full">
+                            <button
+                                type="button"
+                                onClick={handleSaveDeveloperEdit}
+                                disabled={savingDev}
+                                className="flex-1 py-1.5 bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {savingDev ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" /> UPDATING...
+                                    </>
+                                ) : (
+                                    'UPDATE DEVELOPER'
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>,
