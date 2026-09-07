@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Bug as BugIcon, Check, Clock, Trash2, X, Loader2, Eye, MessageSquare } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
@@ -9,6 +10,7 @@ import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Bug = ({ isModal = false, onClose, highlightId }) => {
+    const location = useLocation();
     const { triggerAlert } = useAlert();
     const [bugs, setBugs] = useState([]);
     const highlightedRow = useHighlight(bugs, highlightId);
@@ -75,6 +77,8 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     const [bugToDelete, setBugToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
+
+
 
     // Severity Assignment Modal State
     const [isSeverityModalOpen, setIsSeverityModalOpen] = useState(false);
@@ -325,6 +329,8 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
                                         <tr 
                                             key={bug._id} 
                                             id={`row-${rowId}`}
+                                            data-row-id={bug._id}
+                                            data-bug-id={bug.bugId}
                                             onClick={(e) => {
                                                 if (isLabelMode) {
                                                     e.stopPropagation();
