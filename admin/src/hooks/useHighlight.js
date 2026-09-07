@@ -7,6 +7,14 @@ export default function useHighlight(dataArray, overrideHighlightId) {
     const highlightId = overrideHighlightId || location.state?.highlightId;
     const [highlightedRow, setHighlightedRow] = useState(null);
     const highlightedIdsRef = useRef(new Set());
+    const prevHighlightIdRef = useRef(null);
+
+    useEffect(() => {
+        if (highlightId && highlightId !== prevHighlightIdRef.current) {
+            highlightedIdsRef.current.clear();
+            prevHighlightIdRef.current = highlightId;
+        }
+    }, [highlightId]);
 
     useEffect(() => {
         if (!highlightId || !dataArray || dataArray.length === 0) return;
@@ -30,7 +38,8 @@ export default function useHighlight(dataArray, overrideHighlightId) {
                     item._id, item.id, item.paymentId, item.transactionId,
                     item.bookingId, item.userId, item.employeeId, item.garageId,
                     item.stationId, item.messageId, item.reviewId, item.bugId,
-                    item.remarkId, item.leaveId, item.documentId, item.docId,
+                    item.remarkId, item.referenceId, item.mongoRemarkId, item.leaveId, item.documentId, item.docId,
+                    item.requestId, item.mongoRequestId,
                     item.documentName, item.documentType, item.docLabel, item.uploaderId,
                     item.vehicle?.number, item.vehicleNumber
                 ].filter(Boolean).map(v => String(v).trim().toLowerCase());
@@ -54,8 +63,9 @@ export default function useHighlight(dataArray, overrideHighlightId) {
                     targetItem.paymentId, targetItem.bookingId, targetItem.garageId,
                     targetItem.employeeId, targetItem.userId, targetItem.stationId,
                     targetItem.messageId, targetItem.reviewId, targetItem.bugId,
-                    targetItem.remarkId, targetItem.leaveId, targetItem.documentId,
-                    targetItem.docId, targetItem.transactionId, targetItem._id, targetItem.id
+                    targetItem.remarkId, targetItem.referenceId, targetItem.mongoRemarkId, targetItem.leaveId, targetItem.documentId,
+                    targetItem.docId, targetItem.transactionId, targetItem.requestId,
+                    targetItem._id, targetItem.id
                 ].filter(Boolean).forEach(val => {
                     const str = String(val).trim();
                     candidateIdStrings.add(str);
