@@ -6,9 +6,18 @@ import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
+const isPendingCOD = (payment) => {
+    if (!payment) return false;
+    const methodStr = (payment.method || '').toLowerCase();
+    const statusStr = (payment.status || '').toLowerCase();
+    return (methodStr.includes('cod') || methodStr.includes('cash')) && (statusStr === 'pending' || statusStr === 'pending payment');
+};
+
 const Payments = () => {
+    const { triggerAlert } = useAlert();
     const [payments, setPayments] = useState([]);
     const highlightedRow = useHighlight(payments);
     const [loading, setLoading] = useState(true);
@@ -134,9 +143,9 @@ const Payments = () => {
             // Info Details
             doc.setFontSize(11);
             doc.setTextColor(...textColor);
-            doc.text(`Payment ID: ${payment.paymentId}`, 14, 40);
+            doc.text(`Payment ID: ${isPendingCOD(payment) ? '—' : (payment.paymentId || 'N/A')}`, 14, 40);
             doc.text(`Transaction ID: ${payment.transactionId || 'N/A'}`, 14, 47);
-            doc.text(`Date: ${new Date(payment.date).toLocaleString('en-IN')}`, 14, 54);
+            doc.text(`Date: ${isPendingCOD(payment) ? '—' : new Date(payment.date).toLocaleString('en-IN')}`, 14, 54);
             doc.text(`Type: ${payment.type}`, 14, 61);
             doc.text(`Status: ${payment.status}`, 14, 68);
 
@@ -170,10 +179,11 @@ const Payments = () => {
             doc.setTextColor(...primaryColor);
             doc.text(`Total Paid: Rs. ${payment.amount}`, 195, finalY, { align: 'right' });
 
-            doc.save(`Invoice_${payment.paymentId}.pdf`);
+            doc.save(`Invoice_${isPendingCOD(payment) ? (payment.booking?.bookingId || payment._id) : (payment.paymentId || payment._id)}.pdf`);
+            triggerAlert("Invoice downloaded successfully", "success");
         } catch (err) {
             console.error("Error generating PDF:", err);
-            alert("Failed to generate invoice.");
+            triggerAlert("Failed to generate invoice.", "error");
         }
     };
 
@@ -309,7 +319,7 @@ const Payments = () => {
                                                         positionClass="-left-4"
                                                     />
                                                 )}
-                                                <span>{payment.paymentId || payment._id.substring(0, 8).toUpperCase()}</span>
+                                                <span>{isPendingCOD(payment) ? '—' : (payment.paymentId || payment._id.substring(0, 8).toUpperCase())}</span>
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
@@ -347,11 +357,16 @@ const Payments = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="text-sm font-semibold whitespace-nowrap text-center">
-                                                {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} <br></br> 
-                                                {' '}
-                                                {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-                                            </span>
+                                            {isPendingCOD(payment) ? (
+                                                <span className="text-gray-400">—</span>
+                                            ) : (
+                                                <span className="text-sm font-semibold whitespace-nowrap text-center">
+                                                    {new Date(payment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} <br></br> 
+                                                    <span className="text-xs text-gray-500">
+                                                        {new Date(payment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                                                    </span>
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className="text-sm font-semibold text-gray-800 text-center">
@@ -371,16 +386,16 @@ const Payments = () => {
                                             </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex justify-center gap-1.5">
+                                            <div className="flex justify-center gap-4">
                                                 <button
                                                     onClick={() => handleViewDetails(payment)}
-                                                    className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                                                    className="text-gray-400 hover:text-blue-500 transition-colors"
                                                 >
                                                     <Eye size={18} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDownloadInvoice(payment)}
-                                                    className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors" 
+                                                    className="text-gray-400 hover:text-emerald-500 transition-colors" 
                                                 >
                                                     <Download size={18} />
                                                 </button>
@@ -407,7 +422,7 @@ const Payments = () => {
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Payment Details</h3>
-                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{selectedPayment.paymentId}</span></p>
+                                <p className="text-sm text-gray-500 mt-1">ID: <span className="font-semibold text-gray-700">{isPendingCOD(selectedPayment) ? '—' : (selectedPayment.paymentId || '—')}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
@@ -484,7 +499,7 @@ const Payments = () => {
                                         </div>
                                         <div className="rounded-xl px-4 py-2 flex-[1]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Payment ID</p>
-                                            <p className="text-sm text-[#011023] font-semibold">{selectedPayment.paymentId || 'N/A'}</p>
+                                            <p className="text-sm text-[#011023] font-semibold">{isPendingCOD(selectedPayment) ? '—' : (selectedPayment.paymentId || 'N/A')}</p>
                                         </div>
                                         <div className="rounded-xl px-4 py-2 flex-[1]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Booking ID</p>
@@ -492,8 +507,8 @@ const Payments = () => {
                                         </div>
                                         <div className="rounded-xl px-4 py-2 flex-[2]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Paid At</p>
-                                            <p className="text-sm text-[#011023] font-semibold">
-                                                {new Date(selectedPayment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | {new Date(selectedPayment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                            <p className="text-sm text-[#011023] uppercase font-semibold">
+                                                {isPendingCOD(selectedPayment) ? '—' : `${new Date(selectedPayment.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${new Date(selectedPayment.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`}
                                             </p>
                                         </div>
                                     </div>
