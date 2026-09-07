@@ -14,22 +14,32 @@ const EVENT_MAPPING = {
     garage_added: { type: 'Garage', category: 'Admin', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-teal-100 text-teal-700' },
     charging_station_added: { type: 'Charging', category: 'Admin', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-teal-100 text-teal-700' },
     employee_added: { type: 'Employee', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-teal-100 text-teal-700' },
+    task_remark_added: { type: 'Remark', category: 'Employee', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-violet-100 text-violet-700' },
+    remark_submitted: { type: 'Remark', category: 'Employee', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-violet-100 text-violet-700' },
+    remark: { type: 'Remark', category: 'Employee', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-violet-100 text-violet-700' },
+    document: { type: 'Document', category: 'Employee', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-sky-100 text-sky-700' },
+    leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
+    overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
+    meeting: { type: 'Meeting', category: 'Garage', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    id_card_requested: { type: 'Meeting', category: 'Garage', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    account_deletion: { type: 'Request', category: 'Garage', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    account_deletion_request: { type: 'Request', category: 'Garage', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    deletion_request: { type: 'Request', category: 'Garage', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' }
 };
 
 const EXCLUDED_EVENT_TYPES = new Set([
     'booking',
     'booking_created',
-    'leave',
-    'overtime',
-    'id_card_requested',
     'id_card_status_updated',
-    'meeting'
+    'id_card_requested'
 ]);
 
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Notifications = () => {
+    const { triggerAlert } = useAlert();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]);
@@ -59,21 +69,6 @@ const Notifications = () => {
             hasSort: true,
             groups: [
                 {
-                    id: 'type',
-                    label: 'Type',
-                    defaultValue: 'all',
-                    options: [
-                        { label: 'All', value: 'all' },
-                        { label: 'User', value: 'User' },
-                        { label: 'Message', value: 'Message' },
-                        { label: 'Review', value: 'Review' },
-                        { label: 'Bug', value: 'Bug' },
-                        // { label: 'Garage', value: 'Garage' },
-                        // { label: 'Charging', value: 'Charging' },
-                        { label: 'Employee', value: 'Employee' },
-                    ]
-                },
-                {
                     id: 'category',
                     label: 'Category',
                     defaultValue: 'all',
@@ -88,6 +83,22 @@ const Notifications = () => {
                     ]
                 },
                 LABEL_FILTER_GROUP,
+                {
+                    id: 'type',
+                    label: 'Type',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Request', value: 'Request' },
+                        { label: 'User', value: 'User' },
+                        { label: 'Message', value: 'Message' },
+                        { label: 'Review', value: 'Review' },
+                        { label: 'Bug', value: 'Bug' },
+                        { label: 'Remark', value: 'Remark' },
+                        { label: 'Document', value: 'Document' },
+                        { label: 'Employee', value: 'Employee' },
+                    ]
+                },
             ],
             initialValues: {
                 category: filterCategory,
@@ -142,6 +153,27 @@ const Notifications = () => {
                 if (EXCLUDED_EVENT_TYPES.has(n.eventType)) {
                     return false;
                 }
+                const titleLower = (n.title || '').toLowerCase();
+                const msgLower = (n.message || '').toLowerCase();
+                if (titleLower.includes('id card') || msgLower.includes('id card')) {
+                    return false;
+                }
+                if (
+                    msgLower.includes('has been updated to') ||
+                    msgLower.includes('status has been updated') ||
+                    msgLower.startsWith('dear employee') ||
+                    msgLower.startsWith('dear garage')
+                ) {
+                    return false;
+                }
+                if (n.eventType === 'document') {
+                    const title = (n.title || '').toLowerCase();
+                    const status = (n.meta?.status || '').toLowerCase();
+                    const msg = (n.message || '').toLowerCase();
+                    if (title.includes('approved') || title.includes('rejected') || status === 'approved' || status === 'rejected' || msg.includes('was rejected') || msg.includes('has been approved')) {
+                        return false;
+                    }
+                }
                 return true;
             });
 
@@ -189,11 +221,12 @@ const Notifications = () => {
             const deleted = notifications.find(n => n._id === notifToDelete);
             setNotifications(prev => prev.filter(n => n._id !== notifToDelete));
             if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));
+            triggerAlert('Notification deleted successfully', 'success');
             setIsDeleteModalOpen(false);
             setNotifToDelete(null);
         } catch (error) {
             console.error('Failed to delete notification:', error);
-            alert('Failed to delete notification.');
+            triggerAlert('Failed to delete notification.', 'error');
         } finally {
             setDeleting(false);
         }
@@ -275,7 +308,20 @@ const Notifications = () => {
 
     const handleRedirect = (notif, e) => {
         if (e) e.stopPropagation();
-        if (notif.eventType === 'user_registered') {
+        const mapping = getMapping(notif);
+        const typeLower = (mapping.type || '').toLowerCase();
+        const eventLower = (notif.eventType || '').toLowerCase();
+
+        if (
+            typeLower === 'request' ||
+            eventLower === 'request' ||
+            eventLower === 'account_deletion' ||
+            eventLower === 'account_deletion_request' ||
+            eventLower === 'deletion_request'
+        ) {
+            const reqId = notif.meta?.requestId || notif.meta?.mongoRequestId || notif.meta?.displayId || notif.meta?.id || notif.meta?._id || notif.meta?.employeeId || notif.meta?.userId;
+            navigate(location.pathname, { state: { openRequestModal: true, highlightId: reqId }, replace: true });
+        } else if (notif.eventType === 'user_registered') {
             const userId = notif.meta?.userId || notif.meta?.displayUserId;
             navigate('/users', { state: { highlightId: userId } });
         } else if (notif.eventType === 'review_submitted' || notif.eventType === 'review') {
@@ -283,7 +329,15 @@ const Notifications = () => {
             navigate('/reviews', { state: { highlightId: revId } });
         } else if (notif.eventType === 'bug_reported' || notif.eventType === 'bug') {
             const bugId = notif.meta?.bugId || notif.meta?.mongoBugId || notif.meta?.id || notif.meta?._id;
-            navigate('/bug', { state: { highlightId: bugId } });
+            navigate(location.pathname, { state: { openBugModal: true, highlightId: bugId }, replace: true });
+        } else if (
+            typeLower === 'remark' ||
+            eventLower === 'task_remark_added' ||
+            eventLower === 'remark_submitted' ||
+            eventLower === 'remark'
+        ) {
+            const remarkId = notif.meta?.remarkId || notif.meta?.mongoRemarkId || notif.meta?.referenceId || notif.meta?.id || notif.meta?._id;
+            navigate(location.pathname, { state: { openRemarkModal: true, highlightId: remarkId }, replace: true });
         } else if (notif.eventType === 'booking_created' || notif.eventType === 'booking') {
             const bookingId = notif.meta?.bookingId || notif.meta?.displayId;
             navigate('/bookings', { state: { highlightId: bookingId } });
@@ -299,6 +353,9 @@ const Notifications = () => {
         } else if (notif.eventType === 'employee_added') {
             const empId = notif.meta?.employeeId || notif.meta?.id;
             navigate('/employees', { state: { highlightId: empId } });
+        } else if (notif.eventType === 'document') {
+            const docId = notif.meta?.docId || notif.meta?.documentType || notif.meta?.docLabel || notif.meta?.id || notif.meta?._id;
+            navigate(location.pathname, { state: { openDocumentModal: true, highlightId: docId }, replace: true });
         } else {
             navigate('/bookings');
         }
@@ -311,8 +368,45 @@ const Notifications = () => {
             color: 'bg-emerald-100 text-emerald-700', 
             typeColor: 'bg-slate-100 text-slate-700' 
         };
+
+        const typeLower = (notif.eventType || '').toLowerCase();
+        const msgLower = (notif.message || '').toLowerCase();
+
+        if (
+            typeLower.includes('deletion') ||
+            typeLower.includes('delete_request') ||
+            typeLower === 'account_deletion' ||
+            typeLower === 'account_deletion_request' ||
+            typeLower === 'deletion_request' ||
+            typeLower === 'request' ||
+            msgLower.includes('requested account deletion') ||
+            msgLower.includes('requested deletion') ||
+            msgLower.includes('deletion request') ||
+            msgLower.includes('requested deletion.')
+        ) {
+            mapping = { ...mapping, type: 'Request', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' };
+            
+            const p = (notif.meta?.portal || '').toLowerCase();
+            const msg = (notif.message || '').toLowerCase();
+            const title = (notif.title || '').toLowerCase();
+
+            if (p === 'employee' || msg.includes('employee') || title.includes('employee') || (notif.meta?.employeeId && !notif.meta?.garageId)) {
+                mapping = { ...mapping, category: 'Employee', color: 'bg-blue-100 text-blue-700' };
+            } else if (p === 'garage' || msg.includes('garage') || title.includes('garage')) {
+                mapping = { ...mapping, category: 'Garage', color: 'bg-emerald-100 text-emerald-700' };
+            }
+        }
         
         // Refine based on meta
+        if (notif.eventType === 'document') {
+            const p = (notif.meta?.portal || '').toLowerCase();
+            const msg = (notif.message || '').toLowerCase();
+            if (p === 'garage' || Boolean(notif.meta?.garageId) || msg.startsWith('garage')) {
+                mapping = { ...mapping, category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' };
+            } else {
+                mapping = { ...mapping, category: 'Employee', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-sky-100 text-sky-700' };
+            }
+        }
         if (notif.eventType === 'message_received' && notif.meta?.type === 'business') {
             mapping = { ...mapping, category: 'Business', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-fuchsia-100 text-fuchsia-700' };
         }
@@ -477,16 +571,6 @@ const Notifications = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            {/* <td className="p-4.25 text-center">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-bold text-[#011023] uppercase text-[13px] truncate max-w-[150px]">
-                                                        {getUserName(notif)}
-                                                    </span>
-                                                    <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
-                                                        {getDisplayUserId(notif)}
-                                                    </span>
-                                                </div>
-                                            </td> */}
                                             <td 
                                                 className="p-4.25 cursor-pointer select-none"
                                                 onClick={(e) => {
@@ -495,7 +579,7 @@ const Notifications = () => {
                                                 }}
                                             >
                                                 <div 
-                                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                    className={`overflow-hidden transition-all duration-300 ml-1.5 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
                                                 >
                                                     <p 
                                                         className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
@@ -524,7 +608,7 @@ const Notifications = () => {
                                             <td className="p-4.25 text-center">
                                                 <div className="flex justify-center">
                                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                        ? 'bg-gray-100 text-gray-700 border border-gray-200'
                                                     : 'bg-blue-100 text-blue-700 border border-blue-100'
                                                         }`}>
                                                         {notif.isRead ? 'Read' : 'Unread'}
@@ -536,7 +620,6 @@ const Notifications = () => {
                                                     <button 
                                                         onClick={(e) => handleRedirect(notif, e)}
                                                         className="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors"
-                                                        title="View Details"
                                                     >
                                                         <ExternalLink size={18} />
                                                     </button>
