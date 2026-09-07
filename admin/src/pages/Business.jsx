@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2 } from 'lucide-react';
+import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2, MoreVertical } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
-const Business = () => {
+const Business = ({ isModal = false, onClose, highlightId }) => {
+    const { triggerAlert } = useAlert();
     const [requests, setRequests] = useState([]);
+    const highlightedRow = useHighlight(requests, highlightId);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -17,6 +20,18 @@ const Business = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Close 3 dots action menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (openMenuId && !e.target.closest('.row-action-menu')) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openMenuId]);
 
     // Filter, Sort & Row Label States
     const [filterStatus, setFilterStatus] = useState('All');
@@ -108,12 +123,13 @@ const Business = () => {
                 if (selectedRequest && selectedRequest._id === id) {
                     setSelectedRequest(prev => ({ ...prev, status }));
                 }
+                triggerAlert("Status updated successfully", "success");
             } else {
-                alert("Failed to update status.");
+                triggerAlert(data.message || "Failed to update status.", "error");
             }
         } catch (err) {
             console.error("Error updating status:", err);
-            alert("Error updating status.");
+            triggerAlert("Error updating status.", "error");
         }
     };
     const confirmDeleteRequest = async () => {
@@ -130,14 +146,15 @@ const Business = () => {
                     setIsViewModalOpen(false);
                     setSelectedRequest(null);
                 }
+                triggerAlert("Business request deleted successfully", "success");
                 setIsDeleteModalOpen(false);
                 setRequestToDelete(null);
             } else {
-                alert('Failed to delete request.');
+                triggerAlert(data.message || 'Failed to delete request.', "error");
             }
         } catch (err) {
             console.error('Error deleting business request:', err);
-            alert('Error deleting request.');
+            triggerAlert('Error deleting request.', "error");
         } finally {
             setDeleting(false);
         }
@@ -215,14 +232,24 @@ const Business = () => {
     }, [filteredRequests.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 max-w-[92rem] mx-auto flex flex-col ${isModal ? 'h-full' : 'h-[calc(100vh-9.25rem)]'}`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Business Requests</h1>
-                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {!lastRefreshed ? (
-                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
-                    ) : (
-                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                        {!lastRefreshed ? (
+                            <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                        ) : (
+                            `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        )}
+                    </div>
+                    {isModal && (
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 rounded-full transition-colors cursor-pointer p-1"
+                        >
+                            <X size={20} />
+                        </button>
                     )}
                 </div>
             </div>
@@ -254,13 +281,15 @@ const Business = () => {
                             ) : filteredRequests.map((req) => (
                                 <tr 
                                     key={req._id} 
+                                    id={`row-${req._id}`}
                                     onClick={(e) => {
                                         if (isLabelMode) {
                                             e.stopPropagation();
                                             setActiveLabelRowId(prev => prev === req._id ? null : req._id);
                                         }
                                     }}
-                                    className={`text-center mt-2 transition-colors ${
+                                    className={`text-center mt-2 transition-all duration-300 ${
+                                        highlightedRow === req._id ? 'bg-amber-100/80 ring-2 ring-amber-400 font-bold scale-[1.002]' :
                                         isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
                                     }`}
                                 >
@@ -324,24 +353,63 @@ const Business = () => {
                                             {req.status}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-center w-[8%]">
+                                    <td className="p-4 text-center w-[8%] relative" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-4">
-                                            <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500">
+                                            <button onClick={() => handleViewDetails(req)} className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors" title="View Details">
                                                 <Eye size={18} />
                                             </button>
 
-                                            {req.status === 'Pending' && (
-                                                <>
-                                                    <button onClick={() => handleUpdateStatus(req._id, 'Approved')} className="text-gray-400 hover:text-emerald-600">
-                                                        <Check size={18} />
+                                            {req.status === 'Pending' ? (
+                                                /* 3-Dots Action Button & Dropdown */
+                                                <div className="relative inline-flex items-center justify-center row-action-menu">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenMenuId(prev => prev === req._id ? null : req._id);
+                                                        }}
+                                                        className={`flex items-center justify-center transition-colors cursor-pointer ${
+                                                            openMenuId === req._id
+                                                                ? 'text-blue-600'
+                                                                : 'text-gray-400 hover:text-gray-700'
+                                                        }`}
+                                                    >
+                                                        <MoreVertical size={18} />
                                                     </button>
-                                                    <button onClick={() => handleUpdateStatus(req._id, 'Rejected')} className="text-gray-400 hover:text-red-600">
-                                                        <X size={18} />
-                                                    </button>
-                                                </>
-                                            )}
-                                            {req.status !== 'Pending' && (
-                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600">
+
+                                                    {/* Popover Menu with Check ✓ (Up) and Cross ✕ (Down) just above 3-dots */}
+                                                    {openMenuId === req._id && (
+                                                        <div className="absolute shadow-xs left-1/2 -translate-x-1/2 z-50 bg-white border border-slate-200/90 rounded-2xl p-1 flex flex-col items-center gap-1 justify-center animate-in fade-in zoom-in-95 duration-150">
+                                                            {/* Check ✓ (Up - Approve) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    handleUpdateStatus(req._id, 'Approved');
+                                                                }}
+                                                                className="text-slate-500 hover:text-emerald-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-emerald-50 rounded-2xl"
+                                                            >
+                                                                <Check size={18} className="stroke-[2]" />
+                                                            </button>
+
+                                                            {/* Cross ✕ (Down - Reject) */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuId(null);
+                                                                    handleUpdateStatus(req._id, 'Rejected');
+                                                                }}
+                                                                className="text-slate-500 hover:text-rose-600 cursor-pointer flex items-center justify-center transition-colors p-1 hover:bg-rose-50 rounded-2xl"
+                                                            >
+                                                                <X size={18} className="stroke-[2]" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => { setRequestToDelete(req._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer" title="Delete Request">
                                                     <Trash2 size={18} />
                                                 </button>
                                             )}
