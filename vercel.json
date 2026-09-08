@@ -1,0 +1,24 @@
+{
+  "services": {
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
+    },
+    "admin": {
+      "root": "admin",
+      "framework": "vite"
+    },
+    "garage": {
+      "root": "garage",
+      "framework": "vite"
+    },
+    "employee": {
+      "root": "employee",
+      "framework": "vite"
+    },
+    "business": {
+      "root": "business",
+      "framework": "vite"
+    }
+  }
+}
