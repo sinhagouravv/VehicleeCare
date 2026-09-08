@@ -2,23 +2,33 @@
   "services": {
     "frontend": {
       "root": "frontend",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist"
     },
     "admin": {
       "root": "admin",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist"
     },
     "garage": {
       "root": "garage",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist"
     },
     "employee": {
       "root": "employee",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist"
     },
     "business": {
       "root": "business",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist"
     }
   }
 }
