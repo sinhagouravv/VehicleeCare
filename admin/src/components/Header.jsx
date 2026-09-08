@@ -196,7 +196,7 @@ const Header = () => {
             }
             setIsSearching(true);
             try {
-                const res = await fetch(`http://localhost:5001/api/search?q=${encodeURIComponent(searchTerm)}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/search?q=${encodeURIComponent(searchTerm)}`);
                 if (res.ok) {
                     const data = await res.json();
                     setDbResults(data.data || []);

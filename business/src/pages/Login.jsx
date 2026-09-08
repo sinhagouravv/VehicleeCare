@@ -40,7 +40,7 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await fetch('http://localhost:5001/api/auth/business-login', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/business-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ businessId, password })
@@ -70,7 +70,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/business-forgot-password', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/business-forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail })
@@ -95,7 +95,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/business-verify-reset-otp', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/business-verify-reset-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp })
@@ -126,7 +126,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/business-reset-password', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/business-reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword })

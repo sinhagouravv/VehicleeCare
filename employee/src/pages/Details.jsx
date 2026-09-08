@@ -17,7 +17,7 @@ const Details = () => {
                     return;
                 }
                 const user = JSON.parse(storedUser);
-                const res = await fetch(`http://localhost:5001/api/employees/${user._id || user.employeeId || user.id}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${user._id || user.employeeId || user.id}`);
                 if (res.ok) {
                     const data = await res.json();
                     setEmployee(data.data);

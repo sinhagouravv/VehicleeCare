@@ -203,7 +203,7 @@ const Attendance = () => {
             if (!storedUser) { setLoading(false); return; }
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/attendance/garage/${user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/garage/${user.id}`);
             const data = await res.json();
 
             if (data.success) {
@@ -238,7 +238,7 @@ const Attendance = () => {
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/employees/garage/${user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 setEmployees(data.data || []);
@@ -255,7 +255,7 @@ const Attendance = () => {
         }
         setStatusLoading(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/attendance/status/${empId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/status/${empId}`);
             const data = await res.json();
             if (data.success) {
                 setAttendanceStatus(data.data);
@@ -281,7 +281,7 @@ const Attendance = () => {
         setActionLoading(true);
         try {
             if (action === 'check-in') {
-                const res = await fetch(`http://localhost:5001/api/attendance/check-in`, {
+                const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/check-in`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ employeeId: selectedEmployeeId })
@@ -294,7 +294,7 @@ const Attendance = () => {
                 triggerAlert('Check-in successful', 'success');
             } else if (action === 'check-out') {
                 if (!attendanceStatus || !attendanceStatus._id) return;
-                const res = await fetch(`http://localhost:5001/api/attendance/check-out/${attendanceStatus._id}`, {
+                const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/check-out/${attendanceStatus._id}`, {
                     method: 'PUT'
                 });
                 const data = await res.json();
@@ -337,7 +337,7 @@ const Attendance = () => {
         }
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/attendance/${recordToDelete._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/${recordToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

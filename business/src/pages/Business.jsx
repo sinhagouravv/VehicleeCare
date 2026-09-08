@@ -161,7 +161,7 @@ const RegistrationModal = ({ activeForm, onClose, sections }) => {
                 taxId: `${getCustomLabel1()}: ${formData.customField1} | ${getCustomLabel2()}: ${formData.customField2}`
             };
 
-            await axios.post('http://localhost:5001/api/business-requests', submitData);
+            await axios.post('https://vehicleecare.onrender.com/api/business-requests', submitData);
             setIsSuccess(true);
         } catch (err) {
             setError(err.response?.data?.message || 'Something went wrong. Please try again.');

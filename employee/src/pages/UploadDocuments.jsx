@@ -46,7 +46,7 @@ const UploadDocuments = () => {
                 return;
             }
             const user = JSON.parse(storedUser);
-            const res = await fetch(`http://localhost:5001/api/employees/${user._id || user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${user._id || user.id}`);
             if (res.ok) {
                 const data = await res.json();
                 setEmployee(data.data);
@@ -100,7 +100,7 @@ const UploadDocuments = () => {
             formData.append('document', file);
             formData.append('documentType', docKey);
 
-            const res = await fetch(`http://localhost:5001/api/employees/${empId}/document`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${empId}/document`, {
                 method: 'POST',
                 body: formData
             });
@@ -145,7 +145,7 @@ const UploadDocuments = () => {
 
         try {
             const empId = employee._id || employee.id;
-            const res = await fetch(`http://localhost:5001/api/employees/${empId}/document/${docKey}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${empId}/document/${docKey}`, {
                 method: 'DELETE'
             });
             if (res.ok) {

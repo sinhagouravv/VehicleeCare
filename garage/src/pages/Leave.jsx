@@ -203,7 +203,7 @@ const Leave = () => {
         if (!garageId) return;
         try {
             if (!silent) setLoading(true);
-            const res = await fetch(`http://localhost:5001/api/leaves/garage/${garageId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/garage/${garageId}`);
             const data = await res.json();
             if (data.success) {
                 setLeaves(data.data || []);
@@ -211,7 +211,7 @@ const Leave = () => {
             }
 
             // Also fetch managers of this garage
-            const empRes = await fetch(`http://localhost:5001/api/employees/garage/${garageId}`);
+            const empRes = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
             const empData = await empRes.json();
             if (empData.success) {
                 const mgrs = (empData.data || []).filter(emp => String(emp.role || '').toLowerCase() === 'manager' && emp.isVerified !== false);
@@ -240,7 +240,7 @@ const Leave = () => {
         setUpdatingId(actionLeaveId);
         setIsActionModalOpen(false);
         try {
-            const res = await fetch(`http://localhost:5001/api/leaves/${actionLeaveId}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${actionLeaveId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: actionType, employeeId: actionEmpId, remarks: actionRemarks })
@@ -264,7 +264,7 @@ const Leave = () => {
         if (!selectedLeave) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/leaves/${selectedLeave._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${selectedLeave._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

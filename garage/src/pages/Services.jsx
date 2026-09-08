@@ -154,7 +154,7 @@ const Services = () => {
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 setBookings(data.data);
@@ -184,7 +184,7 @@ const Services = () => {
 
     const _toggleStatus = async (bookingId, field, value) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [field]: value })
@@ -200,7 +200,7 @@ const Services = () => {
 
     const _handleStatusChange = async (bookingId, newStatus) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${bookingId}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -218,7 +218,7 @@ const Services = () => {
         if (!bookingToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${bookingToDelete}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingToDelete}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

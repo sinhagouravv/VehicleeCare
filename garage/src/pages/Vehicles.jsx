@@ -133,7 +133,7 @@ const Vehicles = () => {
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/bookings/garage/${user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 const vehicleMap = {};

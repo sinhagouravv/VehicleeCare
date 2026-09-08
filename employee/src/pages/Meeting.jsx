@@ -218,7 +218,7 @@ const Meeting = () => {
         if (!empId) return;
         try {
             if (!silent) setLoading(true);
-            const res = await fetch(`http://localhost:5001/api/employees/id-card-requests/employee/${empId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/employee/${empId}`);
             const data = await res.json();
             if (data.success) {
                 setMeetings(data.data || []);
@@ -248,7 +248,7 @@ const Meeting = () => {
         setSuccess(null);
 
         try {
-            const res = await fetch('http://localhost:5001/api/employees/id-card-request', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/employees/id-card-request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -304,7 +304,7 @@ const Meeting = () => {
         if (!selectedMeeting) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/employees/id-card-requests/${selectedMeeting._id}`, { method: 'DELETE' });
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/${selectedMeeting._id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
                 fetchMeetings(true);
@@ -358,7 +358,7 @@ const Meeting = () => {
                 : (selectedRemarkMeeting.approvedByRole || selectedRemarkMeeting.actionByRole || 'Manager');
 
             // Post new Remark to backend (/api/remarks)
-            const remarkRes = await fetch('http://localhost:5001/api/remarks', {
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -378,7 +378,7 @@ const Meeting = () => {
             const remarkData = await remarkRes.json();
             const createdRemarkId = remarkData.data?.remarkId;
 
-            const res = await fetch(`http://localhost:5001/api/employees/id-card-requests/${selectedRemarkMeeting._id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/${selectedRemarkMeeting._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ remark: remarkText, remarks: remarkText, employeeRemark: remarkText })

@@ -48,8 +48,8 @@ const Analytics = () => {
         const fetchAndCalculatePopularServices = async () => {
             try {
                 const [bookingsRes, usersRes] = await Promise.all([
-                    fetch('http://localhost:5001/api/bookings'),
-                    fetch('http://localhost:5001/api/users')
+                    fetch('https://vehicleecare.onrender.com/api/bookings'),
+                    fetch('https://vehicleecare.onrender.com/api/users')
                 ]);
                 const result = await bookingsRes.json();
                 const usersResult = await usersRes.json();

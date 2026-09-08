@@ -80,7 +80,7 @@ const Users = () => {
     const fetchUsers = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/users');
+            const res = await fetch('https://vehicleecare.onrender.com/api/users');
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
             setUsers(data.data || []);
@@ -152,7 +152,7 @@ const Users = () => {
         setLoadingBookings(true);
         setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/user/${userId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/user/${userId}`);
             if (res.ok) {
                 const data = await res.json();
                 setServiceHistory(data.data || []);
@@ -202,7 +202,7 @@ const Users = () => {
 
         // Fetch bookings
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/user/${user._id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/user/${user._id}`);
             if (res.ok) {
                 const data = await res.json();
                 const bookings = data.data || [];

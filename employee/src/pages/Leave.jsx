@@ -329,7 +329,7 @@ const Leave = () => {
         if (!empId) return;
         try {
             if (!silent) setLoading(true);
-            const res = await fetch(`http://localhost:5001/api/leaves/employee/${empId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/employee/${empId}`);
             const data = await res.json();
             if (data.success) {
                 setLeaves(data.data);
@@ -365,7 +365,7 @@ const Leave = () => {
         setSuccess(null);
 
         try {
-            const res = await fetch('http://localhost:5001/api/leaves/request', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/leaves/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -482,7 +482,7 @@ const Leave = () => {
                 ? 'Manager' 
                 : (selectedRemarkLeave.approvedByRole || selectedRemarkLeave.actionByRole || selectedRemarkLeave.approverRole || selectedRemarkLeave.reviewerRole || 'Manager');
 
-            const remarkRes = await fetch('http://localhost:5001/api/remarks', {
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -502,7 +502,7 @@ const Leave = () => {
             const remarkData = await remarkRes.json();
             const createdRemarkId = remarkData.data?.remarkId;
 
-            const res = await fetch(`http://localhost:5001/api/leaves/${selectedRemarkLeave._id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${selectedRemarkLeave._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeRemark: remarkText })
@@ -529,7 +529,7 @@ const Leave = () => {
         if (!selectedLeave) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/leaves/${selectedLeave._id}`, { method: 'DELETE' });
+            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${selectedLeave._id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
                 fetchLeaves(true);

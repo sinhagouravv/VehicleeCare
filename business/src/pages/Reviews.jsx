@@ -82,7 +82,7 @@ const Reviews = () => {
         // Fetch approved reviews
         const fetchReviews = async () => {
             try {
-                const response = await fetch('http://localhost:5001/api/business-reviews/approved');
+                const response = await fetch('https://vehicleecare.onrender.com/api/business-reviews/approved');
                 const data = await response.json();
                 if (data.success && data.data && data.data.length > 0) {
                     // Map the backend data to match the component's expected format
@@ -129,7 +129,7 @@ const Reviews = () => {
     const handleSubmitReview = async () => {
         setIsSubmitting(true);
         try {
-            const response = await fetch('http://localhost:5001/api/business-reviews/submit', {
+            const response = await fetch('https://vehicleecare.onrender.com/api/business-reviews/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

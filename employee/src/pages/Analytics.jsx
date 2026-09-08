@@ -20,7 +20,7 @@ const Analytics = () => {
         const fetchBookings = async () => {
             if (!empId) return;
             try {
-                const res = await fetch(`http://localhost:5001/api/bookings/employee/${empId}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${empId}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success) {

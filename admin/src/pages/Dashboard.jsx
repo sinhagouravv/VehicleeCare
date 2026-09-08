@@ -30,10 +30,10 @@ const Dashboard = () => {
         const fetchDashboardData = async () => {
             try {
                 const [bookingsRes, usersRes, garagesRes, stationsRes] = await Promise.all([
-                    fetch('http://localhost:5001/api/bookings'),
-                    fetch('http://localhost:5001/api/users'),
-                    fetch('http://localhost:5001/api/garages'),
-                    fetch('http://localhost:5001/api/charging-stations')
+                    fetch('https://vehicleecare.onrender.com/api/bookings'),
+                    fetch('https://vehicleecare.onrender.com/api/users'),
+                    fetch('https://vehicleecare.onrender.com/api/garages'),
+                    fetch('https://vehicleecare.onrender.com/api/charging-stations')
                 ]);
 
                 const bookingsData = await bookingsRes.json();

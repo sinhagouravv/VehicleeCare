@@ -71,7 +71,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
     const fetchRemarks = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/remarks');
+            const res = await fetch('https://vehicleecare.onrender.com/api/remarks');
             const result = await res.json();
             if (result.success && result.data) {
                 setRemarks(result.data);
@@ -93,7 +93,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
     const handleUpdateStatus = async (id, status) => {
         setUpdatingId(id);
         try {
-            const res = await fetch(`http://localhost:5001/api/remarks/${id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/remarks/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
@@ -120,7 +120,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
         if (!remarkToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/remarks/${remarkToDelete._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/remarks/${remarkToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

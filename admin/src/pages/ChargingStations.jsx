@@ -99,7 +99,7 @@ const ChargingStations = () => {
     const fetchStations = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/charging-stations');
+            const res = await fetch('https://vehicleecare.onrender.com/api/charging-stations');
             const data = await res.json();
             if (data.success) {
                 setStations(data.data);
@@ -165,8 +165,8 @@ const ChargingStations = () => {
         setSaving(true);
         try {
             const url = editTarget
-                ? `http://localhost:5001/api/charging-stations/${editTarget.id}`
-                : 'http://localhost:5001/api/charging-stations';
+                ? `https://vehicleecare.onrender.com/api/charging-stations/${editTarget.id}`
+                : 'https://vehicleecare.onrender.com/api/charging-stations';
             const method = editTarget ? 'PUT' : 'POST';
 
             let payload = { ...form };
@@ -205,7 +205,7 @@ const ChargingStations = () => {
         if (!stationToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/charging-stations/${stationToDelete}`, { method: 'DELETE' });
+            const res = await fetch(`https://vehicleecare.onrender.com/api/charging-stations/${stationToDelete}`, { method: 'DELETE' });
             if (res.ok) {
                 setStations(prev => prev.filter(s => s.id !== stationToDelete));
                 triggerAlert('Charging station deleted successfully', 'success');

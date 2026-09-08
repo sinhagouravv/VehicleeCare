@@ -46,8 +46,8 @@ const Reviews = () => {
 
     const fetchReviews = async () => {
         try {
-            // Using || 'http://localhost:5001' as a fallback if env var is not set
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            // Using || 'https://vehicleecare.onrender.com' as a fallback if env var is not set
+            const apiUrl = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
             const response = await axios.get(`${apiUrl}/api/website-reviews`);
             const websiteReviews = response.data.filter(review => review.type === 'website');
             setApiReviews(websiteReviews);
@@ -88,7 +88,7 @@ const Reviews = () => {
 
         if (isApiReview) {
             try {
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+                const apiUrl = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
                 const response = await axios.patch(`${apiUrl}/api/website-reviews/${reviewId}/rate`, { rating });
                 const updatedReview = response.data;
 
@@ -138,7 +138,7 @@ const Reviews = () => {
         };
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const apiUrl = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
             await axios.post(`${apiUrl}/api/website-reviews`, newReview);
             setReviewSuccess('Review Submitted Successfully!');
             setTimeout(() => {

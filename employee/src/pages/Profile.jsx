@@ -154,7 +154,7 @@ const Profile = () => {
         setSaving(true);
         try {
             const targetId = employee._id || employee.id || employee.employeeId;
-            const res = await fetch(`http://localhost:5001/api/employees/${targetId}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form)
@@ -179,7 +179,7 @@ const Profile = () => {
                 triggerAlert('Profile updated successfully', 'success');
 
                 // Notify admin of employee profile update
-                fetch('http://localhost:5001/api/notifications/create', {
+                fetch('https://vehicleecare.onrender.com/api/notifications/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -215,7 +215,7 @@ const Profile = () => {
                 const user = JSON.parse(storedUser);
                 
                 // Fetch latest data from specific Employee endpoint
-                const res = await fetch(`http://localhost:5001/api/employees/${user._id || user.employeeId || user.id}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${user._id || user.employeeId || user.id}`);
                 
                 if (res.ok) {
                     const data = await res.json();
@@ -225,7 +225,7 @@ const Profile = () => {
                     // Fetch mapped Garage details if available
                     if (empData.garageId) {
                         try {
-                            const gRes = await fetch(`http://localhost:5001/api/garages/${empData.garageId}`);
+                            const gRes = await fetch(`https://vehicleecare.onrender.com/api/garages/${empData.garageId}`);
                             if (gRes.ok) {
                                 const gData = await gRes.json();
                                 setGarage(gData.data || gData);
@@ -275,7 +275,7 @@ const Profile = () => {
         setIsSubmittingDelete(true);
         try {
             // Send to Requests collection for Admin Request tracker
-            await fetch('http://localhost:5001/api/requests', {
+            await fetch('https://vehicleecare.onrender.com/api/requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -293,7 +293,7 @@ const Profile = () => {
                 })
             });
 
-            const res = await fetch('http://localhost:5001/api/notifications/create', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/notifications/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

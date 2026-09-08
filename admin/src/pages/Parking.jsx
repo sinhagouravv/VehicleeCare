@@ -94,7 +94,7 @@ const Parking = () => {
     const fetchParkings = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/parkings');
+            const res = await fetch('https://vehicleecare.onrender.com/api/parkings');
             const data = await res.json();
             if (data.success) {
                 setParkings(data.data);
@@ -160,8 +160,8 @@ const Parking = () => {
         setSaving(true);
         try {
             const url = editTarget
-                ? `http://localhost:5001/api/parkings/${editTarget.id}`
-                : 'http://localhost:5001/api/parkings';
+                ? `https://vehicleecare.onrender.com/api/parkings/${editTarget.id}`
+                : 'https://vehicleecare.onrender.com/api/parkings';
             const method = editTarget ? 'PUT' : 'POST';
 
             let payload = { ...form };
@@ -198,7 +198,7 @@ const Parking = () => {
 
     const handleDelete = async (id) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/parkings/${id}`, { method: 'DELETE' });
+            const res = await fetch(`https://vehicleecare.onrender.com/api/parkings/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setParkings(prev => prev.filter(s => s.id !== id));
                 triggerAlert('Parking deleted successfully', 'success');

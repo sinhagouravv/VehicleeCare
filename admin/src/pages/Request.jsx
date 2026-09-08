@@ -88,7 +88,7 @@ const Request = ({ isModal = false, onClose, highlightId }) => {
     const fetchRequests = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/requests');
+            const res = await fetch('https://vehicleecare.onrender.com/api/requests');
             const result = await res.json();
             if (result.success && result.data) {
                 setRequests(result.data);
@@ -109,7 +109,7 @@ const Request = ({ isModal = false, onClose, highlightId }) => {
 
     const handleUpdateStatus = async (id, status, remark = '') => {
         try {
-            const res = await fetch(`http://localhost:5001/api/requests/${id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/requests/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status, remark })
@@ -133,7 +133,7 @@ const Request = ({ isModal = false, onClose, highlightId }) => {
         const targetId = typeof requestToDelete === 'object' ? requestToDelete._id : requestToDelete;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/requests/${targetId}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/requests/${targetId}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

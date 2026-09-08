@@ -26,7 +26,7 @@ const Layout = ({ children }) => {
             const storedUser = localStorage.getItem('user');
             const user = storedUser ? JSON.parse(storedUser) : { id: 'C001', name: 'Unknown Customer' };
 
-            const res = await fetch('http://localhost:5001/api/bugs', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/bugs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

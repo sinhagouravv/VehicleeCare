@@ -85,7 +85,7 @@ const Reviews = () => {
         return () => setFilterConfig(null);
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
 
     const fetchReviews = async () => {
         try {

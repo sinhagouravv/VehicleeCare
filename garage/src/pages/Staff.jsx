@@ -226,7 +226,7 @@ const Staff = () => {
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/employees/garage/${user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 setStaffMembers(data.data || []);
@@ -253,7 +253,7 @@ const Staff = () => {
     const fetchServiceHistory = async (staffId) => {
         setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/employee/${staffId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${staffId}`);
             const data = await res.json();
             if (data.success) {
                 setServiceHistory(data.data || []);
@@ -307,7 +307,7 @@ const Staff = () => {
             const storedUser = localStorage.getItem('garageUser');
             const garageId = storedUser ? JSON.parse(storedUser).id : null;
 
-            const url = isEditMode ? `http://localhost:5001/api/employees/${form._id}` : 'http://localhost:5001/api/employees';
+            const url = isEditMode ? `https://vehicleecare.onrender.com/api/employees/${form._id}` : 'https://vehicleecare.onrender.com/api/employees';
             const method = isEditMode ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -468,7 +468,7 @@ const Staff = () => {
         if (!employeeToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/employees/${employeeToDelete._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${employeeToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

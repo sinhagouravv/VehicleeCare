@@ -8,7 +8,7 @@ import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const Reviews = () => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
 
     const [reviews, setReviews] = useState([]);
     const [allReviews, setAllReviews] = useState([]);

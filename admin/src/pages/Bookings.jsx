@@ -82,7 +82,7 @@ const Bookings = () => {
         try {
             if (!silent) setLoading(true);
             else setRefreshing(true);
-            const res = await fetch('http://localhost:5001/api/bookings');
+            const res = await fetch('https://vehicleecare.onrender.com/api/bookings');
             const result = await res.json();
             if (result.success && result.data) {
                 setBookings(result.data);
@@ -120,7 +120,7 @@ const Bookings = () => {
         if (!bookingToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${bookingToDelete}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();

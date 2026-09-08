@@ -98,14 +98,14 @@ const Services = () => {
         const fetchSettings = async () => {
             try {
                 // Fetch disabled services
-                const resDisabled = await fetch('http://localhost:5001/api/settings/disabledServices');
+                const resDisabled = await fetch('https://vehicleecare.onrender.com/api/settings/disabledServices');
                 const dataDisabled = await resDisabled.json();
                 if (dataDisabled.success && dataDisabled.data) {
                     setDisabledServices(dataDisabled.data);
                 }
 
                 // Fetch custom services (newly added)
-                const resCustom = await fetch('http://localhost:5001/api/settings/customServices');
+                const resCustom = await fetch('https://vehicleecare.onrender.com/api/settings/customServices');
                 const dataCustom = await resCustom.json();
                 let newlyAddedServices = [];
                 if (dataCustom.success && dataCustom.data) {
@@ -114,7 +114,7 @@ const Services = () => {
                 }
 
                 // Fetch service overrides
-                const resOverrides = await fetch('http://localhost:5001/api/settings/serviceOverrides');
+                const resOverrides = await fetch('https://vehicleecare.onrender.com/api/settings/serviceOverrides');
                 const dataOverrides = await resOverrides.json();
 
                 const overrides = (dataOverrides.success && dataOverrides.data) ? dataOverrides.data : {};
@@ -182,7 +182,7 @@ const Services = () => {
 
         // 3. Save to backend Settings
         try {
-            await fetch('http://localhost:5001/api/settings', {
+            await fetch('https://vehicleecare.onrender.com/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'serviceOverrides', value: newOverrides })
@@ -240,7 +240,7 @@ const Services = () => {
 
         // Save back to DB Settings key customServices
         try {
-            await fetch('http://localhost:5001/api/settings', {
+            await fetch('https://vehicleecare.onrender.com/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'customServices', value: updatedCustomServices })
@@ -265,7 +265,7 @@ const Services = () => {
         const updatedCustomServices = customServices.filter(s => s.id !== serviceToDelete.id);
 
         try {
-            await fetch('http://localhost:5001/api/settings', {
+            await fetch('https://vehicleecare.onrender.com/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'customServices', value: updatedCustomServices })

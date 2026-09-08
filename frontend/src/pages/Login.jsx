@@ -36,7 +36,7 @@ const Login = () => {
 
         try {
             const endpoint = isSignUp ? '/api/auth/register' : '/api/auth/login';
-            const url = `http://localhost:5001${endpoint}`;
+            const url = `https://vehicleecare.onrender.com${endpoint}`;
 
             const body = isSignUp
                 ? { name: formData.name, email: formData.email, password: formData.password }

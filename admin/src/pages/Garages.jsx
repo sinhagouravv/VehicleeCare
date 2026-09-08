@@ -37,7 +37,7 @@ const formatDocNumber = (...vals) => {
 const GARAGE_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(GARAGE_LOCATIONS.map(l => l.state))].sort();
 
-const API = 'http://localhost:5001/api/garages';
+const API = 'https://vehicleecare.onrender.com/api/garages';
 
 const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV'];
 
@@ -128,7 +128,7 @@ const Garages = () => {
         setLoadingEmployees(true);
         setIsEmployeesModalOpen(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/employees/garage/${garageId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
             if (res.ok) {
                 const data = await res.json();
                 setGarageEmployees(data.data || []);

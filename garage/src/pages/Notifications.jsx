@@ -187,7 +187,7 @@ const Notifications = () => {
                 garageId = user.id;
             }
 
-            const res = await fetch('http://localhost:5001/api/notifications');
+            const res = await fetch('https://vehicleecare.onrender.com/api/notifications');
             const data = await res.json();
             
             let allNotifs = data.data || [];
@@ -221,7 +221,7 @@ const Notifications = () => {
             setLastRefreshed(new Date());
 
             // Also fetch users to build the name-to-ID map
-            const userRes = await fetch('http://localhost:5001/api/users');
+            const userRes = await fetch('https://vehicleecare.onrender.com/api/users');
             if (userRes.ok) {
                 const userData = await userRes.json();
                 setUsers(userData.data || []);
@@ -240,7 +240,7 @@ const Notifications = () => {
     }, [fetchNotifications]);
 
     const markRead = async (id) => {
-        await fetch(`http://localhost:5001/api/notifications/${id}/read`, { method: 'PATCH' });
+        await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/read`, { method: 'PATCH' });
         setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
         setUnread(prev => Math.max(0, prev - 1));
     };
@@ -249,7 +249,7 @@ const Notifications = () => {
         if (!notifToDelete) return;
         setDeleting(true);
         try {
-            await fetch(`http://localhost:5001/api/notifications/${notifToDelete}`, { method: 'DELETE' });
+            await fetch(`https://vehicleecare.onrender.com/api/notifications/${notifToDelete}`, { method: 'DELETE' });
             const deleted = notifications.find(n => n._id === notifToDelete);
             setNotifications(prev => prev.filter(n => n._id !== notifToDelete));
             if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));

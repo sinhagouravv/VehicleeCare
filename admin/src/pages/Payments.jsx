@@ -85,7 +85,7 @@ const Payments = () => {
         try {
             if (!silent) setLoading(true);
             else setRefreshing(true);
-            const res = await fetch('http://localhost:5001/api/payments/all');
+            const res = await fetch('https://vehicleecare.onrender.com/api/payments/all');
             const result = await res.json();
             if (result.success && result.data) {
                 setPayments(result.data);

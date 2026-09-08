@@ -88,7 +88,7 @@ const ProfilePage = () => {
         // Fetch fresh user data from DB (to pull userId and latest fields)
         const mongoId = parsedUser.id || parsedUser._id;
         if (mongoId) {
-            fetch('http://localhost:5001/api/auth/me', {
+            fetch('https://vehicleecare.onrender.com/api/auth/me', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mongoId })
@@ -118,9 +118,9 @@ const ProfilePage = () => {
 
                 // Parallel fetch
                 const [resB, resP, resN] = await Promise.all([
-                    fetch(`http://localhost:5001/api/bookings/user/${userId}`, { headers }),
-                    fetch(`http://localhost:5001/api/payments/user/${userId}`, { headers }),
-                    fetch(`http://localhost:5001/api/notifications/user/${userId}`, { headers })
+                    fetch(`https://vehicleecare.onrender.com/api/bookings/user/${userId}`, { headers }),
+                    fetch(`https://vehicleecare.onrender.com/api/payments/user/${userId}`, { headers }),
+                    fetch(`https://vehicleecare.onrender.com/api/notifications/user/${userId}`, { headers })
                 ]);
 
                 if (resB.ok) {
@@ -190,7 +190,7 @@ const ProfilePage = () => {
         setEditError('');
         setEditSuccess('');
         try {
-            const res = await fetch('http://localhost:5001/api/auth/update-profile', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/update-profile', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -223,7 +223,7 @@ const ProfilePage = () => {
         }
         setSotpSending(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/send-settings-otp', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/send-settings-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id || user._id, purpose: action, currentPassword: pwForm.current }),
@@ -242,7 +242,7 @@ const ProfilePage = () => {
     const handleVerifyPwOtp = async () => {
         setSotpVerifying(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/change-password-otp', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/change-password-otp', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id || user._id, otp: sOtp.join(''), newPassword: pwForm.next }),
@@ -263,7 +263,7 @@ const ProfilePage = () => {
     const handleVerifyDeleteOtp = async () => {
         setSotpVerifying(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/delete-account', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/delete-account', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id || user._id, otp: sOtp.join('') }),
@@ -301,7 +301,7 @@ const ProfilePage = () => {
         // If it's email, sync with backend
         if (key === 'email') {
             try {
-                const res = await fetch('http://localhost:5001/api/auth/profile', {
+                const res = await fetch('https://vehicleecare.onrender.com/api/auth/profile', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: user.id || user._id, emailNotifications: newVal })
@@ -325,7 +325,7 @@ const ProfilePage = () => {
         
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:5001/api/notifications/${id}/read`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/read`, {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -345,7 +345,7 @@ const ProfilePage = () => {
         setOtpSending(true);
         setOtpError('');
         try {
-            const res = await fetch('http://localhost:5001/api/auth/send-otp', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email })
@@ -382,7 +382,7 @@ const ProfilePage = () => {
         setOtpVerifying(true);
         setOtpError('');
         try {
-            const res = await fetch('http://localhost:5001/api/auth/verify-otp', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email, otp: code })

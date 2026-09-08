@@ -37,7 +37,7 @@ const Pricing = () => {
             const amount = parseInt(plan.price.replace('₹', '').trim(), 10);
 
             // 1. Create order
-            const orderRes = await fetch('http://localhost:5001/api/subscriptions/order', {
+            const orderRes = await fetch('https://vehicleecare.onrender.com/api/subscriptions/order', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ const Pricing = () => {
                 handler: async function (response) {
                     // 3. Verify Payment
                     try {
-                        const verifyRes = await fetch('http://localhost:5001/api/subscriptions/verify', {
+                        const verifyRes = await fetch('https://vehicleecare.onrender.com/api/subscriptions/verify', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

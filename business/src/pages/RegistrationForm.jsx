@@ -50,7 +50,7 @@ const RegistrationForm = () => {
 
         try {
             // Actually hit the backend endpoint
-            await axios.post('http://localhost:5001/api/business-requests', formData);
+            await axios.post('https://vehicleecare.onrender.com/api/business-requests', formData);
 
             setIsSuccess(true);
         } catch (err) {

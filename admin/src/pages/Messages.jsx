@@ -71,7 +71,7 @@ const Messages = () => {
     const fetchMessages = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/messages');
+            const res = await fetch('https://vehicleecare.onrender.com/api/messages');
             const result = await res.json();
             if (result.success && result.data) {
                 setMessages(result.data);
@@ -94,7 +94,7 @@ const Messages = () => {
         if (!messageToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/messages/${messageToDelete}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/messages/${messageToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
@@ -120,7 +120,7 @@ const Messages = () => {
         // If unread, mark it as read permanently
         if (!message.isRead) {
             try {
-                const res = await fetch(`http://localhost:5001/api/messages/${message._id}/toggle-status`, {
+                const res = await fetch(`https://vehicleecare.onrender.com/api/messages/${message._id}/toggle-status`, {
                     method: 'PUT',
                 });
                 const data = await res.json();

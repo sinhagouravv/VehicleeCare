@@ -95,7 +95,7 @@ const Store = () => {
     const fetchStores = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/stores');
+            const res = await fetch('https://vehicleecare.onrender.com/api/stores');
             const data = await res.json();
             if (data.success) {
                 setStores(data.data);
@@ -161,8 +161,8 @@ const Store = () => {
         setSaving(true);
         try {
             const url = editTarget
-                ? `http://localhost:5001/api/stores/${editTarget.id}`
-                : 'http://localhost:5001/api/stores';
+                ? `https://vehicleecare.onrender.com/api/stores/${editTarget.id}`
+                : 'https://vehicleecare.onrender.com/api/stores';
             const method = editTarget ? 'PUT' : 'POST';
 
             let payload = { ...form };
@@ -199,7 +199,7 @@ const Store = () => {
 
     const handleDelete = async (id) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/stores/${id}`, { method: 'DELETE' });
+            const res = await fetch(`https://vehicleecare.onrender.com/api/stores/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setStores(prev => prev.filter(s => s.id !== id));
                 triggerAlert('Store deleted successfully', 'success');

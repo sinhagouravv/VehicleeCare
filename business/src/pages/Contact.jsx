@@ -23,7 +23,7 @@ const Contact = () => {
         setIsSubmitting(true);
         try {
             const payload = { ...formData, type: 'business', subject: `Business Inquiry from ${formData.company || formData.name}` };
-            const res = await fetch('http://localhost:5001/api/messages', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/messages', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

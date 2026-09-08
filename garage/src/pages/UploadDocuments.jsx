@@ -48,7 +48,7 @@ const UploadDocuments = () => {
             }
             const user = JSON.parse(storedUser);
             const garageId = user._id || user.id || user.garageId;
-            const res = await fetch(`http://localhost:5001/api/garages/${garageId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}`);
             if (res.ok) {
                 const data = await res.json();
                 setGarage(data.data);
@@ -102,7 +102,7 @@ const UploadDocuments = () => {
             formData.append('document', file);
             formData.append('documentType', docKey);
 
-            const res = await fetch(`http://localhost:5001/api/garages/${garageId}/document`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}/document`, {
                 method: 'POST',
                 body: formData
             });
@@ -147,7 +147,7 @@ const UploadDocuments = () => {
 
         try {
             const garageId = garage._id || garage.id || garage.garageId;
-            const res = await fetch(`http://localhost:5001/api/garages/${garageId}/document/${docKey}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}/document/${docKey}`, {
                 method: 'DELETE'
             });
             if (res.ok) {

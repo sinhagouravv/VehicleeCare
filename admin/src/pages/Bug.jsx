@@ -89,7 +89,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     const fetchBugs = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/bugs');
+            const res = await fetch('https://vehicleecare.onrender.com/api/bugs');
             const result = await res.json();
             if (result.success && result.data) {
                 setBugs(result.data);
@@ -111,7 +111,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     const handleUpdateStatus = async (id, status) => {
         setUpdatingId(id);
         try {
-            const res = await fetch(`http://localhost:5001/api/bugs/${id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
@@ -138,7 +138,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
         if (!bugForSeverity) return;
         setSubmittingSeverity(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bugs/${bugForSeverity._id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${bugForSeverity._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'In Progress', severity: selectedSeverityOption })
@@ -167,7 +167,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
         if (!bugToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bugs/${bugToDelete._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${bugToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

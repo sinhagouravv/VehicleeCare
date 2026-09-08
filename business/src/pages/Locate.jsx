@@ -13,8 +13,8 @@ const Locate = () => {
     const fetchCenters = useCallback(async () => {
         try {
             const [garagesRes, stationsRes] = await Promise.all([
-                fetch('http://localhost:5001/api/garages'),
-                fetch('http://localhost:5001/api/charging-stations')
+                fetch('https://vehicleecare.onrender.com/api/garages'),
+                fetch('https://vehicleecare.onrender.com/api/charging-stations')
             ]);
 
             const garagesData = await garagesRes.json();

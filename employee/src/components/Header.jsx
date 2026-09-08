@@ -196,7 +196,7 @@ const Header = () => {
                 const empId = user._id || user.id;
 
                 // Using employee-specific search: scoped to assigned tasks and employee paths
-                const res = await fetch(`http://localhost:5001/api/search?q=${encodeURIComponent(searchTerm)}&portal=employee&empId=${empId}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/search?q=${encodeURIComponent(searchTerm)}&portal=employee&empId=${empId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setDbResults(data.data || []);
@@ -222,7 +222,7 @@ const Header = () => {
             const targetId = parsed._id || parsed.id || parsed.employeeId;
             if (targetId) {
                 try {
-                    const res = await fetch(`http://localhost:5001/api/employees/${targetId}`);
+                    const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${targetId}`);
                     if (res.ok) {
                         const data = await res.json();
                         if (data.data) {

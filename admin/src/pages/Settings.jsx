@@ -153,37 +153,37 @@ const Settings = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await fetch('http://localhost:5001/api/settings/disabledServices');
+                const res = await fetch('https://vehicleecare.onrender.com/api/settings/disabledServices');
                 const result = await res.json();
                 if (result.success && result.data) {
                     setDisabledServices(result.data);
                 }
 
-                const resCustom = await fetch('http://localhost:5001/api/settings/customServices');
+                const resCustom = await fetch('https://vehicleecare.onrender.com/api/settings/customServices');
                 const resultCustom = await resCustom.json();
                 if (resultCustom.success && resultCustom.data) {
                     setCustomServices(resultCustom.data);
                 }
 
-                const billRes = await fetch('http://localhost:5001/api/settings/billingSettings');
+                const billRes = await fetch('https://vehicleecare.onrender.com/api/settings/billingSettings');
                 const billResult = await billRes.json();
                 if (billResult.success && billResult.data) {
                     setBillingSettings(prev => ({ ...prev, ...billResult.data }));
                 }
 
-                const notifRes = await fetch('http://localhost:5001/api/settings/notificationSettings');
+                const notifRes = await fetch('https://vehicleecare.onrender.com/api/settings/notificationSettings');
                 const notifResult = await notifRes.json();
                 if (notifResult.success && notifResult.data) {
                     setNotificationSettings(prev => ({ ...prev, ...notifResult.data }));
                 }
 
-                const secRes = await fetch('http://localhost:5001/api/settings/securitySettings');
+                const secRes = await fetch('https://vehicleecare.onrender.com/api/settings/securitySettings');
                 const secResult = await secRes.json();
                 if (secResult.success && secResult.data) {
                     setSecuritySettings(prev => ({ ...prev, ...secResult.data }));
                 }
 
-                const genRes = await fetch('http://localhost:5001/api/settings/generalSettings');
+                const genRes = await fetch('https://vehicleecare.onrender.com/api/settings/generalSettings');
                 const genResult = await genRes.json();
                 if (genResult.success && genResult.data) {
                     setGeneralSettings(prev => ({ ...prev, ...genResult.data }));
@@ -207,27 +207,27 @@ const Settings = () => {
         setIsSaving(true);
         try {
             await Promise.all([
-                fetch('http://localhost:5001/api/settings', {
+                fetch('https://vehicleecare.onrender.com/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: 'disabledServices', value: disabledServices })
                 }),
-                fetch('http://localhost:5001/api/settings', {
+                fetch('https://vehicleecare.onrender.com/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: 'generalSettings', value: generalSettings })
                 }),
-                fetch('http://localhost:5001/api/settings', {
+                fetch('https://vehicleecare.onrender.com/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: 'billingSettings', value: billingSettings })
                 }),
-                fetch('http://localhost:5001/api/settings', {
+                fetch('https://vehicleecare.onrender.com/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: 'notificationSettings', value: notificationSettings })
                 }),
-                fetch('http://localhost:5001/api/settings', {
+                fetch('https://vehicleecare.onrender.com/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: 'securitySettings', value: securitySettings })

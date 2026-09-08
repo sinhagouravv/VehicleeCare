@@ -28,7 +28,7 @@ const Locate = () => {
     const handleReviewSubmit = async () => {
         setReviewSubmitting(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const apiUrl = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
             
             const newReview = {
                 user: user ? (user.userId || user.id || user._id) : null,
@@ -74,8 +74,8 @@ const Locate = () => {
     const fetchCenters = useCallback(async () => {
         try {
             const [garagesRes, stationsRes] = await Promise.all([
-                fetch('http://localhost:5001/api/garages'),
-                fetch('http://localhost:5001/api/charging-stations')
+                fetch('https://vehicleecare.onrender.com/api/garages'),
+                fetch('https://vehicleecare.onrender.com/api/charging-stations')
             ]);
 
             const garagesData = await garagesRes.json();

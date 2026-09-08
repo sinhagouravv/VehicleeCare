@@ -244,21 +244,21 @@ const FullService = () => {
         const fetchSettings = async () => {
             try {
                 // Fetch disabled services
-                const resDisabled = await fetch('http://localhost:5001/api/settings/disabledServices');
+                const resDisabled = await fetch('https://vehicleecare.onrender.com/api/settings/disabledServices');
                 const dataDisabled = await resDisabled.json();
                 if (dataDisabled.success && dataDisabled.data) {
                     setDisabledServices(dataDisabled.data);
                 }
 
                 // Fetch custom services
-                const resCustom = await fetch('http://localhost:5001/api/settings/customServices');
+                const resCustom = await fetch('https://vehicleecare.onrender.com/api/settings/customServices');
                 const dataCustom = await resCustom.json();
                 if (dataCustom.success && dataCustom.data) {
                     setCustomServices(dataCustom.data);
                 }
 
                 // Fetch service overrides
-                const resOverrides = await fetch('http://localhost:5001/api/settings/serviceOverrides');
+                const resOverrides = await fetch('https://vehicleecare.onrender.com/api/settings/serviceOverrides');
                 const dataOverrides = await resOverrides.json();
                 if (dataOverrides.success && dataOverrides.data) {
                     setServiceOverrides(dataOverrides.data);
@@ -292,7 +292,7 @@ const FullService = () => {
     // ─── Live Garages from API ────────────────────────────────────────────────
     const [liveGarages, setLiveGarages] = useState([]);
     useEffect(() => {
-        fetch('http://localhost:5001/api/garages')
+        fetch('https://vehicleecare.onrender.com/api/garages')
             .then(r => r.json())
             .then(d => { if (d.success) setLiveGarages(d.data); })
             .catch(() => { });
@@ -377,7 +377,7 @@ const FullService = () => {
         const fetchCars = async () => {
             setCarLoading(true);
             try {
-                const res = await fetch(`http://localhost:5001/api/cars/${fuelType.toLowerCase()}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/cars/${fuelType.toLowerCase()}`);
                 const result = await res.json();
                 if (result.success) {
                     setCarData(result.data);
@@ -504,7 +504,7 @@ const FullService = () => {
                 paymentId
             };
 
-            const response = await fetch('http://localhost:5001/api/bookings', {
+            const response = await fetch('https://vehicleecare.onrender.com/api/bookings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bookingData)
@@ -560,7 +560,7 @@ const FullService = () => {
 
                 const totalAmount = parseFloat(calculateGrandTotal());
 
-                const orderRes = await fetch('http://localhost:5001/api/payments/order', {
+                const orderRes = await fetch('https://vehicleecare.onrender.com/api/payments/order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ amount: totalAmount })
@@ -577,7 +577,7 @@ const FullService = () => {
                     description: "Car Service Booking",
                     order_id: orderData.order.id,
                     handler: async function (response) {
-                        const verifyRes = await fetch('http://localhost:5001/api/payments/verify', {
+                        const verifyRes = await fetch('https://vehicleecare.onrender.com/api/payments/verify', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({

@@ -227,7 +227,7 @@ const Tasks = () => {
             if (!silent) setLoading(true);
 
             if (isDev) {
-                const res = await fetch('http://localhost:5001/api/bugs');
+                const res = await fetch('https://vehicleecare.onrender.com/api/bugs');
                 if (!res.ok) throw new Error("Server communication error.");
                 const data = await res.json();
                 if (data.success) {
@@ -244,7 +244,7 @@ const Tasks = () => {
                     if (!lastRefreshed) setLastRefreshed(new Date());
                     return;
                 }
-                const res = await fetch(`http://localhost:5001/api/bookings/employee/${empId}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${empId}`);
                 if (!res.ok) throw new Error("Server communication error.");
                 const data = await res.json();
                 if (data.success) {
@@ -265,7 +265,7 @@ const Tasks = () => {
 
     const handleUpdateBugStatus = async (id, newStatus) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/bugs/${id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -295,7 +295,7 @@ const Tasks = () => {
     
     const handleUpdateStatus = async (id, newStatus) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/${id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -345,7 +345,7 @@ const Tasks = () => {
             const refId = selectedRemarkTask.bugId || selectedRemarkTask.bookingId || String(selectedRemarkTask._id);
             const custDetails = selectedRemarkTask.reporterName || selectedRemarkTask.reporterId || selectedRemarkTask.user?.userId || selectedRemarkTask.user?.phone || selectedRemarkTask.user?.name || selectedRemarkTask.customerId || selectedRemarkTask.customerPhone || '—';
 
-            const remarkRes = await fetch('http://localhost:5001/api/remarks', {
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -366,13 +366,13 @@ const Tasks = () => {
             const createdRemarkId = remarkData.data?.remarkId;
 
             if (isBugTask) {
-                await fetch(`http://localhost:5001/api/bugs/${selectedRemarkTask._id}/status`, {
+                await fetch(`https://vehicleecare.onrender.com/api/bugs/${selectedRemarkTask._id}/status`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ remark: remarkText, employeeRemark: remarkText })
                 });
             } else {
-                const res = await fetch(`http://localhost:5001/api/bookings/${selectedRemarkTask._id}/status`, {
+                const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${selectedRemarkTask._id}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ remark: remarkText, remarks: remarkText, employeeRemark: remarkText })
@@ -448,7 +448,7 @@ const Tasks = () => {
 
         try {
             const endpoint = currentTask.status === 'Completed' ? 'send-delivery-otp' : 'send-otp';
-            const res = await fetch(`http://localhost:5001/api/bookings/${taskId}/${endpoint}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${taskId}/${endpoint}`, {
                 method: 'POST'
             });
             const data = await res.json();
@@ -526,7 +526,7 @@ const Tasks = () => {
             const endpoint = currentStatus === 'Completed' ? 'verify-delivery-otp' : 'verify-otp';
             const body = currentStatus === 'Completed' ? { otp: cleanOtp } : { otp: cleanOtp, duration };
 
-            const res = await fetch(`http://localhost:5001/api/bookings/${selectedTaskId}/${endpoint}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${selectedTaskId}/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)

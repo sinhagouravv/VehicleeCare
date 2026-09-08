@@ -16,7 +16,7 @@ const Settings = () => {
         const fetchSettings = async () => {
             if (!garageId) return;
             try {
-                const res = await fetch(`http://localhost:5001/api/garages/${garageId}`);
+                const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}`);
                 const result = await res.json();
                 if (result.success && result.data) {
                     setDisabledServices(result.data.disabledServices || []);
@@ -34,7 +34,7 @@ const Settings = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/garages/${garageId}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ disabledServices })

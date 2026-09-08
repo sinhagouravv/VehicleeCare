@@ -217,7 +217,7 @@ const Overtime = () => {
         if (!garageId) return;
         try {
             if (!silent) setLoading(true);
-            const res = await fetch(`http://localhost:5001/api/overtime/garage/${garageId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/garage/${garageId}`);
             const data = await res.json();
             if (data.success) {
                 setOvertimes(data.data || []);
@@ -225,7 +225,7 @@ const Overtime = () => {
             }
 
             // Also fetch managers of this garage
-            const empRes = await fetch(`http://localhost:5001/api/employees/garage/${garageId}`);
+            const empRes = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
             const empData = await empRes.json();
             if (empData.success) {
                 const mgrs = (empData.data || []).filter(emp => String(emp.role || '').toLowerCase() === 'manager' && emp.isVerified !== false);
@@ -254,7 +254,7 @@ const Overtime = () => {
         setUpdatingId(actionOvertimeId);
         setIsActionModalOpen(false);
         try {
-            const res = await fetch(`http://localhost:5001/api/overtime/${actionOvertimeId}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${actionOvertimeId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: actionType, employeeId: actionEmpId, remarks: actionRemarks })
@@ -278,7 +278,7 @@ const Overtime = () => {
         if (!selectedOvertime) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/overtime/${selectedOvertime._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${selectedOvertime._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

@@ -10,7 +10,7 @@ const Reports = () => {
     const fetchReportsData = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/bookings');
+            const res = await fetch('https://vehicleecare.onrender.com/api/bookings');
             const result = await res.json();
             if (result.success && result.data) {
                 setBookings(result.data);

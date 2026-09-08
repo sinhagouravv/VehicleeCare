@@ -202,8 +202,8 @@ const Attendance = () => {
 
             // Fetch today's status & records simultaneously
             const [statusRes, recordsRes] = await Promise.all([
-                fetch(`http://localhost:5001/api/attendance/status/${empId}`),
-                fetch(`http://localhost:5001/api/attendance/employee/${empId}`)
+                fetch(`https://vehicleecare.onrender.com/api/attendance/status/${empId}`),
+                fetch(`https://vehicleecare.onrender.com/api/attendance/employee/${empId}`)
             ]);
 
             const statusData = await statusRes.json();
@@ -251,7 +251,7 @@ const Attendance = () => {
         if (!employeeUser) return;
         setActionLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/attendance/check-in', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/attendance/check-in', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeId: employeeUser.employeeId || employeeUser.id })
@@ -273,7 +273,7 @@ const Attendance = () => {
         if (!todayRecord?._id) return;
         setActionLoading(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/attendance/check-out/${todayRecord._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/check-out/${todayRecord._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });

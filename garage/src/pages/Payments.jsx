@@ -197,7 +197,7 @@ const Payments = () => {
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`http://localhost:5001/api/payments/garage/${user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/payments/garage/${user.id}`);
             const result = await res.json();
             if (result.success && result.data) {
                 setPayments(result.data);

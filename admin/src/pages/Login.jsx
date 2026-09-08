@@ -167,7 +167,7 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await fetch('http://localhost:5001/api/auth/admin-login', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, otp: showOTPModal ? otp : undefined })
@@ -196,7 +196,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/admin-forgot-password', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail })
@@ -221,7 +221,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/admin-verify-reset-otp', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-verify-reset-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp })
@@ -250,7 +250,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/admin-reset-password', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword })

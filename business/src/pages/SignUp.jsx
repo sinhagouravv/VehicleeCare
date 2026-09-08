@@ -35,7 +35,7 @@ const SignUp = () => {
         setLoading(true);
 
         try {
-            const res = await fetch('http://localhost:5001/api/auth/business-register', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/business-register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password })

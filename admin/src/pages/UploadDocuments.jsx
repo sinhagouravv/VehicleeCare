@@ -112,8 +112,8 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
         try {
             if (!silent) setLoading(true);
             const [empRes, garRes] = await Promise.all([
-                fetch('http://localhost:5001/api/employees'),
-                fetch('http://localhost:5001/api/garages')
+                fetch('https://vehicleecare.onrender.com/api/employees'),
+                fetch('https://vehicleecare.onrender.com/api/garages')
             ]);
 
             const empData = await empRes.json();
@@ -351,8 +351,8 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
         try {
             setDeleting(true);
             const endpoint = docToDelete.portal === 'employee'
-                ? `http://localhost:5001/api/employees/${docToDelete.entityId}/document/${docToDelete.docKey}`
-                : `http://localhost:5001/api/garages/${docToDelete.entityId}/document/${docToDelete.docKey}`;
+                ? `https://vehicleecare.onrender.com/api/employees/${docToDelete.entityId}/document/${docToDelete.docKey}`
+                : `https://vehicleecare.onrender.com/api/garages/${docToDelete.entityId}/document/${docToDelete.docKey}`;
 
             const res = await fetch(endpoint, { method: 'DELETE' });
             const data = await res.json();
@@ -401,8 +401,8 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
             }
 
             const endpoint = doc.portal === 'employee'
-                ? `http://localhost:5001/api/employees/${doc.entityId}`
-                : `http://localhost:5001/api/garages/${doc.entityId}`;
+                ? `https://vehicleecare.onrender.com/api/employees/${doc.entityId}`
+                : `https://vehicleecare.onrender.com/api/garages/${doc.entityId}`;
 
             await fetch(endpoint, {
                 method: 'PUT',
@@ -441,8 +441,8 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
             }
 
             const endpoint = doc.portal === 'employee'
-                ? `http://localhost:5001/api/employees/${doc.entityId}`
-                : `http://localhost:5001/api/garages/${doc.entityId}`;
+                ? `https://vehicleecare.onrender.com/api/employees/${doc.entityId}`
+                : `https://vehicleecare.onrender.com/api/garages/${doc.entityId}`;
 
             await fetch(endpoint, {
                 method: 'PUT',

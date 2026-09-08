@@ -115,12 +115,12 @@ const Overtime = () => {
         const fetchExtraData = async () => {
             if (!empId) return;
             try {
-                const attRes = await fetch(`http://localhost:5001/api/attendance/employee/${empId}`);
+                const attRes = await fetch(`https://vehicleecare.onrender.com/api/attendance/employee/${empId}`);
                 if (attRes.ok) {
                     const data = await attRes.json();
                     if (data.success) setAttendanceRecords(data.data || []);
                 }
-                const profRes = await fetch(`http://localhost:5001/api/employees/${empId}`);
+                const profRes = await fetch(`https://vehicleecare.onrender.com/api/employees/${empId}`);
                 if (profRes.ok) {
                     const data = await profRes.json();
                     if (data.success) setFullEmployeeProfile(data.data);
@@ -136,7 +136,7 @@ const Overtime = () => {
         if (!empId) return;
         try {
             if (!silent) setLoading(true);
-            const res = await fetch(`http://localhost:5001/api/overtime/employee/${empId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/employee/${empId}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
@@ -192,7 +192,7 @@ const Overtime = () => {
         setSubmitting(true);
 
         try {
-            const res = await fetch('http://localhost:5001/api/overtime/request', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/overtime/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -231,7 +231,7 @@ const Overtime = () => {
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this overtime request?")) {
             try {
-                const res = await fetch(`http://localhost:5001/api/overtime/${id}`, {
+                const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${id}`, {
                     method: 'DELETE'
                 });
                 const data = await res.json();
@@ -292,7 +292,7 @@ const Overtime = () => {
                 : (selectedRemarkOvertime.approvedByRole || selectedRemarkOvertime.actionByRole || 'Manager');
 
             // Post new Remark to backend (/api/remarks)
-            const remarkRes = await fetch('http://localhost:5001/api/remarks', {
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -312,7 +312,7 @@ const Overtime = () => {
             const remarkData = await remarkRes.json();
             const createdRemarkId = remarkData.data?.remarkId;
 
-            const res = await fetch(`http://localhost:5001/api/overtime/${selectedRemarkOvertime._id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${selectedRemarkOvertime._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeRemark: remarkText })

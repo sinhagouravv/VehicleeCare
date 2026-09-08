@@ -48,7 +48,7 @@ const Profile = () => {
             const user = JSON.parse(storedUser);
             
             // Fetch latest data from specific Garage endpoint (backend now handles dbId or 9-digit id)
-            const res = await fetch(`http://localhost:5001/api/garages/${user.dbId || user._id || user.id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${user.dbId || user._id || user.id}`);
             
             if (res.ok) {
                 const data = await res.json();
@@ -90,7 +90,7 @@ const Profile = () => {
         setIsSubmittingDelete(true);
         try {
             // Send to Requests collection for Admin Request tracker
-            await fetch('http://localhost:5001/api/requests', {
+            await fetch('https://vehicleecare.onrender.com/api/requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -108,7 +108,7 @@ const Profile = () => {
                 })
             });
 
-            const res = await fetch('http://localhost:5001/api/notifications/create', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/notifications/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -216,7 +216,7 @@ const Profile = () => {
         setSaving(true);
         try {
             const targetId = garage._id || garage.id || garage.dbId || garage.garageId;
-            const res = await fetch(`http://localhost:5001/api/garages/${targetId}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form)
@@ -241,7 +241,7 @@ const Profile = () => {
                 triggerAlert('Profile updated successfully', 'success');
 
                 // Notify admin of garage profile update
-                fetch('http://localhost:5001/api/notifications/create', {
+                fetch('https://vehicleecare.onrender.com/api/notifications/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

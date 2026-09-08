@@ -6,7 +6,7 @@ import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
 
 const Reviews = () => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
 
     const [reviews, setReviews] = useState([]);
     const [lastRefreshed, setLastRefreshed] = useState(new Date());

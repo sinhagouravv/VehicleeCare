@@ -54,7 +54,7 @@ const Employees = () => {
             };
 
             const targetId = editDevTarget._id || editDevTarget.id || editDevTarget.employeeId;
-            const res = await fetch(`http://localhost:5001/api/employees/${targetId}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -136,7 +136,7 @@ const Employees = () => {
     const fetchEmployees = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('http://localhost:5001/api/employees');
+            const res = await fetch('https://vehicleecare.onrender.com/api/employees');
             if (!res.ok) throw new Error('Failed to fetch employees');
             const data = await res.json();
             setEmployees(data.data || []);
@@ -258,7 +258,7 @@ const Employees = () => {
         setLoadingBookings(true);
         setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/employee/${employeeId}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${employeeId}`);
             if (res.ok) {
                 const data = await res.json();
                 setServiceHistory(data.data || []);
@@ -309,7 +309,7 @@ const Employees = () => {
 
         // Fetch bookings
         try {
-            const res = await fetch(`http://localhost:5001/api/bookings/employee/${employee._id}`);
+            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${employee._id}`);
             if (res.ok) {
                 const data = await res.json();
                 const bookings = data.data || [];
@@ -371,7 +371,7 @@ const Employees = () => {
         if (!employeeToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/employees/${employeeToDelete._id}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${employeeToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

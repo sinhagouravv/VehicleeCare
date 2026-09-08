@@ -118,7 +118,7 @@ const Layout = () => {
 
     const checkNewItems = useCallback(async () => {
         try {
-            const remRes = await fetch('http://localhost:5001/api/remarks');
+            const remRes = await fetch('https://vehicleecare.onrender.com/api/remarks');
             const remData = await remRes.json();
             if (remData.success && Array.isArray(remData.data)) {
                 const count = remData.data.length;
@@ -142,7 +142,7 @@ const Layout = () => {
         }
 
         try {
-            const bugRes = await fetch('http://localhost:5001/api/bugs');
+            const bugRes = await fetch('https://vehicleecare.onrender.com/api/bugs');
             const bugData = await bugRes.json();
             if (bugData.success && Array.isArray(bugData.data)) {
                 const count = bugData.data.length;
@@ -166,7 +166,7 @@ const Layout = () => {
         }
 
         try {
-            const reqRes = await fetch('http://localhost:5001/api/requests');
+            const reqRes = await fetch('https://vehicleecare.onrender.com/api/requests');
             const reqData = await reqRes.json();
             if (reqData.success && Array.isArray(reqData.data)) {
                 const count = reqData.data.length;
@@ -191,8 +191,8 @@ const Layout = () => {
 
         try {
             const [empRes, garRes] = await Promise.all([
-                fetch('http://localhost:5001/api/employees'),
-                fetch('http://localhost:5001/api/garages')
+                fetch('https://vehicleecare.onrender.com/api/employees'),
+                fetch('https://vehicleecare.onrender.com/api/garages')
             ]);
             const empData = await empRes.json();
             const garData = await garRes.json();

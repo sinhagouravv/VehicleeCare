@@ -89,7 +89,7 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
         try {
             if (!silent) setLoading(true);
             else setRefreshing(true);
-            const res = await fetch('http://localhost:5001/api/business-requests');
+            const res = await fetch('https://vehicleecare.onrender.com/api/business-requests');
             const result = await res.json();
             if (result.success && result.data) {
                 setRequests(result.data);
@@ -112,7 +112,7 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            const res = await fetch(`http://localhost:5001/api/business-requests/${id}/status`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/business-requests/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
@@ -136,7 +136,7 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
         if (!requestToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`http://localhost:5001/api/business-requests/${requestToDelete}`, {
+            const res = await fetch(`https://vehicleecare.onrender.com/api/business-requests/${requestToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();

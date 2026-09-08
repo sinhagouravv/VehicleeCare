@@ -25,7 +25,7 @@ const ProfilePage = () => {
         setSaving(true);
         try {
             const token = localStorage.getItem('businessToken');
-            const res = await fetch('http://localhost:5001/api/auth/update-profile', {
+            const res = await fetch('https://vehicleecare.onrender.com/api/auth/update-profile', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
