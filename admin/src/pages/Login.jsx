@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ShieldAlert, ShieldCheck, Loader, KeyRound, Eye, EyeOff, X } from 'lucide-react';
-import logo from '../assets/logo.svg';
+import logo from '../assets/LOGO.svg';
 
 const Login = () => {
     const [email, setEmail] = useState('');

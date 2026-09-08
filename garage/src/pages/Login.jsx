@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, ShieldAlert, ShieldCheck, Loader, KeyRound, Eye, EyeOff, Mail, X } from 'lucide-react';
-import logo from '../assets/logo.svg';
+import logo from '../assets/LOGO.svg';
 
 const Login = () => {
     const [garageId, setGarageId] = useState('');
