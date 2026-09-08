@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AlertProvider } from './context/AlertContext';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -13,8 +14,9 @@ import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <AlertProvider>
+      <Router>
+        <Routes>
         <Route path="/" element={
           <Layout>
             <section id="home">
@@ -45,6 +47,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Router>
+  </AlertProvider>
   );
 }
 

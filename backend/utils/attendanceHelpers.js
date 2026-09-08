@@ -1,6 +1,20 @@
 
 // Shift Rules (all times in IST HH:MM 24h)
 const SHIFT_RULES = {
+    'Full Day': {
+        start:      { h: 9,  m: 0  },   // 09:00 → on time
+        lateAfter:  { h: 9,  m: 5  },   // 09:05 → Late
+        absentAfter:{ h: 9,  m: 20 },   // 09:20 → can't check-in, mark Absent
+        end:        { h: 17, m: 0  },   // 17:00 → shift ends (05:00 PM)
+        overtimeAfter: { h: 17, m: 5 } // 17:05 → Overtime on check-out
+    },
+    'FULL DAY': {
+        start:      { h: 9,  m: 0  },
+        lateAfter:  { h: 9,  m: 5  },
+        absentAfter:{ h: 9,  m: 20 },
+        end:        { h: 17, m: 0  },
+        overtimeAfter: { h: 17, m: 5 }
+    },
     Morning: {
         start:      { h: 9,  m: 0  },   // 09:00 → on time
         lateAfter:  { h: 9,  m: 5  },   // 09:05 → Late

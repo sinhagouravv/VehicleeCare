@@ -38,9 +38,29 @@ const OvertimeRequestSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    employeeRemark: {
+        type: String,
+        required: false
+    },
     garageId: {
         type: String,
         required: true
+    },
+    overtimeId: {
+        type: String,
+        required: false
+    },
+    approvedBy: {
+        type: String,
+        default: ''
+    },
+    approvedById: {
+        type: String,
+        default: ''
+    },
+    approvedByRole: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true });
 

@@ -43,30 +43,23 @@ const SuccessRate = () => {
     // Filter to completed or delivered bookings
     const completedJobs = bookings.filter(b => b.status === 'Completed' || b.status === 'Delivered');
     const cancelledJobs = bookings.filter(b => b.status === 'Cancelled');
-    const totalAssigned = bookings.length || 28;
+    const totalAssigned = bookings.length;
+    const hasData = totalAssigned > 0;
 
-    const mockJobsList = [
-        { _id: 'mock1', bookingId: 'BC-24936', vehicle: { make: 'Toyota', model: 'Fortuner' }, service: { title: 'Engine Diagnostic & Tuning' }, rating: 5, qualityAudit: 'Passed' },
-        { _id: 'mock2', bookingId: 'BC-62435', vehicle: { make: 'Honda', model: 'City' }, service: { title: 'Standard Oil Service' }, rating: 5, qualityAudit: 'Passed' },
-        { _id: 'mock3', bookingId: 'BC-64853', vehicle: { make: 'Maruti', model: 'Baleno' }, service: { title: 'Brake Disc Replacement' }, rating: 4, qualityAudit: 'Passed' },
-        { _id: 'mock4', bookingId: 'BC-11204', vehicle: { make: 'Hyundai', model: 'Creta' }, service: { title: 'Tire Rotation & Alignment' }, rating: 5, qualityAudit: 'Passed' },
-        { _id: 'mock5', bookingId: 'BC-98421', vehicle: { make: 'Ford', model: 'EcoSport' }, service: { title: 'General AC Servicing' }, rating: 5, qualityAudit: 'Passed' }
-    ];
-
-    const displayJobs = completedJobs.length > 0 ? completedJobs.map((b, i) => ({
+    const displayJobs = completedJobs.map((b, i) => ({
         ...b,
-        rating: 5 - (i % 2), // deterministic ratings
+        rating: 5 - (i % 2),
         qualityAudit: 'Passed'
-    })) : mockJobsList;
+    }));
 
     // Success rate calculation
-    const successRatio = totalAssigned > 0 ? ((completedJobs.length || 26) / totalAssigned) * 100 : 96.8;
+    const successRatio = totalAssigned > 0 ? (completedJobs.length / totalAssigned) * 100 : 0;
     const finalSuccessRate = Math.round(successRatio * 10) / 10;
 
     // CSAT average rating calculation
     let ratingSum = 0;
     displayJobs.forEach(j => { ratingSum += j.rating || 5; });
-    const avgRating = displayJobs.length > 0 ? (ratingSum / displayJobs.length).toFixed(1) : "4.8";
+    const avgRating = displayJobs.length > 0 ? (ratingSum / displayJobs.length).toFixed(1) : "0.0";
 
     if (loading) {
         return <PageSkeleton />;
@@ -87,7 +80,7 @@ const SuccessRate = () => {
                         <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl">
                             <Target size={22} />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded shadow-sm">Target Met</span>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm ${hasData ? 'text-emerald-600 bg-emerald-100/50' : 'text-gray-500 bg-gray-100'}`}>{hasData ? 'Target Met' : 'No Data'}</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Quality Success Rate</p>
                     <h3 className="text-2xl font-black text-[#011023] mt-1">{finalSuccessRate}%</h3>
@@ -101,7 +94,7 @@ const SuccessRate = () => {
                         <div className="p-3 bg-yellow-50 text-yellow-500 rounded-xl">
                             <Star size={22} fill="currentColor" />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-yellow-600 bg-yellow-100/50 px-2 py-0.5 rounded shadow-sm">Excellent</span>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm ${hasData ? 'text-yellow-600 bg-yellow-100/50' : 'text-gray-500 bg-gray-100'}`}>{hasData ? 'Excellent' : 'No Rating'}</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Average CSAT Score</p>
                     <h3 className="text-2xl font-black text-[#011023] mt-1">{avgRating} <span className="text-xs text-gray-400 font-medium">/ 5.0 Rating</span></h3>
@@ -113,12 +106,12 @@ const SuccessRate = () => {
                         <div className="p-3 bg-purple-50 text-purple-500 rounded-xl">
                             <Award size={22} />
                         </div>
-                        <span className="text-[10px] font-black uppercase text-purple-600 bg-purple-100/50 px-2 py-0.5 rounded shadow-sm">Highest</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm text-gray-500 bg-gray-100">No Data</span>
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">First-Time Fix Rate</p>
-                    <h3 className="text-2xl font-black text-[#011023] mt-1">94.8%</h3>
+                    <h3 className="text-2xl font-black text-[#011023] mt-1">0%</h3>
                     <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                        <div className="bg-purple-500 h-full rounded-full" style={{ width: '94.8%' }}></div>
+                        <div className="bg-purple-500 h-full rounded-full" style={{ width: '0%' }}></div>
                     </div>
                 </div>
 
@@ -131,7 +124,7 @@ const SuccessRate = () => {
                     </div>
                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Active Rework Tickets</p>
                     <h3 className="text-2xl font-black text-[#011023] mt-1">0 Reworks</h3>
-                    <p className="text-[11px] font-bold text-emerald-600 mt-2 uppercase">100% Quality Audits Passed</p>
+                    <p className="text-[11px] font-bold text-emerald-600 mt-2 uppercase">{hasData ? '100% Quality Audits Passed' : 'No Active Tickets'}</p>
                 </div>
             </div>
 
@@ -146,10 +139,10 @@ const SuccessRate = () => {
 
                     <div className="space-y-5 flex-1 flex flex-col justify-center">
                         {[
-                            { name: 'Technical Diagnosis', rate: 98 },
-                            { name: 'Component Cleanliness', rate: 96 },
-                            { name: 'Road Test Approval', rate: 95 },
-                            { name: 'Safety Checklist Met', rate: 100 }
+                            { name: 'Technical Diagnosis', rate: 0 },
+                            { name: 'Component Cleanliness', rate: 0 },
+                            { name: 'Road Test Approval', rate: 0 },
+                            { name: 'Safety Checklist Met', rate: 0 }
                         ].map((metric, i) => (
                             <div key={i} className="space-y-1.5 uppercase text-[10.5px]">
                                 <div className="flex justify-between font-bold text-gray-700">
@@ -179,7 +172,7 @@ const SuccessRate = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px] font-semibold text-gray-700">
-                                {displayJobs.map((job) => (
+                                {displayJobs.length > 0 ? displayJobs.map((job) => (
                                     <tr key={job._id} className="hover:bg-blue-50/20 transition-colors">
                                         <td className="p-3.5 font-bold text-[#052558]">{job.bookingId || job._id?.slice(0, 8)}</td>
                                         <td className="p-3.5 font-semibold text-gray-700">{job.vehicle?.make} {job.vehicle?.model}</td>
@@ -197,7 +190,13 @@ const SuccessRate = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr>
+                                        <td colSpan={5} className="py-12 text-center text-gray-400 text-sm font-semibold uppercase">
+                                            No Quality Audited Jobs Found
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

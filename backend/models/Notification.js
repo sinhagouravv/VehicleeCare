@@ -4,7 +4,7 @@ const NotificationSchema = new mongoose.Schema({
     eventType: {
         type: String,
         required: true,
-        enum: ['user_registered', 'booking_created', 'booking', 'message_received', 'review_submitted', 'review', 'bug_reported', 'bug', 'garage_added', 'charging_station_added', 'employee_added', 'leave_updated', 'leave', 'overtime', 'meeting', 'id_card_requested', 'id_card_status_updated']
+        enum: ['user_registered', 'booking_created', 'booking', 'message_received', 'review_submitted', 'review', 'bug_reported', 'bug', 'garage_added', 'charging_station_added', 'employee_added', 'leave_updated', 'leave', 'overtime', 'meeting', 'id_card_requested', 'id_card_status_updated', 'task_remark_added', 'remark_submitted', 'remark', 'reminder', 'warning', 'document', 'account_deletion_request', 'account_deletion', 'request']
     },
     superCategory: {
         type: String,

@@ -13,6 +13,9 @@ const EVENT_MAPPING = {
     id_card_requested: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
     overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
+    account_deletion: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    account_deletion_request: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    deletion_request: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
     reminder: { type: 'Reminder', category: 'General', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
     warning: { type: 'Warning', category: 'General', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
     document: { type: 'Document', category: 'Document', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-sky-100 text-sky-700 border border-sky-200' },
@@ -62,6 +65,7 @@ const Notifications = () => {
                     defaultValue: 'all',
                     options: [
                         { label: 'All', value: 'all' },
+                        { label: 'Request', value: 'Request' },
                         { label: 'Booking', value: 'Booking' },
                         { label: 'Leave', value: 'Leave' },
                         { label: 'Overtime', value: 'Overtime' },
@@ -192,6 +196,11 @@ const Notifications = () => {
             const garageNotifs = allNotifs.filter(n => {
                 if (n.superCategory === 'employees_notification' || n.superCategory === 'adminNotification' || n.superCategory === 'admin_notification') return false;
 
+                // Initial deletion requests are meant ONLY for Admin
+                const msg = (n.message || '').toLowerCase();
+                const isInitialDeletionRequest = (n.eventType === 'account_deletion_request' || n.eventType === 'account_deletion') && !n.meta?.status && (msg.includes('requested account deletion') || msg.includes('requested deletion'));
+                if (isInitialDeletionRequest) return false;
+
                 if (n.eventType === 'document') {
                     const title = (n.title || '').toLowerCase();
                     const isApprovedOrRejected = title.includes('approved') || title.includes('rejected') || n.meta?.status === 'Approved' || n.meta?.status === 'Rejected';
@@ -314,6 +323,23 @@ const Notifications = () => {
     const getMapping = (notif) => {
         let mapping = EVENT_MAPPING[notif.eventType] ? { ...EVENT_MAPPING[notif.eventType] } : { type: 'Event', category: 'System', color: 'bg-gray-50 text-gray-600' };
         
+        const typeLower = (notif.eventType || '').toLowerCase();
+        const msgLower = (notif.message || '').toLowerCase();
+
+        if (
+            typeLower.includes('deletion') ||
+            typeLower.includes('delete_request') ||
+            typeLower === 'account_deletion' ||
+            typeLower === 'account_deletion_request' ||
+            typeLower === 'deletion_request' ||
+            msgLower.includes('requested account deletion') ||
+            msgLower.includes('requested deletion') ||
+            msgLower.includes('deletion request') ||
+            msgLower.includes('requested deletion.')
+        ) {
+            mapping = { ...mapping, type: 'Request', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' };
+        }
+        
         // Refine based on meta
         if (notif.eventType === 'message_received' && notif.meta?.type === 'business') {
             mapping.category = 'Business';
@@ -435,7 +461,7 @@ const Notifications = () => {
                                                 }}
                                             >
                                                 <div 
-                                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                    className={`overflow-hidden transition-all ml-2 duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
                                                 >
                                                     <p 
                                                         className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
@@ -479,6 +505,10 @@ const Notifications = () => {
                                                                 const employeeId = notif.meta?.employeeId || '';
                                                                 return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a overtime. Kindly review the details of the overtime and approved or reject accordingly.`;
                                                             }
+                                                             if (notif.message && notif.message.toLowerCase().includes('account deletion request')) {
+                                                                 if (notif.message.toLowerCase().startsWith('dear garage')) return notif.message;
+                                                                 return `Dear Garage, ${notif.message}`;
+                                                             }
                                                             return notif.message;
                                                         })()}
                                                     </p>
@@ -497,7 +527,7 @@ const Notifications = () => {
                                             <td className="p-4.25 text-center">
                                                 <div className="flex justify-center">
                                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                                        ? 'bg-gray-100 text-gray-700 border border-gray-300'
                                                         : 'bg-blue-100 text-blue-700 border border-blue-100'
                                                         }`}>
                                                         {notif.isRead ? 'Read' : 'Unread'}

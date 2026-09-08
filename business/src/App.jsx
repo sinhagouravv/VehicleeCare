@@ -107,22 +107,6 @@ const MainLayout = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Severity Level</label>
-                <select
-                  required
-                  value={bugSeverity}
-                  onChange={(e) => setBugSeverity(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold normal-case text-sm text-[#011023] appearance-none cursor-pointer"
-                >
-                  <option value="" disabled hidden></option>
-                  <option value="Low">Low - Cosmetic/Typo</option>
-                  <option value="Medium">Medium - Feature malfunctioning</option>
-                  <option value="High">High - Broken workflow/major issue</option>
-                  <option value="Critical">Critical - App crash/data loss</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
                 <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Description / Steps to Reproduce</label>
                 <textarea
                   required

@@ -22,6 +22,7 @@ import StaffOverview from './pages/StaffOverview';
 import Reports from './pages/Reports';
 import Meeting from './pages/Meeting';
 import Finance from './pages/Finance';
+import UploadDocuments from './pages/UploadDocuments';
 import { AlertProvider } from './context/AlertContext';
 import { FilterProvider } from './context/FilterContext';
 
@@ -55,6 +56,7 @@ const App = () => {
               <Route path="staff-overview" element={<StaffOverview />} />
               <Route path="reports" element={<Reports />} />
               <Route path="finance" element={<Finance />} />
+              <Route path="upload-documents" element={<UploadDocuments />} />
 
             </Route>
           </Route>

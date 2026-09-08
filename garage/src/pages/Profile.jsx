@@ -98,7 +98,10 @@ const Profile = () => {
                     employeeId: gId,
                     userId: gId,
                     name: gName,
-                    reason: selectedReason,
+                    reason: 'Account Deletion',
+                    requestType: 'Account Deletion',
+                    type: 'Account Deletion',
+                    reasonCategory: selectedReason,
                     explanation: deleteReason,
                     description: deleteReason,
                     tentativeTime: tentativeTime
@@ -110,6 +113,7 @@ const Profile = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     eventType: 'account_deletion_request',
+                    superCategory: 'adminNotification',
                     title: 'Garage Deletion Request',
                     message: `Garage "${gName}" (ID: ${gId}) has requested account deletion.\nReason: ${selectedReason}\nTentative Time: ${tentativeTime}\nDetails: ${deleteReason}`,
                     meta: {

@@ -21,7 +21,8 @@ const {
     updateIdCardRequestStatus,
     deleteIdCardRequest,
     uploadEmployeeAvatar,
-    uploadEmployeeDocument
+    uploadEmployeeDocument,
+    deleteEmployeeDocument
 } = require('../controllers/employeeController');
 
 router.get('/', getEmployees);
@@ -37,5 +38,6 @@ router.put('/:id', updateEmployee);
 router.delete('/:id', deleteEmployee);
 router.post('/:id/avatar', upload.single('avatar'), uploadEmployeeAvatar);
 router.post('/:id/document', upload.single('document'), uploadEmployeeDocument);
+router.delete('/:id/document/:documentType', deleteEmployeeDocument);
 
 module.exports = router;

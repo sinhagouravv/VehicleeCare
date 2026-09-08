@@ -396,15 +396,19 @@ const FullService = () => {
     useEffect(() => {
         if (!selectedBrand) {
             setModels([]);
+            setSelectedModel('');
             return;
         }
         const brandData = carData.find(c => c.brand === selectedBrand);
         if (brandData) {
-            setModels(brandData.models);
+            const availableModels = brandData.models || [];
+            setModels(availableModels);
+            if (selectedModel && !availableModels.includes(selectedModel)) {
+                setSelectedModel('');
+            }
         } else {
             setModels([]);
         }
-        setSelectedModel('');
     }, [selectedBrand, carData]);
 
     // ─── Calculate Total Price ───────────────────────────────────────────────

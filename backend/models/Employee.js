@@ -20,12 +20,14 @@ const employeeSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['Mechanic', 'Manager', 'Technician', 'Support', 'Admin', 'Chef', 'Waiter', 'Cashier', 'Delivery', 'Staff'],
         default: 'Staff'
     },
     category: {
         type: String,
-        enum: ['Garage', 'Station', 'Store', 'Parking'],
+        default: ''
+    },
+    employmentType: {
+        type: String,
         default: ''
     },
     garageId: {
@@ -46,7 +48,6 @@ const employeeSchema = new mongoose.Schema({
     },
     shift: {
         type: String,
-        enum: ['Morning', 'Evening', 'Night'],
         default: 'Morning'
     },
     panCard: {
@@ -73,13 +74,47 @@ const employeeSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    panCardUploadedAt: { type: Date },
+    adharCardUploadedAt: { type: Date },
+    voterIdUploadedAt: { type: Date },
+    drivingLicenseUploadedAt: { type: Date },
+    agreementUploadedAt: { type: Date },
+    signatureUploadedAt: { type: Date },
+    panCardDocId: { type: String, default: '' },
+    adharCardDocId: { type: String, default: '' },
+    voterIdDocId: { type: String, default: '' },
+    drivingLicenseDocId: { type: String, default: '' },
+    agreementDocId: { type: String, default: '' },
+    signatureDocId: { type: String, default: '' },
+    panCardStatus: { type: String, default: 'Pending' },
+    adharCardStatus: { type: String, default: 'Pending' },
+    voterIdStatus: { type: String, default: 'Pending' },
+    drivingLicenseStatus: { type: String, default: 'Pending' },
+    agreementStatus: { type: String, default: 'Pending' },
+    signatureStatus: { type: String, default: 'Pending' },
+    panCardHistory: { type: Array, default: [] },
+    adharCardHistory: { type: Array, default: [] },
+    voterIdHistory: { type: Array, default: [] },
+    drivingLicenseHistory: { type: Array, default: [] },
+    agreementHistory: { type: Array, default: [] },
+    signatureHistory: { type: Array, default: [] },
+    panCardRemark: { type: String, default: '' },
+    adharCardRemark: { type: String, default: '' },
+    voterIdRemark: { type: String, default: '' },
+    drivingLicenseRemark: { type: String, default: '' },
+    agreementRemark: { type: String, default: '' },
+    signatureRemark: { type: String, default: '' },
     salaryType: {
         type: String,
         default: ''
     },
     isVerified: {
         type: Boolean,
-        default: true
+        default: false
+    },
+    verificationStatus: {
+        type: String,
+        default: 'Pending'
     },
     password: {
         type: String,

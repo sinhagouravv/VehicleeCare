@@ -34,6 +34,10 @@ const IdCardRequestSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    employeeRemark: {
+        type: String,
+        required: false
+    },
     garageId: {
         type: String,
         required: true
@@ -46,6 +50,22 @@ const IdCardRequestSchema = new mongoose.Schema({
     appointmentTime: {
         type: String,
         required: false,
+        default: ''
+    },
+    meetingId: {
+        type: String,
+        required: false
+    },
+    approvedBy: {
+        type: String,
+        default: ''
+    },
+    approvedById: {
+        type: String,
+        default: ''
+    },
+    approvedByRole: {
+        type: String,
         default: ''
     }
 }, { timestamps: true });

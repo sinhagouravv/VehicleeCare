@@ -12,6 +12,10 @@ const EVENT_MAPPING = {
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
     overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
     meeting: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    id_card_requested: { type: 'Request', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    account_deletion: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    account_deletion_request: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    deletion_request: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
     review: { type: 'Review', category: 'Remark', color: 'bg-indigo-100 text-indigo-700', typeColor: 'bg-indigo-100 text-indigo-700 border border-indigo-200' },
     reminder: { type: 'Reminder', category: 'General', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
     warning: { type: 'Warning', category: 'General', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
@@ -74,6 +78,7 @@ const Notifications = () => {
                     defaultValue: 'all',
                     options: [
                         { label: 'All', value: 'all' },
+                        { label: 'Request', value: 'Request' },
                         { label: 'Booking', value: 'booking_created' },
                         { label: 'Leave', value: 'leave' },
                         { label: 'Overtime', value: 'overtime' },
@@ -148,6 +153,11 @@ const Notifications = () => {
             // Filter notifications for this employee ONLY
             const employeeNotifs = allNotifs.filter(n => {
                 if (n.superCategory === 'garageNotification' || n.superCategory === 'adminNotification' || n.superCategory === 'admin_notification') return false;
+
+                // Initial deletion requests are meant ONLY for Admin
+                const msg = (n.message || '').toLowerCase();
+                const isInitialDeletionRequest = (n.eventType === 'account_deletion_request' || n.eventType === 'account_deletion') && !n.meta?.status && (msg.includes('requested account deletion') || msg.includes('requested deletion'));
+                if (isInitialDeletionRequest) return false;
 
                 const user = JSON.parse(storedUser || '{}');
                 const userEmpId = user.employeeId || user.id || user._id;
@@ -348,7 +358,26 @@ const Notifications = () => {
     };
 
     const getMapping = (notif) => {
-        return EVENT_MAPPING[notif.eventType] || { type: 'Task', category: 'System', color: 'bg-gray-50 text-gray-600', typeColor: 'bg-gray-100 text-gray-700' };
+        let mapping = EVENT_MAPPING[notif.eventType] || { type: 'Task', category: 'System', color: 'bg-gray-50 text-gray-600', typeColor: 'bg-gray-100 text-gray-700' };
+
+        const typeLower = (notif.eventType || '').toLowerCase();
+        const msgLower = (notif.message || '').toLowerCase();
+
+        if (
+            typeLower.includes('deletion') ||
+            typeLower.includes('delete_request') ||
+            typeLower === 'account_deletion' ||
+            typeLower === 'account_deletion_request' ||
+            typeLower === 'deletion_request' ||
+            msgLower.includes('requested account deletion') ||
+            msgLower.includes('requested deletion') ||
+            msgLower.includes('deletion request') ||
+            msgLower.includes('requested deletion.')
+        ) {
+            mapping = { ...mapping, type: 'Request', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' };
+        }
+
+        return mapping;
     };
 
     const getItemDate = (item) => {
@@ -404,7 +433,10 @@ const Notifications = () => {
 
             // Type filter
             if (typeFilter !== 'all') {
-                if (typeFilter === 'booking_created') {
+                if (typeFilter === 'Request') {
+                    const mapping = getMapping(n);
+                    if (mapping.type.toLowerCase() !== 'request') return false;
+                } else if (typeFilter === 'booking_created') {
                     if (n.eventType !== 'booking_created' && n.eventType !== 'booking') return false;
                 } else if (n.eventType !== typeFilter) {
                     return false;
@@ -575,7 +607,7 @@ const Notifications = () => {
                                                 }}
                                             >
                                                 <div 
-                                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                    className={`overflow-hidden transition-all ml-2 duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
                                                 >
                                                     <p 
                                                         className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
@@ -595,6 +627,10 @@ const Notifications = () => {
                                                             }
                                                             if (notif.eventType === 'booking_created') {
                                                                 return `Dear Employee, A new task is assigned to you, for ${notif.meta?.service || 'service'} of ${notif.meta?.vehicle || 'vehicle'}. Kindly contact with the assigned team member's and complete the task within the time.`;
+                                                            }
+                                                            if (notif.message && (notif.message.toLowerCase().includes('account deletion') || notif.message.toLowerCase().includes('request'))) {
+                                                                if (notif.message.toLowerCase().startsWith('dear employee')) return notif.message;
+                                                                return `Dear Employee, ${notif.message}`;
                                                             }
                                                             return notif.message;
                                                         })()}

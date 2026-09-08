@@ -12,14 +12,17 @@ cloudinary.config({
  * @param {string} folder - The folder name in Cloudinary.
  * @returns {Promise<object>} The upload result from Cloudinary.
  */
-const uploadStream = (fileBuffer, folder = 'employee_avatars') => {
-    return new Promise((resolve, reject) => {
+const uploadStream = (fileBuffer, folder = 'employee_avatars', mimeType = 'image/png') => {
+    return new Promise((resolve) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder: folder },
+            { folder: folder, resource_type: 'auto' },
             (error, result) => {
-                if (error) {
-                    console.error('Cloudinary stream upload error:', error);
-                    return reject(error);
+                if (error || !result) {
+                    console.error('Cloudinary stream upload error, generating base64 fallback:', error);
+                    const b64 = fileBuffer.toString('base64');
+                    const mime = mimeType || 'image/png';
+                    const dataUrl = `data:${mime};base64,${b64}`;
+                    return resolve({ secure_url: dataUrl });
                 }
                 resolve(result);
             }

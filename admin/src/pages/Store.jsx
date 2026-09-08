@@ -5,6 +5,10 @@ import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../../../backend/chargingdata/punjab.json';
 import haryanaData from '../../../backend/chargingdata/haryana.json';
 import delhiData from '../../../backend/chargingdata/delhi.json';
+import useHighlight from '../hooks/useHighlight';
+import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
+import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
 const STORE_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(STORE_LOCATIONS.map(l => l.state))].sort();
@@ -27,9 +31,8 @@ const emptyForm = {
 
 const initialStores = [];
 
-import useHighlight from '../hooks/useHighlight';
-
 const Store = () => {
+    const { triggerAlert } = useAlert();
     const [stores, setStores] = useState(initialStores);
     const highlightedRow = useHighlight(stores);
     const [loading, setLoading] = useState(false);
@@ -39,6 +42,55 @@ const Store = () => {
     const [viewTarget, setViewTarget] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+
+    // Filter, Sort & Row Label States
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [labelFilter, setLabelFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('latest');
+    const [timeRange, setTimeRange] = useState('all');
+
+    const { setFilterConfig, setResultsCount } = useFilter();
+    const { rowLabels, activeLabelRowId, setActiveLabelRowId, handleSaveRowLabel, labelPopupRef, isLabelMode } = useRowLabels('admin_store_labels');
+
+    // Register filter options
+    useEffect(() => {
+        setFilterConfig({
+            title: 'Filter Stores',
+            hasSort: true,
+            groups: [
+                LABEL_FILTER_GROUP,
+                {
+                    id: 'status',
+                    label: 'Status',
+                    defaultValue: 'all',
+                    options: [
+                        { label: 'All', value: 'all' },
+                        { label: 'Operational', value: 'Operational' },
+                        { label: 'Under Maintenance', value: 'Under Maintenance' },
+                    ]
+                }
+            ],
+            initialValues: {
+                status: filterStatus,
+                label: labelFilter,
+                sortOrder,
+                timeRange
+            },
+            onChange: (newValues) => {
+                if (newValues.status !== undefined) setFilterStatus(newValues.status);
+                if (newValues.label !== undefined) setLabelFilter(newValues.label);
+                if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
+                if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
+            },
+            onReset: () => {
+                setFilterStatus('all');
+                setLabelFilter('all');
+                setSortOrder('latest');
+                setTimeRange('all');
+            }
+        });
+        return () => setFilterConfig(null);
+    }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchStores = async () => {
         setLoading(true);
@@ -105,7 +157,7 @@ const Store = () => {
     }, [form.state, form.district, form.address]);
 
     const handleSave = async () => {
-        if (!form.name.trim()) return alert('Store name is required');
+        if (!form.name.trim()) return triggerAlert('Store name is required', 'error');
         setSaving(true);
         try {
             const url = editTarget
@@ -128,39 +180,77 @@ const Store = () => {
             if (data.success) {
                 if (editTarget) {
                     setStores(prev => prev.map(s => s.id === editTarget.id ? data.data : s));
+                    triggerAlert('Store updated successfully', 'success');
                 } else {
                     setStores(prev => [data.data, ...prev]);
+                    triggerAlert('Store added successfully', 'success');
                 }
                 closeModal();
             } else {
-                alert(data.message || 'Error saving store');
+                triggerAlert(data.message || 'Error saving store', 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to save store');
+            triggerAlert('Failed to save store', 'error');
         } finally {
             setSaving(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Delete this store?')) return;
         try {
             const res = await fetch(`http://localhost:5001/api/stores/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setStores(prev => prev.filter(s => s.id !== id));
+                triggerAlert('Store deleted successfully', 'success');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to delete store');
+            triggerAlert('Failed to delete store', 'error');
         }
     };
 
-    const filtered = stores.filter(s =>
-        [s.id, s.name, s.state, s.district, s.address].some(f =>
-            f?.toLowerCase().includes(search.toLowerCase())
-        )
-    );
+    const filtered = React.useMemo(() => {
+        return stores.filter(s => {
+            const matchesSearch = !search || [s.id, s.name, s.state, s.district, s.address].some(f =>
+                f?.toLowerCase().includes(search.toLowerCase())
+            );
+            if (!matchesSearch) return false;
+
+            if (filterStatus !== 'all' && s.status?.toLowerCase() !== filterStatus.toLowerCase()) {
+                return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[s.id || s._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = s.createdAt ? new Date(s.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a.id || a._id || a.name || '');
+            const idB = String(b.id || b._id || b.name || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [stores, search, filterStatus, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        setResultsCount(filtered.length);
+    }, [filtered.length, setResultsCount]);
 
     const getStatusColor = (status) => {
         return status === 'Operational' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
@@ -201,9 +291,47 @@ const Store = () => {
                             ) : filtered.map((store) => {
                                 const rowId = store.id || store._id;
                                 return (
-                                    <tr key={store.id || store._id} id={`row-${rowId}`} className={`transition-all duration-1000 ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : 'hover:bg-blue-50/30'}`}>
-                                        <td className="p-4 text-center">
-                                            <span className="font-bold text-[#011023] tracking-widest">{store.id}</span>
+                                    <tr 
+                                        key={store.id || store._id} 
+                                        id={`row-${rowId}`} 
+                                        onClick={(e) => {
+                                            if (isLabelMode) {
+                                                e.stopPropagation();
+                                                const stId = store.id || store._id;
+                                                setActiveLabelRowId(prev => prev === stId ? null : stId);
+                                            }
+                                        }}
+                                        className={`transition-all duration-1000 ${
+                                            isLabelMode ? 'cursor-pointer hover:bg-blue-50/60' : 'hover:bg-blue-50/30'
+                                        } ${highlightedRow === rowId ? 'bg-emerald-100/60 rounded-2xl relative z-20 scale-[1.01]' : ''}`}
+                                    >
+                                        <td className="p-4 text-center relative font-bold text-[#011023] tracking-widest">
+                                            <div className="relative flex items-center justify-center w-full">
+                                                {Boolean(rowLabels[store.id || store._id]) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveLabelRowId(prev => prev === (store.id || store._id) ? null : (store.id || store._id));
+                                                        }}
+                                                        className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
+                                                        title={`Label: ${stripEmoji(rowLabels[store.id || store._id] || 'Add label')}`}
+                                                    >
+                                                        {renderLabelIcon(rowLabels[store.id || store._id], 16)}
+                                                    </button>
+                                                )}
+
+                                                {activeLabelRowId === (store.id || store._id) && (
+                                                    <FloatingLabelSelector 
+                                                        rowId={store.id || store._id}
+                                                        currentLabel={rowLabels[store.id || store._id]}
+                                                        onSaveLabel={handleSaveRowLabel}
+                                                        labelPopupRef={labelPopupRef}
+                                                        positionClass="-left-4"
+                                                    />
+                                                )}
+                                                <span>{store.id}</span>
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className="font-bold text-[#011023]">{store.name}</span>

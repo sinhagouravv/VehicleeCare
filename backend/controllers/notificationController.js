@@ -224,7 +224,10 @@ const toggleStar = async (req, res) => {
 // POST /api/notifications/create
 const create = async (req, res) => {
     try {
-        const { eventType, superCategory = 'general', title, message, meta } = req.body;
+        let { eventType, superCategory = 'general', title, message, meta } = req.body;
+        if (!title) {
+            title = eventType ? eventType.replace(/_/g, ' ').toUpperCase() : 'Notification';
+        }
         const notification = await Notification.create({ eventType, superCategory, title, message, meta });
         res.status(201).json({ success: true, data: notification });
     } catch (err) {
