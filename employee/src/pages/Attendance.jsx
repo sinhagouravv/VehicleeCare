@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogIn, LogOut, CheckCircle, Clock, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 
 const Attendance = () => {
+    const { triggerAlert } = useAlert();
     const [todayRecord, setTodayRecord] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -232,14 +234,20 @@ const Attendance = () => {
                 setLastRefreshed(new Date());
                 setError(null);
             } else {
-                setError(statusData.message || 'Failed to fetch attendance status.');
+                setError(statusData.message ? `Attendance Status Error. ${statusData.message}` : 'Attendance Status Error. Failed to fetch attendance status.');
             }
         } catch (err) {
-            setError('Connection failed. Please check your network.');
+            setError('Connection Failed. Please check your network connection.');
         } finally {
             setLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (error) {
+            triggerAlert(error, 'error');
+        }
+    }, [error, triggerAlert]);
 
     useEffect(() => {
         fetchTodayStatus();
@@ -260,10 +268,10 @@ const Attendance = () => {
             if (data.success || data.message?.includes('Absent')) {
                 fetchTodayStatus(true);
             } else {
-                setError(data.message || 'Check-in failed. Please try again.');
+                setError(data.message ? `${data.message}` : 'Check-In Failed. Please try again later.');
             }
         } catch (err) {
-            setError('Connection failed. Please try again.');
+            setError('Connection Failed. Please check your network connection.');
         } finally {
             setActionLoading(false);
         }
@@ -281,10 +289,10 @@ const Attendance = () => {
             if (data.success) {
                 fetchTodayStatus(true);
             } else {
-                setError(data.message || 'Check-out failed. Please try again.');
+                setError(data.message ? `Check-Out Failed. ${data.message}` : 'Check-Out Failed. Please try again later.');
             }
         } catch (err) {
-            setError('Connection failed. Please try again.');
+            setError('Connection Failed. Please check your network connection.');
         } finally {
             setActionLoading(false);
         }
@@ -307,19 +315,39 @@ const Attendance = () => {
         }
     };
 
+    const formatRole = (role) => {
+        if (!role) return 'Staff';
+        const r = role.toUpperCase().replace(/\s+/g, '');
+        if (r === 'SDEI') return 'SDE I';
+        if (r === 'SDEII') return 'SDE II';
+        if (r === 'SDEIII') return 'SDE III';
+        if (r === 'QAI') return 'QA I';
+        if (r === 'QAII') return 'QA II';
+        if (r === 'QAIII') return 'QA III';
+        if (r === 'SENIORQA') return 'Senior QA';
+        return role;
+    };
+
     const getRoleBadge = (role) => {
-        switch (role) {
-            case 'Admin': return 'bg-purple-100 text-purple-700 font-bold';
-            case 'Manager': return 'bg-blue-100 text-blue-700 font-bold';
-            case 'Mechanic': return 'bg-emerald-100 text-emerald-700 font-bold';
-            case 'Technician': return 'bg-amber-100 text-amber-700 font-bold';
-            case 'Support': return 'bg-indigo-100 text-indigo-700 font-bold';
-            case 'Staff': return 'bg-emerald-100 text-emerald-700 font-bold';
-            case 'Chef': return 'bg-orange-100 text-orange-700 font-bold';
-            case 'Waiter': return 'bg-pink-100 text-pink-700 font-bold';
-            case 'Cashier': return 'bg-cyan-100 text-cyan-700 font-bold';
-            case 'Delivery': return 'bg-lime-100 text-lime-700 font-bold';
-            default: return 'bg-gray-100 text-gray-700 font-bold';
+        const r = (role || '').toUpperCase().replace(/\s+/g, '');
+        switch (r) {
+            case 'ADMIN': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'MANAGER': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'STAFF': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'MECHANIC': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'TECHNICIAN': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'SUPPORT': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'SDEI': return 'bg-sky-100 text-sky-700 font-bold';
+            case 'SDEII': return 'bg-blue-100 text-blue-700 font-bold';
+            case 'SDEIII': return 'bg-indigo-100 text-indigo-700 font-bold';
+            case 'JUNIOR': return 'bg-emerald-100 text-emerald-700 font-bold';
+            case 'SENIOR': return 'bg-violet-100 text-violet-700 font-bold';
+            case 'ASSOCIATE': return 'bg-purple-100 text-purple-700 font-bold';
+            case 'QAI': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'QAII': return 'bg-amber-100 text-amber-700 font-bold';
+            case 'QAIII': return 'bg-orange-100 text-orange-700 font-bold';
+            case 'SENIORQA': return 'bg-rose-100 text-rose-700 font-bold';
+            default: return 'bg-blue-100 text-blue-700 font-bold';
         }
     };
 
@@ -384,14 +412,8 @@ const Attendance = () => {
                                 disabled={actionLoading || isOnLeave}
                                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#052558] to-[#527FB0] text-white font-bold text-[13px] uppercase tracking-widest shadow-lg shadow-blue-200 hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                             >
-                                {actionLoading ? (
-                                    <Loader2 size={16} className="animate-spin" />
-                                ) : (
-                                    <>
-                                        <LogIn size={16} />
-                                        Check In
-                                    </>
-                                )}
+                                <LogIn size={16} />
+                                Check In
                             </button>
                             {isOnLeave && (
                                 <div className="absolute top-full right-0 mt-2 w-76 p-3 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center uppercase tracking-wider border border-white/10 shadow-2xl">
@@ -402,13 +424,6 @@ const Attendance = () => {
                     )}
                 </div>
             </div>
-
-            {error && (
-                <div className="flex items-center gap-3 px-5 py-3.5 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-semibold">
-                    <AlertCircle size={18} />
-                    <span>{error}</span>
-                </div>
-            )}
 
             {/* Main Table Area mapped from Garage Directory styling */}
             <div className="bg-white flex-1 min-h-0 border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] overflow-hidden flex flex-col">
@@ -445,12 +460,12 @@ const Attendance = () => {
                                         <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
                                     </td>
                                     <td className="p-4.5 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide ${getRoleBadge(r.role)}`}>
-                                            {r.role}
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${getRoleBadge(r.role)}`}>
+                                            {formatRole(r.role)}
                                         </span>
                                     </td>
                                     <td className="p-4.5 text-center">
-                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border ${getShiftBadge(r.shift)}`}>
                                             {r.shift}
                                         </span>
                                     </td>
