@@ -27,3 +27,28 @@ exports.protect = (req, res, next) => {
         return res.status(401).json({ success: false, message: 'Not authorized, no token' });
     }
 };
+
+exports.checkGuestReadOnly = (req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        return next();
+    }
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer')) {
+        try {
+            const token = authHeader.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            const admin = decoded.admin || decoded;
+            if (admin && (admin.role === 'guest_admin' || admin.isGuest || admin.id === 'G184592037461')) {
+                return res.status(403).json({
+                    success: false,
+                    msg: 'The guest admin only has read rights.'
+                });
+            }
+        } catch (e) {
+            // let downstream handlers handle token errors
+        }
+    }
+
+    next();
+};

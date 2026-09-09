@@ -62,7 +62,7 @@ const checkIn = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 isNewJoiningBlocked: true,
-                message: "Since you are a new your account is still in process, you can CHECKIN at the time of your respective shift. Thank you."
+                message: "Since you are a new employee, your account is still in process. You can CHECKIN TOMORROW at the time of your respective shift. Thank you."
             });
         }
 

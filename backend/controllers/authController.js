@@ -112,9 +112,33 @@ exports.login = async (req, res) => {
 };
 
 // ── Admin Login ──────────────────────────────────────────────
+const seedGuestAdmin = async () => {
+    try {
+        let guestAdmin = await Admin.findOne({ adminId: 'G184592037461' });
+        const hashedPassword = await bcrypt.hash('Pass@6990', 10);
+        if (!guestAdmin) {
+            await Admin.create({
+                adminId: 'G184592037461',
+                email: 'guestadmin@vehicleecare.com',
+                password: hashedPassword,
+                role: 'guest_admin'
+            });
+        } else if (guestAdmin.role !== 'guest_admin') {
+            guestAdmin.role = 'guest_admin';
+            await guestAdmin.save();
+        }
+    } catch (err) {
+        console.error('Error seeding guest admin:', err);
+    }
+};
+
 exports.adminLogin = async (req, res) => {
     try {
         const { email, password, otp } = req.body;
+
+        if (email === 'G184592037461' || email === 'guestadmin@vehicleecare.com') {
+            await seedGuestAdmin();
+        }
 
         // Email field receives either email or the raw numeric Admin ID
         let admin = await Admin.findOne({
@@ -130,30 +154,41 @@ exports.adminLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid admin credentials' });
         }
 
-        // If credentials match but no OTP is provided, tell frontend to show 2FA popup
-        if (!otp) {
-            return res.json({ requires2FA: true, msg: 'Please enter your Microsoft Authenticator code' });
+        const isGuest = admin.adminId === 'G184592037461' || admin.role === 'guest_admin' || (email && email.toUpperCase().startsWith('G184592037461'));
+
+        // If credentials match and user is NOT a guest admin, require 2FA OTP
+        if (!isGuest) {
+            if (!otp) {
+                return res.json({ requires2FA: true, msg: 'Please enter your Microsoft Authenticator code' });
+            }
+
+            const secretToUse = admin.twoFactorSecret || process.env.ADMIN_TOTP_SECRET;
+
+            const verified = speakeasy.totp.verify({
+                secret: secretToUse,
+                encoding: 'base32',
+                token: otp,
+                window: 1
+            });
+
+            if (!verified) {
+                return res.status(400).json({ msg: 'Invalid 2FA code. Please try again.' });
+            }
         }
 
-        // If OTP is provided, verify it via speakeasy using Admin's personal secret or fallback config
-        const secretToUse = admin.twoFactorSecret || process.env.ADMIN_TOTP_SECRET;
-
-        const verified = speakeasy.totp.verify({
-            secret: secretToUse,
-            encoding: 'base32',
-            token: otp,
-            window: 1 // allows 30 seconds before/after leniency
-        });
-
-        if (!verified) {
-            return res.status(400).json({ msg: 'Invalid 2FA code. Please try again.' });
-        }
-
-        const payload = { admin: { id: admin.adminId, role: admin.role, dbId: admin._id } };
+        const payload = { admin: { id: admin.adminId, role: isGuest ? 'guest_admin' : admin.role, dbId: admin._id, isGuest } };
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
             if (err) throw err;
-            res.json({ token, admin: { id: admin.adminId, email: admin.email, role: admin.role } });
+            res.json({
+                token,
+                admin: {
+                    id: admin.adminId,
+                    email: admin.email,
+                    role: isGuest ? 'guest_admin' : admin.role,
+                    isGuest
+                }
+            });
         });
 
     } catch (err) {
