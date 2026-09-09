@@ -6,9 +6,13 @@ import autoTable from 'jspdf-autotable';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Users = () => {
+    const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [users, setUsers] = useState([]);
     const highlightedRow = useHighlight(users);
     const [loading, setLoading] = useState(true);
@@ -166,6 +170,7 @@ const Users = () => {
 
     // ── Download PDF ───────────────────────────────────────────
     const handleDownloadPDF = async (user) => {
+        if (guardGuestAction()) return;
         const doc = new jsPDF();
         const primary = [5, 37, 88];
         const gray = [100, 100, 100];
@@ -231,6 +236,7 @@ const Users = () => {
         } catch { /* skip bookings if fetch fails */ }
 
         doc.save(`User_${user.userId || user._id}_Report.pdf`);
+        triggerAlert("User report downloaded successfully", "success");
     };
 
     // ── Body Scroll Lock ──────────────────────────────────────
@@ -247,6 +253,7 @@ const Users = () => {
 
     // ── Ban User ───────────────────────────────────────────────
     const handleBanSubmit = async () => {
+        if (guardGuestAction()) return;
         if (!banReason.trim()) return;
         setBanSubmitting(true);
         // (Future: POST to /api/users/:id/ban with banReason)
@@ -562,7 +569,7 @@ const Users = () => {
                                         <textarea 
                                             value={banReason}
                                             onChange={(e) => setBanReason(e.target.value)}
-                                            className="w-full h-32 p-4 bg-white border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none transition-all resize-none font-medium text-gray-700 shadow-sm"
+                                            className="w-full h-32 p-4 bg-white uppercase border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none transition-all resize-none font-medium text-gray-700 shadow-sm"
                                             disabled={banSubmitting}
                                         />
                                     </div>
@@ -573,16 +580,9 @@ const Users = () => {
                         {!banSuccess && (
                             <div className="px-8 pb-6 pt-1 bg-gray-50/50 border-t border-gray-100 flex gap-4">
                                 <button 
-                                    onClick={() => setBanUser(null)}
-                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
-                                    disabled={banSubmitting}
-                                >
-                                    Cancel Action
-                                </button>
-                                <button 
                                     onClick={handleBanSubmit}
                                     disabled={banSubmitting || !banReason.trim()}
-                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest  transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
                                 >
                                     {banSubmitting ? (
                                         <>
@@ -591,7 +591,7 @@ const Users = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <UserX size={16} />
+                                            {/* <UserX size={16} /> */}
                                             Confirm Ban
                                         </>
                                     )}

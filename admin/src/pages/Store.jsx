@@ -9,6 +9,7 @@ import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const STORE_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(STORE_LOCATIONS.map(l => l.state))].sort();
@@ -33,6 +34,7 @@ const initialStores = [];
 
 const Store = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [stores, setStores] = useState(initialStores);
     const highlightedRow = useHighlight(stores);
     const [loading, setLoading] = useState(false);
@@ -157,6 +159,7 @@ const Store = () => {
     }, [form.state, form.district, form.address]);
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         if (!form.name.trim()) return triggerAlert('Store name is required', 'error');
         setSaving(true);
         try {
@@ -198,6 +201,7 @@ const Store = () => {
     };
 
     const handleDelete = async (id) => {
+        if (guardGuestAction()) return;
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/stores/${id}`, { method: 'DELETE' });
             if (res.ok) {

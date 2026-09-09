@@ -2,9 +2,11 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { UserRoundPlus, X, Loader2 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const buttonRef = useRef(null);
@@ -23,6 +25,7 @@ const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
     });
 
     const handleOpenModal = () => {
+        if (guardGuestAction()) return;
         setIsAddModalOpen(true);
         if (onModalToggle) onModalToggle(true);
     };
@@ -53,6 +56,7 @@ const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
     };
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         if (!form.name.trim()) return triggerAlert('Full Name is required', 'error');
         if (!form.phone.trim()) return triggerAlert('Phone Number is required', 'error');
         if (!form.email.trim()) return triggerAlert('Email Address is required', 'error');

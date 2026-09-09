@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { isGuestUser } from '../hooks/useGuestGuard';
 
 const ADMIN_PAGES = [
     { name: 'Dashboard', path: '/' },
@@ -238,8 +239,18 @@ const Header = () => {
     };
 
     return (
-        <header className="h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)] px-8">
+        <header className="relative h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)] px-8">
+            {/* Guest Admin Badge */}
+            {isGuestUser() && (
+                <div className="fixed left-1/2 top-10 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-[55]">
+                    <span className="px-4 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl text-xs font-semibold uppercase tracking-wider flex items-center text-center shadow-2xs pointer-events-auto">
+                        Guest Admin
+                    </span>
+                </div>
+            )}
+
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
+                
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center transition-all duration-300 ease-out ${isExpanded ? 'w-[18rem] sm:w-[21rem]' : 'w-10'}`}>
                     {!isExpanded ? (
@@ -253,7 +264,6 @@ const Header = () => {
                                 }, 50);
                             }}
                             className="w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all duration-300"
-                            title="Search"
                         >
                             <Search size={18} />
                         </button>

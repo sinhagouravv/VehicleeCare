@@ -8,10 +8,12 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Request = ({ isModal = false, onClose, highlightId }) => {
     const location = useLocation();
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [requests, setRequests] = useState([]);
     const highlightedRow = useHighlight(requests, highlightId);
     const [loading, setLoading] = useState(true);
@@ -108,6 +110,8 @@ const Request = ({ isModal = false, onClose, highlightId }) => {
     }, [fetchRequests]);
 
     const handleUpdateStatus = async (id, status, remark = '') => {
+        if (guardGuestAction()) return;
+        setUpdatingId(id);
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/requests/${id}/status`, {
                 method: 'PATCH',
@@ -129,6 +133,7 @@ const Request = ({ isModal = false, onClose, highlightId }) => {
     };
 
     const confirmDeleteRequest = async () => {
+        if (guardGuestAction()) return;
         if (!requestToDelete) return;
         const targetId = typeof requestToDelete === 'object' ? requestToDelete._id : requestToDelete;
         setDeleting(true);

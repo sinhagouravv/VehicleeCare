@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ShieldAlert, ShieldCheck, Loader, KeyRound, Eye, EyeOff, X } from 'lucide-react';
 import logo from '../assets/LOGO.svg';
+import { API_BASE_URL } from '../config/api';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -167,7 +168,7 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-login', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, otp: showOTPModal ? otp : undefined })
@@ -196,7 +197,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-forgot-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/admin-forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail })
@@ -221,7 +222,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-verify-reset-otp', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/admin-verify-reset-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp })
@@ -250,7 +251,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/admin-reset-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/admin-reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword })

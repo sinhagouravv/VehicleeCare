@@ -9,6 +9,7 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useHighlight from '../hooks/useHighlight';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const PARKING_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(PARKING_LOCATIONS.map(l => l.state))].sort();
@@ -33,6 +34,7 @@ const initialParkings = [];
 
 const Parking = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [parkings, setParkings] = useState(initialParkings);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -156,6 +158,7 @@ const Parking = () => {
     }, [form.state, form.district, form.address]);
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         if (!form.name.trim()) return triggerAlert('Parking name is required', 'error');
         setSaving(true);
         try {
@@ -197,6 +200,7 @@ const Parking = () => {
     };
 
     const handleDelete = async (id) => {
+        if (guardGuestAction()) return;
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/parkings/${id}`, { method: 'DELETE' });
             if (res.ok) {

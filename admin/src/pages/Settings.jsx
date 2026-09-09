@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car, Database, FileText, Users, Zap, MapPin, Briefcase, Star, MessageSquare, Activity, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Settings = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [activeTab, setActiveTab] = useState('general');
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
     const [activeRecordTab, setActiveRecordTab] = useState('booking');
@@ -204,6 +206,7 @@ const Settings = () => {
     };
 
     const handleSaveChanges = async () => {
+        if (guardGuestAction()) return;
         setIsSaving(true);
         try {
             await Promise.all([
@@ -333,7 +336,7 @@ const Settings = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">Website URL</label>
-                                            <input type="url" value={generalSettings.websiteUrl} onChange={e => handleGeneralChange('websiteUrl', e.target.value)} className="w-full text-[13px] px-4 mt-1.5  py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="url" value={generalSettings.websiteUrl} onChange={e => handleGeneralChange('websiteUrl', e.target.value)} className="w-full text-[13px] px-3 mt-1.5 uppercase py-2.5 bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">Support Email</label>

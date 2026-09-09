@@ -8,9 +8,11 @@ import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Reviews = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [reviews, setReviews] = useState([]);
     const highlightedRow = useHighlight(reviews);
     const [allUsers, setAllUsers] = useState([]);
@@ -197,6 +199,7 @@ const Reviews = () => {
     };
 
     const handleUpdateStatus = async (id, type, newStatus) => {
+        if (guardGuestAction()) return;
         try {
             if (type === 'Website') {
                 await axios.patch(`${API_URL}/api/website-reviews/${id}/status`, { status: newStatus });
@@ -212,6 +215,7 @@ const Reviews = () => {
     };
 
     const confirmDeleteReview = async () => {
+        if (guardGuestAction()) return;
         if (!reviewToDelete) return;
         setDeleting(true);
         try {
@@ -424,7 +428,7 @@ const Reviews = () => {
 
                                         <td className="p-4 text-center relative" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-4">
-                                                <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors" title="View Review">
+                                                <button onClick={() => setSelectedReview(rev)} className="text-gray-400 hover:text-blue-500 flex items-center justify-center cursor-pointer transition-colors">
                                                     <Eye size={18} />
                                                 </button>
 
@@ -478,7 +482,7 @@ const Reviews = () => {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 cursor-pointer transition-colors" title="Delete Review">
+                                                    <button onClick={() => { setReviewToDelete({ id: rev._id, type: rev.type }); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600 cursor-pointer transition-colors">
                                                         <Trash2 size={18} />
                                                     </button>
                                                 )}
@@ -598,34 +602,30 @@ const Reviews = () => {
             )}
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
-                <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
-                    onClick={() => { setIsDeleteModalOpen(false); setReviewToDelete(null); }}
-                >
-                    <div 
-                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Review</h3>
-                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-                                This will permanently remove the selected review. <br/>
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsDeleteModalOpen(false); setReviewToDelete(null); }} />
+                    <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-2 mt-4 mb-1 flex items-center justify-between text-center flex-col gap-4">
+                            <div>
+                                <h3 className="text-2xl uppercase font-bold text-[#011023]">Delete Review</h3>
+                            </div>
+                        </div>
+
+                        <div className="p-5 text-center uppercase tracking-tight">
+                            <p className="text-gray-500 text-[13px] leading-relaxed">
+                                Are you sure you want to permanently remove this review? <br />
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
-                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
-                            <button 
-                                onClick={() => { setIsDeleteModalOpen(false); setReviewToDelete(null); }}
-                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
-                            >
-                                Cancel
-                            </button>
-                            <button 
+
+                        <div className="pt-5 pb-5 grid grid-cols-2 gap-3 px-5">
+                            <button onClick={() => { setIsDeleteModalOpen(false); setReviewToDelete(null); }} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-xs active:scale-95">CANCEL</button>
+                            <button
                                 onClick={confirmDeleteReview}
                                 disabled={deleting}
-                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                                className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-0"
                             >
-                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                                {deleting ? <><Loader2 size={16} className="animate-spin" /> DELETING...</> : 'DELETE'}
                             </button>
                         </div>
                     </div>

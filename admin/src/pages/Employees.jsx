@@ -8,9 +8,11 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Employees = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [employees, setEmployees] = useState([]);
     const highlightedRow = useHighlight(employees);
     const [loading, setLoading] = useState(true);
@@ -43,6 +45,7 @@ const Employees = () => {
     };
 
     const handleSaveDeveloperEdit = async () => {
+        if (guardGuestAction()) return;
         if (!editDevTarget) return;
         setSavingDev(true);
         try {
@@ -272,6 +275,7 @@ const Employees = () => {
 
     // ── Download PDF ───────────────────────────────────────────
     const handleDownloadPDF = async (employee) => {
+        if (guardGuestAction()) return;
         const doc = new jsPDF();
         const primary = [5, 37, 88];
         const gray = [100, 100, 100];
@@ -338,6 +342,7 @@ const Employees = () => {
         } catch { /* skip bookings if fetch fails */ }
 
         doc.save(`Employee_${employee.userId || employee.employeeId || employee._id}_Report.pdf`);
+        triggerAlert("Employee report downloaded successfully", "success");
     };
 
     // ── Ban/Dismiss Employee ───────────────────────────────────────────────
@@ -354,6 +359,7 @@ const Employees = () => {
     }, [viewEmployee, banEmployee, isHistoryModalOpen, isDeleteModalOpen]);
 
     const handleBanSubmit = async () => {
+        if (guardGuestAction()) return;
         if (!banReason.trim()) return;
         setBanSubmitting(true);
         // (Future: POST to /api/employees/:id/ban with banReason)
@@ -368,6 +374,7 @@ const Employees = () => {
     };
 
     const handleDelete = async () => {
+        if (guardGuestAction()) return;
         if (!employeeToDelete) return;
         setDeleting(true);
         try {
@@ -629,7 +636,7 @@ const Employees = () => {
                                 {/* Personal Info */}
                                 <div className="space-y-2 w-full md:w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewEmployee.name || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewEmployee.phone || '—'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewEmployee.email || '—'}</span></p>
@@ -639,7 +646,7 @@ const Employees = () => {
                                 {/* Employment Info */}
                                 <div className="space-y-2 w-full md:w-[26%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50 min-h-[110px]">
+                                    <div className="pt-4 uppercase space-y-2 min-h-[110px]">
                                         {['developer', 'tester'].includes((viewEmployee.category || '').toLowerCase()) ? (
                                             <>
                                                 <p className="text-sm flex items-center">
@@ -803,7 +810,7 @@ const Employees = () => {
                                         <textarea 
                                             value={banReason}
                                             onChange={(e) => setBanReason(e.target.value)}
-                                            className="w-full h-32 p-4 bg-white border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none transition-all resize-none font-medium text-gray-700 shadow-sm"
+                                            className="w-full h-32 p-4 bg-white uppercase border border-gray-200 mt-3 rounded-2xl text-sm focus:outline-none transition-all resize-none font-medium text-gray-700 shadow-sm"
                                             disabled={banSubmitting}
                                         />
                                     </div>
@@ -814,16 +821,9 @@ const Employees = () => {
                         {!banSuccess && (
                             <div className="px-8 pb-6 pt-1 bg-gray-50/50 border-t border-gray-100 flex gap-4">
                                 <button 
-                                    onClick={() => setBanEmployee(null)}
-                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
-                                    disabled={banSubmitting}
-                                >
-                                    Cancel Action
-                                </button>
-                                <button 
                                     onClick={handleBanSubmit}
                                     disabled={banSubmitting || !banReason.trim()}
-                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
                                 >
                                     {banSubmitting ? (
                                         <>
@@ -847,8 +847,8 @@ const Employees = () => {
             {isDeleteModalOpen && employeeToDelete && createPortal(
                             <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
                                 <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
-                                <div className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
-                                    <div className="p-2 mt-7 mb-1 flex items-center justify-between text-center flex-col gap-4">
+                                <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200">
+                                    <div className="p-2 mt-4 mb-1 flex items-center justify-between text-center flex-col gap-4">
                                         <div>
                                             <h3 className="text-2xl uppercase font-bold text-[#011023]">Remove Member</h3>
                                         </div>
@@ -862,12 +862,12 @@ const Employees = () => {
                                         </p>
                                     </div>
             
-                                    <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
-                                        <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95">CANCEL</button>
+                                    <div className="pt-5 pb-5 grid grid-cols-2 gap-3 px-5">
+                                        <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-xs active:scale-95">CANCEL</button>
                                         <button
                                             onClick={handleDelete}
                                             disabled={deleting}
-                                            className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-0"
+                                            className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-0"
                                         >
                                             {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
                                         </button>

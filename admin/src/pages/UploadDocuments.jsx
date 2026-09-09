@@ -8,10 +8,12 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
     const location = useLocation();
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [documents, setDocuments] = useState([]);
     const highlightedRow = useHighlight(documents, highlightId);
     const [loading, setLoading] = useState(true);
@@ -316,6 +318,7 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
     }, [fetchAllDocuments]);
 
     const handleDownload = async (fileUrl, label) => {
+        if (guardGuestAction()) return;
         if (!fileUrl || typeof fileUrl !== 'string' || (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://'))) {
             triggerAlert("The content is not available for the specific", "error");
             return;
@@ -347,6 +350,7 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
     };
 
     const confirmDeleteDocument = async () => {
+        if (guardGuestAction()) return;
         if (!docToDelete) return;
         try {
             setDeleting(true);
@@ -389,6 +393,7 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
     };
 
     const handleUpdateDocumentStatus = async (doc, newStatus) => {
+        if (guardGuestAction()) return;
         try {
             if (doc.entityId) {
                 localStorage.setItem(`doc_status_${doc.entityId}_${doc.docKey}`, newStatus);
@@ -420,6 +425,7 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
 
     const handleConfirmReject = async (e) => {
         if (e) e.preventDefault();
+        if (guardGuestAction()) return;
         if (!rejectingDoc || !actionRemarks.trim()) return;
 
         try {
@@ -736,12 +742,13 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleViewDocument(doc);
+                                                                if (guardGuestAction()) return;
+                                                                setDocToDelete(doc);
+                                                                setIsDeleteModalOpen(true);
                                                             }}
-                                                            className="text-gray-400 hover:text-blue-500 cursor-pointer transition-colors flex items-center justify-center"
-                                                            title="View Remark / Details"
+                                                            className="text-gray-400 hover:text-rose-500 cursor-pointer transition-colors flex items-center justify-center"
                                                         >
-                                                            <MessageSquare size={18} />
+                                                            <Trash2 size={18} />
                                                         </button>
                                                     )}
                                                 </div>

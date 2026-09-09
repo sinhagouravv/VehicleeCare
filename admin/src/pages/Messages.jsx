@@ -6,9 +6,11 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Messages = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [messages, setMessages] = useState([]);
     const highlightedRow = useHighlight(messages);
     const [loading, setLoading] = useState(true);
@@ -91,6 +93,7 @@ const Messages = () => {
     }, [fetchMessages]);
 
     const confirmDeleteMessage = async () => {
+        if (guardGuestAction()) return;
         if (!messageToDelete) return;
         setDeleting(true);
         try {
@@ -193,13 +196,13 @@ const Messages = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10%]">Message id</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Contact Info</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Source</th>
+                                <th className="p-4.5 font-bold text-center w-[14%]">Contact Info</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[16%]">Subject</th> */}
-                                <th className="p-4.5 font-bold text-center w-[38%]">Message preview</th>
+                                <th className="p-4.5 font-bold text-center w-[41%]">Message preview</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Source</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received at</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[6.5%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[5%]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -207,7 +210,7 @@ const Messages = () => {
                                 <TableSkeleton rows={15} cols={7} />
                             ) : filteredMessages.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan={7} className="p-8 text-center text-sm text-gray-500">
                                         No messages found.
                                     </td>
                                 </tr>
@@ -255,28 +258,30 @@ const Messages = () => {
                                                 <span>{message.messageId || message._id.substring(0, 7).toUpperCase()}</span>
                                             </div>
                                         </td>
-                                        <td className="p-4.5 text-center w-[14%]">
+                                        <td className="p-4.5 text-center">
                                             <div className="flex flex-col uppercase items-center justify-center">
                                                 <span className="font-semibold text-[#011023] text-center">{message.name}</span>
                                                 <span className="text-xs lowercase text-gray-500 text-center">{message.email}</span>
                                             </div>
-                                        </td>
-                                        <td className="p-4.5 text-center w-[10%]">
-                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${message.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                {message.type || 'website'}
-                                            </span>
                                         </td>
                                         {/* <td className="p-4.5 text-center uppercase w-[16%]">
                                             <span className={`font-semibold text-center ${!message.isRead ? 'text-[#011023]' : 'text-gray-500'}`}>
                                                 {message.type === 'business' ? 'Business inquiry' : message.subject}
                                             </span>
                                         </td> */}
-                                        <td className="p-4.5 text-center uppercase w-[38%]">
+                                        <td className="p-4.5 text-center uppercase">
                                             <span className={`text-sm text-center line-clamp-2 ${!message.isRead ? 'font-medium text-gray-800' : 'text-gray-500'}`}>
                                                 {message.message}
                                             </span>
                                         </td>
-                                        <td className="p-4.5 uppercase text-center w-[10%]">
+                                        <td className="p-4.5 text-center">
+                                            <div className="flex items-center justify-center w-full">
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${message.type === 'business' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    {message.type || 'website'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4.5 uppercase text-center">
                                             <div className="flex flex-col items-center justify-center">
                                                 <span className="text-sm font-semibold text-[#011023]">
                                                     {new Date(message.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -286,24 +291,26 @@ const Messages = () => {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="p-4.5 text-center w-[8%]">
-                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
-                                                message.isRead ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
-                                            }`}>
-                                                {message.isRead ? 'Read' : 'Unread'}
-                                            </span>
+                                        <td className="p-4.5 text-center">
+                                            <div className="flex items-center justify-center w-full">
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${
+                                                    message.isRead ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                                                }`}>
+                                                    {message.isRead ? 'Read' : 'Unread'}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="p-4.5 text-center w-[7%]">
-                                            <div className="flex justify-center gap-4">
+                                        <td className="p-4.5 text-center">
+                                            <div className="flex justify-center mr-2 gap-4">
                                                 <button
                                                     onClick={() => handleViewMessage(message)}
                                                     className={`text-gray-400 hover:text-blue-600`}
                                                 >
                                                     <Eye size={18} />
                                                 </button>
-                                                <button onClick={() => { setMessageToDelete(message._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500">
+                                                {/* <button onClick={() => { setMessageToDelete(message._id); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-500">
                                                     <Trash2 size={18} />
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </td>
                                     </tr>
@@ -311,7 +318,7 @@ const Messages = () => {
                             })}
                             {messages.length === 0 && (
                                 <tr>
-                                    <td colSpan="8" className="p-8 text-center text-gray-500 font-medium">
+                                    <td colSpan={7} className="p-8 text-center text-gray-500 font-medium">
                                         No messages found. Let's hope someone says hi!
                                     </td>
                                 </tr>

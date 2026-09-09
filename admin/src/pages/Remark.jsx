@@ -8,10 +8,12 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Remark = ({ isModal = false, onClose, highlightId }) => {
     const location = useLocation();
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [remarks, setRemarks] = useState([]);
     const highlightedRow = useHighlight(remarks, highlightId);
     const [loading, setLoading] = useState(true);
@@ -91,6 +93,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
     }, [fetchRemarks]);
 
     const handleUpdateStatus = async (id, status) => {
+        if (guardGuestAction()) return;
         setUpdatingId(id);
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/remarks/${id}/status`, {
@@ -117,6 +120,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
     };
 
     const handleDeleteRemark = async () => {
+        if (guardGuestAction()) return;
         if (!remarkToDelete) return;
         setDeleting(true);
         try {

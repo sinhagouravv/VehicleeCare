@@ -37,9 +37,11 @@ const EXCLUDED_EVENT_TYPES = new Set([
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Notifications = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]);
@@ -208,12 +210,14 @@ const Notifications = () => {
     }, [fetchNotifications]);
 
     const markRead = async (id) => {
+        if (guardGuestAction()) return;
         await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/read`, { method: 'PATCH' });
         setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
         setUnread(prev => Math.max(0, prev - 1));
     };
 
     const confirmDelete = async () => {
+        if (guardGuestAction()) return;
         if (!notifToDelete) return;
         setDeleting(true);
         try {

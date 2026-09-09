@@ -31,9 +31,11 @@ import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const ChargingStations = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [stations, setStations] = useState(initialStations);
     const highlightedRow = useHighlight(stations);
     const [loading, setLoading] = useState(false);
@@ -161,6 +163,7 @@ const ChargingStations = () => {
     }, [form.state, form.district, form.address]);
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         if (!form.name.trim()) return triggerAlert('Station name is required', 'error');
         setSaving(true);
         try {
@@ -202,6 +205,7 @@ const ChargingStations = () => {
     };
 
     const confirmDeleteStation = async () => {
+        if (guardGuestAction()) return;
         if (!stationToDelete) return;
         setDeleting(true);
         try {
@@ -297,8 +301,8 @@ const ChargingStations = () => {
                                 <th className="p-4 font-bold text-center w-[25%]">Location</th>
                                 <th className="p-4 font-bold text-center w-[8%]">Ports</th>
                                 <th className="p-4 font-bold text-center w-[25%]">Charger Type</th>
-                                <th className="p-4 font-bold text-center w-[10%]">Is working</th>
-                                <th className="p-4 font-bold text-center w-[10%]">Manage</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Status</th>
+                                <th className="p-4 font-bold text-center w-[10%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] uppercase divide-[#e6f0fa]">
@@ -767,34 +771,31 @@ const ChargingStations = () => {
             )}
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
-                <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm transition-all duration-300"
-                    onClick={() => { setIsDeleteModalOpen(false); setStationToDelete(null); }}
-                >
-                    <div 
-                        className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="p-8 text-center uppercase space-y-4">
-                            <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Remove Station</h3>
-                            <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-                                This will permanently remove the charging station <span className="text-[#052558] font-bold uppercase">{stations.find(s => s.id === stationToDelete)?.name}</span>. <br/>
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsDeleteModalOpen(false); setStationToDelete(null); }} />
+                    <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-2 mt-4 mb-1 flex items-center justify-between text-center flex-col gap-4">
+                            <div>
+                                <h3 className="text-2xl uppercase font-bold text-[#011023]">Remove Station</h3>
+                            </div>
+                        </div>
+
+                        <div className="p-5 text-center uppercase tracking-tight">
+                            <h4 className="font-bold text-[#011023] mb-5">{stations.find(s => s.id === stationToDelete)?.name}</h4>
+                            <p className="text-gray-500 text-[13px] leading-relaxed">
+                                Are you sure you want to permanently remove this charging station? <br />
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
-                        <div className="p-2 bg-gray-50/80 border-t border-gray-100 grid grid-cols-2 gap-3 pb-8 px-8">
-                            <button 
-                                onClick={() => { setIsDeleteModalOpen(false); setStationToDelete(null); }}
-                                className="px-4 py-3.5 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95"
-                            >
-                                Cancel
-                            </button>
-                            <button 
+
+                        <div className="pt-5 pb-5 grid grid-cols-2 gap-3 px-5">
+                            <button onClick={() => { setIsDeleteModalOpen(false); setStationToDelete(null); }} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-xs active:scale-95">CANCEL</button>
+                            <button
                                 onClick={confirmDeleteStation}
                                 disabled={deleting}
-                                className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                                className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-0"
                             >
-                                {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
+                                {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
                             </button>
                         </div>
                     </div>

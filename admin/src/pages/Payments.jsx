@@ -8,6 +8,7 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const isPendingCOD = (payment) => {
     if (!payment) return false;
@@ -18,6 +19,7 @@ const isPendingCOD = (payment) => {
 
 const Payments = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [payments, setPayments] = useState([]);
     const highlightedRow = useHighlight(payments);
     const [loading, setLoading] = useState(true);
@@ -130,6 +132,7 @@ const Payments = () => {
     };
 
     const handleDownloadInvoice = (payment) => {
+        if (guardGuestAction()) return;
         try {
             const doc = new jsPDF();
             const primaryColor = [5, 37, 88];
@@ -238,7 +241,7 @@ const Payments = () => {
     }, [filteredPayments.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9rem)] flex flex-col">
+        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Payments</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -408,6 +411,7 @@ const Payments = () => {
                     </table>
                 </div>
             </div>
+
             {/* View Details Modal */}
             {isViewModalOpen && selectedPayment && createPortal(
                 <div
@@ -426,7 +430,7 @@ const Payments = () => {
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                className="text-gray-400 hover:text-gray-600  transition-colors"
                             >
                                 <X size={20} />
                             </button>
@@ -434,11 +438,11 @@ const Payments = () => {
 
                         <div className="p-6 overflow-y-auto flex-1 space-y-6">
                             {/* Top Row */}
-                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                            <div className="flex flex-col md:flex-row mb-8 gap-4 w-full">
                                 {/* Customer Info */}
                                 <div className="space-y-3 w-full md:w-[42%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
-                                    <div className="p-4 rounded-xl uppercase space-y-2">
+                                    <div className="pt-3 uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800">{selectedPayment.user?.userId || 'N/A'}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedPayment.user?.email || 'N/A'}</span></p>
@@ -491,9 +495,9 @@ const Payments = () => {
                             {/* Transaction Details */}
                             <div className="space-y-3">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Transaction Details</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-2 rounded-xl shadow-sm">
+                                <div className="pt-1">
                                     <div className="flex gap-4">
-                                        <div className="rounded-xl px-4 py-2 flex-[2]">
+                                        <div className="rounded-xl px- py-2 flex-[2]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Transaction ID</p>
                                             <p className="text-sm text-[#011023] font-semibold">{selectedPayment.transactionId || 'N/A'}</p>
                                         </div>

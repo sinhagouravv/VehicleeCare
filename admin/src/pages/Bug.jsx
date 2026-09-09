@@ -8,10 +8,12 @@ import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Bug = ({ isModal = false, onClose, highlightId }) => {
     const location = useLocation();
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [bugs, setBugs] = useState([]);
     const highlightedRow = useHighlight(bugs, highlightId);
     const [loading, setLoading] = useState(true);
@@ -109,6 +111,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     }, [fetchBugs]);
 
     const handleUpdateStatus = async (id, status) => {
+        if (guardGuestAction()) return;
         setUpdatingId(id);
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${id}/status`, {
@@ -135,6 +138,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     };
 
     const handleConfirmSeverityAndProgress = async () => {
+        if (guardGuestAction()) return;
         if (!bugForSeverity) return;
         setSubmittingSeverity(true);
         try {
@@ -164,6 +168,7 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
     };
 
     const handleDeleteBug = async () => {
+        if (guardGuestAction()) return;
         if (!bugToDelete) return;
         setDeleting(true);
         try {
