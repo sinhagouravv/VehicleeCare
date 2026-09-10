@@ -11,6 +11,7 @@ import BugModal from '../pages/Bug';
 import RemarkModal from '../pages/Remark';
 import UploadDocumentsModal from '../pages/UploadDocuments';
 import RequestModal from '../pages/Request';
+import GuestWelcomeModal from './GuestWelcomeModal';
 
 const Layout = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -251,6 +252,7 @@ const Layout = () => {
 
     return (
         <div className="min-h-screen bg-[#fafbfc] flex text-[#011023] font-sans">
+            <GuestWelcomeModal />
             {/* Ambient Background Elements */}
             <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-300/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-5%] w-[30%] h-[50%] bg-blue-400/5 rounded-full blur-[150px] pointer-events-none"></div>

@@ -7,9 +7,11 @@ export const isGuestUser = () => {
         const user = JSON.parse(stored);
         return (
             user?.role === 'guest_admin' ||
+            user?.role === 'guest' ||
             user?.isGuest === true ||
             user?.id === 'G184592037461' ||
-            user?.email === 'guestadmin@vehicleecare.com'
+            user?.email === 'guestadmin@vehicleecare.com' ||
+            (typeof user?.email === 'string' && user.email.toLowerCase().includes('guest'))
         );
     } catch (e) {
         return false;

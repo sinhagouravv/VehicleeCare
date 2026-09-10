@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FileBarChart, Loader2, TrendingUp, TrendingDown, ClipboardList, CheckCircle, Clock, AlertCircle, Shield, Briefcase, Activity } from 'lucide-react';
 import { SkeletonBlock } from '../components/Skeleton';
+import useGuestGuard from '../hooks/useGuestGuard';
+import GuestRestrictedOverlay from '../components/GuestRestrictedOverlay';
 
 const Reports = () => {
+    const { isGuest } = useGuestGuard();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -56,7 +59,8 @@ const Reports = () => {
     }, [bookings]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className="relative space-y-6 max-w-[92rem] mx-auto">
+            {isGuest && <GuestRestrictedOverlay />}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">System Operational Reports</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
@@ -73,43 +77,44 @@ const Reports = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-blue-50 text-[#527FB0] rounded-xl group-hover:scale-110 transition-transform"><ClipboardList size={24} /></div>
-                        <span className="text-[10px] font-black bg-blue-50 text-[#527FB0] px-2 py-1 rounded-lg uppercase">System Load</span>
+            <div className={`space-y-6 ${isGuest ? 'filter blur-md select-none pointer-events-none opacity-40' : ''}`}>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="p-3 bg-blue-50 text-[#527FB0] rounded-xl group-hover:scale-110 transition-transform"><ClipboardList size={24} /></div>
+                            <span className="text-[10px] font-black bg-blue-50 text-[#527FB0] px-2 py-1 rounded-lg uppercase">System Load</span>
+                        </div>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Requests</p>
+                        <h3 className="text-2xl font-black text-[#011023]">{stats.total}</h3>
                     </div>
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Requests</p>
-                    <h3 className="text-2xl font-black text-[#011023]">{stats.total}</h3>
-                </div>
 
-                <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform"><CheckCircle size={24} /></div>
-                        <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg uppercase">Success</span>
+                    <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform"><CheckCircle size={24} /></div>
+                            <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg uppercase">Success</span>
+                        </div>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Completed</p>
+                        <h3 className="text-2xl font-black text-[#011023]">{stats.completed}</h3>
                     </div>
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Completed</p>
-                    <h3 className="text-2xl font-black text-[#011023]">{stats.completed}</h3>
-                </div>
 
-                <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform"><Activity size={24} /></div>
-                        <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-2 py-1 rounded-lg uppercase">Efficiency</span>
+                    <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform"><Activity size={24} /></div>
+                            <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-2 py-1 rounded-lg uppercase">Efficiency</span>
+                        </div>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Operational Precision</p>
+                        <h3 className="text-2xl font-black text-[#011023]">{stats.efficiency}%</h3>
                     </div>
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Operational Precision</p>
-                    <h3 className="text-2xl font-black text-[#011023]">{stats.efficiency}%</h3>
-                </div>
 
-                <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform"><Shield size={24} /></div>
-                        <span className="text-[10px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-lg uppercase">Coverage</span>
+                    <div className="bg-white/70 backdrop-blur-md border border-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform"><Shield size={24} /></div>
+                            <span className="text-[10px] font-black bg-purple-50 text-purple-600 px-2 py-1 rounded-lg uppercase">Coverage</span>
+                        </div>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Active Garages</p>
+                        <h3 className="text-2xl font-black text-[#011023]">{stats.garagesCount}</h3>
                     </div>
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Active Garages</p>
-                    <h3 className="text-2xl font-black text-[#011023]">{stats.garagesCount}</h3>
                 </div>
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white/60 backdrop-blur-xl border border-white p-8 rounded-3xl shadow-sm">
@@ -157,6 +162,7 @@ const Reports = () => {
                 </div>
             </div>
         </div>
+    </div>
     );
 };
 

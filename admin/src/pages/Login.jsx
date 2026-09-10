@@ -179,7 +179,8 @@ const Login = () => {
             if (res.ok && !data.requires2FA) {
                 localStorage.setItem('adminToken', data.token);
                 localStorage.setItem('adminUser', JSON.stringify(data.admin));
-                navigate('/dashboard');
+                sessionStorage.removeItem('guestWelcomeDismissed');
+                navigate('/');
             } else if (data.requires2FA) {
                 setShowOTPModal(true);
             } else {

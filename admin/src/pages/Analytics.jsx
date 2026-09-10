@@ -3,6 +3,8 @@ import { TrendingUp, Users, DollarSign, Activity, BarChart2, PieChart } from 'lu
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RePieChart, Pie, Cell } from 'recharts';
 import { SkeletonBlock } from '../components/Skeleton';
 import { defaultServicesList } from '../data/servicesData';
+import useGuestGuard from '../hooks/useGuestGuard';
+import GuestRestrictedOverlay from '../components/GuestRestrictedOverlay';
 
 const chartData = [
     { name: 'Mon', revenue: 45, booking: 3, charging: 5, users: 2 },
@@ -14,6 +16,7 @@ const chartData = [
 ];
 
 const Analytics = () => {
+    const { isGuest } = useGuestGuard();
     const [activeChartTab, setActiveChartTab] = useState('REVENUE');
     const [dynamicChartData, setDynamicChartData] = useState([]);
     const [popularServices, setPopularServices] = useState([]);
@@ -343,8 +346,9 @@ const Analytics = () => {
     };
 
     return (
-        <div className="space-y-3 max-w-[92rem] mx-auto ">
-            <div className="flex justify-between items-center">
+        <div className="relative space-y-6 max-w-[92rem] mx-auto">
+            {isGuest && <GuestRestrictedOverlay />}
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Analytics Overview</h1>
                 <div className="flex gap-3 justify-between">
                     <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -357,8 +361,8 @@ const Analytics = () => {
                 </div>
             </div>
 
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className={`space-y-6 ${isGuest ? 'filter blur-md select-none pointer-events-none opacity-40' : ''}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {/* revenue Cards */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-lg font-bold uppercase tracking-tight">Revenue</h2>
@@ -783,8 +787,8 @@ const Analytics = () => {
                     </div>
                 </div>
             </div>
-        </div >
-
+        </div>
+    </div>
     );
 };
 
