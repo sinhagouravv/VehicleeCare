@@ -51,7 +51,72 @@ import useGuestGuard from '../hooks/useGuestGuard';
 
 const Garages = () => {
     const { triggerAlert } = useAlert();
-    const { guardGuestAction } = useGuestGuard();
+    const { isGuest, guardGuestAction } = useGuestGuard();
+
+    const maskEmail = (email) => {
+        if (!email || email === 'N/A' || email === '—') return email || '—';
+        if (!isGuest) return email;
+        const parts = email.split('@');
+        if (parts.length !== 2) return '••••••••••••';
+        const [user, domain] = parts;
+        const maskedUser = user.length > 3 
+            ? `${user.slice(0, 2)}${'*'.repeat(Math.max(4, user.length - 4))}${user.slice(-2)}`
+            : `${user[0] || ''}***`;
+        const domainParts = domain.split('.');
+        const maskedDomain = domainParts[0].length > 2 
+            ? `${domainParts[0][0]}***${domainParts[0].slice(-1)}`
+            : '***';
+        return `${maskedUser}@${maskedDomain}.${domainParts.slice(1).join('.')}`;
+    };
+
+    const maskPhone = (phone) => {
+        if (!phone || phone === '—' || phone === 'N/A') return phone || '—';
+        if (!isGuest) return phone;
+        const str = String(phone).trim();
+        if (str.length <= 4) return '••••••••';
+        return `${str.slice(0, 2)}${'*'.repeat(Math.max(4, str.length - 4))}${str.slice(-2)}`;
+    };
+
+    const maskAddress = (address) => {
+        if (!address || address === '—' || address === 'N/A' || address === 'No Address Provided') return address || '—';
+        if (!isGuest) return address;
+        const str = String(address).trim();
+        if (str.length <= 6) return '••••••••';
+        return `${str.slice(0, 3)}${'*'.repeat(Math.max(6, str.length - 6))}${str.slice(-3)}`;
+    };
+
+    const maskDoc = (val) => {
+        if (!val || val === '—' || val === 'N/A') return val || '—';
+        if (!isGuest) return val;
+        const str = String(val).trim();
+        if (str.length <= 4) return '••••••••';
+        return `${str.slice(0, 2)}${'*'.repeat(Math.max(4, str.length - 4))}${str.slice(-2)}`;
+    };
+
+    const formatDocNumberLocal = (...vals) => {
+        for (const val of vals) {
+            if (val && typeof val === 'string') {
+                const trimmed = val.trim();
+                if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.includes('cloudinary')) {
+                    if (isGuest) {
+                        if (trimmed.length <= 4) return '••••••••';
+                        return `${trimmed.slice(0, 2)}${'*'.repeat(Math.max(4, trimmed.length - 4))}${trimmed.slice(-2)}`;
+                    }
+                    return trimmed;
+                }
+            }
+        }
+        return '—';
+    };
+
+    const isRealValue = (val) => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === '—' || str === '-' || str.toUpperCase() === 'N/A') return false;
+        if (str.toLowerCase().startsWith('no ') || str.toLowerCase().includes('no address')) return false;
+        return true;
+    };
+
     const [garages, setGarages] = useState([]);
     const highlightedRow = useHighlight(garages);
     // Add highlightedRow state for visual feedback
@@ -673,11 +738,11 @@ const Garages = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Contact</label>
-                                    <input readOnly value={form.ownerContact || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
+                                    <input readOnly value={maskPhone(form.ownerContact || '')} placeholder="—" className={`w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed ${isGuest && isRealValue(form.ownerContact) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Owner Email</label>
-                                    <input readOnly value={form.ownerEmail || ''} placeholder="—" className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
+                                    <input readOnly value={maskEmail(form.ownerEmail || '')} placeholder="—" className={`w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed ${isGuest && isRealValue(form.ownerEmail) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                 </div>
                             </div>
 
@@ -821,8 +886,8 @@ const Garages = () => {
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Owner Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewTarget.ownerName || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerContact || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewTarget.ownerEmail || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(viewTarget.ownerContact) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(viewTarget.ownerContact)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-17 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(viewTarget.ownerEmail) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(viewTarget.ownerEmail)}</span></p>
                                     </div>
                                 </div>
 
@@ -891,37 +956,37 @@ const Garages = () => {
                                         <div className="flex justify-start w-[15%] shrink-0">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">Owner's PAN Card</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewTarget.panCardNumber, viewTarget.panNumber, viewTarget.panCard)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumberLocal(viewTarget.panCardNumber, viewTarget.panNumber, viewTarget.panCard)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumberLocal(viewTarget.panCardNumber, viewTarget.panNumber, viewTarget.panCard)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-center w-[20%] shrink-0">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">Owner's Aadhaar Card</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewTarget.adharCardNumber, viewTarget.adharNumber, viewTarget.aadhaarCard, viewTarget.adharCard)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumberLocal(viewTarget.adharCardNumber, viewTarget.adharNumber, viewTarget.aadhaarCard, viewTarget.adharCard)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumberLocal(viewTarget.adharCardNumber, viewTarget.adharNumber, viewTarget.aadhaarCard, viewTarget.adharCard)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-center w-[17%] shrink-0">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">Owner's Voter ID</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewTarget.voterIdNumber, viewTarget.voterNumber, viewTarget.voterId)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumberLocal(viewTarget.voterIdNumber, viewTarget.voterNumber, viewTarget.voterId)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumberLocal(viewTarget.voterIdNumber, viewTarget.voterNumber, viewTarget.voterId)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-center w-[18%] shrink-0">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">GST Number</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{viewTarget.gstNumber || '—'}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(viewTarget.gstNumber) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskDoc(viewTarget.gstNumber)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-center w-[10%] shrink-0">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">SAC Code</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{viewTarget.sacCode || '—'}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(viewTarget.sacCode) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskDoc(viewTarget.sacCode)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-end mr-1 w-[9%] shrink-0">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1 whitespace-nowrap">HSN Code</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{viewTarget.hsnCode || '—'}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(viewTarget.hsnCode) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskDoc(viewTarget.hsnCode)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -935,7 +1000,7 @@ const Garages = () => {
                                     <p className="text-xs font-semibold text-gray-400 tracking-tight mb-1 flex justify-between items-center">
                                         {/* <span className="text-[10px] text-gray-400 font-semibold">{viewTarget.district || '—'}, {viewTarget.state || '—'} &bull; {viewTarget.coordinates || '—'}</span> */}
                                     </p>
-                                    <h5 className="font-semibold text-[#052558] text-sm">{viewTarget.address || 'No Address Provided'}</h5>
+                                    <h5 className={`font-semibold text-[#052558] text-sm ${isGuest && isRealValue(viewTarget.address) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskAddress(viewTarget.address)}</h5>
                                 </div>
                             </div>
                         </div>
@@ -994,7 +1059,7 @@ const Garages = () => {
                                                         <div className="text-xs font-semibold text-[#011023] uppercase tracking-tight">{employee.name}</div>
                                                     </td>
                                                     <td className="p-4 text-center">
-                                                        <div className="text-xs font-semibold tracking-wider whitespace-nowrap">{employee.phone || '—'}</div>
+                                                        <div className={`text-xs font-semibold tracking-wider whitespace-nowrap ${isGuest && isRealValue(employee.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(employee.phone)}</div>
                                                     </td>
                                                     <td className="p-4 text-center px-6">
                                                         <span className={`inline-block px-3 py-1 text-[11px] font-bold uppercase rounded-full ${

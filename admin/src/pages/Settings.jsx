@@ -3,10 +3,30 @@ import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car, Database, FileText,
 import { defaultServicesList } from '../data/servicesData';
 import { useAlert } from '../context/AlertContext';
 import useGuestGuard from '../hooks/useGuestGuard';
+import ToggleSwitch from '../components/ui/toggle-switch-glass';
 
 const Settings = () => {
     const { triggerAlert } = useAlert();
-    const { guardGuestAction } = useGuestGuard();
+    const { isGuest, guardGuestAction } = useGuestGuard();
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+    const isRealValue = (val) => {
+        if (val === undefined || val === null) return false;
+        const str = String(val).trim();
+        if (!str || str === '—' || str === '-' || str.toUpperCase() === 'N/A') return false;
+        return true;
+    };
+
+    const formatDocNumberLocal = (doc) => {
+        if (!doc) return '';
+        const str = String(doc).trim();
+        if (!str || str === '—' || str === '-' || str.toUpperCase() === 'N/A') return str;
+        if (isGuest) {
+            if (str.length <= 4) return '****';
+            return str.slice(0, 2) + '****' + str.slice(-2);
+        }
+        return str;
+    };
     const [activeTab, setActiveTab] = useState('general');
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
     const [activeRecordTab, setActiveRecordTab] = useState('booking');
@@ -303,7 +323,7 @@ const Settings = () => {
                     >
                         <Wrench size={18} /> MAINTENANCE
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => setActiveTab('records')}
                         className={getTabClass('records')}
                     >
@@ -314,7 +334,7 @@ const Settings = () => {
                         className={getTabClass('log')}
                     >
                         <FileText size={18} /> LOG
-                    </button>
+                    </button> */}
                 </div>
 
                 {/* Main Settings Content */}
@@ -398,19 +418,19 @@ const Settings = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">GST Number</label>
-                                            <input type="text" maxLength="15" value={generalSettings.gstNumber} onChange={e => handleGeneralChange('gstNumber', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="text" maxLength="15" value={isGuest ? formatDocNumberLocal(generalSettings.gstNumber) : generalSettings.gstNumber} onChange={e => handleGeneralChange('gstNumber', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(generalSettings.gstNumber) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">PAN Number</label>
-                                            <input type="text" maxLength="10" value={generalSettings.panNumber} onChange={e => handleGeneralChange('panNumber', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="text" maxLength="10" value={isGuest ? formatDocNumberLocal(generalSettings.panNumber) : generalSettings.panNumber} onChange={e => handleGeneralChange('panNumber', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(generalSettings.panNumber) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">CIN</label>
-                                            <input type="text" maxLength="21" value={generalSettings.cin} onChange={e => handleGeneralChange('cin', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="text" maxLength="21" value={isGuest ? formatDocNumberLocal(generalSettings.cin) : generalSettings.cin} onChange={e => handleGeneralChange('cin', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(generalSettings.cin) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">HSN/SAC Code</label>
-                                            <input type="text" maxLength="6" value={generalSettings.hsnSacCode} onChange={e => handleGeneralChange('hsnSacCode', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="text" maxLength="6" value={isGuest ? formatDocNumberLocal(generalSettings.hsnSacCode) : generalSettings.hsnSacCode} onChange={e => handleGeneralChange('hsnSacCode', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(generalSettings.hsnSacCode) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                     </div>
                                 </div>
@@ -425,7 +445,7 @@ const Settings = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">Default Currency</label>
-                                            <select value={generalSettings.defaultCurrency} onChange={e => handleGeneralChange('defaultCurrency', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023]">
+                                            <select value={generalSettings.defaultCurrency} onChange={e => handleGeneralChange('defaultCurrency', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] appearance-none">
                                                 <option>INR (₹)</option>
                                                 <option>USD ($)</option>
                                                 <option>EUR (€)</option>
@@ -434,7 +454,7 @@ const Settings = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">Timezone</label>
-                                            <select value={generalSettings.timezone} onChange={e => handleGeneralChange('timezone', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023]">
+                                            <select value={generalSettings.timezone} onChange={e => handleGeneralChange('timezone', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] appearance-none">
                                                 <option>Asia/Kolkata (IST)</option>
                                                 <option>UTC (GMT)</option>
                                                 <option>America/New_York (EST)</option>
@@ -443,7 +463,7 @@ const Settings = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">Date Format</label>
-                                            <select value={generalSettings.dateFormat} onChange={e => handleGeneralChange('dateFormat', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023]">
+                                            <select value={generalSettings.dateFormat} onChange={e => handleGeneralChange('dateFormat', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] appearance-none">
                                                 <option>DD/MM/YYYY</option>
                                                 <option>MM/DD/YYYY</option>
                                                 <option>YYYY-MM-DD</option>
@@ -451,7 +471,7 @@ const Settings = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px]  font-semibold  text-gray-700">Language</label>
-                                            <select value={generalSettings.language} onChange={e => handleGeneralChange('language', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#527FB0]/30 text-sm font-medium text-[#011023]">
+                                            <select value={generalSettings.language} onChange={e => handleGeneralChange('language', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] appearance-none">
                                                 <option>English</option>
                                                 <option>Hindi</option>
                                             </select>
@@ -522,20 +542,20 @@ const Settings = () => {
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-[13px] uppercase">Enable 2FA (OTP via Email/SMS)</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={securitySettings.enable2FA} onChange={e => handleSecurityChange('enable2FA', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={securitySettings.enable2FA}
+                                                onChange={val => handleSecurityChange('enable2FA', val)}
+                                            />
                                         </div>
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-[13px] uppercase">Authenticator App Support</h3>
                                                 <p className="text-xs text-gray-500 mt-0.5">(Google Authenticator)</p>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={securitySettings.authenticatorApp} onChange={e => handleSecurityChange('authenticatorApp', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={securitySettings.authenticatorApp}
+                                                onChange={val => handleSecurityChange('authenticatorApp', val)}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -550,15 +570,15 @@ const Settings = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 ">
                                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                             <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Last Login Time</p>
-                                            <p className="font-bold text-[#011023] text-sm">{securitySettings.lastLoginTime}</p>
+                                            <p className={`font-bold text-[#011023] text-sm ${isGuest && isRealValue(securitySettings.lastLoginTime) ? 'blur-sm select-none pointer-events-none' : ''}`}>{securitySettings.lastLoginTime}</p>
                                         </div>
                                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                             <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Last Login IP Address</p>
-                                            <p className="font-bold text-[#011023] text-sm">{securitySettings.lastLoginIp}</p>
+                                            <p className={`font-bold text-[#011023] text-sm ${isGuest && isRealValue(securitySettings.lastLoginIp) ? 'blur-sm select-none pointer-events-none' : ''}`}>{securitySettings.lastLoginIp}</p>
                                         </div>
                                         <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                                             <p className="text-xs text-blue-500 uppercase font-semibold mb-1">Active Sessions</p>
-                                            <p className="font-bold text-blue-900 text-sm">{securitySettings.activeSessions} Devices</p>
+                                            <p className={`font-bold text-blue-900 text-sm ${isGuest && isRealValue(securitySettings.activeSessions) ? 'blur-sm select-none pointer-events-none' : ''}`}>{securitySettings.activeSessions} Devices</p>
                                         </div>
                                         <div>
                                         <button onClick={handleLogoutAllDevices} className="px-5 py-2.5 bg-red-50 text-red-600 border border-red-100 font-bold rounded-xl shadow-sm hover:bg-red-100 transition-colors uppercase text-[13px]">
@@ -579,21 +599,21 @@ const Settings = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Auto Logout After (Minutes)</label>
-                                            <input type="number" value={securitySettings.autoLogoutMinutes} onChange={e => handleSecurityChange('autoLogoutMinutes', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="number" value={securitySettings.autoLogoutMinutes} onChange={e => handleSecurityChange('autoLogoutMinutes', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(securitySettings.autoLogoutMinutes) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Max Concurrent Sessions</label>
-                                            <input type="number" value={securitySettings.maxConcurrentSessions} onChange={e => handleSecurityChange('maxConcurrentSessions', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="number" value={securitySettings.maxConcurrentSessions} onChange={e => handleSecurityChange('maxConcurrentSessions', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(securitySettings.maxConcurrentSessions) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="pt-8">
                                             <div className="flex items-center justify-between py-2">
                                                 <div>
                                                     <h3 className="font-bold text-[#011023] text-[13px] uppercase">Remember Me Option</h3>
                                                 </div>
-                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" checked={securitySettings.rememberMe} onChange={e => handleSecurityChange('rememberMe', e.target.checked)} className="sr-only peer" />
-                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                </label>
+                                                <ToggleSwitch
+                                                    isActive={securitySettings.rememberMe}
+                                                    onChange={val => handleSecurityChange('rememberMe', val)}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -609,21 +629,21 @@ const Settings = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Lock Account After (Failed Attempts)</label>
-                                            <input type="number" value={securitySettings.lockAfterFailedAttempts} onChange={e => handleSecurityChange('lockAfterFailedAttempts', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="number" value={securitySettings.lockAfterFailedAttempts} onChange={e => handleSecurityChange('lockAfterFailedAttempts', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(securitySettings.lockAfterFailedAttempts) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[14.5px] font-semibold text-gray-700 uppercase">Password Expiry (Days)</label>
-                                            <input type="number" value={securitySettings.passwordExpiryDays} onChange={e => handleSecurityChange('passwordExpiryDays', e.target.value)} className="w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023]" />
+                                            <input type="number" value={securitySettings.passwordExpiryDays} onChange={e => handleSecurityChange('passwordExpiryDays', e.target.value)} className={`w-full text-[13px] px-4 py-2.5 mt-1.5 uppercase bg-white border border-blue-100 rounded-xl focus:outline-none text-sm font-medium text-[#011023] ${isGuest && isRealValue(securitySettings.passwordExpiryDays) ? 'blur-sm select-none pointer-events-none' : ''}`} />
                                         </div>
                                         <div className="pt-8">
                                             <div className="flex items-center justify-between py-2">
                                                 <div>
                                                     <h3 className="font-bold text-[#011023] text-[13px] uppercase">Enforce Strong Password Policy</h3>
                                                 </div>
-                                                <label className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" checked={securitySettings.enforceStrongPassword} onChange={e => handleSecurityChange('enforceStrongPassword', e.target.checked)} className="sr-only peer" />
-                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                </label>
+                                                <ToggleSwitch
+                                                    isActive={securitySettings.enforceStrongPassword}
+                                                    onChange={val => handleSecurityChange('enforceStrongPassword', val)}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -645,63 +665,63 @@ const Settings = () => {
                                 <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 
-                                        <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
+                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">New Booking Alert</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.newBookingAlert} onChange={e => handleNotificationChange('newBookingAlert', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.newBookingAlert}
+                                                onChange={val => handleNotificationChange('newBookingAlert', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Booking Cancelled</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.bookingCancelled} onChange={e => handleNotificationChange('bookingCancelled', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.bookingCancelled}
+                                                onChange={val => handleNotificationChange('bookingCancelled', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Booking Rescheduled</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.bookingRescheduled} onChange={e => handleNotificationChange('bookingRescheduled', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.bookingRescheduled}
+                                                onChange={val => handleNotificationChange('bookingRescheduled', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Service Completed</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.serviceCompleted} onChange={e => handleNotificationChange('serviceCompleted', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.serviceCompleted}
+                                                onChange={val => handleNotificationChange('serviceCompleted', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Pickup Assigned</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.pickupAssigned} onChange={e => handleNotificationChange('pickupAssigned', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.pickupAssigned}
+                                                onChange={val => handleNotificationChange('pickupAssigned', val)}
+                                            />
                                         </div>
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Pickup Completed</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.pickupAssigned} onChange={e => handleNotificationChange('pickupAssigned', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.pickupAssigned}
+                                                onChange={val => handleNotificationChange('pickupAssigned', val)}
+                                            />
                                         </div>
 
                                     </div>
@@ -720,30 +740,30 @@ const Settings = () => {
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Payment Received</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.paymentReceived} onChange={e => handleNotificationChange('paymentReceived', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.paymentReceived}
+                                                onChange={val => handleNotificationChange('paymentReceived', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Payment Failed</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.paymentFailed} onChange={e => handleNotificationChange('paymentFailed', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.paymentFailed}
+                                                onChange={val => handleNotificationChange('paymentFailed', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Refund Issued</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.refundIssued} onChange={e => handleNotificationChange('refundIssued', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.refundIssued}
+                                                onChange={val => handleNotificationChange('refundIssued', val)}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -761,30 +781,30 @@ const Settings = () => {
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">New Garage Registration</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.newGarageRegistration} onChange={e => handleNotificationChange('newGarageRegistration', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.newGarageRegistration}
+                                                onChange={val => handleNotificationChange('newGarageRegistration', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Garage Approval Request</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.garageApprovalRequest} onChange={e => handleNotificationChange('garageApprovalRequest', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.garageApprovalRequest}
+                                                onChange={val => handleNotificationChange('garageApprovalRequest', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Garage Suspended</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.garageSuspended} onChange={e => handleNotificationChange('garageSuspended', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.garageSuspended}
+                                                onChange={val => handleNotificationChange('garageSuspended', val)}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -802,30 +822,30 @@ const Settings = () => {
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">New User Registration</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.newUserRegistration} onChange={e => handleNotificationChange('newUserRegistration', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.newUserRegistration}
+                                                onChange={val => handleNotificationChange('newUserRegistration', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Suspicious Activity</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.suspiciousActivity} onChange={e => handleNotificationChange('suspiciousActivity', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.suspiciousActivity}
+                                                onChange={val => handleNotificationChange('suspiciousActivity', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Multiple Failed Logins</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.multipleFailedLogins} onChange={e => handleNotificationChange('multipleFailedLogins', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.multipleFailedLogins}
+                                                onChange={val => handleNotificationChange('multipleFailedLogins', val)}
+                                            />
                                         </div>
 
                                     </div>
@@ -844,30 +864,30 @@ const Settings = () => {
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Server Maintenance</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.serverMaintenance} onChange={e => handleNotificationChange('serverMaintenance', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.serverMaintenance}
+                                                onChange={val => handleNotificationChange('serverMaintenance', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">System Errors</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.systemErrors} onChange={e => handleNotificationChange('systemErrors', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.systemErrors}
+                                                onChange={val => handleNotificationChange('systemErrors', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Feature Updates</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={notificationSettings.featureUpdates} onChange={e => handleNotificationChange('featureUpdates', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={notificationSettings.featureUpdates}
+                                                onChange={val => handleNotificationChange('featureUpdates', val)}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -946,44 +966,44 @@ const Settings = () => {
                                 <div className="pt-3 pl-6 pr-5 pb-5 uppercase">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 
-                                        <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
+                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Enable UPI</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={billingSettings.enableUpi} onChange={e => handleBillingChange('enableUpi', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={billingSettings.enableUpi}
+                                                onChange={val => handleBillingChange('enableUpi', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-sm uppercase">Enable Card</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={billingSettings.enableCard} onChange={e => handleBillingChange('enableCard', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={billingSettings.enableCard}
+                                                onChange={val => handleBillingChange('enableCard', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-[12.5px] uppercase">Enable Cash (COD)</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={billingSettings.enableCash} onChange={e => handleBillingChange('enableCash', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={billingSettings.enableCash}
+                                                onChange={val => handleBillingChange('enableCash', val)}
+                                            />
                                         </div>
 
                                         <div className="flex items-center justify-between p-4 bg-white border border-blue-50 rounded-xl">
                                             <div>
                                                 <h3 className="font-bold text-[#011023] text-[12.5px] uppercase">Auto Refund</h3>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" checked={billingSettings.autoRefund} onChange={e => handleBillingChange('autoRefund', e.target.checked)} className="sr-only peer" />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                            </label>
+                                            <ToggleSwitch
+                                                isActive={billingSettings.autoRefund}
+                                                onChange={val => handleBillingChange('autoRefund', val)}
+                                            />
                                         </div>
 
                                     </div>
@@ -1034,10 +1054,10 @@ const Settings = () => {
                                         <h3 className="font-bold text-orange-800 text-sm">Maintenance Mode</h3>
                                         <p className="text-xs text-orange-600 mt-0.5">Disable customer access during system updates.</p>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                                    </label>
+                                    <ToggleSwitch
+                                        isActive={maintenanceMode}
+                                        onChange={setMaintenanceMode}
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -1122,16 +1142,17 @@ const Settings = () => {
                                         return (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                                 {Object.entries(servicesByCategory).map(([category, items]) => (
-                                                    <div key={category} className="space-y-2.5 bg-white p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] mb-0.5 ">
+                                                    <div key={category} className="space-y-2.5 bg-[#FFFFFF] p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] mb-0.5 ">
                                                         <h3 className="font-bold text-[#011023] uppercase text-sm border-b border-gray-100 pb-2 mb-3">{category}</h3>
                                                         <div className="space-y-0.5 max-h-[140px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                                             {items.map(s => (
                                                                 <div key={s.id || s.name} className="flex items-center justify-between border-b border-gray-100 last:border-0 pb-1.5 last:pb-0">
                                                                     <span className="text-xs uppercase text-gray-700">{s.name}</span>
-                                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                                        <input type="checkbox" className="sr-only peer" checked={!disabledServices.includes(s.name)} onChange={() => handleServiceToggle(s.name)} />
-                                                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#527FB0]"></div>
-                                                                    </label>
+                                                                    <ToggleSwitch
+                                                                        size="xs"
+                                                                        isActive={!disabledServices.includes(s.name)}
+                                                                        onChange={() => handleServiceToggle(s.name)}
+                                                                    />
                                                                 </div>
                                                             ))}
                                                         </div>

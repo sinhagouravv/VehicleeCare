@@ -317,6 +317,19 @@ const Services = () => {
             }
             return true;
         }).sort((a, b) => {
+            // 1. Primary sort by Fuel Type: Petrol (1) -> Diesel (2) -> EV (3) -> Premium (4)
+            const fuelOrder = { 'petrol': 1, 'diesel': 2, 'ev': 3, 'premium': 4 };
+            const fuelA = fuelOrder[(a.fuelType || '').toLowerCase()] || 99;
+            const fuelB = fuelOrder[(b.fuelType || '').toLowerCase()] || 99;
+            if (fuelA !== fuelB) return fuelA - fuelB;
+
+            // 2. Secondary sort by Category order
+            const categoryOrderRaw = [...new Set(defaultServicesList.map(s => s.category))];
+            const catA = categoryOrderRaw.indexOf(a.category);
+            const catB = categoryOrderRaw.indexOf(b.category);
+            if (catA !== -1 && catB !== -1 && catA !== catB) return catA - catB;
+
+            // 3. Fallback to Date / ID sorting
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             if (timeA !== timeB && timeA > 0 && timeB > 0) {
@@ -625,7 +638,7 @@ const Services = () => {
                             <button
                                 onClick={confirmDeleteService}
                                 disabled={deleting}
-                                className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-0"
+                                className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-0"
                             >
                                 {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
                             </button>

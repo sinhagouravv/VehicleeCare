@@ -19,7 +19,7 @@ const isPendingCOD = (payment) => {
 
 const Payments = () => {
     const { triggerAlert } = useAlert();
-    const { guardGuestAction } = useGuestGuard();
+    const { isGuest, guardGuestAction } = useGuestGuard();
     const [payments, setPayments] = useState([]);
     const highlightedRow = useHighlight(payments);
     const [loading, setLoading] = useState(true);
@@ -201,6 +201,37 @@ const Payments = () => {
             return payment.business?.businessName || payment.user?.name || 'Unknown Vendor';
         }
         return payment.user?.name || 'Unknown';
+    };
+
+    const maskEmail = (email) => {
+        if (!email || email === 'N/A' || email === '—') return email || 'N/A';
+        if (!isGuest) return email;
+        const parts = email.split('@');
+        if (parts.length !== 2) return '••••••••••••';
+        const [user, domain] = parts;
+        const maskedUser = user.length > 3 
+            ? `${user.slice(0, 2)}${'*'.repeat(Math.max(4, user.length - 4))}${user.slice(-2)}`
+            : `${user[0] || ''}***`;
+        const domainParts = domain.split('.');
+        const maskedDomain = domainParts[0].length > 2 
+            ? `${domainParts[0][0]}***${domainParts[0].slice(-1)}`
+            : '***';
+        return `${maskedUser}@${maskedDomain}.${domainParts.slice(1).join('.')}`;
+    };
+
+    const maskTransactionId = (txId) => {
+        if (!txId || txId === 'N/A' || txId === '—') return txId || 'N/A';
+        if (!isGuest) return txId;
+        if (txId.length <= 6) return '••••••••';
+        return `${txId.slice(0, 3)}${'*'.repeat(Math.max(4, txId.length - 6))}${txId.slice(-3)}`;
+    };
+
+    const isRealValue = (val) => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === '—' || str === '-' || str.toUpperCase() === 'N/A') return false;
+        if (str.toLowerCase().startsWith('no ') || str.toLowerCase().includes('no address')) return false;
+        return true;
     };
 
     const filteredPayments = React.useMemo(() => {
@@ -445,7 +476,7 @@ const Payments = () => {
                                     <div className="pt-3 uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800">{selectedPayment.user?.userId || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedPayment.user?.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedPayment.user?.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(selectedPayment.user?.email)}</span></p>
                                     </div>
                                 </div>
 
@@ -499,7 +530,7 @@ const Payments = () => {
                                     <div className="flex gap-4">
                                         <div className="rounded-xl px- py-2 flex-[2]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Transaction ID</p>
-                                            <p className="text-sm text-[#011023] font-semibold">{selectedPayment.transactionId || 'N/A'}</p>
+                                            <p className={`text-sm text-[#011023] font-semibold ${isGuest && isRealValue(selectedPayment.transactionId) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskTransactionId(selectedPayment.transactionId)}</p>
                                         </div>
                                         <div className="rounded-xl px-4 py-2 flex-[1]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Payment ID</p>

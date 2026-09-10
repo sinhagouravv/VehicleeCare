@@ -12,8 +12,48 @@ import useGuestGuard from '../hooks/useGuestGuard';
 
 const Employees = () => {
     const { triggerAlert } = useAlert();
-    const { guardGuestAction } = useGuestGuard();
+    const { isGuest, guardGuestAction } = useGuestGuard();
     const [employees, setEmployees] = useState([]);
+
+    const maskEmail = (email) => {
+        if (!email || email === 'N/A' || email === '—') return email || '—';
+        if (!isGuest) return email;
+        const parts = email.split('@');
+        if (parts.length !== 2) return '••••••••••••';
+        const [user, domain] = parts;
+        const maskedUser = user.length > 3 
+            ? `${user.slice(0, 2)}${'*'.repeat(Math.max(4, user.length - 4))}${user.slice(-2)}`
+            : `${user[0] || ''}***`;
+        const domainParts = domain.split('.');
+        const maskedDomain = domainParts[0].length > 2 
+            ? `${domainParts[0][0]}***${domainParts[0].slice(-1)}`
+            : '***';
+        return `${maskedUser}@${maskedDomain}.${domainParts.slice(1).join('.')}`;
+    };
+
+    const maskPhone = (phone) => {
+        if (!phone || phone === '—' || phone === 'N/A') return phone || '—';
+        if (!isGuest) return phone;
+        const str = String(phone).trim();
+        if (str.length <= 4) return '••••••••';
+        return `${str.slice(0, 2)}${'*'.repeat(Math.max(4, str.length - 4))}${str.slice(-2)}`;
+    };
+
+    const maskAddress = (address) => {
+        if (!address || address === '—' || address === 'N/A' || address === 'No Address Provided') return address || '—';
+        if (!isGuest) return address;
+        const str = String(address).trim();
+        if (str.length <= 6) return '••••••••';
+        return `${str.slice(0, 3)}${'*'.repeat(Math.max(6, str.length - 6))}${str.slice(-3)}`;
+    };
+
+    const isRealValue = (val) => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === '—' || str === '-' || str.toUpperCase() === 'N/A') return false;
+        if (str.toLowerCase().startsWith('no ') || str.toLowerCase().includes('no address')) return false;
+        return true;
+    };
     const highlightedRow = useHighlight(employees);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -216,6 +256,10 @@ const Employees = () => {
             if (val && typeof val === 'string') {
                 const trimmed = val.trim();
                 if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.includes('cloudinary')) {
+                    if (isGuest) {
+                        if (trimmed.length <= 4) return '••••••••';
+                        return `${trimmed.slice(0, 2)}${'*'.repeat(Math.max(4, trimmed.length - 4))}${trimmed.slice(-2)}`;
+                    }
                     return trimmed;
                 }
             }
@@ -541,8 +585,8 @@ const Employees = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4 text-center">
-                                                <div className="text-xs text-gray-500 mt-0.5 text-center">{employee.phone || '—'}</div>
-                                                <div className="font-semibold text-gray-700 text-sm text-center">{employee.email}</div>
+                                                <div className={`text-xs text-gray-500 mt-0.5 text-center ${isGuest && isRealValue(employee.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(employee.phone)}</div>
+                                                <div className={`font-semibold text-gray-700 text-sm text-center ${isGuest && isRealValue(employee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(employee.email)}</div>
                                             </td>
                                              <td className="p-4 text-center">
                                                  <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getRoleBadge(employee.role)}`}>
@@ -638,8 +682,8 @@ const Employees = () => {
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
                                     <div className="pt-4 uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{viewEmployee.name || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{viewEmployee.phone || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{viewEmployee.email || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(viewEmployee.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(viewEmployee.phone)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(viewEmployee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(viewEmployee.email)}</span></p>
                                     </div>
                                 </div>
 
@@ -731,25 +775,25 @@ const Employees = () => {
                                         <div className="flex justify-start">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">PAN Card Number</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.panCardNumber, viewEmployee.panNumber, viewEmployee.panCard)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumber(viewEmployee.panCardNumber, viewEmployee.panNumber, viewEmployee.panCard)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumber(viewEmployee.panCardNumber, viewEmployee.panNumber, viewEmployee.panCard)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-center mr-5">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Aadhaar Card</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.adharCardNumber, viewEmployee.adharNumber, viewEmployee.aadhaarCard, viewEmployee.adharCard)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumber(viewEmployee.adharCardNumber, viewEmployee.adharNumber, viewEmployee.aadhaarCard, viewEmployee.adharCard)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumber(viewEmployee.adharCardNumber, viewEmployee.adharNumber, viewEmployee.aadhaarCard, viewEmployee.adharCard)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-center ml-5">
                                             <div className="flex flex-col items-center text-center">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Voter ID Card</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.voterIdNumber, viewEmployee.voterNumber, viewEmployee.voterId)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumber(viewEmployee.voterIdNumber, viewEmployee.voterNumber, viewEmployee.voterId)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumber(viewEmployee.voterIdNumber, viewEmployee.voterNumber, viewEmployee.voterId)}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-end">
                                             <div className="flex flex-col items-center text-center mr-2">
                                                 <p className="text-[12px] text-gray-400 font-bold uppercase tracking-wider mb-1">Driving License</p>
-                                                <p className="text-sm font-semibold text-[#052558] uppercase tracking-wider">{formatDocNumber(viewEmployee.drivingLicenseNumber, viewEmployee.drivingLicense, viewEmployee.licenseNumber, viewEmployee.dlNumber)}</p>
+                                                <p className={`text-sm font-semibold text-[#052558] uppercase tracking-wider ${isGuest && isRealValue(formatDocNumber(viewEmployee.drivingLicenseNumber, viewEmployee.drivingLicense, viewEmployee.licenseNumber, viewEmployee.dlNumber)) ? 'blur-sm select-none pointer-events-none' : ''}`}>{formatDocNumber(viewEmployee.drivingLicenseNumber, viewEmployee.drivingLicense, viewEmployee.licenseNumber, viewEmployee.dlNumber)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -760,7 +804,7 @@ const Employees = () => {
                             <div className="space-y-2">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Residential Archive</h4>
                                 <div className="pt-2 uppercase">
-                                    <h5 className="font-semibold text-[#052558] text-sm">{viewEmployee.address || 'No Address Provided'}</h5>
+                                    <h5 className={`font-semibold text-[#052558] text-sm ${isGuest && isRealValue(viewEmployee.address) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskAddress(viewEmployee.address)}</h5>
                                 </div>
                             </div>
                         </div>

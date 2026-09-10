@@ -10,7 +10,40 @@ import useGuestGuard from '../hooks/useGuestGuard';
 
 const Messages = () => {
     const { triggerAlert } = useAlert();
-    const { guardGuestAction } = useGuestGuard();
+    const { isGuest, guardGuestAction } = useGuestGuard();
+
+    const maskEmail = (email) => {
+        if (!email || email === 'N/A' || email === '—') return email || '—';
+        if (!isGuest) return email;
+        const parts = email.split('@');
+        if (parts.length !== 2) return '••••••••••••';
+        const [user, domain] = parts;
+        const maskedUser = user.length > 3 
+            ? `${user.slice(0, 2)}${'*'.repeat(Math.max(4, user.length - 4))}${user.slice(-2)}`
+            : `${user[0] || ''}***`;
+        const domainParts = domain.split('.');
+        const maskedDomain = domainParts[0].length > 2 
+            ? `${domainParts[0][0]}***${domainParts[0].slice(-1)}`
+            : '***';
+        return `${maskedUser}@${maskedDomain}.${domainParts.slice(1).join('.')}`;
+    };
+
+    const maskPhone = (phone) => {
+        if (!phone || phone === '—' || phone === 'N/A') return phone || '—';
+        if (!isGuest) return phone;
+        const str = String(phone).trim();
+        if (str.length <= 4) return '••••••••';
+        return `${str.slice(0, 2)}${'*'.repeat(Math.max(4, str.length - 4))}${str.slice(-2)}`;
+    };
+
+    const isRealValue = (val) => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === '—' || str === '-' || str.toUpperCase() === 'N/A') return false;
+        if (str.toLowerCase().startsWith('no ') || str.toLowerCase().includes('no address')) return false;
+        return true;
+    };
+
     const [messages, setMessages] = useState([]);
     const highlightedRow = useHighlight(messages);
     const [loading, setLoading] = useState(true);
@@ -261,7 +294,7 @@ const Messages = () => {
                                         <td className="p-4.5 text-center">
                                             <div className="flex flex-col uppercase items-center justify-center">
                                                 <span className="font-semibold text-[#011023] text-center">{message.name}</span>
-                                                <span className="text-xs lowercase text-gray-500 text-center">{message.email}</span>
+                                                <span className={`text-xs lowercase text-gray-500 text-center ${isGuest && isRealValue(message.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(message.email)}</span>
                                             </div>
                                         </td>
                                         {/* <td className="p-4.5 text-center uppercase w-[16%]">
@@ -359,8 +392,8 @@ const Messages = () => {
                                     <div className="pt-4 rounded-xl space-y-2 uppercase">
                                         <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedMessage.name}>{selectedMessage.name || 'N/A'}</span></p>
                                         {selectedMessage.company && <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Company:</span> <span className="font-semibold text-purple-700 truncate">{selectedMessage.company}</span></p>}
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedMessage.phone || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedMessage.email}>{selectedMessage.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedMessage.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(selectedMessage.phone)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-24 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedMessage.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(selectedMessage.email)}</span></p>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-4.5 w-full md:w-[40%]">
