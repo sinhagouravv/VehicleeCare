@@ -17,6 +17,73 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// ── Load Balancer Helper ────────────────────────────────────
+const selectLeastLoadedEmployee = async (candidateEmployees, roleKey) => {
+    if (!candidateEmployees || candidateEmployees.length === 0) return null;
+    if (candidateEmployees.length === 1) return candidateEmployees[0];
+
+    const fieldPathId = `assignedEmployees.${roleKey}.id`;
+    const fieldPathEmpId = `assignedEmployees.${roleKey}.employeeId`;
+
+    const counts = {};
+    candidateEmployees.forEach(e => {
+        counts[String(e._id)] = 0;
+    });
+
+    try {
+        const mongoIds = candidateEmployees.map(e => e._id);
+        const customEmpIds = candidateEmployees.map(e => e.employeeId).filter(Boolean);
+
+        const aggResults = await Booking.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { [fieldPathId]: { $in: mongoIds } },
+                        { [fieldPathEmpId]: { $in: customEmpIds } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $ifNull: [`$${fieldPathId}`, `$${fieldPathEmpId}`]
+                    },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        aggResults.forEach(item => {
+            const rawId = item._id ? String(item._id) : null;
+            if (!rawId) return;
+
+            const matchedEmp = candidateEmployees.find(e => 
+                String(e._id) === rawId || e.employeeId === rawId
+            );
+            if (matchedEmp) {
+                counts[String(matchedEmp._id)] = (counts[String(matchedEmp._id)] || 0) + item.count;
+            }
+        });
+    } catch (err) {
+        console.error(`[LoadBalancer] Error calculating load for ${roleKey}:`, err.message);
+    }
+
+    // Find the minimum booking count among all candidates
+    let minCount = Infinity;
+    candidateEmployees.forEach(e => {
+        const c = counts[String(e._id)] || 0;
+        if (c < minCount) minCount = c;
+    });
+
+    // Get all candidates tied for the minimum count
+    const minCandidates = candidateEmployees.filter(e => (counts[String(e._id)] || 0) === minCount);
+
+    console.log(`[LoadBalancer] Role: ${roleKey} | Candidates: ${candidateEmployees.length} | MinCount: ${minCount} | MinCandidates: ${minCandidates.length}`);
+
+    // Randomly pick one among minCandidates to evenly break ties
+    return minCandidates[Math.floor(Math.random() * minCandidates.length)];
+};
+
 // @desc    Create a new booking
 // @route   POST /api/bookings
 // @access  Public
@@ -61,45 +128,63 @@ exports.createBooking = async (req, res) => {
         }
 
 
-        // Find available employees (Technician and Support) for the shift
+        // Find available employees (Technician, Support, and Mechanic) for the shift with robust fallbacks
         const garageId = garage?.id ? String(garage.id).trim() : null;
         
-        // Fetch all verified employees for this specific garage
-        // We filter by shift in-memory so Mongoose defaults are applied to records missing explicit shift fields
-        const allEmployees = await Employee.find({ garageId, isVerified: true });
+        let garageEmployees = [];
+        if (garageId) {
+            garageEmployees = await Employee.find({ garageId });
+        }
+        if (garageEmployees.length === 0) {
+            garageEmployees = await Employee.find({});
+        }
 
-        const technicians = allEmployees.filter(e => 
-            e.shift === shift && /^Technician$/i.test(e.role)
-        );
-        
-        const supportStaff = allEmployees.filter(e => 
-            e.shift === shift && /^Support$/i.test(e.role)
-        );
+        // Technicians: Shift match -> Any in garage -> Any in system
+        let technicians = garageEmployees.filter(e => e.shift === shift && /^Technician$/i.test(e.role));
+        if (technicians.length === 0) {
+            technicians = garageEmployees.filter(e => /^Technician$/i.test(e.role));
+        }
+        if (technicians.length === 0) {
+            technicians = await Employee.find({ role: { $regex: /^Technician$/i } });
+        }
+
+        // Support: Shift match -> Any in garage -> Any in system
+        let supportStaff = garageEmployees.filter(e => e.shift === shift && /^Support$/i.test(e.role));
+        if (supportStaff.length === 0) {
+            supportStaff = garageEmployees.filter(e => /^Support$/i.test(e.role));
+        }
+        if (supportStaff.length === 0) {
+            supportStaff = await Employee.find({ role: { $regex: /^Support$/i } });
+        }
 
         console.log(`[Assignment] Garage: ${garageId}, Shift: ${shift}, Found: Techs(${technicians.length}), Support(${supportStaff.length})`);
 
-
         const assignedEmployees = {
             technician: null,
-            support: null
+            support: null,
+            mechanic: null
         };
 
         if (technicians.length > 0) {
-            const tech = technicians[Math.floor(Math.random() * technicians.length)];
-            assignedEmployees.technician = {
-                id: tech._id,
-                employeeId: tech.employeeId,
-                name: tech.name
-            };
+            const tech = await selectLeastLoadedEmployee(technicians, 'technician');
+            if (tech) {
+                assignedEmployees.technician = {
+                    id: tech._id,
+                    employeeId: tech.employeeId,
+                    name: tech.name
+                };
+            }
         }
 
         if (supportStaff.length > 0) {
-            const supp = supportStaff[Math.floor(Math.random() * supportStaff.length)];
-            assignedEmployees.support = {
-                id: supp._id,
-                employeeId: supp.employeeId,
-                name: supp.name
-            };
+            const supp = await selectLeastLoadedEmployee(supportStaff, 'support');
+            if (supp) {
+                assignedEmployees.support = {
+                    id: supp._id,
+                    employeeId: supp.employeeId,
+                    name: supp.name
+                };
+            }
         }
 
         // ----------------------------------------
@@ -343,7 +428,7 @@ exports.getBookings = async (req, res) => {
     try {
         const bookings = await Booking.find().sort({ createdAt: -1 }).lean();
         
-        // Populate missing paymentId and normalize vehicle info
+        // Populate missing paymentId, normalize vehicle info, and ensure assigned employees
         const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
             if (!booking.payment?.paymentId) {
                 const payment = await Payment.findOne({ booking: booking._id });
@@ -352,7 +437,9 @@ exports.getBookings = async (req, res) => {
                     booking.payment.paymentId = payment.paymentId;
                 }
             }
-            return normalizeBookingVehicle(booking);
+            normalizeBookingVehicle(booking);
+            await ensureAssignedEmployees(booking);
+            return booking;
         }));
 
         res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
@@ -373,6 +460,60 @@ exports.getUserBookings = async (req, res) => {
     }
 };
 
+const ensureAssignedEmployees = async (booking) => {
+    if (!booking) return booking;
+    if (!booking.assignedEmployees) booking.assignedEmployees = {};
+    const garageId = booking.garage?.id ? String(booking.garage.id).trim() : null;
+
+    let garageEmployees = [];
+    if (garageId) {
+        garageEmployees = await Employee.find({ garageId });
+    }
+    if (garageEmployees.length === 0) {
+        garageEmployees = await Employee.find({});
+    }
+
+    let updated = false;
+
+    if (!booking.assignedEmployees.technician || !booking.assignedEmployees.technician.name || booking.assignedEmployees.technician.name === 'Waiting...') {
+        let techPool = garageEmployees.filter(e => /^Technician$/i.test(e.role));
+        if (techPool.length === 0) techPool = await Employee.find({ role: { $regex: /^Technician$/i } });
+        if (techPool.length > 0) {
+            const tech = await selectLeastLoadedEmployee(techPool, 'technician');
+            if (tech) {
+                booking.assignedEmployees.technician = {
+                    id: tech._id,
+                    employeeId: tech.employeeId,
+                    name: tech.name
+                };
+                updated = true;
+            }
+        }
+    }
+
+    if (!booking.assignedEmployees.support || !booking.assignedEmployees.support.name || booking.assignedEmployees.support.name === 'Waiting...') {
+        let suppPool = garageEmployees.filter(e => /^Support$/i.test(e.role));
+        if (suppPool.length === 0) suppPool = await Employee.find({ role: { $regex: /^Support$/i } });
+        if (suppPool.length > 0) {
+            const supp = await selectLeastLoadedEmployee(suppPool, 'support');
+            if (supp) {
+                booking.assignedEmployees.support = {
+                    id: supp._id,
+                    employeeId: supp.employeeId,
+                    name: supp.name
+                };
+                updated = true;
+            }
+        }
+    }
+
+    if (updated && booking._id) {
+        await Booking.updateOne({ _id: booking._id }, { $set: { assignedEmployees: booking.assignedEmployees } });
+    }
+
+    return booking;
+};
+
 // @desc    Get garage bookings
 // @route   GET /api/bookings/garage/:garageId
 exports.getGarageBookings = async (req, res) => {
@@ -383,7 +524,7 @@ exports.getGarageBookings = async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
         
-        // Populate missing paymentId and normalize vehicle info
+        // Populate missing paymentId, normalize vehicle info, and ensure assigned employees
         const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
             if (!booking.payment?.paymentId) {
                 const payment = await Payment.findOne({ booking: booking._id });
@@ -392,7 +533,9 @@ exports.getGarageBookings = async (req, res) => {
                     booking.payment.paymentId = payment.paymentId;
                 }
             }
-            return normalizeBookingVehicle(booking);
+            normalizeBookingVehicle(booking);
+            await ensureAssignedEmployees(booking);
+            return booking;
         }));
 
         res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
@@ -403,37 +546,49 @@ exports.getGarageBookings = async (req, res) => {
 
 const autoAssignMechanic = async (booking) => {
     if (!booking.assignedEmployees) booking.assignedEmployees = {};
-    if (!booking.assignedEmployees.mechanic || !booking.assignedEmployees.mechanic.id) {
+    if (!booking.assignedEmployees.mechanic || !booking.assignedEmployees.mechanic.id || booking.assignedEmployees.mechanic.name === '—') {
         const garageId = booking.garage?.id ? String(booking.garage.id).trim() : null;
-        const mechanics = await Employee.find({ garageId, isVerified: true, role: 'Mechanic' });
-        if (mechanics.length > 0) {
-            const mech = mechanics[Math.floor(Math.random() * mechanics.length)];
-            booking.assignedEmployees.mechanic = {
-                id: mech._id,
-                employeeId: mech.employeeId,
-                name: mech.name
-            };
-            booking.markModified('assignedEmployees');
+        let mechanics = [];
+        if (garageId) {
+            mechanics = await Employee.find({ garageId, role: { $regex: /^Mechanic$/i } });
+        }
+        if (mechanics.length === 0) {
+            mechanics = await Employee.find({ role: { $regex: /^Mechanic$/i } });
+        }
 
-            // Notify the mechanic
-            const garageAdminForMechNotif = await Employee.findOne({ garageId: String(booking.garage?.id || '').trim(), role: 'Admin', isVerified: true });
-            createAdminNotification({
-                eventType: 'booking_created',
-                superCategory: 'employees_notification',
-                title: 'New Mechanic Assignment',
-                message: `You have been assigned as Mechanic for ${booking.vehicle?.make} ${booking.vehicle?.model}.`,
-                meta: {
-                    bookingId: booking.bookingId,
-                    userId: booking.user?.id,
-                    userName: booking.user?.name,
-                    service: booking.service?.title,
-                    vehicle: `${booking.vehicle?.make} ${booking.vehicle?.model}`,
-                    garageId: booking.garage?.id,
-                    assignedEmployees: booking.assignedEmployees,
-                    adminName: garageAdminForMechNotif ? garageAdminForMechNotif.name : 'ADMIN',
-                    adminEmpId: garageAdminForMechNotif ? garageAdminForMechNotif.employeeId : 'SYSTEM'
+        if (mechanics.length > 0) {
+            const mech = await selectLeastLoadedEmployee(mechanics, 'mechanic');
+            if (mech) {
+                booking.assignedEmployees.mechanic = {
+                    id: mech._id,
+                    employeeId: mech.employeeId,
+                    name: mech.name
+                };
+                if (typeof booking.markModified === 'function') {
+                    booking.markModified('assignedEmployees');
                 }
-            });
+                await Booking.updateOne({ _id: booking._id }, { $set: { assignedEmployees: booking.assignedEmployees } });
+
+                // Notify the mechanic
+                const garageAdminForMechNotif = await Employee.findOne({ garageId: String(booking.garage?.id || '').trim(), role: 'Admin' });
+                createAdminNotification({
+                    eventType: 'booking_created',
+                    superCategory: 'employees_notification',
+                    title: 'New Mechanic Assignment',
+                    message: `You have been assigned as Mechanic for ${booking.vehicle?.make} ${booking.vehicle?.model}.`,
+                    meta: {
+                        bookingId: booking.bookingId,
+                        userId: booking.user?.id,
+                        userName: booking.user?.name,
+                        service: booking.service?.title,
+                        vehicle: `${booking.vehicle?.make} ${booking.vehicle?.model}`,
+                        garageId: booking.garage?.id,
+                        assignedEmployees: booking.assignedEmployees,
+                        adminName: garageAdminForMechNotif ? garageAdminForMechNotif.name : 'ADMIN',
+                        adminEmpId: garageAdminForMechNotif ? garageAdminForMechNotif.employeeId : 'SYSTEM'
+                    }
+                });
+            }
         }
     }
 };
