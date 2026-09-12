@@ -19,6 +19,99 @@ const generateBugId = async () => {
     return newId;
 };
 
+// Load Balancer Helper for Developers
+const selectLeastLoadedDeveloper = async () => {
+    try {
+        const Employee = require('../models/Employee');
+        const developers = await Employee.find({
+            $or: [
+                { category: { $regex: /^developer$/i } },
+                { role: { $regex: /^developer$/i } }
+            ]
+        });
+
+        if (!developers || developers.length === 0) return null;
+        if (developers.length === 1) {
+            return {
+                id: developers[0]._id,
+                employeeId: developers[0].employeeId,
+                name: developers[0].name
+            };
+        }
+
+        const counts = {};
+        developers.forEach(d => {
+            counts[String(d._id)] = 0;
+        });
+
+        const mongoIds = developers.map(d => d._id);
+        const empIds = developers.map(d => d.employeeId).filter(Boolean);
+
+        const aggResults = await Bug.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { 'assignedDeveloper.id': { $in: mongoIds } },
+                        { 'assignedDeveloper.employeeId': { $in: empIds } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $ifNull: ['$assignedDeveloper.id', '$assignedDeveloper.employeeId']
+                    },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        aggResults.forEach(item => {
+            const rawId = item._id ? String(item._id) : null;
+            if (!rawId) return;
+
+            const matchedDev = developers.find(d => 
+                String(d._id) === rawId || d.employeeId === rawId
+            );
+            if (matchedDev) {
+                counts[String(matchedDev._id)] = (counts[String(matchedDev._id)] || 0) + item.count;
+            }
+        });
+
+        let minCount = Infinity;
+        developers.forEach(d => {
+            const c = counts[String(d._id)] || 0;
+            if (c < minCount) minCount = c;
+        });
+
+        const minCandidates = developers.filter(d => (counts[String(d._id)] || 0) === minCount);
+        const chosen = minCandidates[Math.floor(Math.random() * minCandidates.length)];
+
+        console.log(`[BugLoadBalancer] Devs: ${developers.length} | MinCount: ${minCount} | Chosen: ${chosen.name} (${chosen.employeeId})`);
+
+        return {
+            id: chosen._id,
+            employeeId: chosen.employeeId,
+            name: chosen.name
+        };
+    } catch (err) {
+        console.error('[BugLoadBalancer] Error:', err.message);
+        return null;
+    }
+};
+
+const ensureAssignedDeveloper = async (bug) => {
+    if (!bug) return bug;
+    if (!bug.assignedDeveloper || !bug.assignedDeveloper.name) {
+        const assignedDev = await selectLeastLoadedDeveloper();
+        if (assignedDev) {
+            bug.assignedDeveloper = assignedDev;
+            await Bug.updateOne({ _id: bug._id }, { $set: { assignedDeveloper: assignedDev } });
+        }
+    }
+    return bug;
+};
+
 // @desc    Report a bug
 // @route   POST /api/bugs
 exports.reportBug = async (req, res) => {
@@ -30,6 +123,7 @@ exports.reportBug = async (req, res) => {
         }
 
         const bugId = await generateBugId();
+        const assignedDeveloper = await selectLeastLoadedDeveloper();
 
         const bug = await Bug.create({
             bugId,
@@ -38,7 +132,8 @@ exports.reportBug = async (req, res) => {
             portal,
             title,
             description,
-            severity: severity || 'Medium'
+            severity: severity || 'Medium',
+            assignedDeveloper
         });
 
         // Notify Admin of new bug report
@@ -52,7 +147,8 @@ exports.reportBug = async (req, res) => {
                 mongoBugId: bug._id,
                 reporterId,
                 reporterName,
-                portal
+                portal,
+                assignedDeveloper
             }
         });
 
@@ -67,10 +163,34 @@ exports.reportBug = async (req, res) => {
 // @route   GET /api/bugs
 exports.getAllBugs = async (req, res) => {
     try {
-        const bugs = await Bug.find().sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: bugs });
+        const bugs = await Bug.find().sort({ createdAt: -1 }).lean();
+        const enrichedBugs = await Promise.all(bugs.map(b => ensureAssignedDeveloper(b)));
+        res.status(200).json({ success: true, data: enrichedBugs });
     } catch (err) {
         console.error("Error getting bugs:", err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Get developer bugs
+// @route   GET /api/bugs/developer/:empId
+exports.getDeveloperBugs = async (req, res) => {
+    try {
+        const { empId } = req.params;
+        const target = String(empId || '').trim().toLowerCase();
+
+        const allBugs = await Bug.find().sort({ createdAt: -1 }).lean();
+        const enrichedBugs = await Promise.all(allBugs.map(b => ensureAssignedDeveloper(b)));
+
+        const devBugs = enrichedBugs.filter(b => {
+            const devId = String(b.assignedDeveloper?.id || '').trim().toLowerCase();
+            const devEmpId = String(b.assignedDeveloper?.employeeId || '').trim().toLowerCase();
+            return devId === target || devEmpId === target;
+        });
+
+        res.status(200).json({ success: true, count: devBugs.length, data: devBugs });
+    } catch (err) {
+        console.error("Error getting developer bugs:", err);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };

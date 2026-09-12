@@ -36,6 +36,11 @@ const BugSchema = new mongoose.Schema({
         type: String,
         enum: ['Pending', 'In Progress', 'Resolved'],
         default: 'Pending'
+    },
+    assignedDeveloper: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+        employeeId: { type: String },
+        name: { type: String }
     }
 }, { timestamps: true });
 
