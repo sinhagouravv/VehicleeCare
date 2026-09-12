@@ -9,9 +9,7 @@ export const isGuestUser = () => {
             user?.role === 'guest_admin' ||
             user?.role === 'guest' ||
             user?.isGuest === true ||
-            user?.id === 'G184592037461' ||
-            user?.email === 'guestadmin@vehicleecare.com' ||
-            (typeof user?.email === 'string' && user.email.toLowerCase().includes('guest'))
+            user?.email === 'guestadmin@vehicleecare.com'
         );
     } catch (e) {
         return false;

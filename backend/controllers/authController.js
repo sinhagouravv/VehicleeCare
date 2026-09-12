@@ -114,16 +114,17 @@ exports.login = async (req, res) => {
 // ── Admin Login ──────────────────────────────────────────────
 const seedGuestAdmin = async () => {
     try {
-        let guestAdmin = await Admin.findOne({ adminId: 'G184592037461' });
-        const hashedPassword = await bcrypt.hash('Pass@6990', 10);
+        let guestAdmin = await Admin.findOne({ email: 'guestadmin@vehicleecare.com' });
+        const hashedPassword = await bcrypt.hash('GuestAdmin@2026', 10);
         if (!guestAdmin) {
             await Admin.create({
-                adminId: 'G184592037461',
+                adminId: 'guestadmin@vehicleecare.com',
                 email: 'guestadmin@vehicleecare.com',
                 password: hashedPassword,
                 role: 'guest_admin'
             });
-        } else if (guestAdmin.role !== 'guest_admin') {
+        } else {
+            guestAdmin.password = hashedPassword;
             guestAdmin.role = 'guest_admin';
             await guestAdmin.save();
         }
@@ -136,7 +137,7 @@ exports.adminLogin = async (req, res) => {
     try {
         const { email, password, otp } = req.body;
 
-        if (email === 'G184592037461' || email === 'guestadmin@vehicleecare.com') {
+        if (email === 'guestadmin@vehicleecare.com') {
             await seedGuestAdmin();
         }
 
@@ -154,7 +155,7 @@ exports.adminLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid admin credentials' });
         }
 
-        const isGuest = admin.adminId === 'G184592037461' || admin.role === 'guest_admin' || (email && email.toUpperCase().startsWith('G184592037461'));
+        const isGuest = admin.role === 'guest_admin' || admin.email === 'guestadmin@vehicleecare.com';
 
         // If credentials match and user is NOT a guest admin, require 2FA OTP
         if (!isGuest) {

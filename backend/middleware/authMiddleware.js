@@ -39,7 +39,7 @@ exports.checkGuestReadOnly = (req, res, next) => {
             const token = authHeader.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
             const admin = decoded.admin || decoded;
-            if (admin && (admin.role === 'guest_admin' || admin.isGuest || admin.id === 'G184592037461')) {
+            if (admin && (admin.role === 'guest_admin' || admin.isGuest || admin.email === 'guestadmin@vehicleecare.com')) {
                 return res.status(403).json({
                     success: false,
                     msg: 'The guest admin only has read rights.'
