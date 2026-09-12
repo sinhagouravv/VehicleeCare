@@ -646,14 +646,14 @@ const Users = () => {
 
             {/* Service History Modal */}
             {isHistoryModalOpen && createPortal(
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#011023]/180 backdrop-blur-sm transition-all duration-300" onClick={() => setIsHistoryModalOpen(false)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[65vh] animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#011023]/10 backdrop-blur-sm transition-all duration-300" onClick={() => setIsHistoryModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[61.5vh] animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="pr-6 pl-6 pt-6 pb-1 flex justify-between items-center bg-white">
+                        <div className="px-4 md:px-6 pt-4 pb-2 flex justify-between items-center bg-white">
                             <div className="flex items-center gap-4">
                                 <div>
                                     <h3 className="text-xl uppercase font-bold text-[#011023] tracking-tight">Booking History</h3>
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Total Records: <span className="text-[#011023] font-bold">{serviceHistory.length}</span></p>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Total Records: <span className="text-[#011023] font-bold">{serviceHistory.length}</span></p>
                                 </div>
                             </div>
                             <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all">
@@ -662,7 +662,7 @@ const Users = () => {
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 overflow-y-auto flex-1 hide-scrollbar">
+                        <div className="px-6 pt-4 overflow-y-auto flex-1 hide-scrollbar">
                             {serviceHistory.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-24 text-center">
                                     <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
@@ -672,7 +672,7 @@ const Users = () => {
                                     <p className="text-xs text-gray-300 mt-2 uppercase font-medium">This user hasn't made any bookings yet.</p>
                                 </div>
                             ) : (
-                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[570px] shadow-sm bg-white hide-scrollbar">
+                                <div className="border border-[#e6f0fa] rounded-2xl overflow-y-auto max-h-[550px] shadow-sm bg-white hide-scrollbar">
                                     <table className="w-full text-center border-collapse">
                                         <thead className="bg-gray-50 text-[12px] uppercase font-black tracking-widest text-gray-400 border-b border-[#e6f0fa] sticky top-0 z-20 shadow-sm">
                                             <tr>
@@ -684,15 +684,15 @@ const Users = () => {
                                         <tbody className="divide-y divide-[#e1ecf8]">
                                             {serviceHistory.map((booking) => (
                                                 <tr key={booking._id} className="hover:bg-gray-50/50 transition-all duration-300">
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-3.25 text-center">
                                                         <div className="text-xs text-[#011023] font-semibold uppercase">{booking.service?.title || 'General Service'}</div>
                                                         <div className="font-semibold text-gray-400 text-[11px] uppercase mt-0.5 tracking-tight">{booking.bookingId || '—'}</div>
                                                     </td>
-                                                    <td className="p-4 text-center uppercase">
+                                                    <td className="p-3.25 text-center uppercase">
                                                         <div className="font-semibold text-[#011023] text-xs">{formatDate(booking.schedule?.date || booking.createdAt, false)}</div>
                                                         <div className="text-[11px] text-gray-400 font-semibold">{booking.schedule?.time || '—'}</div>
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-3.25 text-center">
                                                         <span className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
                                                             {booking.status}
                                                         </span>

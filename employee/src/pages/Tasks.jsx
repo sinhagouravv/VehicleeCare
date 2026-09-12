@@ -227,16 +227,26 @@ const Tasks = () => {
             if (!silent) setLoading(true);
 
             if (isDev) {
+                const empId = String(user._id || user.id || user.employeeId || '').toLowerCase();
+                const userName = String(user.name || '').toLowerCase();
+
                 const res = await fetch('https://vehicleecare.onrender.com/api/bugs');
                 if (!res.ok) throw new Error("Server communication error.");
                 const data = await res.json();
-                if (data.success) {
-                    setTasks(data.data || []);
-                    setLastRefreshed(new Date());
-                    setError(null);
+                if (data.success && Array.isArray(data.data)) {
+                    const allBugs = data.data;
+                    const devBugs = allBugs.filter(b => {
+                        const devId = String(b.assignedDeveloper?.id || '').toLowerCase();
+                        const devEmpId = String(b.assignedDeveloper?.employeeId || '').toLowerCase();
+                        const devName = String(b.assignedDeveloper?.name || '').toLowerCase();
+                        return (empId && (devId === empId || devEmpId === empId)) || (userName && devName === userName);
+                    });
+                    setTasks(devBugs);
                 } else {
                     setError(data.message || "Failed to fetch bug tasks.");
                 }
+                setLastRefreshed(new Date());
+                setError(null);
             } else {
                 const empId = user._id || user.id;
                 if (!empId) {

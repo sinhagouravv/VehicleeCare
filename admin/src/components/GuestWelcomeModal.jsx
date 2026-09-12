@@ -132,7 +132,7 @@ const GuestWelcomeModal = () => {
                                     <button
                                         type="button"
                                         onClick={handleGetStarted}
-                                        className="px-14 py-2 bg-white/60 backdrop-blur-sm border border-white/60 text-[#011023] font-bold text-[13px] uppercase tracking-widest rounded-xl transition-all duration-300 cursor-pointer hover:bg-white/80"
+                                        className="px-14 py-2 bg-white/60 backdrop-blur-sm border border-white/60 text-[#011023] font-bold text-[13px] uppercase tracking-widest rounded-xl transition-all duration-300 cursor-pointer hover:bg-white/70"
                                     >
                                         Get Started
                                     </button>

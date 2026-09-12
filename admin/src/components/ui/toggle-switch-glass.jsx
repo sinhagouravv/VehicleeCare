@@ -311,7 +311,7 @@ export default function ToggleSwitch({
       </motion.div>
 
       <motion.div
-        className="absolute rounded-full z-20 cursor-grab active:cursor-grabbing"
+        className="absolute rounded-full z-20 cursor-pointer"
         drag="x"
         dragConstraints={{ left: 0, right: calculateTravel() }}
         dragElastic={0}
