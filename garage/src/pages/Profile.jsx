@@ -420,7 +420,7 @@ const Profile = () => {
                         <div className="space-y-4 lg:col-span-2">
                             <h4 className="text-base font-bold text-gray-400 uppercase tracking-wider">Location Protocol</h4>
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center">
-                                <div className="grid grid-cols-1 lg:grid-cols-[54.5%_25%_18%] gap-1 w-full items-center">
+                                <div className="grid grid-cols-1 lg:grid-cols-[54.5%_25%_19.75%] gap-1 w-full items-center">
                                     <div className="text-left">
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Garage Address</p>
                                         <p className="text-[15px] font-semibold text-[#052558] uppercase flex items-start gap-2 leading-relaxed truncate">
@@ -431,7 +431,7 @@ const Profile = () => {
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">District Division</p>
                                         <p className="text-[15px] font-semibold text-gray-700 uppercase truncate">{garage.district || '—'}</p>
                                     </div>
-                                    <div className="text-left">
+                                    <div className="text-right">
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">State Registry</p>
                                         <p className="text-[15px] font-semibold text-gray-700 uppercase truncate">{garage.state || '—'}</p>
                                     </div>

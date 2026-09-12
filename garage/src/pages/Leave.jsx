@@ -375,10 +375,10 @@ const Leave = () => {
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase">
                             {loading && filteredLeaves.length === 0 ? (
-                                <TableSkeleton rows={15} cols={7} />
+                                <TableSkeleton rows={15} cols={8} />
                             ) : filteredLeaves.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan="8" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No leave requests found.
                                     </td>
                                 </tr>

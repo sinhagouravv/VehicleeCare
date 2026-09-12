@@ -252,13 +252,10 @@ const Login = () => {
                                 </div>
                                 <input
                                     type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    maxLength={9}
                                     value={garageId}
-                                    onChange={(e) => setGarageId(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                                    onChange={(e) => setGarageId(e.target.value)}
                                     className="w-full pl-12 pr-4 py-4 bg-white/80 border border-white rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all text-[#011023] placeholder-slate-300 font-semibold text-[15px] tracking-wide shadow-sm"
-                                    placeholder="Enter 9-digit ID"
+                                    placeholder="Enter Email or Garage ID"
                                     required
                                 />
                             </div>
@@ -316,6 +313,41 @@ const Login = () => {
                             <span className="relative z-10 flex justify-center items-center drop-shadow-md">
                                 {loading ? <Loader className="animate-spin" size={20} /> : 'Login'}
                             </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                setError('');
+                                setSuccessMessage('');
+                                setLoading(true);
+                                try {
+                                    const res = await fetch('https://vehicleecare.onrender.com/api/auth/garage-login', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ garageId: '663428591', password: 'GuestGarage@2026' })
+                                    });
+
+                                    const data = await res.json();
+
+                                    if (res.ok) {
+                                        localStorage.setItem('garageToken', data.token);
+                                        localStorage.setItem('garageUser', JSON.stringify(data.garage));
+                                        sessionStorage.removeItem('guestWelcomeDismissed');
+                                        navigate('/');
+                                    } else {
+                                        setError(data.msg || 'Failed to login as guest');
+                                    }
+                                } catch (err) {
+                                    setError('Failed to connect to server');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                            className="w-full mt-3 bg-white border border-[#a5b4fc] text-[#3730a3] py-4 rounded-2xl font-bold tracking-wider uppercase text-xs transition-all duration-300 hover:bg-blue-50/50 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                        >
+                            <ShieldCheck size={16} /> Guest Garage Access
                         </button>
                     </form>
                 </div>

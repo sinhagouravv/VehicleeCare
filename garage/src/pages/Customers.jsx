@@ -6,6 +6,25 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 
+const getFuelBadgeClass = (v) => {
+    const ft = (v?.fuelType || v?.fuel || '').toLowerCase();
+    const lbl = (v?.label || v?.make || '').toLowerCase();
+
+    const isEV = ft.includes('ev') || ft.includes('electric') || lbl.includes(' ev') || lbl.includes('ioniq') || lbl.endsWith(' ev6') || lbl.endsWith(' ev3') || lbl.includes('nexon ev') || lbl.includes('tigor ev') || lbl.includes('tiago ev') || lbl.includes('zs ev') || lbl.includes('e-tron') || lbl.includes('taycan') || lbl.includes('i4') || lbl.includes('ix');
+    if (isEV) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+    const isDiesel = ft.includes('diesel') || lbl.includes('diesel') || lbl.includes('tdci') || lbl.includes('crdi') || lbl.includes('ddis') || lbl.includes('mhawk') || lbl.includes('dci') || lbl.includes('tdi');
+    if (isDiesel) return 'bg-orange-50 text-orange-700 border-orange-200';
+
+    const isCNG = ft.includes('cng') || lbl.includes('cng');
+    if (isCNG) return 'bg-purple-50 text-purple-700 border-purple-200';
+
+    const isHybrid = ft.includes('hybrid') || lbl.includes('hybrid');
+    if (isHybrid) return 'bg-teal-50 text-teal-700 border-teal-200';
+
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+};
+
 const Customers = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [customers, setCustomers] = useState([]);
@@ -285,21 +304,11 @@ const Customers = () => {
                                     <td className="p-4 text-center w-[36%]">
                                         <div className="flex flex-wrap justify-center gap-1.5 max-h-[58px] overflow-hidden">
                                             {customer.vehicleObjects && customer.vehicleObjects.length > 0
-                                                ? customer.vehicleObjects.map((v, i) => {
-                                                    const ft = v.fuelType || '';
-                                                    const isEV = ft.includes('ev') || ft.includes('electric') || v.label.toLowerCase().includes(' ev') || v.label.toLowerCase().includes('ioniq') || v.label.toLowerCase().endsWith(' ev6') || v.label.toLowerCase().endsWith(' ev3');
-                                                    const isDiesel = ft.includes('diesel');
-                                                    const cls = isEV
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                        : isDiesel
-                                                        ? 'bg-orange-50 text-orange-700 border-orange-100'
-                                                        : 'bg-blue-50 text-blue-700 border-blue-100';
-                                                    return (
-                                                        <span key={i} className={`px-2.5 py-1 text-xs font-semibold border border-transparent rounded-full whitespace-nowrap ${cls}`}>
-                                                            {v.label}
-                                                        </span>
-                                                    );
-                                                })
+                                                ? customer.vehicleObjects.map((v, i) => (
+                                                    <span key={i} className={`px-2.5 py-1 text-xs font-semibold border rounded-full whitespace-nowrap ${getFuelBadgeClass(v)}`}>
+                                                        {v.label}
+                                                    </span>
+                                                ))
                                                 : <span className="text-sm text-gray-400">—</span>
                                             }
                                         </div>
@@ -413,24 +422,14 @@ const Customers = () => {
                                             {selectedCustomer.vehicleObjects && selectedCustomer.vehicleObjects.length > 0
                                                 ? (() => {
                                                     const hasManyVehicles = selectedCustomer.vehicleObjects.length > 5;
-                                                    return selectedCustomer.vehicleObjects.map((v, i) => {
-                                                        const ft = v.fuelType || '';
-                                                        const isEV = ft.includes('ev') || ft.includes('electric') || v.label.toLowerCase().includes(' ev') || v.label.toLowerCase().includes('ioniq') || v.label.toLowerCase().endsWith(' ev6') || v.label.toLowerCase().endsWith(' ev3');
-                                                        const isDiesel = ft.includes('diesel');
-                                                        const cls = isEV
-                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                            : isDiesel
-                                                            ? 'bg-orange-50 text-orange-700 border-orange-100'
-                                                            : 'bg-blue-50 text-blue-700 border-blue-100';
-                                                        return (
-                                                            <span 
-                                                                key={i} 
-                                                                className={`flex items-center justify-center text-center px-3 py-1.5 text-[12px] font-bold border rounded-lg shadow-sm whitespace-nowrap min-w-max ${hasManyVehicles ? 'flex-1 max-w-[280px]' : 'flex-none'} ${cls}`}
-                                                            >
-                                                                {v.label}
-                                                            </span>
-                                                        );
-                                                    });
+                                                    return selectedCustomer.vehicleObjects.map((v, i) => (
+                                                        <span 
+                                                            key={i} 
+                                                            className={`flex items-center justify-center text-center px-3.5 py-1.5 text-[12px] font-bold border rounded-full whitespace-nowrap min-w-max ${hasManyVehicles ? 'flex-1 max-w-[280px]' : 'flex-none'} ${getFuelBadgeClass(v)}`}
+                                                        >
+                                                            {v.label}
+                                                        </span>
+                                                    ));
                                                 })()
                                                 : <span className="text-sm text-gray-400">—</span>
                                             }

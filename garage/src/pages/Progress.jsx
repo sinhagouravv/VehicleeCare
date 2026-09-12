@@ -14,6 +14,7 @@ import {
     ChevronDown,
     ChevronUp
 } from 'lucide-react';
+import { SkeletonBlock } from '../components/Skeleton';
 
 const Progress = () => {
     const [bookings, setBookings] = useState([]);
@@ -63,17 +64,14 @@ const Progress = () => {
     }, [expandedJob]);
 
     const getStatusStep = (status) => {
-        switch (status) {
-            case 'Pending':
-            case 'Confirmed': return 0;
-            case 'In Progress': return 1;
-            case 'In Service':
-            case 'In-Service': return 2;
-            case 'Completed':
-            case 'Ready for Delivery': return 3;
-            case 'Delivered': return 4;
-            default: return 0;
-        }
+        if (!status) return 0;
+        const s = status.trim().toLowerCase();
+        if (s === 'pending' || s === 'confirmed') return 0;
+        if (s === 'in progress' || s === 'inprogress') return 1;
+        if (s === 'in service' || s === 'in-service' || s === 'inservice') return 2;
+        if (s === 'completed' || s === 'ready for delivery') return 3;
+        if (s === 'delivered') return 4;
+        return 0;
     };
 
     const getStatusStyle = (status) => {
@@ -136,47 +134,75 @@ const Progress = () => {
     const activeBookings = bookings.filter(b => b.status !== 'Delivered');
     const deliveredBookings = bookings.filter(b => b.status === 'Delivered');
 
-    const renderJobCard = (job) => (
-        <div
-            key={job._id}
-            id={`job-card-${job._id}`}
-            className={`group bg-white/70 backdrop-blur-xl border border-white/80 rounded-2xl transition-all duration-500 overflow-hidden 
-                ${expandedJob === job._id ? 'shadow-2xl shadow-blue-900/10 scale-[1.01] bg-white/95 ring-1 ring-blue-50' : ''}`}
-        >
-            <div
-                className="px-4.5 py-2.5 cursor-pointer flex items-center justify-between"
-                onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
-            >
-                <div className="flex items-center gap-6 w-[80%]">
-                    <div className=''>
+    const renderJobCard = (job) => {
+        if (!job || (!job.vehicle?.make && !job.vehicle?.model && !job.service?.title && !job.bookingId)) {
+            return (
+                <div key={job?._id || Math.random()} className="bg-white/60 backdrop-blur-xl border border-[#e6f0fa] p-3.5 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center animate-pulse">
+                    <div className="space-y-2 w-3/4">
                         <div className="flex items-center gap-3">
-                            <h4 className="font-bold text-[#011023] uppercase tracking-tight leading-none">
-                                {job.vehicle?.make} {job.vehicle?.model}
-                            </h4>
-                            <span className="text-[10.5px] font-semibold text-[#527FB0] bg-blue-50/50 px-2.5 py-0.5 rounded-full border border-blue-100/50 uppercase">
-                                {job.bookingId || job._id?.slice(0, 8)}
+                            <SkeletonBlock className="h-5 w-40 bg-slate-200/80 rounded-lg" />
+                            <SkeletonBlock className="h-4 w-20 bg-blue-100/50 rounded-full" />
+                        </div>
+                        <SkeletonBlock className="h-4 w-56 bg-slate-200/60 rounded" />
+                    </div>
+                    <SkeletonBlock className="h-7 w-24 bg-slate-200/80 rounded-2xl" />
+                </div>
+            );
+        }
+
+        const vehicleTitle = [job.vehicle?.make, job.vehicle?.model].filter(Boolean).join(' ');
+
+        return (
+            <div
+                key={job._id}
+                id={`job-card-${job._id}`}
+                className={`group bg-white/70 backdrop-blur-xl border border-[#e6f0fa] rounded-2xl transition-all duration-500 overflow-hidden 
+                    ${expandedJob === job._id ? 'scale-[1.01] bg-white/95 ring-1 ring-blue-50/50' : ''}`}
+            >
+                <div
+                    className="px-4.5 py-2.75 cursor-pointer flex items-center justify-between"
+                    onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
+                >
+                    <div className="flex items-center gap-6 w-[80%]">
+                        <div className=''>
+                            <div className="flex items-center gap-3">
+                                {vehicleTitle ? (
+                                    <h4 className="font-bold text-[#011023] uppercase tracking-tight leading-none">
+                                        {vehicleTitle}
+                                    </h4>
+                                ) : (
+                                    <SkeletonBlock className="h-4.5 w-36 bg-slate-200/80 rounded-md" />
+                                )}
+                                <span className="text-[10.5px] font-semibold text-[#527FB0] bg-blue-50/50 px-2.5 py-0.5 rounded-full border border-blue-100/50 uppercase">
+                                    {job.bookingId || job._id?.slice(0, 8)}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1.25">
+                                {job.service?.title ? (
+                                    <span className={`text-[12px] font-semibold text-slate-500 uppercase ${expandedJob === job._id ? 'whitespace-normal' : 'truncate block max-w-xl'}`}>
+                                        {job.service.title}
+                                    </span>
+                                ) : (
+                                    <SkeletonBlock className="h-3.5 w-52 bg-slate-200/60 rounded-md" />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-8">
+                        <div className="text-right hidden sm:block">
+                            <span className={`px-3 py-1 rounded-2xl text-[10.5px] font-bold uppercase border transition-colors duration-500 ${getStatusStyle(job.status)} shadow-sm`}>
+                                {job.status}
                             </span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1.25">
-                            <span className={`text-[12px] font-semibold text-slate-500 uppercase ${expandedJob === job._id ? 'whitespace-normal' : 'truncate block max-w-xl'}`} >{job.service?.title}</span>
-                        </div>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-8">
-                    <div className="text-right hidden sm:block">
-                        <span className={`px-3 py-1 rounded-2xl text-[10.5px] font-bold uppercase border transition-colors duration-500 ${getStatusStyle(job.status)} shadow-sm`}>
-                            {job.status}
-                        </span>
-                    </div>
-                </div>
-            </div>
 
             <div 
                 className={`grid transition-all duration-500 ease-in-out ${expandedJob === job._id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
             >
                 <div className="overflow-hidden">
-                    <div className="px-4 pb-6 pt-4 space-y-8 animate-in slide-in-from-top-4 duration-700 ease-out">
+                    <div className="px-4 pb-2 pt-4 space-y-8 animate-in slide-in-from-top-4 duration-700 ease-out">
                         {/* Status Milestone Track */}
                         <div className="relative px-1">
                             {/* Progress Bar Background */}
@@ -196,20 +222,14 @@ const Progress = () => {
                                     { label: 'Delivered', icon: <ArrowRight size={14} />, desc: 'Handed over' }
                                 ].map((step, idx) => {
                                     const statusStep = getStatusStep(job.status);
-                                    // A step is done if we've passed it, OR if we are at it and it's 'Completed' or 'Delivered'
-                                    const isDone = job.status === 'Delivered' || 
-                                                 (job.status === 'Completed' && idx <= 3) || 
-                                                 statusStep > idx;
-                                    const isActive = !isDone && statusStep === idx;
+                                    const isDone = idx <= statusStep;
                                     
                                     return (
                                         <div key={idx} className="flex flex-col items-center group/step">
                                             <div className={`w-8 h-8 rounded-2xl flex items-center justify-center border-2 transition-all duration-700
                                                 ${isDone
                                                     ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100'
-                                                    : isActive
-                                                        ? 'bg-white border-blue-500 text-blue-600 shadow-xl shadow-blue-50 scale-110 ring-4 ring-blue-50'
-                                                        : 'bg-white border-slate-100 text-slate-300'}`}>
+                                                    : 'bg-white border-slate-100 text-slate-300'}`}>
                                                 {isDone 
                                                     ? <Check size={14} strokeWidth={3} /> 
                                                     : React.cloneElement(step.icon, { strokeWidth: 2.5 })}
@@ -218,12 +238,10 @@ const Progress = () => {
                                                 <p className={`text-[11.5px] font-semibold uppercase transition-colors duration-500
                                                     ${isDone 
                                                         ? 'text-emerald-600' 
-                                                        : isActive 
-                                                            ? 'text-[#052558]' 
-                                                            : 'text-slate-300'}`}>
+                                                        : 'text-slate-300'}`}>
                                                     {step.label}
                                                 </p>
-                                                <p className={`text-[9.5px] font-black uppercase opacity-60 transition-colors duration-500
+                                                <p className={`text-[9.5px] font-bold uppercase opacity-60 transition-colors duration-500
                                                     ${isDone ? 'text-emerald-500/100' : 'text-slate-400'}`}>
                                                     {step.desc}
                                                 </p>
@@ -236,8 +254,8 @@ const Progress = () => {
 
                         {/* Grid Info */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4.5">
-                            <div className="bg-gradient-to-br from-blue-50/50 to-white p-4 rounded-2xl border border-blue-50/80 shadow-sm">
-                                <h5 className="text-[14.5px] font-bold uppercase mb-3 border-b border-blue-100/50 pb-3">Expert Assigned</h5>
+                            <div className="px-2">
+                                <h5 className="text-[14.5px] font-bold uppercase mb-5">Expert Assigned</h5>
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-4 group/staff">
                                         <div>
@@ -256,17 +274,17 @@ const Progress = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between group/time">
+                            <div className="px-2 flex flex-col justify-between group/time">
                                 <div>
-                                    <div className="flex justify-between items-start mb-5">
-                                        <h5 className="text-[14px] font-bold uppercase mb- border-b border-blue-100/50">Efficiency Protocol</h5>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h5 className="text-[14px] font-bold uppercase">Efficiency Protocol</h5>
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="flex justify-between items-center bg-slate-50/50 mb-2.5 rounded-xl border border-transparent hover:border-slate-100 transition-all">
+                                        <div className="flex justify-between items-center mb-2.5 ">
                                             <span className="text-[12px] font-bold text-[#011023] uppercase">Duration</span>
                                             <span className="text-[12px] font-semibold text-[#011023] uppercase">{job.serviceDuration || '—'}</span>
                                         </div>
-                                        <div className="flex justify-between items-center bg-slate-50/50 p- rounded-xl border border-transparent hover:border-slate-100 transition-all">
+                                        <div className="flex justify-between items-center mb-2.5 ">
                                             <span className="text-[12px] font-bold text-[#011023] uppercase">Delivery Due</span>
                                             <span className="text-[12px] font-semibold text-[#011023] uppercase">{getDeliveryDue(job)}</span>
                                         </div>
@@ -279,6 +297,7 @@ const Progress = () => {
             </div>
         </div>
     );
+};
 
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto">
@@ -286,7 +305,9 @@ const Progress = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Service Progress</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
-                    {loading ? (
+                    {loading && bookings.length === 0 ? (
+                        <SkeletonBlock className="h-4 w-60 bg-slate-200/80 rounded" />
+                    ) : loading ? (
                         <span>Refreshing...</span>
                     ) : lastRefreshed ? (
                         <span>
@@ -298,14 +319,23 @@ const Progress = () => {
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-6 uppercase gap-4 mb-4">
-                {stats.map((stat, i) => (
-                    <div key={i} className="bg-white/60 backdrop-blur-xl border border-white px-6 py-3 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
-                        <p className="text-gray-500 font-semibold">{stat.label}</p>
-                        <div className="flex items-center gap-2">
-                            <span className={`text-2xl font-bold ${stat.color === 'emerald' ? 'text-emerald-500' : stat.color === 'blue' ? 'text-[#011023]' : 'text-[#011023]'}`}>{stat.value}</span>
+                {loading && bookings.length === 0 ? (
+                    [...Array(6)].map((_, i) => (
+                        <div key={i} className="bg-white/60 backdrop-blur-xl border border-[#e6f0fa] px-6 py-3.25 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center animate-pulse">
+                            <SkeletonBlock className="h-4 w-16 bg-slate-200/80 rounded" />
+                            <SkeletonBlock className="h-7 w-8 bg-slate-200/80 rounded-lg" />
                         </div>
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    stats.map((stat, i) => (
+                        <div key={i} className="bg-white/60 backdrop-blur-xl border border-[#e6f0fa] px-6 py-3.5 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center">
+                            <p className="text-gray-500 font-semibold">{stat.label}</p>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xl font-bold ${stat.color === 'emerald' ? 'text-emerald-500' : stat.color === 'blue' ? 'text-[#011023]' : 'text-[#011023]'}`}>{stat.value}</span>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Main Shop Floor Layout */}
@@ -313,17 +343,24 @@ const Progress = () => {
 
                 {/* Active Jobs Pipeline */}
                 <div className="space-y-5">
-                    <div className="space-y-4 max-h-[790px] overflow-y-auto rounded-xl hide-scrollbar">
+                    <div className="space-y-3.25 max-h-[790px] overflow-y-auto rounded-xl hide-scrollbar">
                         {loading && bookings.length === 0 ? (
-                            <div className="bg-white/40 backdrop-blur-md border border-white p-10 rounded-2xl text-center shadow-sm">
-                                <div className="relative w-16 h-16 mx-auto mb-6">
-                                    <Activity className="text-blue-200 animate-ping absolute inset-0 opacity-20" size={64} />
-                                    <Activity className="text-blue-400 relative z-10" size={64} />
-                                </div>
-                                <p className="text-slate-400 font-bold uppercase tracking-[0.25em] text-[11px]">Synchronizing Fleet Data...</p>
+                            <div className="space-y-4">
+                                {[...Array(9)].map((_, i) => (
+                                    <div key={i} className="bg-white/60 backdrop-blur-xl border border-[#e6f0fa] p-3.5 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center animate-pulse">
+                                        <div className="space-y-2 w-3/4">
+                                            <div className="flex items-center gap-3">
+                                                <SkeletonBlock className="h-5 w-40 bg-slate-200/80 rounded-lg" />
+                                                <SkeletonBlock className="h-4 w-20 bg-blue-100/50 rounded-full" />
+                                            </div>
+                                            <SkeletonBlock className="h-4 w-56 bg-slate-200/60 rounded" />
+                                        </div>
+                                        <SkeletonBlock className="h-7 w-24 bg-slate-200/80 rounded-2xl" />
+                                    </div>
+                                ))}
                             </div>
                         ) : activeBookings.length === 0 ? (
-                            <div className="bg-white/40 backdrop-blur-md border border-white p-10 rounded-[2.5rem] text-center shadow-sm">
+                            <div className="bg-white/40 backdrop-blur-md border border-[#e6f0fa] p-10 rounded-[2.5rem] text-center shadow-sm">
                                 <CheckCircle className="mx-auto text-emerald-200 mb-6" size={64} />
                                 <p className="text-slate-400 font-bold uppercase tracking-[0.25em] text-[11px]">All Services Completed</p>
                             </div>
@@ -333,9 +370,24 @@ const Progress = () => {
 
                 {/* Delivered Jobs Section */}
                 <div className="space-y-5 lg:sticky lg:top-0">
-                    <div className="space-y-4 max-h-[790px] overflow-y-auto rounded-xl hide-scrollbar">
-                        {deliveredBookings.length === 0 ? (
-                            <div className="bg-white/40 backdrop-blur-md border border-white p-10 rounded-2xl text-center shadow-sm">
+                    <div className="space-y-3.25 max-h-[790px] overflow-y-auto rounded-xl hide-scrollbar">
+                        {loading && bookings.length === 0 ? (
+                            <div className="space-y-4">
+                                {[...Array(9)].map((_, i) => (
+                                    <div key={i} className="bg-white/60 backdrop-blur-xl border border-[#e6f0fa] p-3.5 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex justify-between items-center animate-pulse">
+                                        <div className="space-y-2 w-3/4">
+                                            <div className="flex items-center gap-3">
+                                                <SkeletonBlock className="h-5 w-40 bg-slate-200/80 rounded-lg" />
+                                                <SkeletonBlock className="h-4 w-20 bg-blue-100/50 rounded-full" />
+                                            </div>
+                                            <SkeletonBlock className="h-4 w-56 bg-slate-200/60 rounded" />
+                                        </div>
+                                        <SkeletonBlock className="h-7 w-24 bg-slate-200/80 rounded-2xl" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : deliveredBookings.length === 0 ? (
+                            <div className="bg-white/40  border border-[#e6f0fa] p-10 rounded-2xl text-center shadow-sm">
                                 <Clock className="mx-auto text-slate-200 mb-6" size={64} />
                                 <p className="text-slate-400 font-bold uppercase tracking-[0.25em] text-[11px]">No Recent Deliveries</p>
                             </div>

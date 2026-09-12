@@ -8,6 +8,7 @@ import LabelButton from './LabelButton';
 import { Bug, X, Send, Loader2, UploadCloud } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import UploadDocuments from '../pages/UploadDocuments';
+import GuestWelcomeModal from './GuestWelcomeModal';
 
 const Layout = () => {
     const { triggerAlert } = useAlert();
@@ -190,6 +191,9 @@ const Layout = () => {
                     </div>
                 </div>
             )}
+
+            {/* Guest Welcome Modal */}
+            <GuestWelcomeModal />
         </div>
     );
 };

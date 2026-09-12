@@ -411,7 +411,7 @@ const Vehicles = () => {
                             {/* History Placeholder */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-400 tracking-wider flex items-center gap-2">Service</h4>
-                                <div className="bg-blue-50/30 border border-blue-50 pt-1 pb-3 rounded-xl">
+                                <div className="pt-1 rounded-xl">
                                     <p className="text-[#052558] font-semibold text-sm">{selectedVehicle.lastService}</p>
                                 </div>
                             </div>

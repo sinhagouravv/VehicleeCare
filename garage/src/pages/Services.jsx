@@ -143,7 +143,7 @@ const Services = () => {
         
         return baseTime.toLocaleDateString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
     };
 
@@ -347,14 +347,14 @@ const Services = () => {
 
                                     <td className="p-3.25 text-center w-[11%]">
                                         <div className="font-semibold text-[13px]">
-                                            {booking.assignedEmployees?.technician?.name || 'Waiting...'}
+                                            {booking.assignedEmployees?.technician?.name || '—'}
                                         </div>
                                         <div className="text-[11.5px] text-gray-500">
-                                            {booking.assignedEmployees?.technician?.employeeId || 'ID Pending'}
+                                            {booking.assignedEmployees?.technician?.employeeId || '—'}
                                         </div>
                                     </td>
                                     <td className="p-3.25 text-center w-[45%]">
-                                        <div className="font-semibold text-[#0f172a] text-[13.5px] uppercase leading-snug">{booking.service?.title}</div>
+                                        <div className="font-semibold text-[#0f172a] text-[13.5px] uppercase leading-snug line-clamp-2">{booking.service?.title}</div>
                                         <div className="text-[11.5px] text-slate-500 uppercase mt-1 tracking-wide">{booking.service?.id || '—'}</div>
                                     </td>
                                     <td className="p-3.25 text-center">
@@ -416,7 +416,7 @@ const Services = () => {
                     onClick={() => setIsViewModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
@@ -456,7 +456,7 @@ const Services = () => {
 
                                 {/* Payment & Status */}
                                 <div className="flex flex-col gap-4.5 w-full md:w-[36%]">
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-0.25">
                                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Other Details</h4>
                                         <div className="flex items-center mt-7 gap-3">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Status</h4>
@@ -466,16 +466,16 @@ const Services = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 mt-1">
                                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Duration</h4>
                                             <div className="flex uppercase items-center gap-2 pl-5">
-                                                <span className="inline-block px-3 py-1 text-xs font-bold rounded-md uppercase text-gray-800">{selectedBooking.serviceDuration || '—'}</span>
+                                                <span className="inline-block px-3 py-1 text-sm font-semibold rounded-md uppercase text-gray-800">{selectedBooking.serviceDuration || '—'}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <h4 className="text-sm font-bold mb-2 text-gray-400 uppercase tracking-wider w-29">Delivery Due</h4>
+                                            <h4 className="text-sm font-bold mb-2 text-gray-400 uppercase tracking-wider w-30">Delivery Due</h4>
                                             <div className="flex uppercase items-center mb-2 gap-2 pl-2">
-                                                <span className="inline-block px- py-1 text-xs font-bold rounded-md uppercase text-gray-800">
+                                                <span className="inline-block px- py-1 text-sm font-semibold rounded-md uppercase text-gray-800">
                                                     {getDeliveryDue(selectedBooking)}
                                                 </span>
                                             </div>
@@ -487,9 +487,9 @@ const Services = () => {
                             {/* Service Details */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Service Details</h4>
-                                <div className="bg-white border border-[#e6f0fa] p-4 gap-4 rounded-xl flex justify-between items-center shadow-sm">
+                                <div className="gap-4 rounded-xl flex justify-between items-center ">
                                     <div>
-                                        <h5 className="font-bold text-[#052558] uppercase text-[15.5px]">{selectedBooking.service?.title || 'General Service'}</h5>
+                                        <h5 className="font-semibold text-[#052558] uppercase text-sm">{selectedBooking.service?.title || 'General Service'}</h5>
                                         <p className="text-sm uppercase text-gray-500 mt-1">Scheduled for: <span className="font-semibold text-gray-700">{selectedBooking.schedule?.date} at {selectedBooking.schedule?.time}</span></p>
                                     </div>
                                 </div>
@@ -503,18 +503,18 @@ const Services = () => {
                                     <h5 className="font-bold text-[#052558] text-[15.5px] truncate" title={selectedBooking.garage?.name}>{selectedBooking.garage?.name || 'No Garage Assigned'}</h5>
                                     <p className="text-sm text-gray-500 mt-0.5 truncate">{selectedBooking.garage?.district}, {selectedBooking.garage?.state} | {selectedBooking.garage?.id || 'N/A'}</p>
                                                               {/* Employees Info - 70% */}
-                                <div className="w-full bg-white border border-[#e6f0fa] p-4 rounded-xl shadow-sm flex divide-x divide-[#e6f0fa]">
+                            <div className="w-full pt-2 flex divide-x divide-[#e6f0fa]">
                                     <div className="w-1/3 pr-4 uppercase">
-                                        <p className="text-xs font-bold text-gray-400 tracking-tight mb-1">Assigned Employee's</p>
-                                        <h5 className="font-bold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
+                                        <p className="text-sm font-semibold text-gray-400 mb-3">Assigned Employee's</p>
+                                        <h5 className="font-semibold text-[#052558] text-[15.5px]">{selectedBooking.assignedEmployees?.technician?.name || 'Waiting...'}</h5>
                                         <p className="text-sm text-gray-500 mt-0.5">Technician | {selectedBooking.assignedEmployees?.technician?.employeeId || 'ID Pending'}</p>
                                     </div>
                                     <div className="w-1/3 pl-3 uppercase">
-                                        <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
+                                        <h5 className="font-semibold text-[#052558] mt-8 text-[15.5px]">{selectedBooking.assignedEmployees?.support?.name || 'Waiting...'}</h5>
                                         <p className="text-sm text-gray-500 mt-0.5">Support Staff | {selectedBooking.assignedEmployees?.support?.employeeId || 'ID Pending'}</p>
                                     </div>
                                     <div className="w-1/3 pl-8 uppercase">
-                                        <h5 className="font-bold text-[#052558] mt-5 text-[15.5px]">{selectedBooking.assignedEmployees?.mechanic?.name || '—'}</h5>
+                                        <h5 className="font-semibold text-[#052558] mt-8 text-[15.5px]">{selectedBooking.assignedEmployees?.mechanic?.name || '—'}</h5>
                                         <p className="text-sm text-gray-500 mt-0.5">Mechanic | {selectedBooking.assignedEmployees?.mechanic?.employeeId || '—'}</p>
                                     </div>
                                 </div>

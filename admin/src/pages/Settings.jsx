@@ -1085,7 +1085,7 @@ const Settings = () => {
 
                                 {/* Nested Service Tabs */}
                                 <div className="flex gap-2 p-1 bg-blue-50/50 rounded-xl mb-4">
-                                    {['PETROL', 'DIESEL', 'EV', 'PREMIUM'].map((tab) => (
+                                    {['PETROL', 'DIESEL', 'EV'].map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveServiceTab(tab)}

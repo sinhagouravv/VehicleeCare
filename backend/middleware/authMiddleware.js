@@ -38,11 +38,20 @@ exports.checkGuestReadOnly = (req, res, next) => {
         try {
             const token = authHeader.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-            const admin = decoded.admin || decoded;
+            const admin = decoded.admin;
+            const garage = decoded.garage || decoded.user;
+            
             if (admin && (admin.role === 'guest_admin' || admin.isGuest || admin.email === 'guestadmin@vehicleecare.com')) {
                 return res.status(403).json({
                     success: false,
                     msg: 'The guest admin only has read rights.'
+                });
+            }
+
+            if (garage && (garage.role === 'guest_garage' || garage.isGuest || garage.ownerEmail === 'guestgarage@vehicleecare.com' || garage.id === '663428591')) {
+                return res.status(403).json({
+                    success: false,
+                    msg: 'The guest garage only has read rights.'
                 });
             }
         } catch (e) {
