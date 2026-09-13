@@ -8,8 +8,11 @@ import LabelButton from './LabelButton';
 import { Bug, X, Send, Loader2, UploadCloud } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import UploadDocuments from '../pages/UploadDocuments';
+import GuestWelcomeModal from './GuestWelcomeModal';
+import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
 
 const Layout = () => {
+    useGuestSessionTimeout();
     const { triggerAlert } = useAlert();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
@@ -192,6 +195,9 @@ const Layout = () => {
                     </div>
                 </div>
             )}
+
+            {/* Guest Welcome Modal */}
+            <GuestWelcomeModal />
         </div>
     );
 };

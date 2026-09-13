@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, User, QrCode, RefreshCw, Mail, Phone, Calendar, Loader2 } from 'lucide-react';
 import Logo from '../assets/logo.svg';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const VirtualIDCard = () => {
+    const { isGuest, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -155,7 +157,7 @@ const VirtualIDCard = () => {
                                         <Mail size={16} className="text-[#527FB0]" />
                                         <div>
                                             <p className="text-[7.5px] uppercase tracking-widest text-gray-400">Email Address</p>
-                                            <p className="font-bold text-[#052558] lowercase">{employee.email}</p>
+                                            <p className={`font-bold text-[#052558] lowercase ${isGuest && isRealValue(employee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(employee.email)}</p>
                                         </div>
                                     </div>
 
@@ -163,7 +165,7 @@ const VirtualIDCard = () => {
                                         <Phone size={16} className="text-[#527FB0]" />
                                         <div>
                                             <p className="text-[7.5px] uppercase tracking-widest text-gray-400">Contact Number</p>
-                                            <p className="font-bold text-[#052558]">{employee.phone || '—'}</p>
+                                            <p className={`font-bold text-[#052558] ${isGuest && isRealValue(employee.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(employee.phone)}</p>
                                         </div>
                                     </div>
 

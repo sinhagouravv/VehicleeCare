@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom';
 import { Trash2, Loader2, UploadCloud, Eye, Download, MessageSquare, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const UploadDocuments = () => {
+    const { guardGuestAction } = useGuestGuard();
     const getInitialEmployee = () => {
         try {
             const storedUser = localStorage.getItem('employeeUser');
@@ -86,6 +88,7 @@ const UploadDocuments = () => {
     }, [navigate]);
 
     const handleFileUpload = async (docKey, file) => {
+        if (guardGuestAction()) return;
         if (!file) return;
         setUploadingKey(docKey);
 
@@ -141,6 +144,7 @@ const UploadDocuments = () => {
     };
 
     const handleDeleteDocument = async (docKey) => {
+        if (guardGuestAction()) return;
         setUploadingKey(docKey);
 
         try {

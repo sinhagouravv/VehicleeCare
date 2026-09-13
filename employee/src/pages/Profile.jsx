@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Clock, Calendar, ShieldCheck, LogOut, Loader2, Briefcase, BadgeCheck, PhoneCall, Home, Hash, Shield, CreditCard, FileCheck, Landmark, Trash2, X, Send, Smartphone, Globe, ExternalLink, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Mail, Phone, MapPin, Clock, Calendar, ShieldCheck, LogOut, Loader2, Briefcase, BadgeCheck, PhoneCall, Home, Hash, Shield, CreditCard, FileCheck, Landmark, Trash2, X, Send, Smartphone, Globe, ExternalLink, Plus, Upload } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const DELETION_REASONS = [
     'Employment has ended',
@@ -90,6 +91,7 @@ const getCategoryBadge = (category) => {
 
 const Profile = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, maskAddress, isRealValue } = useGuestGuard();
     const [employee, setEmployee] = useState(null);
     const [garage, setGarage] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -114,6 +116,70 @@ const Profile = () => {
         voterId: ''
     });
     const navigate = useNavigate();
+    const profileFileRef = useRef(null);
+    const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+
+    const handleProfilePictureUpload = async (e) => {
+        if (guardGuestAction()) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            return triggerAlert('Please select a valid image file', 'error');
+        }
+
+        setUploadingProfilePic(true);
+        try {
+            // Show immediately with base64 for snappy UX
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const dataUrl = reader.result;
+
+                // Optimistic update with base64
+                const currentStored = JSON.parse(localStorage.getItem('employeeUser') || '{}');
+                const optimistic = { ...currentStored, avatar: dataUrl };
+                localStorage.setItem('employeeUser', JSON.stringify(optimistic));
+                setEmployee(prev => ({ ...prev, avatar: dataUrl }));
+                window.dispatchEvent(new Event('storage'));
+
+                // Upload to Cloudinary via backend
+                const empId = employee?._id || employee?.id || employee?.employeeId;
+                if (empId) {
+                    try {
+                        const formData = new FormData();
+                        // Use the dedicated avatar endpoint — no whitelist, saves directly to DB
+                        formData.append('avatar', file);
+                        const apiRes = await fetch(`https://vehicleecare.onrender.com/api/employees/${empId}/avatar`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (apiRes.ok) {
+                            const apiData = await apiRes.json();
+                            // Response: { success: true, data: { avatar: 'https://...' } }
+                            const cloudinaryUrl = apiData?.data?.avatar || dataUrl;
+
+                            const stored = JSON.parse(localStorage.getItem('employeeUser') || '{}');
+                            const updated = { ...stored, avatar: cloudinaryUrl };
+                            localStorage.setItem('employeeUser', JSON.stringify(updated));
+                            setEmployee(prev => ({ ...prev, avatar: cloudinaryUrl }));
+                            window.dispatchEvent(new Event('storage'));
+                        }
+                    } catch (apiErr) {
+                        console.error("Backend profile pic upload error", apiErr);
+                    }
+                }
+
+                triggerAlert('Profile picture uploaded successfully!', 'success');
+                setUploadingProfilePic(false);
+            };
+            reader.readAsDataURL(file);
+        } catch (err) {
+            console.error("Failed to upload profile picture", err);
+            triggerAlert('Failed to upload profile picture', 'error');
+            setUploadingProfilePic(false);
+        }
+    };
 
     const isAllDetailsFilled = Boolean(
         formatDocNumber(employee?.panCardNumber, employee?.panNumber, employee?.panCard) &&
@@ -121,12 +187,23 @@ const Profile = () => {
         formatDocNumber(employee?.voterIdNumber, employee?.voterNumber, employee?.voterId)
     );
 
+    const hasProfilePicture = Boolean(
+        employee?.avatar ||
+        employee?.profilePhoto ||
+        employee?.profilePicture ||
+        employee?.documents?.avatar ||
+        (() => {
+            try {
+                const u = JSON.parse(localStorage.getItem('employeeUser') || '{}');
+                return u?.avatar || u?.profilePhoto || u?.profilePicture;
+            } catch (e) {
+                return false;
+            }
+        })()
+    );
+
     const handleOpenEditModal = () => {
-        if (isAllDetailsFilled) {
-            triggerAlert('All the details are updated.\nIf you want to change any details, kindly contact the administrator', 'info');
-        } else {
-            setIsAddModalOpen(true);
-        }
+        setIsAddModalOpen(true);
     };
 
     useEffect(() => {
@@ -147,6 +224,7 @@ const Profile = () => {
     }, [employee, isAddModalOpen]);
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         if (form.panCard && form.panCard.length !== 10) return triggerAlert('Kindly enter the PAN CARD details correctly');
         if (form.adharCard && form.adharCard.length !== 14) return triggerAlert('Kindly enter the AADHAR CARD details correctly');
         if (form.voterId && form.voterId.length !== 10) return triggerAlert('Kindly enter the VOTER ID details correctly');
@@ -205,11 +283,11 @@ const Profile = () => {
     };
 
     useEffect(() => {
-        const fetchEmployeeProfile = async () => {
+        const fetchEmployeeProfile = async (isSilent = false) => {
             try {
                 const storedUser = localStorage.getItem('employeeUser');
                 if (!storedUser) {
-                    navigate('/login');
+                    if (!isSilent) navigate('/login');
                     return;
                 }
                 const user = JSON.parse(storedUser);
@@ -220,6 +298,13 @@ const Profile = () => {
                 if (res.ok) {
                     const data = await res.json();
                     const empData = data.data || user;
+
+                    // Preserve avatar: if backend doesn't return it, keep whatever's in localStorage
+                    const storedAvatar = user?.avatar || '';
+                    if (!empData.avatar && storedAvatar) {
+                        empData.avatar = storedAvatar;
+                    }
+
                     setEmployee(empData);
 
                     // Fetch mapped Garage details if available
@@ -234,23 +319,33 @@ const Profile = () => {
                             console.error("Failed to fetch garage details for employee", gErr);
                         }
                     }
-                } else {
+                } else if (!employee) {
                     setEmployee(user);
                 }
                 setLastRefreshed(new Date());
             } catch (error) {
                 console.error("Failed to fetch employee profile", error);
             } finally {
-                setLoading(false);
+                if (!isSilent) setLoading(false);
             }
         };
 
         fetchEmployeeProfile();
+        const interval = setInterval(() => {
+            fetchEmployeeProfile(true);
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, [navigate]);
 
     const handleLogout = () => {
         localStorage.removeItem('employeeToken');
         localStorage.removeItem('employeeUser');
+        localStorage.removeItem('guestWelcomeDismissed');
+        sessionStorage.removeItem('guestWelcomeDismissed');
+        localStorage.removeItem('guestSessionStartTime');
+        localStorage.removeItem('guestLastActivity');
+        localStorage.removeItem('guestSessionExpired');
         navigate('/login', { replace: true });
     };
 
@@ -264,6 +359,7 @@ const Profile = () => {
     };
 
     const handleDeleteRequest = async () => {
+        if (guardGuestAction()) return;
         if (!selectedReason) return triggerAlert('Please select a reason for account termination', 'error');
         if (!tentativeTime) return triggerAlert('Please select a tentative time to leave', 'error');
         if (!deleteReason.trim()) return triggerAlert('Please provide a detailed explanation for the deletion request', 'error');
@@ -490,18 +586,18 @@ const Profile = () => {
                         <div className="space-y-4 lg:col-span-2 text-left">
                             <h4 className="text-base font-bold text-gray-400 uppercase tracking-wider">Residential Protocol</h4>
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center">
-                                <div className="grid grid-cols-1 lg:grid-cols-[54.5%_25%_18%] gap-1 w-full items-center">
+                                <div className="grid grid-cols-1 lg:grid-cols-[54.5%_25%_19.75%] gap-1 w-full items-center">
                                     <div className="text-left">
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Permanent Address</p>
-                                        <p className="text-[15px] font-semibold text-[#052558] uppercase flex items-start gap-2 leading-relaxed truncate">
-                                            {employee.address || ''}
+                                        <p className={`text-[15px] font-semibold text-[#052558] uppercase flex items-start gap-2 leading-relaxed truncate ${isGuest && isRealValue(employee.address) ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                            {maskAddress(employee.address) || '—'}
                                         </p>
                                     </div>
                                     <div className="text-left">
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">District Division</p>
                                         <p className="text-[15px] font-semibold text-gray-700 uppercase truncate">{employee.district || '—'}</p>
                                     </div>
-                                    <div className="text-left">
+                                    <div className="text-right">
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">State Registry</p>
                                         <p className="text-[15px] font-semibold text-gray-700 uppercase truncate">{employee.state || '—'}</p>
                                     </div>
@@ -518,7 +614,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Registered Email</p>
-                                    <p className="text-sm font-semibold uppercase text-[#052558] lowercase">{employee.email || '—'}</p>
+                                    <p className={`text-sm font-semibold text-[#052558] lowercase ${isGuest && isRealValue(employee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(employee.email) || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <Mail size={18} />
@@ -528,7 +624,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Mobile Contact</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{employee.phone || '9957680366'}</p>
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest && isRealValue(employee.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(employee.phone || '9957680366')}</p>
                                 </div>
                                 <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl transition-all">
                                     <Smartphone size={18} />
@@ -538,7 +634,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group transition-all text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Digital ID Pointer</p>
-                                    <p className="text-sm font-semibold text-[#052558] font-mono">{(employee._id || employee.id || '').substring(0, 12)}...</p>
+                                    <p className={`text-sm font-semibold text-[#052558] font-mono ${isGuest && isRealValue(employee._id || employee.id) ? 'blur-sm select-none pointer-events-none' : ''}`}>{(employee._id || employee.id || '').substring(0, 12)}...</p>
                                 </div>
                                 <div className="p-3 bg-slate-100 text-slate-600 rounded-xl transition-all">
                                     <ShieldCheck size={18} />
@@ -572,7 +668,7 @@ const Profile = () => {
                                         <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                             <div className="space-y-1 overflow-hidden">
                                                 <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Employee PAN Card</p>
-                                                <p className="text-sm font-semibold text-[#052558] truncate">
+                                                <p className={`text-sm font-semibold text-[#052558] truncate ${isGuest && isRealValue(panNum) ? 'blur-sm select-none pointer-events-none' : ''}`}>
                                                     {panNum ? `XXXXX${panNum.slice(-4)}` : '—'}
                                                 </p>
                                             </div>
@@ -584,7 +680,7 @@ const Profile = () => {
                                         <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                             <div className="space-y-1 overflow-hidden">
                                                 <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Employee Adhar Card</p>
-                                                <p className="text-sm font-semibold text-[#052558] truncate">
+                                                <p className={`text-sm font-semibold text-[#052558] truncate ${isGuest && isRealValue(adharNum) ? 'blur-sm select-none pointer-events-none' : ''}`}>
                                                     {adharNum ? `XXXX XXXX ${adharNum.slice(-4)}` : '—'}
                                                 </p>
                                             </div>
@@ -595,8 +691,8 @@ const Profile = () => {
 
                                         <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group transition-all text-left">
                                             <div className="space-y-1 overflow-hidden">
-                                                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Employee Card ID</p>
-                                                <p className="text-sm font-semibold text-[#052558] truncate">
+                                                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Employee Voter Card</p>
+                                                <p className={`text-sm font-semibold text-[#052558] truncate ${isGuest && isRealValue(voterNum) ? 'blur-sm select-none pointer-events-none' : ''}`}>
                                                     {voterNum || '—'}
                                                 </p>
                                             </div>
@@ -627,7 +723,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Joining Date</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{employee.createdAt ? new Date(employee.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
+                                    <p className="text-sm font-semibold uppercase text-[#052558]">{employee.createdAt ? new Date(employee.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <Calendar size={18} />
@@ -859,10 +955,44 @@ const Profile = () => {
                                 </div>
                             </div>
 
-                            <div className="grid gap-4">
-                                <div className="space-y-2">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Residential Address</label>
                                     <input readOnly value={form.address} className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
+                                </div>
+                                <div className="col-span-1 space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Profile Picture</label>
+                                    <input 
+                                        type="file" 
+                                        ref={profileFileRef} 
+                                        accept="image/*" 
+                                        onChange={handleProfilePictureUpload} 
+                                        className="hidden" 
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => profileFileRef.current?.click()}
+                                        disabled={uploadingProfilePic || hasProfilePicture}
+                                        className={`w-full px-4 py-2.5 rounded-xl font-semibold font-sans text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xs ${
+                                            hasProfilePicture
+                                                ? 'bg-slate-100 border border-[#cbd5e1] text-gray-400 cursor-not-allowed opacity-60'
+                                                : 'bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {uploadingProfilePic ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> UPLOADING...
+                                            </>
+                                        ) : hasProfilePicture ? (
+                                            <>
+                                                <Upload size={14} /> PHOTO UPLOADED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload size={14} /> UPLOAD PHOTO
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>

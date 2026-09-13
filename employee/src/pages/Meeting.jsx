@@ -6,9 +6,11 @@ import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Meeting = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -237,6 +239,7 @@ const Meeting = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
 
         if (!formData.purpose || !formData.appointmentDate || !formData.reason || !formData.reason.trim()) {
             triggerAlert('Please fill out all the required field', 'error');
@@ -244,8 +247,6 @@ const Meeting = () => {
         }
 
         setSubmitting(true);
-        setError(null);
-        setSuccess(null);
 
         try {
             const res = await fetch('https://vehicleecare.onrender.com/api/employees/id-card-request', {
@@ -261,7 +262,7 @@ const Meeting = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setSuccess("Meeting request submitted successfully!");
+                triggerAlert("Meeting request submitted successfully!", "success");
                 setFormData({
                     purpose: '',
                     appointmentDate: '',
@@ -269,15 +270,12 @@ const Meeting = () => {
                     reason: ''
                 });
                 fetchMeetings(true);
-                setTimeout(() => {
-                    setShowModal(false);
-                    setSuccess(null);
-                }, 1500);
+                setShowModal(false);
             } else {
-                setError(data.message || "Failed to submit request.");
+                triggerAlert(data.message || "Failed to submit request.", "error");
             }
         } catch (err) {
-            setError("Connection error. Please try again.");
+            triggerAlert("Connection error. Please try again.", "error");
         } finally {
             setSubmitting(false);
         }
@@ -301,6 +299,7 @@ const Meeting = () => {
     };
 
     const confirmDelete = async () => {
+        if (guardGuestAction()) return;
         if (!selectedMeeting) return;
         setDeleting(true);
         try {
@@ -331,6 +330,7 @@ const Meeting = () => {
 
     const handleRemarkSubmit = async (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
         if (!selectedRemarkMeeting) return;
         if (!remarkText || !remarkText.trim()) {
             triggerAlert('Please fill out all the required field', 'error');
@@ -657,18 +657,6 @@ const Meeting = () => {
                         {/* Body */}
                         <form onSubmit={handleSubmit} className="space-y-4 uppercase text-left">
                             <div className="space-y-4 overflow-y-auto max-h-[70vh] hide-scrollbar">
-                                {error && (
-                                    <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 font-bold">
-                                        <AlertCircle size={16} />
-                                        {error}
-                                    </div>
-                                )}
-                                {success && (
-                                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2 font-bold">
-                                        <CheckCircle size={16} />
-                                        {success}
-                                    </div>
-                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">

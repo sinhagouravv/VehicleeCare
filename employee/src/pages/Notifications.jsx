@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Bell, Loader2, Trash2, Star, ExternalLink, Tag, X, Flame, Zap, Pin, AlertTriangle, CircleAlert, CheckCircle2, AlertOctagon, Search } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -25,6 +26,7 @@ const EVENT_MAPPING = {
 const Notifications = () => {
     const navigate = useNavigate();
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]); 
     const [employees, setEmployees] = useState([]);
@@ -243,6 +245,7 @@ const Notifications = () => {
     };
 
     const confirmDeleteNotif = async () => {
+        if (guardGuestAction()) return;
         if (!notifToDelete) return;
         setDeleting(true);
         try {

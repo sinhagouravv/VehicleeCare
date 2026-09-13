@@ -3,9 +3,11 @@ import { LogIn, LogOut, CheckCircle, Clock, Calendar, Loader2, AlertCircle } fro
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Attendance = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
     const [todayRecord, setTodayRecord] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -256,6 +258,7 @@ const Attendance = () => {
     }, [fetchTodayStatus]);
 
     const handleCheckIn = async () => {
+        if (guardGuestAction()) return;
         if (!employeeUser) return;
         setActionLoading(true);
         try {
@@ -278,6 +281,7 @@ const Attendance = () => {
     };
 
     const handleCheckOut = async () => {
+        if (guardGuestAction()) return;
         if (!todayRecord?._id) return;
         setActionLoading(true);
         try {

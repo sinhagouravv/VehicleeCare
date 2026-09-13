@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isGuestUser, maskProfilePicture } from '../hooks/useGuestGuard';
 
 const EMPLOYEE_PAGES = [
     { name: 'Dashboard', path: '/' },
@@ -54,6 +55,7 @@ const Header = () => {
     const wrapperRef = useRef(null);
     const inputRef = useRef(null);
     const navigate = useNavigate();
+    const isGuest = isGuestUser();
 
     const filteredPages = EMPLOYEE_PAGES.filter(page =>
         matchesPrefix(page.name, searchTerm)
@@ -213,31 +215,31 @@ const Header = () => {
     }, [searchTerm]);
 
     useEffect(() => {
-        const fetchEmployeeProfile = async () => {
-            const storedUser = localStorage.getItem('employeeUser');
-            if (!storedUser) return;
-            const parsed = JSON.parse(storedUser);
-            setEmployeeUser(parsed);
-
-            const targetId = parsed._id || parsed.id || parsed.employeeId;
-            if (targetId) {
-                try {
-                    const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${targetId}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.data) {
-                            const updated = { ...parsed, ...data.data };
-                            setEmployeeUser(updated);
-                            localStorage.setItem('employeeUser', JSON.stringify(updated));
+        const syncUserFromStorage = () => {
+            try {
+                const storedUser = localStorage.getItem('employeeUser');
+                if (storedUser) {
+                    const parsed = JSON.parse(storedUser);
+                    setEmployeeUser(prev => {
+                        if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
+                            return parsed;
                         }
-                    }
-                } catch (err) {
-                    console.error("Failed to sync employee profile in Header", err);
+                        return prev;
+                    });
                 }
+            } catch (err) {
+                console.error("Error syncing employee profile in Header", err);
             }
         };
 
-        fetchEmployeeProfile();
+        syncUserFromStorage();
+        const interval = setInterval(syncUserFromStorage, 2000);
+        window.addEventListener('storage', syncUserFromStorage);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('storage', syncUserFromStorage);
+        };
     }, []);
 
     const handleSelect = (path, id = null) => {
@@ -247,10 +249,19 @@ const Header = () => {
         setIsExpanded(false);
     };
 
-    const profileImgSrc = employeeUser?.avatar || employeeUser?.profilePhoto || employeeUser?.profilePicture || employeeUser?.documents?.avatar;
+    const rawProfileImg = employeeUser?.avatar || employeeUser?.profilePhoto || employeeUser?.profilePicture || employeeUser?.documents?.avatar;
+    const profileImgSrc = maskProfilePicture(rawProfileImg, isGuest);
 
     return (
-        <header className="h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)] px-8">
+        <header className="relative h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)] px-8">
+            {/* Guest Employee Badge */}
+            {isGuestUser() && (
+                <div className="fixed left-1/2 top-10 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-[55]">
+                    <span className="px-4 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl text-xs font-semibold uppercase tracking-wider flex items-center text-center shadow-2xs pointer-events-auto">
+                        Guest Employee
+                    </span>
+                </div>
+            )}
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center transition-all duration-300 ease-out ${isExpanded ? 'w-[18rem] sm:w-[21rem]' : 'w-10'}`}>
@@ -402,18 +413,17 @@ const Header = () => {
                 {/* Profile Icon */}
                 <div 
                     onClick={() => navigate('/profile')}
-                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer  active:scale-95 duration-300 group overflow-hidden"
+                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95 duration-300 group overflow-hidden"
                 >
                     {profileImgSrc ? (
                         <img 
                             src={profileImgSrc} 
                             alt={employeeUser?.name || "Profile"} 
-                            className="w-full h-full object-cover rounded-full"
+                            className={`w-full h-full object-cover rounded-full ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}
                         />
                     ) : (
                         <span className="text-[#052558] group-hover:text-blue-500 transition-colors text-sm font-bold uppercase tracking-wider tooltip-trigger relative">
                             {employeeUser?.name?.charAt(0) || 'E'}
-                            {/* <span className="absolute invisible group-hover:visible -bottom-10 right-0 bg-[#052558] text-white text-[10px] py-1 px-3 rounded whitespace-nowrap shadow-xl font-bold uppercase tracking-widest z-[60] border border-white/10 opacity-0 group-hover:opacity-100 transition-all">My Profile</span> */}
                         </span>
                     )}
                 </div>

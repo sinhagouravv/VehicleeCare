@@ -10,6 +10,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const handleLogout = () => {
         localStorage.removeItem('employeeToken');
         localStorage.removeItem('employeeUser');
+        localStorage.removeItem('guestWelcomeDismissed');
+        sessionStorage.removeItem('guestWelcomeDismissed');
+        localStorage.removeItem('guestSessionStartTime');
+        localStorage.removeItem('guestLastActivity');
+        localStorage.removeItem('guestSessionExpired');
         navigate('/login', { replace: true });
     };
 

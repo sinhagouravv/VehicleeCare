@@ -5,9 +5,11 @@ import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Overtime = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
     const [overtimes, setOvertimes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -173,6 +175,7 @@ const Overtime = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
         setError(null);
         setSuccess(null);
 
@@ -210,25 +213,25 @@ const Overtime = () => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                setSuccess("Overtime request submitted successfully!");
+                triggerAlert("Overtime request submitted successfully!", "success");
                 fetchOvertimes(true);
-                setTimeout(() => {
-                    setShowModal(false);
-                    setSelectedDate(null);
-                    setRequestedHours(null);
-                }, 800);
+                setShowModal(false);
+                setSelectedDate(null);
+                setRequestedHours(null);
+                setFormData({ ...formData, reason: '' });
             } else {
-                setError(data.message || "Failed to submit request.");
+                triggerAlert(data.message || "Failed to submit request.", "error");
             }
         } catch (err) {
             console.error("Submit overtime error", err);
-            setError("Network error. Please try again.");
+            triggerAlert("Network error. Please try again.", "error");
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleDelete = async (id) => {
+        if (guardGuestAction()) return;
         if (window.confirm("Are you sure you want to delete this overtime request?")) {
             try {
                 const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${id}`, {
@@ -265,6 +268,7 @@ const Overtime = () => {
 
     const handleRemarkSubmit = async (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
         if (!selectedRemarkOvertime) return;
         if (!remarkText || !remarkText.trim()) {
             triggerAlert('Please fill out all the required field', 'error');
@@ -610,18 +614,6 @@ const Overtime = () => {
                                 <X size={20} />
                             </button>
                         </div>
-
-                        {error && (
-                            <div className="bg-red-50 text-red-600 p-3.5 rounded-xl text-xs font-bold uppercase tracking-wide flex items-center gap-2 border border-red-100">
-                                <ShieldAlert size={14} /> {error}
-                            </div>
-                        )}
-
-                        {success && (
-                            <div className="bg-emerald-50 text-emerald-600 p-3.5 rounded-xl text-xs font-bold uppercase tracking-wide border border-emerald-100">
-                                {success}
-                            </div>
-                        )}
 
                         <form onSubmit={handleSubmit} className="space-y-4.5 text-left">
                             {/* Date Selection */}

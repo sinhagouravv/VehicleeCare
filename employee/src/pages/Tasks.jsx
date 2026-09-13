@@ -22,6 +22,7 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const getSeverityColor = (severity) => {
     switch (severity) {
@@ -81,6 +82,7 @@ const formatSubmittedAt = (dateString) => {
 
 const Tasks = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction, maskPhone, maskEmail, maskAddress } = useGuestGuard();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -274,6 +276,7 @@ const Tasks = () => {
     };
 
     const handleUpdateBugStatus = async (id, newStatus) => {
+        if (guardGuestAction()) return;
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${id}/status`, {
                 method: 'PATCH',
@@ -304,6 +307,7 @@ const Tasks = () => {
 
     
     const handleUpdateStatus = async (id, newStatus) => {
+        if (guardGuestAction()) return;
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${id}/status`, {
                 method: 'PUT',

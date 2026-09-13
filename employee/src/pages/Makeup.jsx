@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, UserPlus } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Makeup = () => {
+    const { guardGuestAction } = useGuestGuard();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -69,6 +71,7 @@ const Makeup = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
         setError(null);
         setSuccess(null);
 
@@ -109,6 +112,7 @@ const Makeup = () => {
     };
 
     const handleDelete = (id) => {
+        if (guardGuestAction()) return;
         if (window.confirm("Are you sure you want to cancel this request?")) {
             const updated = requests.filter(r => r._id !== id);
             setRequests(updated);

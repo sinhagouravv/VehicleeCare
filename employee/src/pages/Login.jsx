@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, ShieldAlert, ShieldCheck, Loader, KeyRound, Eye, EyeOff, Mail, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Lock, User, ShieldCheck, Loader, KeyRound, Eye, EyeOff, Mail, X } from 'lucide-react';
 import logo from '../assets/logo.svg';
+import API_BASE_URL from '../config/api';
+import { useAlert } from '../context/AlertContext';
+import { recordGuestLogin } from '../utils/guestCounter';
 
 const Login = () => {
+    const { triggerAlert } = useAlert();
     const [employeeId, setEmployeeId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Forgot Password States
@@ -19,29 +22,29 @@ const Login = () => {
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
 
     const navigate = useNavigate();
+    const location = useLocation();
 
-    // Auto-dismiss notifications after 5 seconds
+    // Check for session expired redirect state
     useEffect(() => {
-        if (error || successMessage) {
-            const timer = setTimeout(() => {
-                setError('');
-                setSuccessMessage('');
-            }, 5000);
-            return () => clearTimeout(timer);
+        if (location.state?.sessionExpired) {
+            triggerAlert(
+                location.state.reason === 'inactivity'
+                    ? 'Guest session expired due to 15 minutes of inactivity. Please sign in again.'
+                    : 'Guest session expired 15-minute maximum limit reached. Please sign in again.',
+                'error'
+            );
+            window.history.replaceState({}, document.title);
         }
-    }, [error, successMessage]);
+    }, [location.state, triggerAlert]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccessMessage('');
         setLoading(true);
 
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/employee-login', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/employee-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeId, password })
@@ -50,14 +53,22 @@ const Login = () => {
             const data = await res.json();
 
             if (res.ok) {
+                if (data.employee?.isGuest || data.employee?.role === 'guest_employee' || data.employee?.email === 'guestemployee@vehicleecare.com') {
+                    recordGuestLogin('employee');
+                }
                 localStorage.setItem('employeeToken', data.token);
                 localStorage.setItem('employeeUser', JSON.stringify(data.employee));
+                localStorage.removeItem('guestWelcomeDismissed');
+                sessionStorage.removeItem('guestWelcomeDismissed');
+                localStorage.removeItem('guestSessionStartTime');
+                localStorage.removeItem('guestLastActivity');
+                localStorage.removeItem('guestSessionExpired');
                 navigate('/');
             } else {
-                setError(data.msg || 'Invalid credentials');
+                triggerAlert(data.msg || 'Invalid credentials', 'error');
             }
         } catch (err) {
-            setError('Failed to connect to server');
+            triggerAlert('Failed to connect to server', 'error');
         } finally {
             setLoading(false);
         }
@@ -65,10 +76,9 @@ const Login = () => {
 
     const handleSendResetOtp = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/employee-forgot-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/employee-forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeId: resetEmployeeId, email: resetEmail })
@@ -79,10 +89,10 @@ const Login = () => {
             if (res.ok) {
                 setForgotPasswordStep(2);
             } else {
-                setError(data.msg || 'The email you entered is not registered');
+                triggerAlert(data.msg || 'The email you entered is not registered', 'error');
             }
         } catch (err) {
-            setError('Server connection failed');
+            triggerAlert('Server connection failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -90,10 +100,9 @@ const Login = () => {
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/employee-verify-reset-otp', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/employee-verify-reset-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp })
@@ -104,10 +113,10 @@ const Login = () => {
             if (res.ok) {
                 setForgotPasswordStep(3);
             } else {
-                setError(data.msg || 'Invalid or expired OTP');
+                triggerAlert(data.msg || 'Invalid or expired OTP', 'error');
             }
         } catch (err) {
-            setError('Server connection failed');
+            triggerAlert('Server connection failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -117,14 +126,13 @@ const Login = () => {
         e.preventDefault();
 
         if (newPassword !== confirmNewPassword) {
-            setError('Passwords do not match');
+            triggerAlert('Passwords do not match', 'error');
             return;
         }
 
-        setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/employee-reset-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/employee-reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword })
@@ -134,7 +142,7 @@ const Login = () => {
 
             if (res.ok) {
                 setForgotPasswordStep(0);
-                setSuccessMessage('Password updated successfully. Please log in.');
+                triggerAlert('Password updated successfully. Please log in.', 'success');
                 setEmployeeId('');
                 setResetEmployeeId('');
                 setResetOtp('');
@@ -142,10 +150,10 @@ const Login = () => {
                 setConfirmNewPassword('');
                 setResetEmail('');
             } else {
-                setError(data.msg || 'Failed to update password');
+                triggerAlert(data.msg || 'Failed to update password', 'error');
             }
         } catch (err) {
-            setError('Server connection failed');
+            triggerAlert('Server connection failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -245,13 +253,10 @@ const Login = () => {
                                 </div>
                                 <input
                                     type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    maxLength={9}
                                     value={employeeId}
-                                    onChange={(e) => setEmployeeId(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                                    onChange={(e) => setEmployeeId(e.target.value)}
                                     className="w-full pl-12 pr-4 py-4 bg-white/80 border border-white rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all text-[#011023] placeholder-slate-300 font-semibold text-[15px] tracking-wide shadow-sm"
-                                    placeholder="Enter 9-digit ID"
+                                    placeholder="Enter Email or Employee ID"
                                     required
                                 />
                             </div>
@@ -292,7 +297,7 @@ const Login = () => {
                             </label>
                             <button
                                 type="button"
-                                onClick={() => { setForgotPasswordStep(1); setError(''); }}
+                                onClick={() => setForgotPasswordStep(1)}
                                 className="text-[#052558] font-bold text-sm hover:opacity-80 transition-all tracking-tight"
                             >
                                 Forgot password?
@@ -500,21 +505,7 @@ const Login = () => {
                 </div>
             )}
 
-            {/* FIXED NOTIFICATIONS */}
-            <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-3 w-full max-w-sm px-6 pointer-events-none">
-                {error && (
-                    <div className="bg-white/90 backdrop-blur-md border-l-[6px] border-red-500 text-red-700 px-6 py-5 rounded-2xl shadow-2xl flex items-center gap-4 text-sm animate-in slide-in-from-top duration-500 font-bold pointer-events-auto">
-                        <ShieldAlert size={22} className="shrink-0 text-red-500" />
-                        <span>{error}</span>
-                    </div>
-                )}
-                {successMessage && (
-                    <div className="bg-white/90 backdrop-blur-md border-l-[6px] border-emerald-500 text-emerald-700 px-6 py-5 rounded-2xl shadow-2xl flex items-center gap-4 text-sm animate-in slide-in-from-top duration-500 font-bold pointer-events-auto">
-                        <ShieldCheck size={22} className="shrink-0 text-emerald-500" />
-                        <span>{successMessage}</span>
-                    </div>
-                )}
-            </div>
+
         </div>
     );
 };

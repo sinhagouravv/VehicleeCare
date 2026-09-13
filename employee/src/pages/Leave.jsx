@@ -8,9 +8,11 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Leave = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -348,6 +350,7 @@ const Leave = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
 
         if (!formData.type || !formData.leaveTime || !formData.startDate || !formData.endDate || !formData.reason || !formData.reason.trim()) {
             triggerAlert('Please fill out all the required field', 'error');
@@ -380,7 +383,7 @@ const Leave = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setSuccess("Leave request submitted successfully!");
+                triggerAlert("Leave request submitted successfully!", "success");
                 setFormData({
                     type: '',
                     leaveTime: '',
@@ -391,16 +394,12 @@ const Leave = () => {
                     reason: ''
                 });
                 fetchLeaves(true);
-                // Close modal after a short delay
-                setTimeout(() => {
-                    setShowModal(false);
-                    setSuccess(null);
-                }, 1500);
+                setShowModal(false);
             } else {
-                setError(data.message || "Failed to submit request.");
+                triggerAlert(data.message || "Failed to submit request.", "error");
             }
         } catch {
-            setError("Connection error. Please try again.");
+            triggerAlert("Connection error. Please try again.", "error");
         } finally {
             setSubmitting(false);
         }
@@ -1110,7 +1109,7 @@ const Leave = () => {
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
                             {/* Quick Stats Bar */}
-                            <div className="bg-blue-50/30 py-2 rounded-2xl border border-blue-50 flex mb-5">
+                            <div className="py-2 flex mb-5">
                                 <div className="w-[21%]">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-3 text-left">Leave</p>
                                     <p className="text-sm font-semibold text-[#011023] uppercase text-left truncate">{selectedLeave.type}</p>
@@ -1125,7 +1124,7 @@ const Leave = () => {
                                         {selectedLeave.totalDays} {selectedLeave.totalDays === 1 ? 'Day' : 'Days'}
                                     </p>
                                 </div>
-                                <div className="w-[15%] text-center">
+                                <div className="w-[15%] text-center pl-5">
                                     <p className="text-sm font-bold text-gray-400 uppercase mb-2 text-center">Status</p>
                                     <div className="flex justify-center">
                                         <span className={`px-3 py-1.25 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedLeave.status)}`}>
@@ -1133,10 +1132,10 @@ const Leave = () => {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="ml-auto pr-10">
+                                <div className="ml-auto pr-1">
                                     <p className="text-sm font-bold text-gray-400 text-center uppercase mb-3">Date & Time</p>
                                     <p className="text-sm font-semibold text-gray-800 uppercase whitespace-nowrap">
-                                        {formatDate(selectedLeave.createdAt)} <span className="text-gray-400 mx-1">|</span> {formatAppliedTime(selectedLeave.createdAt)}
+                                        {formatDate(selectedLeave.createdAt)} <span className="text-gray-700 mx-1">|</span> {formatAppliedTime(selectedLeave.createdAt)}
                                     </p>
                                 </div>
                             </div>
