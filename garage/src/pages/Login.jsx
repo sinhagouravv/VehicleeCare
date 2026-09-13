@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, ShieldAlert, ShieldCheck, Loader, KeyRound, Eye, EyeOff, Mail, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Lock, User, ShieldCheck, Loader, KeyRound, Eye, EyeOff, Mail, X } from 'lucide-react';
 import logo from '../assets/LOGO.svg';
 import API_BASE_URL from '../config/api';
+import { useAlert } from '../context/AlertContext';
+import { recordGuestLogin } from '../utils/guestCounter';
 
 const Login = () => {
+    const { triggerAlert } = useAlert();
     const [garageId, setGarageId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Forgot Password States
@@ -20,20 +22,22 @@ const Login = () => {
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
 
     const navigate = useNavigate();
+    const location = useLocation();
 
-    // Auto-dismiss notifications after 5 seconds
+    // Check for session expired redirect state
     useEffect(() => {
-        if (error || successMessage) {
-            const timer = setTimeout(() => {
-                setError('');
-                setSuccessMessage('');
-            }, 5000);
-            return () => clearTimeout(timer);
+        if (location.state?.sessionExpired) {
+            triggerAlert(
+                location.state.reason === 'inactivity'
+                    ? 'Guest session expired due to 15 minutes of inactivity. Please sign in again.'
+                    : 'Guest session expired 15-minute maximum limit reached. Please sign in again.',
+                'error'
+            );
+            window.history.replaceState({}, document.title);
         }
-    }, [error, successMessage]);
+    }, [location.state, triggerAlert]);
 
     // Helper for 6-digit OTP boxes
     const handleOtpChange = (value, index) => {
@@ -100,8 +104,6 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccessMessage('');
         setLoading(true);
 
         try {
@@ -114,15 +116,22 @@ const Login = () => {
             const data = await res.json();
 
             if (res.ok) {
+                if (data.garage?.isGuest || data.garage?.role === 'guest_garage' || data.garage?.ownerEmail === 'guestgarage@vehicleecare.com') {
+                    recordGuestLogin('garage');
+                }
                 localStorage.setItem('garageToken', data.token);
                 localStorage.setItem('garageUser', JSON.stringify(data.garage));
+                localStorage.removeItem('guestWelcomeDismissed');
                 sessionStorage.removeItem('guestWelcomeDismissed');
+                localStorage.removeItem('guestSessionStartTime');
+                localStorage.removeItem('guestLastActivity');
+                localStorage.removeItem('guestSessionExpired');
                 navigate('/');
             } else {
-                setError(data.msg || 'Invalid credentials');
+                triggerAlert(data.msg || 'Invalid credentials', 'error');
             }
         } catch (err) {
-            setError('Failed to connect to server');
+            triggerAlert('Failed to connect to server', 'error');
         } finally {
             setLoading(false);
         }
@@ -130,7 +139,6 @@ const Login = () => {
 
     const handleSendResetOtp = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE_URL}/api/auth/garage-forgot-password`, {
@@ -144,10 +152,10 @@ const Login = () => {
             if (res.ok) {
                 setForgotPasswordStep(2);
             } else {
-                setError(data.msg || 'The details you entered do not match our records.');
+                triggerAlert(data.msg || 'The details you entered do not match our records.', 'error');
             }
         } catch (err) {
-            setError('Server connection failed');
+            triggerAlert('Server connection failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -155,7 +163,6 @@ const Login = () => {
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE_URL}/api/auth/garage-verify-reset-otp`, {
@@ -169,10 +176,10 @@ const Login = () => {
             if (res.ok) {
                 setForgotPasswordStep(3);
             } else {
-                setError(data.msg || 'Invalid or expired OTP');
+                triggerAlert(data.msg || 'Invalid or expired OTP', 'error');
             }
         } catch (err) {
-            setError('Server connection failed');
+            triggerAlert('Server connection failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -182,11 +189,10 @@ const Login = () => {
         e.preventDefault();
 
         if (newPassword !== confirmNewPassword) {
-            setError('Passwords do not match');
+            triggerAlert('Passwords do not match', 'error');
             return;
         }
 
-        setError('');
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE_URL}/api/auth/garage-reset-password`, {
@@ -199,7 +205,7 @@ const Login = () => {
 
             if (res.ok) {
                 setForgotPasswordStep(0);
-                setSuccessMessage('Password updated successfully. Please log in.');
+                triggerAlert('Password updated successfully. Please log in.', 'success');
                 setGarageId(resetGarageId);
                 setResetOtp('');
                 setNewPassword('');
@@ -207,10 +213,10 @@ const Login = () => {
                 setResetEmail('');
                 setResetGarageId('');
             } else {
-                setError(data.msg || 'Failed to update password');
+                triggerAlert(data.msg || 'Failed to update password', 'error');
             }
         } catch (err) {
-            setError('Server connection failed');
+            triggerAlert('Server connection failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -300,7 +306,7 @@ const Login = () => {
                             </label>
                             <button
                                 type="button"
-                                onClick={() => { setForgotPasswordStep(1); setError(''); setSuccessMessage(''); }}
+                                onClick={() => setForgotPasswordStep(1)}
                                 className="text-blue-500 font-bold hover:text-blue-600 transition-colors"
                             >
                                 Forgot password?
@@ -503,21 +509,7 @@ const Login = () => {
                 </div>
             )}
 
-            {/* FIXED TOP NOTIFICATIONS */}
-            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 w-full max-w-md px-4 pointer-events-none">
-                {error && (
-                    <div className="bg-white border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 text-sm animate-in slide-in-from-top duration-500 font-semibold tracking-wide pointer-events-auto">
-                        <ShieldAlert size={20} className="shrink-0 text-red-500" />
-                        <span>{error}</span>
-                    </div>
-                )}
-                {successMessage && (
-                    <div className="bg-white border-l-4 border-green-500 text-green-700 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 text-sm animate-in slide-in-from-top duration-500 font-semibold tracking-wide pointer-events-auto">
-                        <ShieldCheck size={20} className="shrink-0 text-green-500" />
-                        <span>{successMessage}</span>
-                    </div>
-                )}
-            </div>
+
         </div>
     );
 };

@@ -9,6 +9,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const handleLogout = () => {
         localStorage.removeItem('garageToken');
         localStorage.removeItem('garageUser');
+        localStorage.removeItem('guestWelcomeDismissed');
+        sessionStorage.removeItem('guestWelcomeDismissed');
+        localStorage.removeItem('guestSessionStartTime');
+        localStorage.removeItem('guestLastActivity');
+        localStorage.removeItem('guestSessionExpired');
         navigate('/login', { replace: true });
     };
 

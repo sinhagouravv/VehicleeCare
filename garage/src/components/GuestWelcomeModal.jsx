@@ -8,7 +8,9 @@ import { useAlert } from '../context/AlertContext';
 
 const checkGuestStatus = () => {
     const isGuest = isGuestUser();
-    const isDismissed = sessionStorage.getItem('guestWelcomeDismissed') === 'true';
+    const isDismissed = 
+        localStorage.getItem('guestWelcomeDismissed') === 'true' || 
+        sessionStorage.getItem('guestWelcomeDismissed') === 'true';
     return isGuest && !isDismissed;
 };
 
@@ -76,15 +78,33 @@ const GuestWelcomeModal = () => {
     }, [location.pathname]);
 
     useEffect(() => {
-        if (showWelcomeSplash) {
-            const timer = setTimeout(() => {
-                sessionStorage.setItem('guestWelcomeDismissed', 'true');
+        const handleStorageChange = (e) => {
+            if (e.key === 'guestWelcomeDismissed' && e.newValue === 'true') {
                 setIsOpen(false);
                 setShowWelcomeSplash(false);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    useEffect(() => {
+        if (showWelcomeSplash) {
+            const timer = setTimeout(() => {
+                const now = Date.now();
+                localStorage.setItem('guestWelcomeDismissed', 'true');
+                sessionStorage.setItem('guestWelcomeDismissed', 'true');
+                localStorage.setItem('guestSessionStartTime', String(now));
+                localStorage.setItem('guestLastActivity', String(now));
+                setIsOpen(false);
+                setShowWelcomeSplash(false);
+                setTimeout(() => {
+                    triggerAlert('Your Guest Garage session will expire in 15 minutes', 'success');
+                }, 400);
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [showWelcomeSplash]);
+    }, [showWelcomeSplash, triggerAlert]);
 
     const openPolicyModal = (type) => {
         setActivePolicyModal(type);

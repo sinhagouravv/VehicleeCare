@@ -10,8 +10,10 @@ import { useAlert } from '../context/AlertContext';
 import UploadDocuments from '../pages/UploadDocuments';
 import GuestWelcomeModal from './GuestWelcomeModal';
 import useGuestGuard from '../hooks/useGuestGuard';
+import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
 
 const Layout = () => {
+    useGuestSessionTimeout();
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
