@@ -360,16 +360,16 @@ const seedGuestGarage = async () => {
                 ownerEmail: 'guestgarage@vehicleecare.com',
                 password: hashedPassword,
                 phone: '+91 98765 43210',
-                isGuest: true,
-                role: 'guest_garage',
+                isGuest: false,
+                role: 'garage',
                 status: 'Approved'
             });
         } else {
-            guestGarage.garageId = '663428591';
-            guestGarage.password = hashedPassword;
-            guestGarage.isGuest = true;
-            guestGarage.role = 'guest_garage';
-            await guestGarage.save();
+            if (guestGarage.isGuest || guestGarage.role === 'guest_garage') {
+                guestGarage.isGuest = false;
+                guestGarage.role = 'garage';
+                await guestGarage.save();
+            }
         }
     } catch (err) {
         console.error('Error seeding guest garage:', err);
@@ -382,7 +382,6 @@ exports.garageLogin = async (req, res) => {
         const { garageId, password } = req.body;
 
         const isGuestCredential = (
-            garageId === '663428591' ||
             garageId === 'guestgarage@vehicleecare.com' ||
             garageId === 'guestadmin@vehicleecare.com'
         );
@@ -411,9 +410,9 @@ exports.garageLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid garage credentials' });
         }
 
-        const isGuest = garage.isGuest || garage.role === 'guest_garage' || garage.ownerEmail === 'guestgarage@vehicleecare.com' || garage.ownerEmail === 'guestadmin@vehicleecare.com' || garage.garageId === '663428591' || isGuestCredential;
+        const isGuest = isGuestCredential || garageId === 'guestgarage@vehicleecare.com' || garageId === 'guestadmin@vehicleecare.com';
 
-        const payload = { garage: { id: garage.garageId, dbId: garage._id, isGuest, role: isGuest ? 'guest_garage' : garage.role } };
+        const payload = { garage: { id: garage.garageId, dbId: garage._id, isGuest, role: isGuest ? 'guest_garage' : (garage.role || 'garage') } };
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
             if (err) throw err;
@@ -425,7 +424,7 @@ exports.garageLogin = async (req, res) => {
                     dbId: garage._id, 
                     _id: garage._id,
                     name: garage.name, 
-                    ownerEmail: garage.ownerEmail,
+                    ownerEmail: isGuest ? 'guestgarage@vehicleecare.com' : garage.ownerEmail,
                     isGuest,
                     role: isGuest ? 'guest_garage' : (garage.role || 'garage')
                 } 

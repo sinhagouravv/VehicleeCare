@@ -48,7 +48,7 @@ exports.checkGuestReadOnly = (req, res, next) => {
                 });
             }
 
-            if (garage && (garage.role === 'guest_garage' || garage.isGuest || garage.ownerEmail === 'guestgarage@vehicleecare.com' || garage.id === '663428591')) {
+            if (garage && (garage.role === 'guest_garage' || garage.isGuest === true)) {
                 return res.status(403).json({
                     success: false,
                     msg: 'The guest garage only has read rights.'
