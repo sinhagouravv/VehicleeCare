@@ -16,7 +16,7 @@ Explore the live portals with real data of the VehicleeCare ecosystem using the 
 
 > **Security Note:** Guest Admin, Guest Garage, and Guest Employee sessions feature **read-only access** and client-side data obfuscation (`g****@domain.com`, `98****1234`, `22****3A`) to prevent raw personal and legal data inspection via browser DevTools while keeping operational features fully testable. 
 
-> **Note:** You can check all the features of the VehicleeCare in this live deployment with guest credentials provided above. All the portals at once are live and working with the same database. So you can test all the features of the website in this live deployment and guest credentials provided above.
+> **Note:** You can check all the features of the VehicleeCare in this live deployment using the guest credentials provided above. Also you can test all the features of the VehicleeCare seamlessly without any interruption.
 
 ---
 
