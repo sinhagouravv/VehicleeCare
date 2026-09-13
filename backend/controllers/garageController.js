@@ -232,7 +232,7 @@ exports.uploadGarageDocument = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please upload a document file.' });
         }
 
-        const validDocumentTypes = ['adharCard', 'aadhaarCard', 'voterId', 'panCard', 'tradeLicense', 'agreement', 'signature', 'gstCert', 'gstCertificate', 'canceledCheque', 'addressProof'];
+        const validDocumentTypes = ['adharCard', 'aadhaarCard', 'voterId', 'panCard', 'tradeLicense', 'agreement', 'signature', 'gstCert', 'gstCertificate', 'canceledCheque', 'addressProof', 'profilePicture', 'avatar', 'profilePhoto', 'logo'];
         if (!validDocumentTypes.includes(documentType)) {
             return res.status(400).json({ success: false, message: `Invalid document type. Allowed types: ${validDocumentTypes.join(', ')}` });
         }
@@ -278,6 +278,12 @@ exports.uploadGarageDocument = async (req, res) => {
             garage[`${documentType}DocId`] = generateDocId();
         }
 
+        if (['profilePicture', 'avatar', 'profilePhoto', 'logo'].includes(documentType)) {
+            garage.avatar = result.secure_url;
+            garage.profilePicture = result.secure_url;
+            garage.profilePhoto = result.secure_url;
+            garage.logo = result.secure_url;
+        }
         garage[documentType] = result.secure_url;
         garage[`${documentType}UploadedAt`] = new Date();
         garage[`${documentType}Status`] = 'Pending';

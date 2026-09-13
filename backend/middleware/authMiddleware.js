@@ -40,6 +40,7 @@ exports.checkGuestReadOnly = (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
             const admin = decoded.admin;
             const garage = decoded.garage || decoded.user;
+            const employee = decoded.employee;
             
             if (admin && (admin.role === 'guest_admin' || admin.isGuest || admin.email === 'guestadmin@vehicleecare.com')) {
                 return res.status(403).json({
@@ -48,10 +49,17 @@ exports.checkGuestReadOnly = (req, res, next) => {
                 });
             }
 
-            if (garage && (garage.role === 'guest_garage' || garage.isGuest === true)) {
+            if (garage && (garage.role === 'guest_garage' || garage.isGuest === true || garage.ownerEmail === 'guestgarage@vehicleecare.com' || garage.email === 'guestgarage@vehicleecare.com')) {
                 return res.status(403).json({
                     success: false,
                     msg: 'The guest garage only has read rights.'
+                });
+            }
+
+            if (employee && (employee.role === 'guest_employee' || employee.isGuest === true)) {
+                return res.status(403).json({
+                    success: false,
+                    msg: 'The guest employee only has read rights.'
                 });
             }
         } catch (e) {

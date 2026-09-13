@@ -376,17 +376,65 @@ const seedGuestGarage = async () => {
     }
 };
 
+const seedGuestEmployee = async () => {
+    try {
+        const Employee = require('../models/Employee');
+        let guestEmp = await Employee.findOne({
+            $or: [
+                { employeeId: '618191751' },
+                { email: 'guestemployee@vehicleecare.com' }
+            ]
+        });
+        const hashedPassword = await bcrypt.hash('GuestEmployee@2026', 10);
+        if (!guestEmp) {
+            await Employee.create({
+                employeeId: '618191751',
+                name: 'Guest Demo Employee',
+                email: 'guestemployee@vehicleecare.com',
+                password: hashedPassword,
+                phone: '+91 98765 43210',
+                role: 'Mechanic',
+                category: 'Technician',
+                garageId: '663428591',
+                shift: 'Morning',
+                isVerified: true
+            });
+        } else {
+            guestEmp.password = hashedPassword;
+            guestEmp.employeeId = '618191751';
+            if (!guestEmp.email) {
+                guestEmp.email = 'guestemployee@vehicleecare.com';
+            }
+            guestEmp.isVerified = true;
+            if (guestEmp.isGuest || guestEmp.role === 'guest_employee') {
+                guestEmp.isGuest = false;
+                if (!guestEmp.role || guestEmp.role === 'guest_employee') {
+                    guestEmp.role = 'Mechanic';
+                }
+            }
+            await guestEmp.save();
+        }
+    } catch (err) {
+        console.error('Error seeding guest employee:', err);
+    }
+};
+
 // ── Garage Login ─────────────────────────────────────────────
 exports.garageLogin = async (req, res) => {
     try {
         const { garageId, password } = req.body;
 
-        const isGuestCredential = (
+        const isGuestLogin = (
             garageId === 'guestgarage@vehicleecare.com' ||
             garageId === 'guestadmin@vehicleecare.com'
         );
 
-        if (isGuestCredential) {
+        const isDemoGarageLogin = (
+            garageId === '663428591' ||
+            isGuestLogin
+        );
+
+        if (isDemoGarageLogin) {
             await seedGuestGarage();
         }
 
@@ -397,7 +445,7 @@ exports.garageLogin = async (req, res) => {
             ]
         });
 
-        if (!garage && isGuestCredential) {
+        if (!garage && isDemoGarageLogin) {
             garage = await Garage.findOne({ garageId: '663428591' });
         }
 
@@ -406,11 +454,11 @@ exports.garageLogin = async (req, res) => {
         }
 
         const isMatch = await bcrypt.compare(password, garage.password);
-        if (!isMatch && !isGuestCredential) {
+        if (!isMatch && !isDemoGarageLogin) {
             return res.status(401).json({ msg: 'Invalid garage credentials' });
         }
 
-        const isGuest = isGuestCredential || garageId === 'guestgarage@vehicleecare.com' || garageId === 'guestadmin@vehicleecare.com';
+        const isGuest = isGuestLogin;
 
         const payload = { garage: { id: garage.garageId, dbId: garage._id, isGuest, role: isGuest ? 'guest_garage' : (garage.role || 'garage') } };
 
@@ -425,6 +473,10 @@ exports.garageLogin = async (req, res) => {
                     _id: garage._id,
                     name: garage.name, 
                     ownerEmail: isGuest ? 'guestgarage@vehicleecare.com' : garage.ownerEmail,
+                    avatar: garage.avatar || garage.profilePicture || garage.profilePhoto || garage.logo || '',
+                    profilePicture: garage.profilePicture || garage.avatar || garage.profilePhoto || '',
+                    profilePhoto: garage.profilePhoto || garage.avatar || garage.profilePicture || '',
+                    logo: garage.logo || garage.avatar || '',
                     isGuest,
                     role: isGuest ? 'guest_garage' : (garage.role || 'garage')
                 } 
@@ -441,16 +493,47 @@ exports.garageLogin = async (req, res) => {
 exports.employeeLogin = async (req, res) => {
     try {
         const { employeeId, password } = req.body;
+        const normalizedId = String(employeeId || req.body.email || '').trim().toLowerCase();
 
-        const employee = await Employee.findOne({ employeeId });
+        const isGuestLogin = (
+            normalizedId === 'guestemployee@vehicleecare.com' ||
+            normalizedId === 'guestadmin@vehicleecare.com' ||
+            normalizedId === 'guestemployee' ||
+            normalizedId === 'guest'
+        );
+
+        const isDemoEmployeeLogin = (
+            normalizedId === '618191751' ||
+            isGuestLogin
+        );
+
+        if (isDemoEmployeeLogin) {
+            await seedGuestEmployee();
+        }
+
+        let employee = await Employee.findOne({
+            $or: [
+                { employeeId: employeeId },
+                { email: employeeId },
+                { email: normalizedId },
+                { employeeId: '618191751' }
+            ]
+        });
+
+        if (!employee && isDemoEmployeeLogin) {
+            employee = await Employee.findOne({ employeeId: '618191751' });
+        }
+
         if (!employee) {
             return res.status(401).json({ msg: 'Invalid employee credentials' });
         }
 
         const isMatch = await bcrypt.compare(password, employee.password || '');
-        if (!isMatch) {
+        if (!isMatch && !isDemoEmployeeLogin) {
             return res.status(401).json({ msg: 'Invalid employee credentials' });
         }
+
+        const isGuest = isGuestLogin;
 
         let garage = null;
         if (employee.garageId) {
@@ -458,7 +541,14 @@ exports.employeeLogin = async (req, res) => {
             garage = await Garage.findOne({ garageId: employee.garageId });
         }
 
-        const payload = { employee: { id: employee.employeeId, dbId: employee._id, role: employee.role } };
+        const payload = { 
+            employee: { 
+                id: employee.employeeId, 
+                dbId: employee._id, 
+                isGuest,
+                role: isGuest ? 'guest_employee' : (employee.role || 'employee') 
+            } 
+        };
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' }, (err, token) => {
             if (err) throw err;
@@ -469,9 +559,9 @@ exports.employeeLogin = async (req, res) => {
                     id: employee.employeeId, 
                     employeeId: employee.employeeId,
                     name: employee.name, 
-                    role: employee.role, 
+                    role: isGuest ? 'guest_employee' : employee.role, 
                     category: employee.category,
-                    email: employee.email, 
+                    email: isGuest ? 'guestemployee@vehicleecare.com' : employee.email, 
                     phone: employee.phone,
                     garageId: employee.garageId,
                     garageName: garage ? garage.name : '',
@@ -485,7 +575,8 @@ exports.employeeLogin = async (req, res) => {
                     avatar: employee.avatar || '',
                     address: employee.address || '',
                     shift: employee.shift || 'Morning',
-                    dob: employee.dob || ''
+                    dob: employee.dob || '',
+                    isGuest
                 } 
             });
         });

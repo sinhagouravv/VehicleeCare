@@ -600,7 +600,7 @@ const uploadEmployeeDocument = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please upload a document file.' });
         }
 
-        const validDocumentTypes = ['adharCard', 'aadhaarCard', 'voterId', 'panCard', 'drivingLicense', 'agreement', 'signature', 'bankDetails', 'experienceLetter'];
+        const validDocumentTypes = ['adharCard', 'aadhaarCard', 'voterId', 'panCard', 'drivingLicense', 'agreement', 'signature', 'bankDetails', 'experienceLetter', 'profilePicture', 'avatar', 'profilePhoto'];
         if (!validDocumentTypes.includes(documentType)) {
             return res.status(400).json({ success: false, message: `Invalid document type. Allowed types: ${validDocumentTypes.join(', ')}` });
         }
@@ -646,6 +646,9 @@ const uploadEmployeeDocument = async (req, res) => {
             employee[`${documentType}DocId`] = generateDocId();
         }
 
+        if (['profilePicture', 'avatar', 'profilePhoto'].includes(documentType)) {
+            employee.avatar = result.secure_url;
+        }
         employee[documentType] = result.secure_url;
         employee[`${documentType}UploadedAt`] = new Date();
         employee[`${documentType}Status`] = 'Pending';
