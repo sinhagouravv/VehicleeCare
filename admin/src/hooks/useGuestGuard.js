@@ -5,6 +5,7 @@ export const isGuestUser = () => {
         const stored = localStorage.getItem('adminUser');
         if (!stored) return false;
         const user = JSON.parse(stored);
+        if (user?.isGuest === false) return false;
         return (
             user?.role === 'guest_admin' ||
             user?.role === 'guest' ||

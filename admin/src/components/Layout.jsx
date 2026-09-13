@@ -12,8 +12,10 @@ import RemarkModal from '../pages/Remark';
 import UploadDocumentsModal from '../pages/UploadDocuments';
 import RequestModal from '../pages/Request';
 import GuestWelcomeModal from './GuestWelcomeModal';
+import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
 
 const Layout = () => {
+    useGuestSessionTimeout();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);

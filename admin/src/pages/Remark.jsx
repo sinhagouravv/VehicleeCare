@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { MessageSquare, Check, Clock, Trash2, X, Loader2, Eye } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
+import { API_BASE_URL } from '../config/api';
 
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
@@ -73,10 +74,11 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
     const fetchRemarks = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/remarks');
+            const res = await fetch(`${API_BASE_URL}/api/remarks`);
             const result = await res.json();
-            if (result.success && result.data) {
-                setRemarks(result.data);
+            if (res.ok) {
+                const list = result.data || (Array.isArray(result) ? result : []);
+                setRemarks(list);
                 setLastRefreshed(new Date());
             }
         } catch (err) {
@@ -96,7 +98,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
         if (guardGuestAction()) return;
         setUpdatingId(id);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/remarks/${id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/remarks/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
@@ -124,7 +126,7 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
         if (!remarkToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/remarks/${remarkToDelete._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/remarks/${remarkToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -225,11 +227,9 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
                 </h1>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                        {!lastRefreshed ? (
-                            <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
-                        ) : (
-                            `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        )}
+                        {lastRefreshed
+                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                            : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                     </div>
                 </div>
             </div>

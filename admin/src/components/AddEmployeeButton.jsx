@@ -25,7 +25,6 @@ const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
     });
 
     const handleOpenModal = () => {
-        if (guardGuestAction()) return;
         setIsAddModalOpen(true);
         if (onModalToggle) onModalToggle(true);
     };
@@ -75,6 +74,7 @@ const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
             const data = await res.json();
             if (res.ok && data.success) {
                 triggerAlert('Employee added successfully!', 'success');
+                window.dispatchEvent(new CustomEvent('employeeAdded', { detail: data.data }));
                 handleCloseAddModal();
             } else {
                 throw new Error(data.message || 'Failed to add employee');

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, X } from 'lucide-react';
+import { Search, Loader2, X, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { isGuestUser } from '../hooks/useGuestGuard';
+import { fetchGuestCount } from '../utils/guestCounter';
 
 const ADMIN_PAGES = [
     { name: 'Dashboard', path: '/' },
@@ -54,6 +55,7 @@ const Header = () => {
     const [dbResults, setDbResults] = useState([]);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [guestCount, setGuestCount] = useState(0);
 
     const wrapperRef = useRef(null);
     const inputRef = useRef(null);
@@ -62,6 +64,28 @@ const Header = () => {
     const pendingArrowUpRef = useRef(false);
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Fetch and auto-update guest login count
+    useEffect(() => {
+        let isMounted = true;
+        const loadCount = async () => {
+            const count = await fetchGuestCount();
+            if (isMounted) setGuestCount(count);
+        };
+        loadCount();
+        const interval = setInterval(loadCount, 8000);
+
+        const handleCountUpdated = () => {
+            loadCount();
+        };
+        window.addEventListener('guestCountUpdated', handleCountUpdated);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+            window.removeEventListener('guestCountUpdated', handleCountUpdated);
+        };
+    }, []);
 
     const filteredPages = ADMIN_PAGES.filter(page =>
         matchesPrefix(page.name, searchTerm)
@@ -250,7 +274,20 @@ const Header = () => {
             )}
 
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
-                
+                {/* Guest Logins Counter */}
+                <div 
+                    title="Total Guest Logins (Admin, Garage, Employee)"
+                    className="mr-3 h-10 flex items-center gap-2 px-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200 text-[#052558] rounded-full shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all duration-300 cursor-default select-none"
+                >
+                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 text-blue-600">
+                        <Users size={12} className="text-blue-600" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#527FB0] hidden sm:inline">Guest Logins</span>
+                    <span className="min-w-[1.4rem] px-1.5 py-0.5 bg-white text-[#052558] border border-blue-200/80 rounded-full text-xs font-black text-center shadow-2xs">
+                        {guestCount}
+                    </span>
+                </div>
+
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center transition-all duration-300 ease-out ${isExpanded ? 'w-[18rem] sm:w-[21rem]' : 'w-10'}`}>
                     {!isExpanded ? (
