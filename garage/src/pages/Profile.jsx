@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Phone, MapPin, Clock, Calendar, Plus, Wrench, ShieldCheck, Globe, Trash2, LogOut, Loader2, Star, Shield, Smartphone, ArrowRight, Building2, ExternalLink, CreditCard, FileCheck, Landmark, X, AlertTriangle, Send } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { User, Mail, Phone, MapPin, Clock, Calendar, Plus, Wrench, ShieldCheck, Globe, Trash2, LogOut, Loader2, Star, Shield, Smartphone, ArrowRight, Building2, ExternalLink, CreditCard, FileCheck, Landmark, X, AlertTriangle, Send, Upload, Eye } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const GARAGE_DELETION_REASONS = [
     'Closing garage business permanently',
@@ -20,6 +21,7 @@ const GARAGE_DELETION_REASONS = [
 
 const Profile = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, maskAddress, isRealValue } = useGuestGuard();
     const [garage, setGarage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -38,21 +40,86 @@ const Profile = () => {
     });
     const navigate = useNavigate();
 
+    const profileFileRef = useRef(null);
+    const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+    const [pendingProfileFile, setPendingProfileFile] = useState(null);   // File object awaiting upload
+    const [pendingProfilePreview, setPendingProfilePreview] = useState(null); // base64 preview URL
+    const [previewModalOpen, setPreviewModalOpen] = useState(false); // full-screen preview
+
+    // Only preview the selected file — upload happens on UPDATE PROFILE
+    const handleProfilePictureUpload = (e) => {
+        if (guardGuestAction()) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+        // Reset input so the same file can be re-selected after removal
+        e.target.value = '';
+
+        if (!file.type.startsWith('image/')) {
+            return triggerAlert('Please select a valid image file', 'error');
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setPendingProfileFile(file);
+            setPendingProfilePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const removePendingProfilePic = () => {
+        setPendingProfileFile(null);
+        setPendingProfilePreview(null);
+        if (profileFileRef.current) profileFileRef.current.value = '';
+    };
+
+
+    const hasProfilePicture = Boolean(
+        garage?.avatar ||
+        garage?.profilePhoto ||
+        garage?.profilePicture ||
+        garage?.logo ||
+        garage?.documents?.avatar ||
+        (() => {
+            try {
+                const u = JSON.parse(localStorage.getItem('garageUser') || '{}');
+                return u?.avatar || u?.profilePhoto || u?.profilePicture || u?.logo;
+            } catch (e) {
+                return false;
+            }
+        })()
+    );
+
     const fetchGarageProfile = useCallback(async (isSilent = false) => {
         try {
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) {
-                navigate('/login');
+                if (!isSilent) navigate('/login');
                 return;
             }
             const user = JSON.parse(storedUser);
+            const localAvatar = user?.avatar || user?.profilePhoto || user?.profilePicture || user?.logo;
             
             // Fetch latest data from specific Garage endpoint (backend now handles dbId or 9-digit id)
             const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${user.dbId || user._id || user.id}`);
             
             if (res.ok) {
                 const data = await res.json();
-                setGarage(data.data); // result is { success: true, data: garage }
+                const fetchedGarage = data.data || {};
+                // Always prefer a truthy avatar: backend > localStorage (never overwrite with empty)
+                const avatarToUse = fetchedGarage.avatar || fetchedGarage.profilePhoto || fetchedGarage.profilePicture || fetchedGarage.logo || fetchedGarage.documents?.avatar || localAvatar;
+                
+                const mergedGarage = {
+                    ...fetchedGarage,
+                    avatar: avatarToUse,
+                    profilePicture: avatarToUse,
+                    profilePhoto: avatarToUse,
+                    logo: avatarToUse
+                };
+                setGarage(mergedGarage);
+                
+                // Always sync localStorage so the avatar survives logout/login
+                const updatedLocal = { ...user, ...mergedGarage };
+                localStorage.setItem('garageUser', JSON.stringify(updatedLocal));
             } else if (!isSilent) {
                 setGarage(user);
             }
@@ -80,6 +147,7 @@ const Profile = () => {
     };
 
     const handleDeleteRequest = async () => {
+        if (guardGuestAction()) return;
         if (!selectedReason) return triggerAlert('Please select a reason for account termination', 'error');
         if (!tentativeTime) return triggerAlert('Please select a tentative time to leave', 'error');
         if (!deleteReason.trim()) return triggerAlert('Please provide a detailed explanation for the deletion request', 'error');
@@ -204,6 +272,7 @@ const Profile = () => {
     }, [garage, isAddModalOpen]);
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         if (form.panCard && form.panCard.length !== 10) return triggerAlert('Kindly enter the PAN CARD details correctly');
         if (form.adharCard && form.adharCard.length !== 14) return triggerAlert('Kindly enter the AADHAR CARD details correctly');
         if (form.voterId && form.voterId.length !== 10) return triggerAlert('Kindly enter the VOTER ID details correctly');
@@ -215,6 +284,45 @@ const Profile = () => {
 
         setSaving(true);
         try {
+            // ── Upload pending profile picture first ────────────────────────
+            if (pendingProfileFile) {
+                const garageId = garage?._id || garage?.id || garage?.garageId || garage?.dbId;
+                if (garageId) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('document', pendingProfileFile);
+                        formData.append('documentType', 'profilePicture');
+                        const apiRes = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}/document`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (apiRes.ok) {
+                            const apiData = await apiRes.json();
+                            const saved = apiData?.data;
+                            const cloudinaryUrl = saved?.avatar || saved?.profilePicture || saved?.profilePhoto || saved?.logo;
+                            if (cloudinaryUrl) {
+                                const updatedUser = {
+                                    ...(JSON.parse(localStorage.getItem('garageUser') || '{}')),
+                                    avatar: cloudinaryUrl, profilePicture: cloudinaryUrl,
+                                    profilePhoto: cloudinaryUrl, logo: cloudinaryUrl
+                                };
+                                localStorage.setItem('garageUser', JSON.stringify(updatedUser));
+                                setGarage(prev => ({ ...prev, avatar: cloudinaryUrl, profilePicture: cloudinaryUrl, profilePhoto: cloudinaryUrl, logo: cloudinaryUrl }));
+                                window.dispatchEvent(new Event('storage'));
+                            }
+                        } else {
+                            console.error('Profile picture upload failed:', apiRes.status);
+                            triggerAlert('Profile picture upload failed — other details will still save.', 'error');
+                        }
+                    } catch (picErr) {
+                        console.error('Profile picture upload error:', picErr);
+                    } finally {
+                        setPendingProfileFile(null);
+                        setPendingProfilePreview(null);
+                    }
+                }
+            }
+            // ───────────────────────────────────────────────────────────────
             const targetId = garage._id || garage.id || garage.dbId || garage.garageId;
             const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${targetId}`, {
                 method: 'PUT',
@@ -224,14 +332,24 @@ const Profile = () => {
             if (res.ok) {
                 const data = await res.json();
                 const updatedGarage = data.data || data;
-                setGarage(updatedGarage);
 
-                // Update localStorage so polling and refreshes retain the updated profile
+                // Preserve the existing avatar — the PUT response may not include it
+                const existingAvatar = garage?.avatar || garage?.profilePicture || garage?.profilePhoto || garage?.logo;
+                const mergedGarage = {
+                    ...updatedGarage,
+                    avatar: updatedGarage.avatar || updatedGarage.profilePicture || updatedGarage.profilePhoto || updatedGarage.logo || existingAvatar,
+                    profilePicture: updatedGarage.profilePicture || updatedGarage.avatar || existingAvatar,
+                    profilePhoto: updatedGarage.profilePhoto || updatedGarage.avatar || existingAvatar,
+                    logo: updatedGarage.logo || updatedGarage.avatar || existingAvatar
+                };
+                setGarage(mergedGarage);
+
+                // Update localStorage so polling and refreshes retain the updated profile + avatar
                 const storedUser = localStorage.getItem('garageUser');
                 if (storedUser) {
                     try {
                         const parsed = JSON.parse(storedUser);
-                        localStorage.setItem('garageUser', JSON.stringify({ ...parsed, ...updatedGarage }));
+                        localStorage.setItem('garageUser', JSON.stringify({ ...parsed, ...mergedGarage }));
                     } catch (e) {
                         console.error('Failed to update localStorage garageUser', e);
                     }
@@ -341,12 +459,30 @@ const Profile = () => {
                     {/* Top Identity Block */}
                     <div className="flex flex-col md:flex-row gap-8 mb-5 w-full">
                         {/* Garage Identity */}
-                        <div className="space-y-2 w-full md:w-[31.5%]">
+                        <div className="space-y-2 w-full md:w-[31.5%] text-left">
                             <h4 className="text-base font-bold text-gray-400 uppercase tracking-wider">Garage Identity</h4>
-                            <div className="pt-5 rounded-2xl uppercase space-y-4 border border-blue-50 relative overflow-hidden">
-                                <div className="relative z-10">
-                                    <p className="text-lg font-bold text-[#011023] mb-2 uppercase leading-none">{garage.name}</p>
-                                    <p className="text-sm flex mb-2.5 leading-relaxed tracking-wider">
+                            <div className="pt-4 rounded-2xl uppercase space-y-4 relative overflow-hidden flex items-center gap-4">
+                                {/* {(() => {
+                                    const profileImgSrc = garage?.avatar || garage?.profilePhoto || garage?.profilePicture || garage?.logo || garage?.documents?.avatar;
+                                    return (
+                                        <div className="w-12 h-12 rounded-full border border-blue-200 text-[#527FB0] bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                                            {profileImgSrc ? (
+                                                <img 
+                                                    src={profileImgSrc} 
+                                                    alt={garage.name || "Garage Avatar"} 
+                                                    className={`w-full h-full object-cover rounded-full ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}
+                                                />
+                                            ) : (
+                                                <span className="text-[#052558] text-base font-bold uppercase">
+                                                    {garage.name?.charAt(0) || 'G'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })()} */}
+                                <div className="relative z-10 space-y-1">
+                                    <p className="text-lg font-bold text-[#011023] uppercase leading-none">{garage.name}</p>
+                                    <p className="text-sm flex leading-relaxed tracking-wider">
                                         <span className="w-8 uppercase text-sm font-semibold">ID:</span> 
                                         <span className="font-semibold text-[#052558]">{garage.garageId || garage.id || '—'}</span>
                                     </p>
@@ -359,7 +495,7 @@ const Profile = () => {
                             <h4 className="text-base font-bold text-gray-400 uppercase tracking-wider">Owner Details</h4>
                             <div className="py-4 rounded-2xl uppercase space-y-2">
                                 <p className="text-[15px] flex items-center leading-relaxed"><span className="text-gray-500 shrink-0 w-30 uppercase font-bold">Name:</span> <span className="font-semibold text-[#011023]">{garage.ownerName || 'NOT AVAILABLE'}</span></p>
-                                <p className="text-[15px] flex items-center leading-relaxed"><span className="text-gray-500 shrink-0 w-30 uppercase font-bold">Email:</span> <span className="font-semibold uppercase lowercase ">{garage.ownerEmail || garage.email || '—'}</span></p>
+                                <p className="text-[15px] flex items-center leading-relaxed"><span className="text-gray-500 shrink-0 w-30 uppercase font-bold">Email:</span> <span className={`font-semibold uppercase lowercase ${isGuest && isRealValue(garage.ownerEmail || garage.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(garage.ownerEmail || garage.email) || '—'}</span></p>
                             </div>
                         </div>
 
@@ -489,10 +625,10 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">PAN Card</p>
-                                    <p className="text-sm font-semibold text-[#052558]">
-                                        {formatDocNumber(garage?.panCardNumber, garage?.panNumber, garage?.panCard)
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                        {isGuest ? '••••••••' : (formatDocNumber(garage?.panCardNumber, garage?.panNumber, garage?.panCard)
                                             ? `XXXXX${formatDocNumber(garage?.panCardNumber, garage?.panNumber, garage?.panCard).slice(-4)}`
-                                            : '—'}
+                                            : '—')}
                                     </p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
@@ -503,10 +639,10 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Adhar Card</p>
-                                    <p className="text-sm font-semibold text-[#052558]">
-                                        {formatDocNumber(garage?.adharCardNumber, garage?.adharNumber, garage?.aadhaarCard, garage?.adharCard)
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                        {isGuest ? '••••••••' : (formatDocNumber(garage?.adharCardNumber, garage?.adharNumber, garage?.aadhaarCard, garage?.adharCard)
                                             ? `XXXX XXXX ${formatDocNumber(garage?.adharCardNumber, garage?.adharNumber, garage?.aadhaarCard, garage?.adharCard).slice(-4)}`
-                                            : '—'}
+                                            : '—')}
                                     </p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
@@ -517,8 +653,8 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Voter Card ID</p>
-                                    <p className="text-sm font-semibold text-[#052558]">
-                                        {formatDocNumber(garage?.voterIdNumber, garage?.voterNumber, garage?.voterId) || '—'}
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                        {isGuest ? '••••••••' : (formatDocNumber(garage?.voterIdNumber, garage?.voterNumber, garage?.voterId) || '—')}
                                     </p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
@@ -536,7 +672,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Sac Code</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.sacCode || '—'}</p>
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '••••••••' : (garage.sacCode || '—')}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -546,7 +682,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">HSN Code</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.hsnCode || '—'}</p>
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '••••••••' : (garage.hsnCode || '—')}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -556,7 +692,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">GST Number</p>
-                                    <p className="text-sm font-semibold text-[#052558]">{garage.gstNumber || '—'}</p>
+                                    <p className={`text-sm font-semibold text-[#052558] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '••••••••' : (garage.gstNumber || '—')}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <CreditCard size={18} />
@@ -847,10 +983,89 @@ const Profile = () => {
                                 </div>
                             </div>
 
-                            <div className="grid gap-4">
-                                <div className="space-y-2">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Garage Address</label>
                                     <input readOnly value={form.address} className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
+                                </div>
+                                <div className="col-span-1 space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Profile Picture</label>
+                                    <input
+                                        type="file"
+                                        ref={profileFileRef}
+                                        accept="image/*"
+                                        onChange={handleProfilePictureUpload}
+                                        className="hidden"
+                                    />
+
+                                    {pendingProfilePreview ? (
+                                        /* ── Pending preview: thumbnail + eye + trash ── */
+                                        <div className="flex items-center gap-2 w-full">
+                                            <img
+                                                src={pendingProfilePreview}
+                                                alt="Preview"
+                                                className="w-10 h-10 rounded-lg object-cover border border-[#a5b4fc] shadow-xs flex-shrink-0"
+                                            />
+                                            <span className="flex-1 text-xs text-[#3730a3] font-semibold truncate">Photo selected</span>
+                                            <button
+                                                type="button"
+                                                title="Preview photo"
+                                                onClick={() => setPreviewModalOpen(true)}
+                                                className="p-2 rounded-lg bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] transition-all"
+                                            >
+                                                <Eye size={14} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="Remove photo"
+                                                onClick={removePendingProfilePic}
+                                                className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-all"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        /* ── Default upload button ── */
+                                        <button
+                                            type="button"
+                                            onClick={() => profileFileRef.current?.click()}
+                                            disabled={uploadingProfilePic || hasProfilePicture}
+                                            className={`w-full px-4 py-2.5 rounded-xl font-semibold font-sans text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xs ${
+                                                hasProfilePicture
+                                                    ? 'bg-slate-100 border border-[#cbd5e1] text-gray-400 cursor-not-allowed opacity-60'
+                                                    : 'bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {hasProfilePicture ? (
+                                                <><Upload size={14} /> PHOTO UPLOADED</>
+                                            ) : (
+                                                <><Upload size={14} /> UPLOAD PHOTO</>
+                                            )}
+                                        </button>
+                                    )}
+
+                                    {/* Full-screen preview modal */}
+                                    {previewModalOpen && pendingProfilePreview && createPortal(
+                                        <div
+                                            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#011023]/10 backdrop-blur-xs"
+                                            onClick={() => setPreviewModalOpen(false)}
+                                        >
+                                            <p className="text-center text-gray-700 text-sm font-semibold uppercase mb-3 z-10">Click outside the image to close it</p>
+                                            <div
+                                                className="relative flex items-center justify-center"
+                                                style={{ maxWidth: '45vw', maxHeight: '40vh' }}
+                                                onClick={e => e.stopPropagation()}
+                                            >
+                                                <img
+                                                    src={pendingProfilePreview}
+                                                    alt="Profile preview"
+                                                    className="rounded-2xl object-contain shadow-2xl border border-white/20"
+                                                    style={{ maxWidth: '45vw', maxHeight: '40vh', width: 'auto', height: 'auto' }}
+                                                />
+                                            </div>
+                                        </div>,
+                                        document.body
+                                    )}
                                 </div>
                             </div>
                         </div>

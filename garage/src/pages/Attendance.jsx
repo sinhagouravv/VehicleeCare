@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2, MessageSquare } from 'lucide-react';
+import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2, MessageSquare, Download, Check, Send } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Attendance = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction, maskPhone, isRealValue } = useGuestGuard();
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,6 +28,12 @@ const Attendance = () => {
     const [statusLoading, setStatusLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
 
+    // Remark states
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkRecord, setSelectedRemarkRecord] = useState(null);
+    const [remarkText, setRemarkText] = useState('');
+    const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
+
     // Filter states
     const [roleFilter, setRoleFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -39,7 +48,6 @@ const Attendance = () => {
         setFilterConfig({
             title: 'Filter Attendance',
             groups: [
-                LABEL_FILTER_GROUP,
                 {
                     id: 'shift',
                     label: 'Shift',
@@ -50,6 +58,7 @@ const Attendance = () => {
                         { label: 'Evening', value: 'Evening' }
                     ]
                 },
+                LABEL_FILTER_GROUP,
                 {
                     id: 'status',
                     label: 'Status',
@@ -277,6 +286,7 @@ const Attendance = () => {
     }, [selectedEmployeeId, isMarkModalOpen, checkStatus]);
 
     const handleMarkAttendance = async (action) => {
+        if (guardGuestAction()) return;
         if (!selectedEmployeeId) return;
         setActionLoading(true);
         try {
@@ -329,7 +339,38 @@ const Attendance = () => {
         setIsViewModalOpen(true);
     };
 
+    const handleDownloadAttendance = (record) => {
+        if (guardGuestAction()) return;
+        try {
+            const doc = new jsPDF();
+            const primaryColor = [5, 37, 88];
+            const textColor = [100, 100, 100];
+
+            doc.setFontSize(20);
+            doc.setTextColor(...primaryColor);
+            doc.text("VehicleeCare - Attendance Record", 105, 20, null, null, "center");
+
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Employee ID: ${record.employeeId || '—'}`, 14, 38);
+            doc.text(`Employee Name: ${record.employeeName || 'Unknown'}`, 14, 45);
+            doc.text(`Contact: ${record.contact || '—'}`, 14, 52);
+            doc.text(`Role: ${record.role || '—'}`, 14, 59);
+
+            doc.text(`Shift: ${record.shift || '—'}`, 14, 72);
+            doc.text(`Date: ${formatDateStr(record.checkIn || record.date)}`, 14, 79);
+            doc.text(`Check-in Time: ${formatTime(record.checkIn)}`, 14, 86);
+            doc.text(`Check-out Time: ${formatTime(record.checkOut)}`, 14, 93);
+            doc.text(`Status: ${record.status || '—'}`, 14, 100);
+
+            doc.save(`Attendance_${record.employeeId || 'Record'}.pdf`);
+        } catch (err) {
+            console.error("Failed to generate PDF", err);
+        }
+    };
+
     const confirmDeleteRecord = async () => {
+        if (guardGuestAction()) return;
         if (!recordToDelete || recordToDelete.isMock) {
             setIsDeleteModalOpen(false);
             setRecordToDelete(null);
@@ -387,14 +428,23 @@ const Attendance = () => {
         return `${day} ${month} ${year} | ${time}`;
     };
 
+    const hasBadgeValue = (val) => {
+        if (!val) return false;
+        const str = String(val).trim();
+        return str !== '' && str !== '—' && str !== '-' && str !== 'N/A' && str !== 'None' && str.toLowerCase() !== 'undefined' && str.toLowerCase() !== 'null';
+    };
+
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'Present': return 'bg-emerald-100 text-emerald-700';
-            case 'Absent': return 'bg-rose-100 text-rose-700';
-            case 'Late': return 'bg-amber-100 text-amber-700';
-            case 'On Leave': return 'bg-blue-100 text-blue-700';
-            case 'Overtime': return 'bg-purple-100 text-purple-700';
-            default: return 'bg-gray-100 text-gray-700';
+            case 'Present': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'Absent': return 'bg-rose-100 text-rose-700 border-rose-200';
+            case 'Late': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'On Leave': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'Overtime': return 'bg-purple-100 text-purple-700 border-purple-200';
+            case 'Approved': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'Rejected': return 'bg-rose-100 text-rose-700 border-rose-200';
+            case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+            default: return 'bg-gray-100 text-gray-700 border-gray-200';
         }
     };
 
@@ -430,6 +480,72 @@ const Attendance = () => {
         }
     };
 
+    const handleOpenRemarkModal = (r) => {
+        setSelectedRemarkRecord(r);
+        setRemarkText(r.garageRemark || r.employeeRemark || r.remark || '');
+        setIsRemarkModalOpen(true);
+    };
+
+    const handleRemarkSubmit = async (e) => {
+        e.preventDefault();
+        if (guardGuestAction()) return;
+        if (!selectedRemarkRecord) return;
+        if (!remarkText || !remarkText.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+        setIsSubmittingRemark(true);
+        try {
+            let garageName = 'Garage';
+            let garageId = 'GARAGE';
+            let garageRole = 'Garage Owner';
+            const storedGarage = localStorage.getItem('garageUser');
+            if (storedGarage) {
+                try {
+                    const u = JSON.parse(storedGarage);
+                    garageName = u.name || u.garageName || garageName;
+                    garageId = u.garageId || u.userId || u._id || garageId;
+                    garageRole = u.role || garageRole;
+                } catch (_) {}
+            }
+
+            const refId = selectedRemarkRecord.attendanceId || selectedRemarkRecord.employeeId || String(selectedRemarkRecord._id);
+            const targetId = selectedRemarkRecord.name || selectedRemarkRecord.employeeId || '—';
+            const targetRole = selectedRemarkRecord.role || 'Employee';
+
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referenceId: refId,
+                    bookingId: refId,
+                    bookingMongoId: selectedRemarkRecord._id,
+                    reporterId: garageId,
+                    reporterName: garageName,
+                    remarkerRole: garageRole,
+                    remarkedRole: targetRole,
+                    role: targetRole,
+                    customerDetails: targetId,
+                    remark: remarkText,
+                    status: selectedRemarkRecord.status || 'Present'
+                })
+            });
+            const remarkData = await remarkRes.json();
+            const createdRemarkId = remarkData.data?.remarkId;
+
+            setAttendanceRecords(prev => prev.map(rec => rec._id === selectedRemarkRecord._id ? { ...rec, garageRemark: remarkText, remarkId: createdRemarkId } : rec));
+            triggerAlert('Remark submitted successfully!', 'success');
+        } catch (err) {
+            console.error('[Attendance] Error submitting remark:', err);
+            triggerAlert('Failed to submit remark.', 'error');
+        } finally {
+            setIsSubmittingRemark(false);
+            setIsRemarkModalOpen(false);
+            setSelectedRemarkRecord(null);
+            setRemarkText('');
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
             <div className="flex justify-between items-center">
@@ -458,7 +574,7 @@ const Attendance = () => {
                                 <th className="p-4.5 font-bold text-center w-[12%]">Check-in Time</th>
                                 <th className="p-4.5 font-bold text-center w-[13%]">Check-out Time</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
+                                <th className="p-4.5 font-bold text-center w-[9%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -522,17 +638,27 @@ const Attendance = () => {
                                             <div className="font-semibold text-sm text-[#011023] truncate">{r.employeeName}</div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="text-sm text-[#052558] font-semibold">{r.contact}</div>
+                                            <div className={`text-sm text-[#052558] font-semibold ${isGuest && isRealValue(r.contact) ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                                {maskPhone(r.contact)}
+                                            </div>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getRoleBadge(r.role)}`}>
-                                                {r.role}
-                                            </span>
+                                            {hasBadgeValue(r.role) ? (
+                                                <span className={`px-2.5 py-1 text-xs font-semibold border border-transparent uppercase rounded-full whitespace-nowrap ${getRoleBadge(r.role)}`}>
+                                                    {r.role}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
-                                                {r.shift}
-                                            </span>
+                                            {hasBadgeValue(r.shift) ? (
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
+                                                    {r.shift}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                            )}
                                         </td>
                                         <td className="p-4 font-semibold text-[#011023] text-sm text-center">
                                             {formatDateStr(r.checkIn || r.date)}
@@ -548,12 +674,16 @@ const Attendance = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getStatusBadge(r.status)}`}>
-                                                {r.status === 'On Leave' ? 'On Leave' : r.status}
-                                            </span>
+                                            {hasBadgeValue(r.status) ? (
+                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getStatusBadge(r.status)}`}>
+                                                    {r.status === 'On Leave' ? 'On Leave' : r.status}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <div className="flex items-center justify-center gap-4">
+                                            <div className="flex items-center justify-center gap-3.5">
                                                 <button
                                                     onClick={() => handleViewDetails(r)}
                                                     className="text-gray-400 hover:text-blue-500 transition-colors"
@@ -561,8 +691,14 @@ const Attendance = () => {
                                                     <Eye size={17} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleViewDetails(r)}
+                                                    onClick={() => handleDownloadAttendance(r)}
                                                     className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                >
+                                                    <Download size={17} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleOpenRemarkModal(r)}
+                                                    className="text-gray-400 hover:text-purple-500 transition-colors"
                                                 >
                                                     <MessageSquare size={17} />
                                                 </button>
@@ -625,14 +761,22 @@ const Attendance = () => {
                                                         </div>
                                                     </td>
                                                     <td className="p-4.5 text-center">
-                                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getRoleBadge(record.role)}`}>
-                                                            {record.role}
-                                                        </span>
+                                                        {hasBadgeValue(record.role) ? (
+                                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getRoleBadge(record.role)}`}>
+                                                                {record.role}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                                        )}
                                                     </td>
                                                     <td className="p-4.5 text-center">
-                                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getShiftBadge(record.shift)}`}>
-                                                            {record.shift}
-                                                        </span>
+                                                        {hasBadgeValue(record.shift) ? (
+                                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getShiftBadge(record.shift)}`}>
+                                                                {record.shift}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                                        )}
                                                     </td>
                                                     <td className="p-4.5 uppercase">
                                                         <div className="font-semibold text-[#011023] text-xs tracking-wide">
@@ -645,9 +789,13 @@ const Attendance = () => {
                                                         </div>
                                                     </td>
                                                     <td className="p-4.5 text-center">
-                                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getStatusBadge(record.status)}`}>
-                                                            {record.status === 'On Leave' ? 'On Leave' : record.status}
-                                                        </span>
+                                                        {hasBadgeValue(record.status) ? (
+                                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ${getStatusBadge(record.status)}`}>
+                                                                {record.status === 'On Leave' ? 'On Leave' : record.status}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -781,6 +929,107 @@ const Attendance = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {isRemarkModalOpen && selectedRemarkRecord && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkRecord(null); setRemarkText(''); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <div className="flex flex-col items-start text-left">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                    Attendance Remark
+                                </h3>
+                                {selectedRemarkRecord.remarkId && (
+                                    <p className="flex items-center text-sm uppercase gap-2 mt-0.5">
+                                        ID: <span className="text-sm font-semibold text-gray-700 uppercase">{selectedRemarkRecord.remarkId}</span>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkRecord(null); setRemarkText(''); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Attendance Info Header Details */}
+                        <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex flex-col items-start justify-center text-left">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Employee ID</p>
+                                <p className="text-sm font-semibold text-[#011023] uppercase">{selectedRemarkRecord.employeeId || selectedRemarkRecord.attendanceId || selectedRemarkRecord._id}</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Role</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    {selectedRemarkRecord.role || 'Employee'}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Details</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase truncate max-w-[120px]">
+                                    {selectedRemarkRecord.name || '—'}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                                {hasBadgeValue(selectedRemarkRecord.status) ? (
+                                    <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full uppercase border ${getStatusBadge(selectedRemarkRecord.status)}`}>
+                                        {selectedRemarkRecord.status === 'On Leave' ? 'On Leave' : selectedRemarkRecord.status}
+                                    </span>
+                                ) : (
+                                    <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Remark Textarea Form */}
+                        {(() => {
+                            const hasExistingRemark = Boolean(selectedRemarkRecord.garageRemark || selectedRemarkRecord.employeeRemark);
+                            return (
+                                <form onSubmit={handleRemarkSubmit} className="space-y-4.5 text-left">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Remark</label>
+                                        <textarea
+                                            rows="4"
+                                            disabled={hasExistingRemark}
+                                            value={remarkText}
+                                            onChange={(e) => setRemarkText(e.target.value)}
+                                            className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold text-sm text-[#011023] resize-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingRemark || hasExistingRemark}
+                                        className={`w-full py-2 border rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-sm mt-4 flex items-center justify-center gap-2 ${
+                                            hasExistingRemark 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isSubmittingRemark ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> Submitting REMARK...
+                                            </>
+                                        ) : hasExistingRemark ? (
+                                            <>
+                                                <Check size={14} /> REMARK SUBMITTED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send size={14} /> Submit REMARK
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>,
                 document.body

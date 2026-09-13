@@ -8,9 +8,11 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const MyBookings = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -225,6 +227,7 @@ const MyBookings = () => {
     };
 
     const confirmDelete = async () => {
+        if (guardGuestAction()) return;
         if (!bookingToDelete) return;
         setDeleting(true);
         try {
@@ -289,6 +292,7 @@ const MyBookings = () => {
     };
 
     const handleDownloadInvoice = (booking) => {
+        if (guardGuestAction()) return;
         try {
             const doc = new jsPDF();
             const primaryColor = [5, 37, 88];
@@ -490,7 +494,7 @@ const MyBookings = () => {
                                         </span>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <div className="flex items-center justify-center gap-4">
+                                        <div className="flex items-center justify-center gap-4.5">
                                             <button
                                                 onClick={() => handleViewDetails(booking)}
                                                 className="text-gray-400 hover:text-blue-500 transition-colors"
@@ -503,12 +507,12 @@ const MyBookings = () => {
                                             >
                                                 <Download size={17} />
                                             </button>
-                                            <button
+                                            {/* <button
                                                 onClick={() => handleViewDetails(booking)}
                                                 className="text-gray-400 hover:text-emerald-500 transition-colors"
                                             >
                                                 <MessageSquare size={17} />
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </td>
                                 </tr>
@@ -548,8 +552,8 @@ const MyBookings = () => {
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
                                 <div className="pt-4 rounded-xl uppercase space-y-2">
                                     <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
-                                    <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
-                                    <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
+                                    <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedBooking.user?.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(selectedBooking.user?.phone) || 'N/A'}</span></p>
+                                    <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedBooking.user?.email) ? 'blur-sm select-none pointer-events-none' : ''}`} title={selectedBooking.user?.email}>{maskEmail(selectedBooking.user?.email) || 'N/A'}</span></p>
                                 </div>
                             </div>
 

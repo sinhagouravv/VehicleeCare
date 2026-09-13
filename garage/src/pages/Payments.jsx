@@ -8,6 +8,7 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const isPendingCOD = (payment) => {
     if (!payment) return false;
@@ -18,6 +19,7 @@ const isPendingCOD = (payment) => {
 
 const Payments = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, maskTransactionId, isRealValue } = useGuestGuard();
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -81,7 +83,6 @@ const Payments = () => {
             title: 'Filter Payments',
             hasSort: true,
             groups: [
-                LABEL_FILTER_GROUP,
                 {
                     id: 'method',
                     label: 'Method',
@@ -102,7 +103,8 @@ const Payments = () => {
                         { label: 'Pending', value: 'Pending' },
                         { label: 'Partially Paid', value: 'Partially Paid' }
                     ]
-                }
+                },
+                LABEL_FILTER_GROUP
             ],
             initialValues: {
                 method: 'all',
@@ -233,6 +235,7 @@ const Payments = () => {
     };
 
     const handleDownloadInvoice = (payment) => {
+        if (guardGuestAction()) return;
         try {
             const doc = new jsPDF();
             const primaryColor = [5, 37, 88];
@@ -478,7 +481,7 @@ const Payments = () => {
                                     <div className="pt-4 pb-2 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{getCustomerName(selectedPayment)}</span></p>
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">ID:</span> <span className="font-semibold text-gray-800 ">{selectedPayment.user?.userId || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate ">{selectedPayment.user?.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedPayment.user?.email) ? 'blur-sm select-none pointer-events-none' : ''}`} title={selectedPayment.user?.email}>{maskEmail(selectedPayment.user?.email) || 'N/A'}</span></p>
                                     </div>
                                 </div>
 
@@ -513,7 +516,9 @@ const Payments = () => {
                                     <div className="flex gap-4">
                                         <div className="rounded-xl px- py-2 flex-[2]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Transaction ID</p>
-                                            <p className="text-sm text-[#011023] font-semibold">{selectedPayment.transactionId || 'N/A'}</p>
+                                            <p className={`text-sm text-[#011023] font-semibold ${isGuest && isRealValue(selectedPayment.transactionId) ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                                {maskTransactionId(selectedPayment.transactionId) || 'N/A'}
+                                            </p>
                                         </div>
                                         <div className="rounded-xl px-4 py-2 flex-[1]">
                                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Payment ID</p>

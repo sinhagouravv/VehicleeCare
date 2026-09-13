@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Trash2, Loader2, MessageSquare } from 'lucide-react';
+import { Eye, X, Trash2, Loader2, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Vehicles = () => {
+    const { isGuest, guardGuestAction } = useGuestGuard();
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,7 +34,6 @@ const Vehicles = () => {
             title: 'Filter Vehicles',
             hasSort: true,
             groups: [
-                LABEL_FILTER_GROUP,
                 {
                     id: 'type',
                     label: 'Vehicle Type',
@@ -42,7 +44,8 @@ const Vehicles = () => {
                         { label: 'SUV', value: 'SUV' },
                         { label: 'Hatchback', value: 'Hatchback' }
                     ]
-                }
+                },
+                LABEL_FILTER_GROUP
             ],
             initialValues: {
                 type: 'all',
@@ -188,6 +191,38 @@ const Vehicles = () => {
         setIsViewModalOpen(true);
     };
 
+    const handleDownloadVehicle = (vehicle) => {
+        if (guardGuestAction()) return;
+        try {
+            const doc = new jsPDF();
+            const primaryColor = [5, 37, 88];
+            const textColor = [100, 100, 100];
+
+            doc.setFontSize(20);
+            doc.setTextColor(...primaryColor);
+            doc.text("VehicleeCare - Vehicle Details", 105, 20, null, null, "center");
+
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Customer ID: ${vehicle.customerId || '—'}`, 14, 38);
+            doc.text(`Owner Name: ${vehicle.ownerName || 'Unknown'}`, 14, 45);
+            doc.text(`Booking ID: ${vehicle.bookingId || '—'}`, 14, 52);
+            doc.text(`Plate / Reg Number: ${vehicle.number || '—'}`, 14, 59);
+
+            doc.text(`Brand: ${vehicle.brand || '—'}`, 14, 72);
+            doc.text(`Model: ${vehicle.model || '—'}`, 14, 79);
+            doc.text(`Year: ${vehicle.year || '—'}`, 14, 86);
+            doc.text(`Body Type: ${vehicle.type || '—'}`, 14, 93);
+            doc.text(`Transmission: ${vehicle.transmission || '—'}`, 14, 100);
+
+            doc.text(`Last Service: ${vehicle.lastService || 'N/A'}`, 14, 113);
+
+            doc.save(`Vehicle_${vehicle.number || 'Details'}.pdf`);
+        } catch (err) {
+            console.error("Failed to generate PDF", err);
+        }
+    };
+
     const confirmDeleteVehicle = () => {
         if (!vehicleToDelete) return;
         setDeleting(true);
@@ -310,8 +345,8 @@ const Vehicles = () => {
                                         {v.model}
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <span className="bg-[#fef3c7] text-[#92400e] font-semibold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide">
-                                            {v.number}
+                                        <span className={`bg-[#fef3c7] text-[#92400e] font-semibold px-3 py-1 rounded-xl text-[12px] uppercase tracking-wide ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                                            {isGuest ? '••••••••' : v.number}
                                         </span>
                                     </td>
                                     <td className="p-3.25 text-center">
@@ -334,14 +369,16 @@ const Vehicles = () => {
                                             <button
                                                 onClick={() => handleViewDetails(v)}
                                                 className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                title="View Vehicle Details"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
-                                                onClick={() => handleViewDetails(v)}
+                                                onClick={() => handleDownloadVehicle(v)}
                                                 className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                title="Download Vehicle Details"
                                             >
-                                                <MessageSquare size={17} />
+                                                <Download size={17} />
                                             </button>
                                         </div>
                                     </td>
@@ -365,7 +402,7 @@ const Vehicles = () => {
                         <div className="p-6 border-b border-[#e6f0fa] flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                             <div>
                                 <h3 className="text-xl uppercase font-bold text-[#052558]">Vehicle Details</h3>
-                                <p className="text-sm text-gray-500 uppercase mt-1">Plate: <span className="font-semibold text-gray-700">{selectedVehicle.number}</span></p>
+                                <p className="text-sm text-gray-500 uppercase mt-1">Plate: <span className={`font-semibold text-gray-700 ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '••••••••' : selectedVehicle.number}</span></p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, X, Search, Trash2, Loader2, MessageSquare } from 'lucide-react';
+import { Eye, X, Search, Trash2, Loader2, Download, MessageSquare, Check, Send } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
+import { useAlert } from '../context/AlertContext';
 
 const getFuelBadgeClass = (v) => {
     const ft = (v?.fuelType || v?.fuel || '').toLowerCase();
@@ -26,6 +29,8 @@ const getFuelBadgeClass = (v) => {
 };
 
 const Customers = () => {
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
+    const { triggerAlert } = useAlert();
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [customers, setCustomers] = useState([]);
     const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -36,6 +41,12 @@ const Customers = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Remark states
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkCustomer, setSelectedRemarkCustomer] = useState(null);
+    const [remarkText, setRemarkText] = useState('');
+    const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
     
     // Row label and Filter states
     const [labelFilter, setLabelFilter] = useState('all');
@@ -180,12 +191,54 @@ const Customers = () => {
         setIsViewModalOpen(true);
     };
 
+    const handleDownloadCustomer = (customer) => {
+        if (guardGuestAction()) return;
+        try {
+            const doc = new jsPDF();
+            const primaryColor = [5, 37, 88];
+            const textColor = [100, 100, 100];
+
+            doc.setFontSize(20);
+            doc.setTextColor(...primaryColor);
+            doc.text("VehicleeCare - Customer Details", 105, 20, null, null, "center");
+
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Customer ID: ${customer.userId || '—'}`, 14, 38);
+            doc.text(`Customer Name: ${customer.name || 'Unknown'}`, 14, 45);
+            doc.text(`Email: ${customer.email || '—'}`, 14, 52);
+            doc.text(`Phone: ${customer.phone || '—'}`, 14, 59);
+
+            doc.text(`Total Orders: ${customer.totalOrders || 0}`, 14, 72);
+            doc.text(`Total Spent: Rs. ${customer.totalSpent || 0}`, 14, 79);
+            doc.text(`Last Visit: ${customer.lastVisit || '—'}`, 14, 86);
+
+            if (customer.vehicles && customer.vehicles.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(...primaryColor);
+                doc.text("Vehicles", 14, 101);
+                doc.setFontSize(11);
+                doc.setTextColor(...textColor);
+                customer.vehicles.forEach((v, idx) => {
+                    const vText = `${idx + 1}. ${v.label || v.make || ''} ${v.model || ''} (${v.number || v.regNumber || 'N/A'}) - ${v.fuelType || 'N/A'}`;
+                    doc.text(vText, 14, 109 + (idx * 7));
+                });
+            }
+
+            doc.save(`Customer_${customer.userId || 'Details'}.pdf`);
+        } catch (err) {
+            console.error("Failed to generate PDF", err);
+        }
+    };
+
     const _handleDeleteClick = (customer) => {
+        if (guardGuestAction()) return;
         setCustomerToDelete(customer);
         setIsDeleteModalOpen(true);
     };
 
     const handleDelete = async () => {
+        if (guardGuestAction()) return;
         if (!customerToDelete) return;
         setDeleting(true);
         try {
@@ -198,6 +251,73 @@ const Customers = () => {
             console.error("Failed to delete customer", error);
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const handleOpenRemarkModal = (customer) => {
+        setSelectedRemarkCustomer(customer);
+        setRemarkText(customer.garageRemark || customer.employeeRemark || customer.remark || '');
+        setIsRemarkModalOpen(true);
+    };
+
+    const handleRemarkSubmit = async (e) => {
+        e.preventDefault();
+        if (guardGuestAction()) return;
+        if (!selectedRemarkCustomer) return;
+        if (!remarkText || !remarkText.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+        setIsSubmittingRemark(true);
+        try {
+            let garageName = 'Garage';
+            let garageId = 'GARAGE';
+            let garageRole = 'Garage Owner';
+            const storedGarage = localStorage.getItem('garageUser');
+            if (storedGarage) {
+                try {
+                    const u = JSON.parse(storedGarage);
+                    garageName = u.name || u.garageName || garageName;
+                    garageId = u.garageId || u.userId || u._id || garageId;
+                    garageRole = u.role || garageRole;
+                } catch (_) {}
+            }
+
+            const refId = selectedRemarkCustomer.userId || selectedRemarkCustomer.id || 'CUSTOMER';
+            const targetId = selectedRemarkCustomer.name || '—';
+            const targetRole = 'Customer';
+
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referenceId: refId,
+                    bookingId: refId,
+                    bookingMongoId: selectedRemarkCustomer.id,
+                    reporterId: garageId,
+                    reporterName: garageName,
+                    remarkerRole: garageRole,
+                    remarkedRole: targetRole,
+                    role: targetRole,
+                    customerDetails: targetId,
+                    remark: remarkText,
+                    status: 'Active'
+                })
+            });
+            const remarkData = await remarkRes.json();
+            const createdRemarkId = remarkData.data?.remarkId;
+
+            setCustomers(prev => prev.map(c => (c.id === selectedRemarkCustomer.id || c.userId === selectedRemarkCustomer.userId) ? { ...c, garageRemark: remarkText, remarkId: createdRemarkId } : c));
+            setFilteredCustomers(prev => prev.map(c => (c.id === selectedRemarkCustomer.id || c.userId === selectedRemarkCustomer.userId) ? { ...c, garageRemark: remarkText, remarkId: createdRemarkId } : c));
+            triggerAlert('Remark submitted successfully!', 'success');
+        } catch (err) {
+            console.error('[Customers] Error submitting remark:', err);
+            triggerAlert('Failed to submit remark.', 'error');
+        } finally {
+            setIsSubmittingRemark(false);
+            setIsRemarkModalOpen(false);
+            setSelectedRemarkCustomer(null);
+            setRemarkText('');
         }
     };
 
@@ -220,12 +340,12 @@ const Customers = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[10.5%]">Customer ID</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Customer</th>
+                                <th className="p-4.5 font-bold text-center w-[11%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[16%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[35%]">Vehicle</th>
+                                <th className="p-4.5 font-bold text-center w-[34%]">Vehicle</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Amount</th>
                                 <th className="p-4.5 font-bold text-center w-[8.5%]">Last Visit</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[8.5%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
@@ -296,8 +416,8 @@ const Customers = () => {
 
                                     {/* Contact */}
                                     <td className="p-4 text-center w-[16%]">
-                                        <div className="font-medium text-[#052558] text-sm lowercase">{customer.email}</div>
-                                        <div className="text-xs text-gray-500 mt-0.5">{customer.phone}</div>
+                                        <div className={`font-medium text-[#052558] text-sm lowercase ${isGuest && isRealValue(customer.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(customer.email)}</div>
+                                        <div className={`text-xs text-gray-500 mt-0.5 ${isGuest && isRealValue(customer.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(customer.phone)}</div>
                                     </td>
 
                                     {/* Vehicle */}
@@ -328,16 +448,25 @@ const Customers = () => {
 
                                     {/* Actions */}
                                     <td className="p-4 text-center w-[8%]">
-                                        <div className="flex items-center justify-center gap-4">
+                                        <div className="flex items-center justify-center gap-3.5">
                                             <button
                                                 onClick={() => handleViewDetails(customer)}
                                                 className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                title="View Customer Details"
                                             >
                                                 <Eye size={17} />
                                             </button>
                                             <button
-                                                onClick={() => handleViewDetails(customer)}
+                                                onClick={() => handleDownloadCustomer(customer)}
                                                 className="text-gray-400 hover:text-emerald-500 transition-colors"
+                                                title="Download Customer Details"
+                                            >
+                                                <Download size={17} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleOpenRemarkModal(customer)}
+                                                className="text-gray-400 hover:text-purple-500 transition-colors"
+                                                title="Remarks"
                                             >
                                                 <MessageSquare size={17} />
                                             </button>
@@ -383,8 +512,8 @@ const Customers = () => {
                                 <div className="space-y-2 w-[40%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Contact</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate">{selectedCustomer.email}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800">{selectedCustomer.phone}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedCustomer.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(selectedCustomer.email)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 ${isGuest && isRealValue(selectedCustomer.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(selectedCustomer.phone)}</span></p>
                                     </div>
                                 </div>
 
@@ -471,6 +600,103 @@ const Customers = () => {
                                 {deleting ? <><Loader2 size={16} className="animate-spin" /> REMOVING...</> : 'REMOVE'}
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {isRemarkModalOpen && selectedRemarkCustomer && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkCustomer(null); setRemarkText(''); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <div className="flex flex-col items-start text-left">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                    Customer Remark
+                                </h3>
+                                {selectedRemarkCustomer.remarkId && (
+                                    <p className="flex items-center text-sm uppercase gap-2 mt-0.5">
+                                        ID: <span className="text-sm font-semibold text-gray-700 uppercase">{selectedRemarkCustomer.remarkId}</span>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkCustomer(null); setRemarkText(''); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Customer Info Header Details */}
+                        <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex flex-col items-start justify-center text-left">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Customer ID</p>
+                                <p className="text-sm font-semibold text-[#011023] uppercase">{selectedRemarkCustomer.userId || selectedRemarkCustomer.id?.substring(0, 10)}</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Role</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    Customer
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Details</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase truncate max-w-[120px]">
+                                    {selectedRemarkCustomer.name || '—'}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                                <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full uppercase border bg-emerald-100 text-emerald-800 border-emerald-200">
+                                    Active
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Remark Textarea Form */}
+                        {(() => {
+                            const hasExistingRemark = Boolean(selectedRemarkCustomer.garageRemark || selectedRemarkCustomer.employeeRemark);
+                            return (
+                                <form onSubmit={handleRemarkSubmit} className="space-y-4.5 text-left">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Remark</label>
+                                        <textarea
+                                            rows="4"
+                                            disabled={hasExistingRemark}
+                                            value={remarkText}
+                                            onChange={(e) => setRemarkText(e.target.value)}
+                                            className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold text-sm text-[#011023] resize-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingRemark || hasExistingRemark}
+                                        className={`w-full py-2 border rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-sm mt-4 flex items-center justify-center gap-2 ${
+                                            hasExistingRemark 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isSubmittingRemark ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> Submitting REMARK...
+                                            </>
+                                        ) : hasExistingRemark ? (
+                                            <>
+                                                <Check size={14} /> REMARK SUBMITTED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send size={14} /> Submit REMARK
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>,
                 document.body

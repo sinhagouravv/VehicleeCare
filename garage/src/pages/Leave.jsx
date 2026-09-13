@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, CheckCircle2, XCircle, Check, X, Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Check, X, Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Leave = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction } = useGuestGuard();
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -20,6 +22,12 @@ const Leave = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
+
+    // Remark states
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkLeave, setSelectedRemarkLeave] = useState(null);
+    const [remarkText, setRemarkText] = useState('');
+    const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
 
     // Close 3 dots action menu on click outside
     useEffect(() => {
@@ -232,6 +240,7 @@ const Leave = () => {
 
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
+        if (guardGuestAction()) return;
         if(!actionEmpId || !actionRemarks.trim()) {
             triggerAlert('Please select a Manager ID and provide Reason for Action', 'error');
             return;
@@ -261,6 +270,7 @@ const Leave = () => {
     };
 
     const handleDelete = async () => {
+        if (guardGuestAction()) return;
         if (!selectedLeave) return;
         setDeleting(true);
         try {
@@ -340,6 +350,72 @@ const Leave = () => {
             case 'Rejected': return 'bg-rose-100 text-rose-800 border-rose-200';
             case 'Pending': return 'bg-amber-100 text-amber-800 border-amber-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    };
+
+    const handleOpenRemarkModal = (leave) => {
+        setSelectedRemarkLeave(leave);
+        setRemarkText(leave.garageRemark || leave.employeeRemark || leave.remark || '');
+        setIsRemarkModalOpen(true);
+    };
+
+    const handleRemarkSubmit = async (e) => {
+        e.preventDefault();
+        if (guardGuestAction()) return;
+        if (!selectedRemarkLeave) return;
+        if (!remarkText || !remarkText.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+        setIsSubmittingRemark(true);
+        try {
+            let garageName = 'Garage';
+            let garageId = 'GARAGE';
+            let garageRole = 'Garage Owner';
+            const storedGarage = localStorage.getItem('garageUser');
+            if (storedGarage) {
+                try {
+                    const u = JSON.parse(storedGarage);
+                    garageName = u.name || u.garageName || garageName;
+                    garageId = u.garageId || u.userId || u._id || garageId;
+                    garageRole = u.role || garageRole;
+                } catch (_) {}
+            }
+
+            const refId = selectedRemarkLeave.leaveId || String(selectedRemarkLeave._id);
+            const targetId = selectedRemarkLeave.employeeId || '—';
+            const targetRole = 'Employee';
+
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referenceId: refId,
+                    bookingId: refId,
+                    bookingMongoId: selectedRemarkLeave._id,
+                    reporterId: garageId,
+                    reporterName: garageName,
+                    remarkerRole: garageRole,
+                    remarkedRole: targetRole,
+                    role: targetRole,
+                    customerDetails: targetId,
+                    remark: remarkText,
+                    status: selectedRemarkLeave.status || 'Pending'
+                })
+            });
+            const remarkData = await remarkRes.json();
+            const createdRemarkId = remarkData.data?.remarkId;
+
+            setLeaves(prev => prev.map(l => l._id === selectedRemarkLeave._id ? { ...l, garageRemark: remarkText, remarkId: createdRemarkId } : l));
+            triggerAlert('Remark submitted successfully!', 'success');
+        } catch (err) {
+            console.error('[Leave] Error submitting remark:', err);
+            triggerAlert('Failed to submit remark.', 'error');
+        } finally {
+            setIsSubmittingRemark(false);
+            setIsRemarkModalOpen(false);
+            setSelectedRemarkLeave(null);
+            setRemarkText('');
         }
     };
 
@@ -524,7 +600,7 @@ const Leave = () => {
                                                 </div>
                                             ) : (
                                                 <button 
-                                                    onClick={() => { setSelectedLeave(leave); setIsViewModalOpen(true); }}
+                                                    onClick={() => handleOpenRemarkModal(leave)}
                                                     className="text-gray-400 hover:text-emerald-500 transition-colors flex items-center justify-center cursor-pointer"
                                                     title="Leave Remarks"
                                                 >
@@ -760,6 +836,103 @@ const Leave = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {isRemarkModalOpen && selectedRemarkLeave && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkLeave(null); setRemarkText(''); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <div className="flex flex-col items-start text-left">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                    Leave Remark
+                                </h3>
+                                {selectedRemarkLeave.remarkId && (
+                                    <p className="flex items-center text-sm uppercase gap-2 mt-0.5">
+                                        ID: <span className="text-sm font-semibold text-gray-700 uppercase">{selectedRemarkLeave.remarkId}</span>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkLeave(null); setRemarkText(''); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Leave Info Header Details */}
+                        <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex flex-col items-start justify-center text-left">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Leave ID</p>
+                                <p className="text-sm font-semibold text-[#011023] uppercase">{selectedRemarkLeave.leaveId || selectedRemarkLeave._id}</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Role</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    Employee
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Details</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase truncate max-w-[120px]">
+                                    {selectedRemarkLeave.employeeId || '—'}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedRemarkLeave.status)}`}>
+                                    {selectedRemarkLeave.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Remark Textarea Form */}
+                        {(() => {
+                            const hasExistingRemark = Boolean(selectedRemarkLeave.garageRemark || selectedRemarkLeave.employeeRemark);
+                            return (
+                                <form onSubmit={handleRemarkSubmit} className="space-y-4.5 text-left">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Remark</label>
+                                        <textarea
+                                            rows="4"
+                                            disabled={hasExistingRemark}
+                                            value={remarkText}
+                                            onChange={(e) => setRemarkText(e.target.value)}
+                                            className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold text-sm text-[#011023] resize-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingRemark || hasExistingRemark}
+                                        className={`w-full py-2 border rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-sm mt-4 flex items-center justify-center gap-2 ${
+                                            hasExistingRemark 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isSubmittingRemark ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> Submitting REMARK...
+                                            </>
+                                        ) : hasExistingRemark ? (
+                                            <>
+                                                <Check size={14} /> REMARK SUBMITTED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send size={14} /> Submit REMARK
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>,
                 document.body

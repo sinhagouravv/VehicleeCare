@@ -5,6 +5,7 @@ import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loa
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const EVENT_MAPPING = {
     booking: { type: 'Booking', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -22,6 +23,7 @@ const EVENT_MAPPING = {
 };
 
 const Notifications = () => {
+    const { isGuest, guardGuestAction } = useGuestGuard();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [users, setUsers] = useState([]); // Added for smart ID mapping
@@ -59,6 +61,7 @@ const Notifications = () => {
                         { label: 'Read', value: 'read' }
                     ]
                 },
+                LABEL_FILTER_GROUP,
                 {
                     id: 'type',
                     label: 'Type',
@@ -73,8 +76,7 @@ const Notifications = () => {
                         { label: 'Reminder', value: 'Reminder' },
                         { label: 'Warning', value: 'Warning' }
                     ]
-                },
-                LABEL_FILTER_GROUP
+                }
             ],
             initialValues: {
                 type: 'all',
@@ -240,12 +242,14 @@ const Notifications = () => {
     }, [fetchNotifications]);
 
     const markRead = async (id) => {
+        if (guardGuestAction()) return;
         await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/read`, { method: 'PATCH' });
         setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
         setUnread(prev => Math.max(0, prev - 1));
     };
 
     const confirmDeleteNotif = async () => {
+        if (guardGuestAction()) return;
         if (!notifToDelete) return;
         setDeleting(true);
         try {
@@ -361,12 +365,10 @@ const Notifications = () => {
                 <div>
                     <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Notifications</h1>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                        {lastRefreshed
-                            ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                            : 'Loading…'}
-                    </div>
+                <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
+                    {lastRefreshed
+                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
                 </div>
             </div>
 

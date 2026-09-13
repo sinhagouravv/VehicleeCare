@@ -3,8 +3,11 @@ import { createPortal } from 'react-dom';
 import { Trash2, Loader2, UploadCloud, Eye, Download, MessageSquare, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const UploadDocuments = () => {
+    const { isGuest, guardGuestAction } = useGuestGuard();
+
     const getInitialGarage = () => {
         try {
             const storedUser = localStorage.getItem('garageUser');
@@ -88,6 +91,7 @@ const UploadDocuments = () => {
     }, [navigate]);
 
     const handleFileUpload = async (docKey, file) => {
+        if (guardGuestAction()) return;
         if (!file) return;
         setUploadingKey(docKey);
 
@@ -143,6 +147,7 @@ const UploadDocuments = () => {
     };
 
     const handleDeleteDocument = async (docKey) => {
+        if (guardGuestAction()) return;
         setUploadingKey(docKey);
 
         try {
@@ -166,6 +171,7 @@ const UploadDocuments = () => {
     };
 
     const confirmDelete = async () => {
+        if (guardGuestAction()) return;
         if (!selectedDocKey) return;
         await handleDeleteDocument(selectedDocKey);
         setIsDeleteModalOpen(false);
@@ -173,6 +179,7 @@ const UploadDocuments = () => {
     };
 
     const handleDownloadDocument = async (url, label) => {
+        if (guardGuestAction()) return;
         if (!url || typeof url !== 'string' || (!url.startsWith('http://') && !url.startsWith('https://'))) {
             triggerAlert("The content is not available for the specific", "error");
             return;
@@ -320,6 +327,7 @@ const UploadDocuments = () => {
                                                              <button
                                                                  type="button"
                                                                  onClick={() => {
+                                                                     if (guardGuestAction()) return;
                                                                      if (isFinalAttempt) return;
                                                                      fileInputRefs.current[doc.key]?.click();
                                                                  }}
@@ -379,7 +387,10 @@ const UploadDocuments = () => {
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => fileInputRefs.current[doc.key]?.click()}
+                                                        onClick={() => {
+                                                            if (guardGuestAction()) return;
+                                                            fileInputRefs.current[doc.key]?.click();
+                                                        }}
                                                         disabled={uploadingKey === doc.key}
                                                         className="text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer flex items-center justify-center"
                                                     >
@@ -426,14 +437,14 @@ const UploadDocuments = () => {
                                     setIsDeleteModalOpen(false);
                                     setSelectedDocKey(null);
                                 }}
-                                className="px-4 py-3 bg-white border border-gray-200 text-gray-400 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm active:scale-95 cursor-pointer"
+                                className="px-4 py-3 bg-white border border-gray-200 text-gray-400 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-gray-600 transition-all shadow-sm cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={confirmDelete}
                                 disabled={uploadingKey === selectedDocKey}
-                                className="px-4 py-3 bg-rose-600 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
+                                className="px-4 py-3 bg-rose-600 text-white rounded-2xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                             >
                                 {uploadingKey === selectedDocKey ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>

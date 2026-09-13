@@ -8,9 +8,11 @@ import { useAlert } from '../context/AlertContext';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Staff = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const [staffMembers, setStaffMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedStaff, setSelectedStaff] = useState(null);
@@ -100,7 +102,6 @@ const Staff = () => {
             title: 'Filter Staff',
             hasSort: true,
             groups: [
-                LABEL_FILTER_GROUP,
                 {
                     id: 'shift',
                     label: 'Shift',
@@ -111,6 +112,7 @@ const Staff = () => {
                         { label: 'Evening', value: 'Evening' }
                     ]
                 },
+                LABEL_FILTER_GROUP,
                 {
                     id: 'role',
                     label: 'Role',
@@ -264,6 +266,7 @@ const Staff = () => {
     };
 
     const handleSave = async () => {
+        if (guardGuestAction()) return;
         const cleanPhone = form.phone?.replace(/\D/g, '') || '';
         const cleanPAN = form.panCard?.replace(/\s/g, '') || '';
         const cleanAadhar = form.adharCard?.replace(/\s/g, '') || '';
@@ -337,6 +340,7 @@ const Staff = () => {
     };
 
     const handleEdit = (staff) => {
+        if (guardGuestAction()) return;
         setForm({ ...staff });
         setIsEditMode(true);
         setIsAddModalOpen(true);
@@ -396,6 +400,7 @@ const Staff = () => {
 
     // ── Download PDF ───────────────────────────────────────────
     const handleDownloadPDF = async (staff) => {
+        if (guardGuestAction()) return;
         const doc = new jsPDF();
         const primary = [5, 37, 88];
         const gray = [100, 100, 100];
@@ -450,6 +455,7 @@ const Staff = () => {
     }, [isAddModalOpen, selectedStaff, banEmployee, isHistoryModalOpen, isDeleteModalOpen]);
 
     const handleBanSubmit = async () => {
+        if (guardGuestAction()) return;
         if (!banReason.trim()) return;
         setBanSubmitting(true);
         // Simulate API call for now (matches admin panel behavior)
@@ -465,6 +471,7 @@ const Staff = () => {
 
     // ── Delete Staff ───────────────────────────────────────────────────
     const handleDelete = async () => {
+        if (guardGuestAction()) return;
         if (!employeeToDelete) return;
         setDeleting(true);
         try {
@@ -589,8 +596,8 @@ const Staff = () => {
                                         </div>
                                     </td>
                                     <td className="p-3.25 text-center">
-                                        <div className="font-medium lowercase text-sm mt-1 text-center">{staff.email || '—'}</div>
-                                        <div className="text-xs font-semibold text-gray-500 text-center">{staff.phone || '—'}</div>
+                                        <div className={`font-medium lowercase text-sm mt-1 text-center ${isGuest && isRealValue(staff.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(staff.email) || '—'}</div>
+                                        <div className={`text-xs font-semibold text-gray-500 text-center ${isGuest && isRealValue(staff.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(staff.phone) || '—'}</div>
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <div className="flex items-center uppercase justify-center gap-1.5 font-bold">
@@ -677,17 +684,17 @@ const Staff = () => {
                                 {/* Personal Info */}
                                 <div className="space-y-2 w-full md:w-[38%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Personal Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-2 border border-blue-50">
+                                    <div className="pt-4 uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate">{selectedStaff.name || '—'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedStaff.phone || '—'}</span></p>
-                                        <p className="text-sm flex pb-4"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate ">{selectedStaff.email || '—'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedStaff.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(selectedStaff.phone) || '—'}</span></p>
+                                        <p className="text-sm flex pb-4"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedStaff.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(selectedStaff.email) || '—'}</span></p>
                                     </div>
                                 </div>
 
                                 {/* Employment Info */}
                                 <div className="space-y-2 w-full md:w-[25%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Employment Info</h4>
-                                    <div className="bg-blue-50/30 pt-4 rounded-xl uppercase space-y-1 border border-blue-50 min-h-[110px]">
+                                    <div className="pt-4 uppercase space-y-1.25 min-h-[110px]">
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className="inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full bg-blue-100 text-blue-700 ml-2">{formatRole(selectedStaff.role)}</span></p>
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full ml-2 ${selectedStaff.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>{selectedStaff.shift || '—'}</span></p>
                                         <p className="text-sm flex pb-"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{selectedStaff.salaryType || 'Monthly'}</span></p>
@@ -933,18 +940,11 @@ const Staff = () => {
                         </div>
 
                         {!banSuccess && (
-                            <div className="px-8 pb-6 pt-1 bg-gray-50/50 border-t border-gray-100 flex gap-4">
-                                <button 
-                                    onClick={() => setBanEmployee(null)}
-                                    className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
-                                    disabled={banSubmitting}
-                                >
-                                    Cancel Action
-                                </button>
+                            <div className="px-8 pb-6 pt-1 flex gap-4">
                                 <button 
                                     onClick={handleBanSubmit}
                                     disabled={banSubmitting || !banReason.trim()}
-                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none"
                                 >
                                     {banSubmitting ? (
                                         <>

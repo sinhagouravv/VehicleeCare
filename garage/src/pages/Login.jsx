@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, ShieldAlert, ShieldCheck, Loader, KeyRound, Eye, EyeOff, Mail, X } from 'lucide-react';
 import logo from '../assets/LOGO.svg';
+import API_BASE_URL from '../config/api';
 
 const Login = () => {
     const [garageId, setGarageId] = useState('');
@@ -104,7 +105,7 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/garage-login', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/garage-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ garageId, password })
@@ -115,6 +116,7 @@ const Login = () => {
             if (res.ok) {
                 localStorage.setItem('garageToken', data.token);
                 localStorage.setItem('garageUser', JSON.stringify(data.garage));
+                sessionStorage.removeItem('guestWelcomeDismissed');
                 navigate('/');
             } else {
                 setError(data.msg || 'Invalid credentials');
@@ -131,7 +133,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/garage-forgot-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/garage-forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ garageId: resetGarageId, email: resetEmail })
@@ -156,7 +158,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/garage-verify-reset-otp', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/garage-verify-reset-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp })
@@ -187,7 +189,7 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/auth/garage-reset-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/garage-reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword })
@@ -313,41 +315,6 @@ const Login = () => {
                             <span className="relative z-10 flex justify-center items-center drop-shadow-md">
                                 {loading ? <Loader className="animate-spin" size={20} /> : 'Login'}
                             </span>
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={async () => {
-                                setError('');
-                                setSuccessMessage('');
-                                setLoading(true);
-                                try {
-                                    const res = await fetch('https://vehicleecare.onrender.com/api/auth/garage-login', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ garageId: '663428591', password: 'GuestGarage@2026' })
-                                    });
-
-                                    const data = await res.json();
-
-                                    if (res.ok) {
-                                        localStorage.setItem('garageToken', data.token);
-                                        localStorage.setItem('garageUser', JSON.stringify(data.garage));
-                                        sessionStorage.removeItem('guestWelcomeDismissed');
-                                        navigate('/');
-                                    } else {
-                                        setError(data.msg || 'Failed to login as guest');
-                                    }
-                                } catch (err) {
-                                    setError('Failed to connect to server');
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }}
-                            disabled={loading}
-                            className="w-full mt-3 bg-white border border-[#a5b4fc] text-[#3730a3] py-4 rounded-2xl font-bold tracking-wider uppercase text-xs transition-all duration-300 hover:bg-blue-50/50 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-                        >
-                            <ShieldCheck size={16} /> Guest Garage Access
                         </button>
                     </form>
                 </div>

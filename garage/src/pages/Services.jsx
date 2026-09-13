@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2, X, MessageSquare } from 'lucide-react';
+import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2, X, MessageSquare, Download, Check, Send } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
+import useGuestGuard from '../hooks/useGuestGuard';
+import { useAlert } from '../context/AlertContext';
 
 const Services = () => {
+    const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
+    const { triggerAlert } = useAlert();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -15,6 +20,12 @@ const Services = () => {
     const [deleting, setDeleting] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState(null);
+
+    // Remark states
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [selectedRemarkBooking, setSelectedRemarkBooking] = useState(null);
+    const [remarkText, setRemarkText] = useState('');
+    const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
 
     // Filter states
     const [fuelTypeFilter, setFuelTypeFilter] = useState('all');
@@ -29,7 +40,6 @@ const Services = () => {
         setFilterConfig({
             title: 'Filter Services',
             groups: [
-                LABEL_FILTER_GROUP,
                 {
                     id: 'fuelType',
                     label: 'Fuel Type',
@@ -52,7 +62,8 @@ const Services = () => {
                         { label: 'Completed', value: 'Completed' },
                         { label: 'Pending', value: 'Pending' }
                     ]
-                }
+                },
+                LABEL_FILTER_GROUP
             ],
             initialValues: {
                 fuelType: 'all',
@@ -183,6 +194,7 @@ const Services = () => {
     }, [bookings, selectedBooking]);
 
     const _toggleStatus = async (bookingId, field, value) => {
+        if (guardGuestAction()) return;
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
@@ -199,6 +211,7 @@ const Services = () => {
     };
 
     const _handleStatusChange = async (bookingId, newStatus) => {
+        if (guardGuestAction()) return;
         try {
             const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
@@ -215,6 +228,7 @@ const Services = () => {
     };
 
     const confirmDelete = async () => {
+        if (guardGuestAction()) return;
         if (!bookingToDelete) return;
         setDeleting(true);
         try {
@@ -231,6 +245,111 @@ const Services = () => {
             console.error("Failed to delete booking", error);
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const handleDownloadService = (booking) => {
+        if (guardGuestAction()) return;
+        try {
+            const doc = new jsPDF();
+            const primaryColor = [5, 37, 88];
+            const textColor = [100, 100, 100];
+
+            doc.setFontSize(20);
+            doc.setTextColor(...primaryColor);
+            doc.text("VehicleeCare - Service Details", 105, 20, null, null, "center");
+
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Booking ID: ${booking.bookingId || booking._id}`, 14, 38);
+            doc.text(`Service Title: ${booking.service?.title || 'General Service'}`, 14, 45);
+            doc.text(`Scheduled Date: ${booking.schedule?.date || 'N/A'} at ${booking.schedule?.time || ''}`, 14, 52);
+            doc.text(`Fuel Type: ${booking.vehicle?.fuelType || 'N/A'}`, 14, 59);
+
+            doc.setFontSize(14);
+            doc.setTextColor(...primaryColor);
+            doc.text("Customer & Vehicle Details", 14, 74);
+            doc.setFontSize(11);
+            doc.setTextColor(...textColor);
+            doc.text(`Customer Name: ${booking.user?.name || 'N/A'}`, 14, 82);
+            doc.text(`Customer Phone: ${booking.user?.phone || 'N/A'}`, 14, 89);
+            doc.text(`Customer Email: ${booking.user?.email || 'N/A'}`, 14, 96);
+
+            doc.text(`Make / Model: ${booking.vehicle?.make || ''} ${booking.vehicle?.model || ''}`, 14, 107);
+            doc.text(`Year: ${booking.vehicle?.year || 'N/A'}`, 14, 114);
+
+            doc.text(`Status: ${booking.status || 'Pending'}`, 14, 127);
+            doc.text(`Duration: ${booking.serviceDuration || '—'}`, 14, 134);
+
+            doc.save(`Service_${booking.bookingId || 'Details'}.pdf`);
+        } catch (err) {
+            console.error("Failed to generate PDF", err);
+        }
+    };
+
+    const handleOpenRemarkModal = (booking) => {
+        setSelectedRemarkBooking(booking);
+        setRemarkText(booking.garageRemark || booking.employeeRemark || booking.remark || '');
+        setIsRemarkModalOpen(true);
+    };
+
+    const handleRemarkSubmit = async (e) => {
+        e.preventDefault();
+        if (guardGuestAction()) return;
+        if (!selectedRemarkBooking) return;
+        if (!remarkText || !remarkText.trim()) {
+            triggerAlert('Please fill out all the required field', 'error');
+            return;
+        }
+        setIsSubmittingRemark(true);
+        try {
+            let garageName = 'Garage';
+            let garageId = 'GARAGE';
+            let garageRole = 'Garage Owner';
+            const storedGarage = localStorage.getItem('garageUser');
+            if (storedGarage) {
+                try {
+                    const u = JSON.parse(storedGarage);
+                    garageName = u.name || u.garageName || garageName;
+                    garageId = u.garageId || u.userId || u._id || garageId;
+                    garageRole = u.role || garageRole;
+                } catch (_) {}
+            }
+
+            const refId = selectedRemarkBooking.bookingId || selectedRemarkBooking.serviceId || String(selectedRemarkBooking._id);
+            const targetId = selectedRemarkBooking.user?.name || selectedRemarkBooking.userName || selectedRemarkBooking.customerName || '—';
+            const targetRole = 'Customer';
+
+            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    referenceId: refId,
+                    bookingId: refId,
+                    bookingMongoId: selectedRemarkBooking._id,
+                    reporterId: garageId,
+                    reporterName: garageName,
+                    remarkerRole: garageRole,
+                    remarkedRole: targetRole,
+                    role: targetRole,
+                    customerDetails: targetId,
+                    remark: remarkText,
+                    status: selectedRemarkBooking.status || 'Pending'
+                })
+            });
+            const remarkData = await remarkRes.json();
+            const createdRemarkId = remarkData.data?.remarkId;
+
+            setBookings(prev => prev.map(b => b._id === selectedRemarkBooking._id ? { ...b, garageRemark: remarkText, remarkId: createdRemarkId } : b));
+            triggerAlert('Remark submitted successfully!', 'success');
+        } catch (err) {
+            console.error('[Services] Error submitting remark:', err);
+            triggerAlert('Failed to submit remark.', 'error');
+        } finally {
+            setIsSubmittingRemark(false);
+            setIsRemarkModalOpen(false);
+            setSelectedRemarkBooking(null);
+            setRemarkText('');
         }
     };
 
@@ -388,7 +507,7 @@ const Services = () => {
                                         </button>
                                     </td> */}
                                     <td className="p-3.25 text-center w-[7%]">
-                                        <div className="flex items-center justify-center gap-4">
+                                        <div className="flex items-center justify-center gap-3.5">
                                             <button 
                                                 onClick={() => { setSelectedBooking(booking); setIsViewModalOpen(true); }}
                                                 className="text-gray-400 hover:text-blue-500 transition-colors" 
@@ -396,8 +515,14 @@ const Services = () => {
                                                 <Eye size={17} />
                                             </button>
                                             <button 
-                                                onClick={() => { setSelectedBooking(booking); setIsViewModalOpen(true); }}
+                                                onClick={() => handleDownloadService(booking)}
                                                 className="text-gray-400 hover:text-emerald-500 transition-colors" 
+                                            >
+                                                <Download size={17} />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleOpenRemarkModal(booking)}
+                                                className="text-gray-400 hover:text-purple-500 transition-colors" 
                                             >
                                                 <MessageSquare size={17} />
                                             </button>
@@ -439,8 +564,8 @@ const Services = () => {
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Customer Info</h4>
                                     <div className="pt-4 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Name:</span> <span className="font-semibold text-[#011023] truncate" title={selectedBooking.user?.name}>{selectedBooking.user?.name || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className="font-semibold text-gray-800 truncate">{selectedBooking.user?.phone || 'N/A'}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className="font-semibold text-gray-800 truncate" title={selectedBooking.user?.email}>{selectedBooking.user?.email || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Phone:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedBooking.user?.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(selectedBooking.user?.phone) || 'N/A'}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-16 shrink-0">Email:</span> <span className={`font-semibold text-gray-800 truncate ${isGuest && isRealValue(selectedBooking.user?.email) ? 'blur-sm select-none pointer-events-none' : ''}`} title={selectedBooking.user?.email}>{maskEmail(selectedBooking.user?.email) || 'N/A'}</span></p>
                                     </div>
                                 </div>
 
@@ -556,6 +681,114 @@ const Services = () => {
                                 {deleting ? <Loader2 size={16} className="animate-spin" /> : 'Yes, Delete'}
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {isRemarkModalOpen && selectedRemarkBooking && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkBooking(null); setRemarkText(''); }} />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <div className="flex flex-col items-start text-left">
+                                <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                    Service Remark
+                                </h3>
+                                {selectedRemarkBooking.remarkId && (
+                                    <p className="flex items-center text-sm uppercase gap-2 mt-0.5">
+                                        ID: <span className="text-sm font-semibold text-gray-700 uppercase">{selectedRemarkBooking.remarkId}</span>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setIsRemarkModalOpen(false); setSelectedRemarkBooking(null); setRemarkText(''); }}
+                                className="text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Service / Booking Info Header Details */}
+                        <div className="flex w-full items-center justify-between gap-4">
+                            <div className="flex flex-col items-start justify-center text-left">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Service ID</p>
+                                <p className="text-sm font-semibold text-[#011023] uppercase">{selectedRemarkBooking.bookingId || selectedRemarkBooking.serviceId || selectedRemarkBooking._id}</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Role</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase">
+                                    {selectedRemarkBooking.status === 'Pending' ? '—' : (
+                                        selectedRemarkBooking.approvedByRole || 
+                                        selectedRemarkBooking.actionByRole || 
+                                        selectedRemarkBooking.approverRole || 
+                                        selectedRemarkBooking.reviewerRole || 
+                                        'Customer'
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Details</p>
+                                <p className="text-sm font-semibold text-gray-800 uppercase truncate max-w-[120px]">
+                                    {selectedRemarkBooking.status === 'Pending' ? '—' : (
+                                        selectedRemarkBooking.user?.name || 
+                                        selectedRemarkBooking.userName || 
+                                        selectedRemarkBooking.customerName || 
+                                        '—'
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                                <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full uppercase border ${getStatusStyle(selectedRemarkBooking.status || 'Pending')}`}>
+                                    {selectedRemarkBooking.status || 'Pending'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Remark Textarea Form */}
+                        {(() => {
+                            const hasExistingRemark = Boolean(selectedRemarkBooking.garageRemark || selectedRemarkBooking.employeeRemark);
+                            return (
+                                <form onSubmit={handleRemarkSubmit} className="space-y-4.5 text-left">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Remark</label>
+                                        <textarea
+                                            rows="4"
+                                            disabled={hasExistingRemark}
+                                            value={remarkText}
+                                            onChange={(e) => setRemarkText(e.target.value)}
+                                            className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold text-sm text-[#011023] resize-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingRemark || hasExistingRemark}
+                                        className={`w-full py-2 border rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-sm mt-4 flex items-center justify-center gap-2 ${
+                                            hasExistingRemark 
+                                                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#e0e7ff] border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isSubmittingRemark ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> Submitting REMARK...
+                                            </>
+                                        ) : hasExistingRemark ? (
+                                            <>
+                                                <Check size={14} /> REMARK SUBMITTED
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send size={14} /> Submit REMARK
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>,
                 document.body

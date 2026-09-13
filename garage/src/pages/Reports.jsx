@@ -1,20 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-    FileBarChart, 
-    Loader2, 
-    TrendingUp, 
-    Briefcase, 
-    Clock, 
-    CheckCircle, 
-    Download, 
-    Calendar,
-    Fuel,
-    Wrench,
-    DollarSign,
-    Layers,
-    ArrowUpRight
+    Download 
 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const ReportsSkeleton = () => (
     <div className="space-y-4.5 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] pb-10 animate-pulse">
@@ -122,6 +111,7 @@ const ReportsSkeleton = () => (
 
 const Reports = () => {
     const { triggerAlert } = useAlert();
+    const { isGuest, guardGuestAction } = useGuestGuard();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
@@ -340,6 +330,7 @@ const Reports = () => {
 
     // Export CSV Feature
     const exportCSV = () => {
+        if (guardGuestAction()) return;
         if (filteredBookings.length === 0) {
             if (triggerAlert) triggerAlert("No report data available to export.", "warning");
             return;
@@ -445,14 +436,14 @@ const Reports = () => {
                 <div className="bg-white border border-[#e6f0fa] px-4 py-3.25 rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.04)] transition-all flex items-center justify-between">
                     <div>
                         <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Income</p>
-                        <h3 className="text-2xl font-bold text-[#011023]">₹{stats.revenue.toLocaleString()}</h3>
+                        <h3 className={`text-2xl font-bold text-[#011023] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '₹••••••' : `₹${stats.revenue.toLocaleString()}`}</h3>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                         <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full uppercase">
                             Revenue
                         </span>
                         <p className="text-[11px] text-gray-400 font-medium uppercase text-right">
-                            AOV: <span className="font-semibold text-gray-700">₹{stats.avgOrderValue.toLocaleString()}/order</span>
+                            AOV: <span className={`font-semibold text-gray-700 ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '₹••••/order' : `₹${stats.avgOrderValue.toLocaleString()}/order`}</span>
                         </p>
                     </div>
                 </div>
@@ -535,7 +526,7 @@ const Reports = () => {
                                     {/* Tooltip on Hover */}
                                     {activeHoverBar === i && (
                                         <div className="absolute -top-10.5 z-20 bg-[#011023] text-white text-[11px] font-bold py-1.5 px-3 rounded-lg shadow-xl uppercase whitespace-nowrap animate-in fade-in zoom-in duration-150">
-                                            ₹{item.revenue.toLocaleString()} ({item.count} orders)
+                                            {isGuest ? '₹••••' : `₹${item.revenue.toLocaleString()}`} ({item.count} orders)
                                         </div>
                                     )}
 
@@ -556,7 +547,7 @@ const Reports = () => {
                             Total Billed Revenue
                         </div>
                         <p className="text-xs font-bold text-gray-500 uppercase">
-                            Average Monthly: <span className="text-[#011023] font-extrabold">₹{Math.round(stats.revenue / Math.max(revenueChartData.length, 1)).toLocaleString()}</span>
+                            Average Monthly: <span className={`text-[#011023] font-extrabold ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '₹••••••' : `₹${Math.round(stats.revenue / Math.max(revenueChartData.length, 1)).toLocaleString()}`}</span>
                         </p>
                     </div>
                 </div>
@@ -667,7 +658,7 @@ const Reports = () => {
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <span className="font-semibold text-[14px] text-[#011023]">₹{srv.revenue.toLocaleString()}</span>
+                                    <span className={`font-semibold text-[14px] text-[#011023] ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}>{isGuest ? '₹••••' : `₹${srv.revenue.toLocaleString()}`}</span>
                                     <p className="text-[11px] font-semibold text-emerald-600 uppercase">{srv.pct}% of total</p>
                                 </div>
                             </div>

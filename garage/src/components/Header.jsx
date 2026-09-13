@@ -50,6 +50,7 @@ const Header = () => {
     const wrapperRef = useRef(null);
     const inputRef = useRef(null);
     const navigate = useNavigate();
+    const isGuest = isGuestUser();
 
     const filteredPages = GARAGE_PAGES.filter(page =>
         matchesPrefix(page.name, searchTerm)
@@ -171,14 +172,11 @@ const Header = () => {
         const handleClickOutside = (event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                 setIsOpen(false);
-                if (!searchTerm.trim()) {
-                    setIsExpanded(false);
-                }
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [searchTerm]);
+    }, []);
 
     // Debounced Search API
     useEffect(() => {
@@ -208,8 +206,31 @@ const Header = () => {
     }, [searchTerm]);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('garageUser');
-        if (storedUser) setGarageUser(JSON.parse(storedUser));
+        const syncUserFromStorage = () => {
+            try {
+                const storedUser = localStorage.getItem('garageUser');
+                if (storedUser) {
+                    const parsed = JSON.parse(storedUser);
+                    setGarageUser(prev => {
+                        if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
+                            return parsed;
+                        }
+                        return prev;
+                    });
+                }
+            } catch (err) {
+                console.error("Error syncing garage profile in Header", err);
+            }
+        };
+
+        syncUserFromStorage();
+        const interval = setInterval(syncUserFromStorage, 2000);
+        window.addEventListener('storage', syncUserFromStorage);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('storage', syncUserFromStorage);
+        };
     }, []);
 
     const handleSelect = (path, id = null) => {
@@ -218,6 +239,8 @@ const Header = () => {
         setIsOpen(false);
         setIsExpanded(false);
     };
+
+    const profileImgSrc = garageUser?.avatar || garageUser?.profilePhoto || garageUser?.profilePicture || garageUser?.logo || garageUser?.documents?.avatar;
 
     return (
         <header className="relative h-20 bg-white border-b border-[#e2e8f0] flex items-center sticky top-0 z-50 shadow-[0_4px_24px_rgba(5,37,88,0.02)] px-8">
@@ -380,11 +403,19 @@ const Header = () => {
                 {/* Profile Icon */}
                 <div 
                     onClick={() => navigate('/profile')}
-                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group"
+                    className="ml-4 flex items-center justify-center w-10 h-10 rounded-full border border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95 duration-300 group overflow-hidden"
                 >
-                    <span className="text-[#052558] group-hover:text-blue-500 transition-colors text-sm font-bold uppercase tracking-wider">
-                        {garageUser?.name?.charAt(0) || 'G'}
-                    </span>
+                    {profileImgSrc ? (
+                        <img 
+                            src={profileImgSrc} 
+                            alt={garageUser?.name || "Profile"} 
+                            className={`w-full h-full object-cover rounded-full ${isGuest ? 'blur-sm select-none pointer-events-none' : ''}`}
+                        />
+                    ) : (
+                        <span className="text-[#052558] group-hover:text-blue-500 transition-colors text-sm font-bold uppercase tracking-wider tooltip-trigger relative">
+                            {garageUser?.name?.charAt(0) || 'G'}
+                        </span>
+                    )}
                 </div>
 
             </div>

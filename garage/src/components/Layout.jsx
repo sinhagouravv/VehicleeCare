@@ -9,9 +9,11 @@ import { Bug, X, Send, Loader2, UploadCloud } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import UploadDocuments from '../pages/UploadDocuments';
 import GuestWelcomeModal from './GuestWelcomeModal';
+import useGuestGuard from '../hooks/useGuestGuard';
 
 const Layout = () => {
     const { triggerAlert } = useAlert();
+    const { guardGuestAction } = useGuestGuard();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
@@ -26,6 +28,7 @@ const Layout = () => {
 
     const handleBugSubmit = async (e) => {
         e.preventDefault();
+        if (guardGuestAction()) return;
         if (!bugTitle.trim()) {
             triggerAlert('Please enter the bug subject title', 'error');
             return;
@@ -168,7 +171,7 @@ const Layout = () => {
                                     rows="4"
                                     value={bugDesc}
                                     onChange={(e) => setBugDesc(e.target.value)}
-                                    className="w-full px-4 py-3 bg-[#f8fafc] border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold normal-case text-sm text-[#011023] resize-none"
+                                    className="w-full px-4 py-3 bg-[#f8fafc] uppercase border border-[#cbd5e1] rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold normal-case text-sm text-[#011023] resize-none"
                                 />
                             </div>
 
