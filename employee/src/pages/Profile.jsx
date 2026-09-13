@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
+import { broadcastEmployeeLogout } from '../hooks/useMultiTabAuthSync';
 
 const DELETION_REASONS = [
     'Employment has ended',
@@ -339,13 +340,7 @@ const Profile = () => {
     }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem('employeeToken');
-        localStorage.removeItem('employeeUser');
-        localStorage.removeItem('guestWelcomeDismissed');
-        sessionStorage.removeItem('guestWelcomeDismissed');
-        localStorage.removeItem('guestSessionStartTime');
-        localStorage.removeItem('guestLastActivity');
-        localStorage.removeItem('guestSessionExpired');
+        broadcastEmployeeLogout();
         navigate('/login', { replace: true });
     };
 

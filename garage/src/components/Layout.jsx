@@ -11,9 +11,11 @@ import UploadDocuments from '../pages/UploadDocuments';
 import GuestWelcomeModal from './GuestWelcomeModal';
 import useGuestGuard from '../hooks/useGuestGuard';
 import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
+import useMultiTabAuthSync from '../hooks/useMultiTabAuthSync';
 
 const Layout = () => {
     useGuestSessionTimeout();
+    useMultiTabAuthSync();
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);

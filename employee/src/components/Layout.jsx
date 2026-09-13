@@ -10,9 +10,11 @@ import { useAlert } from '../context/AlertContext';
 import UploadDocuments from '../pages/UploadDocuments';
 import GuestWelcomeModal from './GuestWelcomeModal';
 import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
+import useMultiTabAuthSync from '../hooks/useMultiTabAuthSync';
 
 const Layout = () => {
     useGuestSessionTimeout();
+    useMultiTabAuthSync();
     const { triggerAlert } = useAlert();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);

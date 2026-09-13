@@ -274,19 +274,21 @@ const Header = () => {
             )}
 
             <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
-                {/* Guest Logins Counter */}
-                <div 
-                    title="Total Guest Logins (Admin, Garage, Employee)"
-                    className="mr-3 h-10 flex items-center gap-2 px-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200 text-[#052558] rounded-full shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all duration-300 cursor-default select-none"
-                >
-                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 text-blue-600">
-                        <Users size={12} className="text-blue-600" />
+                {/* Guest Logins Counter (Hidden in Guest Mode) */}
+                {!isGuestUser() && (
+                    <div 
+                        title="Total Guest Logins (Admin, Garage, Employee)"
+                        className="mr-3 h-10 flex items-center gap-2 px-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200 text-[#052558] rounded-full shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all duration-300 cursor-default select-none"
+                    >
+                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 text-blue-600">
+                            <Users size={12} className="text-blue-600" />
+                        </div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#527FB0] hidden sm:inline">Guest Logins</span>
+                        <span className="min-w-[1.4rem] px-1.5 py-0.5 bg-white text-[#052558] border border-blue-200/80 rounded-full text-xs font-black text-center shadow-2xs">
+                            {guestCount}
+                        </span>
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#527FB0] hidden sm:inline">Guest Logins</span>
-                    <span className="min-w-[1.4rem] px-1.5 py-0.5 bg-white text-[#052558] border border-blue-200/80 rounded-full text-xs font-black text-center shadow-2xs">
-                        {guestCount}
-                    </span>
-                </div>
+                )}
 
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center transition-all duration-300 ease-out ${isExpanded ? 'w-[18rem] sm:w-[21rem]' : 'w-10'}`}>

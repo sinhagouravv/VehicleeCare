@@ -27,8 +27,10 @@ import Request from './pages/Request';
 import { Navigate, useLocation } from 'react-router-dom';
 import { FilterProvider } from './context/FilterContext';
 import { AlertProvider } from './context/AlertContext';
+import useMultiTabAuthSync from './hooks/useMultiTabAuthSync';
 
 const ProtectedRoute = ({ children }) => {
+  useMultiTabAuthSync();
   const token = localStorage.getItem('adminToken');
   if (!token) return <Navigate to="/login" replace />;
   return children;

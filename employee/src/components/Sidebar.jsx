@@ -3,18 +3,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell, ChevronLeft, LogOut, Star, CalendarDays, BarChart3, FileText, Wallet, Sparkles, Clock, UploadCloud, Contact, Gauge, BadgeCheck, MessageCircleMore } from 'lucide-react';
 
 import Logo from '../assets/logo.svg';
+import { broadcastEmployeeLogout } from '../hooks/useMultiTabAuthSync';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        localStorage.removeItem('employeeToken');
-        localStorage.removeItem('employeeUser');
-        localStorage.removeItem('guestWelcomeDismissed');
-        sessionStorage.removeItem('guestWelcomeDismissed');
-        localStorage.removeItem('guestSessionStartTime');
-        localStorage.removeItem('guestLastActivity');
-        localStorage.removeItem('guestSessionExpired');
+        broadcastEmployeeLogout();
         navigate('/login', { replace: true });
     };
 

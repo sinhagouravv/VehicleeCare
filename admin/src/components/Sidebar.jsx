@@ -2,18 +2,13 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Building2, ClipboardList, Users, Settings, Star, Wallet, BarChart3, Wrench, Zap, ChevronLeft, LogOut, Bell, MessagesSquare, Briefcase, Car, ShoppingBag, UserSquare2, CreditCard, FileBarChart, Bug, FileText } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
+import { broadcastAdminLogout } from '../hooks/useMultiTabAuthSync';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
-        localStorage.removeItem('guestWelcomeDismissed');
-        sessionStorage.removeItem('guestWelcomeDismissed');
-        localStorage.removeItem('guestSessionStartTime');
-        localStorage.removeItem('guestLastActivity');
-        localStorage.removeItem('guestSessionExpired');
+        broadcastAdminLogout();
         navigate('/login', { replace: true });
     };
     const navItems = [

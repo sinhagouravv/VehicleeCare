@@ -13,9 +13,11 @@ import UploadDocumentsModal from '../pages/UploadDocuments';
 import RequestModal from '../pages/Request';
 import GuestWelcomeModal from './GuestWelcomeModal';
 import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
+import useMultiTabAuthSync from '../hooks/useMultiTabAuthSync';
 
 const Layout = () => {
     useGuestSessionTimeout();
+    useMultiTabAuthSync();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
