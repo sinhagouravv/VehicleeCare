@@ -8,13 +8,15 @@ A unified multi-portal ecosystem for garage operations, vehicle bookings, corpor
 
 Explore the live portals with real data of the VehicleeCare ecosystem using the URLs and Guest credentials below:
 
-| Portal | Live Deployment URL | Guest ID | Guest Password |
+| Portal | Live Deployment URL | Guest Mode (Read-Only) | Password |
 | :--- | :--- | :--- | :--- |
 | **Admin Portal** | [vehiclecareadmin.vercel.app](https://vehiclecareadmin.vercel.app/) | `guestadmin@vehicleecare.com` | `GuestAdmin@2026` |
-| **Garage Portal** | [vehiclee-care.vercel.app](https://vehiclee-care.vercel.app/) | `guest@vehicleecare.com` | `guest123` |
-| **Employee Portal** | [vehicleecareemployee.vercel.app](https://vehicleecareemployee.vercel.app/) | `guest@vehicleecare.com` | `guest123` |
+| **Garage Portal** | [vehiclee-care.vercel.app](https://vehiclee-care.vercel.app/) | `guestgarage@vehicleecare.com` | `GuestGarage@2026` |
+| **Employee Portal** | [vehicleecareemployee.vercel.app](https://vehicleecareemployee.vercel.app/) | `guestemployee@vehicleecare.com` | `GuestEmployee@2026` |
 
-> **Security Note:** Guest Admin sessions feature **read-only access** and client-side data obfuscation (`g****@domain.com`, `98****1234`, `22****3A`) to prevent raw personal and legal data inspection via browser DevTools while keeping operational features fully testable.
+> **Security Note:** Guest Admin, Guest Garage, and Guest Employee sessions feature **read-only access** and client-side data obfuscation (`g****@domain.com`, `98****1234`, `22****3A`) to prevent raw personal and legal data inspection via browser DevTools while keeping operational features fully testable. 
+
+> **Note:** You can check All the features of the website in this live deployment and guest credentials provided above. All the portals at once are live and working with the same database. So you can test all the features of the website in this live deployment and guest credentials provided above.
 
 ---
 
