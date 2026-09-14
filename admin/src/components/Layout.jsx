@@ -14,6 +14,8 @@ import RequestModal from '../pages/Request';
 import GuestWelcomeModal from './GuestWelcomeModal';
 import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
 import useMultiTabAuthSync from '../hooks/useMultiTabAuthSync';
+import { isGuestUser } from '../hooks/useGuestGuard';
+import { fetchGuestCount } from '../utils/guestCounter';
 
 const Layout = () => {
     useGuestSessionTimeout();
@@ -24,6 +26,25 @@ const Layout = () => {
     const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [guestCount, setGuestCount] = useState(0);
+
+    // Guest Logins counter polling
+    useEffect(() => {
+        let isMounted = true;
+        const loadCount = async () => {
+            const count = await fetchGuestCount();
+            if (isMounted) setGuestCount(count);
+        };
+        loadCount();
+        const interval = setInterval(loadCount, 8000);
+        const handleCountUpdated = () => loadCount();
+        window.addEventListener('guestCountUpdated', handleCountUpdated);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+            window.removeEventListener('guestCountUpdated', handleCountUpdated);
+        };
+    }, []);
 
     const [hasNewRemark, setHasNewRemark] = useState(false);
     const [hasNewBug, setHasNewBug] = useState(false);
@@ -269,6 +290,20 @@ const Layout = () => {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Guest Logins Counter — stacked letter pill, top of right button column */}
+            {!isGuestUser() && (
+                <div className="fixed top-[7.5rem] right-9 z-40 flex flex-col text-gray-600 items-center py-2.5 px-3 gap-0.5 border border-blue-200 bg-white/80 backdrop-blur-md shadow-sm rounded-full select-none cursor-default">
+                    {['GC'].map((letter) => (
+                        <span key={letter} className="text-sm font-bold border-b border-gray-500 pb-2.5 uppercase mt-1 mb-1 leading-tight">
+                            {letter}
+                        </span>
+                    ))}
+                    <span className="w-6 h-6 flex items-center justify-center text-[#052558] text-sm font-bold">
+                        {guestCount}
+                    </span>
+                </div>
+            )}
 
             {/* Floating Action Buttons & Panels */}
             {/* Plus (+) Toggle Button (5th position from bottom / 3rd position from top of tools stack) */}

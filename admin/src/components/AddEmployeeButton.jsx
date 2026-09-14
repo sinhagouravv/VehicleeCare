@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { UserRoundPlus, X, Loader2 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
 
 const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
     const { triggerAlert } = useAlert();
@@ -65,7 +66,7 @@ const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
 
         setSaving(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/employees', {
+            const res = await fetch(`${API_BASE_URL}/api/employees`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form)
@@ -73,7 +74,7 @@ const AddEmployeeButton = ({ isMenuOpen = true, onModalToggle }) => {
 
             const data = await res.json();
             if (res.ok && data.success) {
-                triggerAlert('Employee added successfully!', 'success');
+                triggerAlert('Employee added successfully! Login credentials email sent.', 'success');
                 window.dispatchEvent(new CustomEvent('employeeAdded', { detail: data.data }));
                 handleCloseAddModal();
             } else {
