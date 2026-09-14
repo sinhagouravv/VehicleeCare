@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, MapPin, Clock, Calendar, ShieldCheck, LogOut, Loader2, Briefcase, BadgeCheck, PhoneCall, Home, Hash, Shield, CreditCard, FileCheck, Landmark, Trash2, X, Send, Smartphone, Globe, ExternalLink, Plus, Upload } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Clock, Calendar, ShieldCheck, LogOut, Loader2, Briefcase, BadgeCheck, PhoneCall, Home, Hash, Shield, CreditCard, FileCheck, Landmark, Trash2, X, Send, Smartphone, Globe, ExternalLink, Plus, Upload, Eye } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
 import { broadcastEmployeeLogout } from '../hooks/useMultiTabAuthSync';
+import API_BASE_URL from '../config/api';
 
 const DELETION_REASONS = [
     'Employment has ended',
@@ -119,67 +120,34 @@ const Profile = () => {
     const navigate = useNavigate();
     const profileFileRef = useRef(null);
     const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+    const [pendingProfileFile, setPendingProfileFile] = useState(null);   // File object awaiting upload
+    const [pendingProfilePreview, setPendingProfilePreview] = useState(null); // base64 preview URL
+    const [previewModalOpen, setPreviewModalOpen] = useState(false); // full-screen preview
 
-    const handleProfilePictureUpload = async (e) => {
+    // Only preview the selected file — upload happens on UPDATE PROFILE
+    const handleProfilePictureUpload = (e) => {
         if (guardGuestAction()) return;
         const file = e.target.files?.[0];
         if (!file) return;
+        // Reset input so the same file can be re-selected after removal
+        e.target.value = '';
 
         if (!file.type.startsWith('image/')) {
             return triggerAlert('Please select a valid image file', 'error');
         }
 
-        setUploadingProfilePic(true);
-        try {
-            // Show immediately with base64 for snappy UX
-            const reader = new FileReader();
-            reader.onload = async () => {
-                const dataUrl = reader.result;
+        const reader = new FileReader();
+        reader.onload = () => {
+            setPendingProfileFile(file);
+            setPendingProfilePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
 
-                // Optimistic update with base64
-                const currentStored = JSON.parse(localStorage.getItem('employeeUser') || '{}');
-                const optimistic = { ...currentStored, avatar: dataUrl };
-                localStorage.setItem('employeeUser', JSON.stringify(optimistic));
-                setEmployee(prev => ({ ...prev, avatar: dataUrl }));
-                window.dispatchEvent(new Event('storage'));
-
-                // Upload to Cloudinary via backend
-                const empId = employee?._id || employee?.id || employee?.employeeId;
-                if (empId) {
-                    try {
-                        const formData = new FormData();
-                        // Use the dedicated avatar endpoint — no whitelist, saves directly to DB
-                        formData.append('avatar', file);
-                        const apiRes = await fetch(`https://vehicleecare.onrender.com/api/employees/${empId}/avatar`, {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (apiRes.ok) {
-                            const apiData = await apiRes.json();
-                            // Response: { success: true, data: { avatar: 'https://...' } }
-                            const cloudinaryUrl = apiData?.data?.avatar || dataUrl;
-
-                            const stored = JSON.parse(localStorage.getItem('employeeUser') || '{}');
-                            const updated = { ...stored, avatar: cloudinaryUrl };
-                            localStorage.setItem('employeeUser', JSON.stringify(updated));
-                            setEmployee(prev => ({ ...prev, avatar: cloudinaryUrl }));
-                            window.dispatchEvent(new Event('storage'));
-                        }
-                    } catch (apiErr) {
-                        console.error("Backend profile pic upload error", apiErr);
-                    }
-                }
-
-                triggerAlert('Profile picture uploaded successfully!', 'success');
-                setUploadingProfilePic(false);
-            };
-            reader.readAsDataURL(file);
-        } catch (err) {
-            console.error("Failed to upload profile picture", err);
-            triggerAlert('Failed to upload profile picture', 'error');
-            setUploadingProfilePic(false);
-        }
+    const removePendingProfilePic = () => {
+        setPendingProfileFile(null);
+        setPendingProfilePreview(null);
+        if (profileFileRef.current) profileFileRef.current.value = '';
     };
 
     const isAllDetailsFilled = Boolean(
@@ -203,12 +171,14 @@ const Profile = () => {
         })()
     );
 
-    const handleOpenEditModal = () => {
-        setIsAddModalOpen(true);
-    };
-
+    const isAddModalOpenRef = useRef(isAddModalOpen);
     useEffect(() => {
-        if (employee && isAddModalOpen) {
+        isAddModalOpenRef.current = isAddModalOpen;
+    }, [isAddModalOpen]);
+
+    const handleOpenEditModal = () => {
+        removePendingProfilePic();
+        if (employee) {
             setForm({
                 name: employee.name || '',
                 employeeId: employee.employeeId || employee._id || '',
@@ -222,7 +192,8 @@ const Profile = () => {
                 voterId: formatDocNumber(employee.voterIdNumber, employee.voterNumber, employee.voterId)
             });
         }
-    }, [employee, isAddModalOpen]);
+        setIsAddModalOpen(true);
+    };
 
     const handleSave = async () => {
         if (guardGuestAction()) return;
@@ -232,8 +203,42 @@ const Profile = () => {
 
         setSaving(true);
         try {
+            // ── Upload pending profile picture first ────────────────────────
+            if (pendingProfileFile) {
+                const empId = employee?._id || employee?.id || employee?.employeeId;
+                if (empId) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('avatar', pendingProfileFile);
+                        const apiRes = await fetch(`${API_BASE_URL}/api/employees/${empId}/avatar`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (apiRes.ok) {
+                            const apiData = await apiRes.json();
+                            const cloudinaryUrl = apiData?.data?.avatar || pendingProfilePreview;
+                            if (cloudinaryUrl) {
+                                const stored = JSON.parse(localStorage.getItem('employeeUser') || '{}');
+                                const updated = { ...stored, avatar: cloudinaryUrl, profilePicture: cloudinaryUrl, profilePhoto: cloudinaryUrl };
+                                localStorage.setItem('employeeUser', JSON.stringify(updated));
+                                setEmployee(prev => ({ ...prev, avatar: cloudinaryUrl, profilePicture: cloudinaryUrl, profilePhoto: cloudinaryUrl }));
+                                window.dispatchEvent(new Event('storage'));
+                            }
+                        } else {
+                            console.error('Profile picture upload failed:', apiRes.status);
+                            triggerAlert('Profile picture upload failed — other details will still save.', 'error');
+                        }
+                    } catch (picErr) {
+                        console.error('Profile picture upload error:', picErr);
+                    } finally {
+                        setPendingProfileFile(null);
+                        setPendingProfilePreview(null);
+                    }
+                }
+            }
+            // ───────────────────────────────────────────────────────────────
             const targetId = employee._id || employee.id || employee.employeeId;
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${targetId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/employees/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form)
@@ -241,14 +246,23 @@ const Profile = () => {
             if (res.ok) {
                 const data = await res.json();
                 const updatedEmp = data.data || data;
-                setEmployee(updatedEmp);
+
+                // Preserve existing avatar
+                const existingAvatar = employee?.avatar || employee?.profilePicture || employee?.profilePhoto;
+                const mergedEmp = {
+                    ...updatedEmp,
+                    avatar: updatedEmp.avatar || updatedEmp.profilePicture || updatedEmp.profilePhoto || existingAvatar,
+                    profilePicture: updatedEmp.profilePicture || updatedEmp.avatar || existingAvatar,
+                    profilePhoto: updatedEmp.profilePhoto || updatedEmp.avatar || existingAvatar
+                };
+                setEmployee(mergedEmp);
 
                 // Update localStorage
                 const storedUser = localStorage.getItem('employeeUser');
                 if (storedUser) {
                     try {
                         const parsed = JSON.parse(storedUser);
-                        localStorage.setItem('employeeUser', JSON.stringify({ ...parsed, ...updatedEmp }));
+                        localStorage.setItem('employeeUser', JSON.stringify({ ...parsed, ...mergedEmp }));
                     } catch (e) {
                         console.error('Failed to update localStorage employeeUser', e);
                     }
@@ -258,7 +272,7 @@ const Profile = () => {
                 triggerAlert('Profile updated successfully', 'success');
 
                 // Notify admin of employee profile update
-                fetch('https://vehicleecare.onrender.com/api/notifications/create', {
+                fetch(`${API_BASE_URL}/api/notifications/create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -294,7 +308,7 @@ const Profile = () => {
                 const user = JSON.parse(storedUser);
                 
                 // Fetch latest data from specific Employee endpoint
-                const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${user._id || user.employeeId || user.id}`);
+                const res = await fetch(`${API_BASE_URL}/api/employees/${user._id || user.employeeId || user.id}`);
                 
                 if (res.ok) {
                     const data = await res.json();
@@ -311,7 +325,7 @@ const Profile = () => {
                     // Fetch mapped Garage details if available
                     if (empData.garageId) {
                         try {
-                            const gRes = await fetch(`https://vehicleecare.onrender.com/api/garages/${empData.garageId}`);
+                            const gRes = await fetch(`${API_BASE_URL}/api/garages/${empData.garageId}`);
                             if (gRes.ok) {
                                 const gData = await gRes.json();
                                 setGarage(gData.data || gData);
@@ -333,7 +347,9 @@ const Profile = () => {
 
         fetchEmployeeProfile();
         const interval = setInterval(() => {
-            fetchEmployeeProfile(true);
+            if (!isAddModalOpenRef.current) {
+                fetchEmployeeProfile(true);
+            }
         }, 5000);
 
         return () => clearInterval(interval);
@@ -366,7 +382,7 @@ const Profile = () => {
         setIsSubmittingDelete(true);
         try {
             // Send to Requests collection for Admin Request tracker
-            await fetch('https://vehicleecare.onrender.com/api/requests', {
+            await fetch(`${API_BASE_URL}/api/requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -384,7 +400,7 @@ const Profile = () => {
                 })
             });
 
-            const res = await fetch('https://vehicleecare.onrender.com/api/notifications/create', {
+            const res = await fetch(`${API_BASE_URL}/api/notifications/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -570,7 +586,7 @@ const Profile = () => {
                                     <div className="text-right">
                                         <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Operating Cycles</p>
                                         <p className="text-[15px] font-semibold text-[#052558] uppercase flex items-center justify-end gap-2">
-                                            {garage?.workingDays || employee?.workingDays || 'MON - SAT'}
+                                            {garage?.workingDays || employee?.workingDays || 'MONDAY - FRIDAY'}
                                         </p>
                                     </div>
                                 </div>
@@ -858,7 +874,7 @@ const Profile = () => {
             {/* Edit Profile Modal */}
             {isAddModalOpen && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" onClick={() => { setIsAddModalOpen(false); removePendingProfilePic(); }} />
                     <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-[960px] overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
                         {/* Header */}
                         <div className="flex justify-between items-center pb-2">
@@ -866,7 +882,7 @@ const Profile = () => {
                                 Update Profile
                             </h3>
                             <button
-                                onClick={() => setIsAddModalOpen(false)}
+                                onClick={() => { setIsAddModalOpen(false); removePendingProfilePic(); }}
                                 className="text-gray-400 hover:text-[#011023] rounded-full transition-colors cursor-pointer"
                             >
                                 <X size={20} />
@@ -911,7 +927,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(formatDocNumber(employee?.panCardNumber, employee?.panNumber, employee?.panCard))}
                                         value={form.panCard} 
-                                        onChange={e => setForm({ ...form, panCard: formatPAN(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, panCard: formatPAN(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             formatDocNumber(employee?.panCardNumber, employee?.panNumber, employee?.panCard)
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -925,7 +941,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(formatDocNumber(employee?.adharCardNumber, employee?.adharNumber, employee?.aadhaarCard, employee?.adharCard))}
                                         value={form.adharCard} 
-                                        onChange={e => setForm({ ...form, adharCard: formatAadhar(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, adharCard: formatAadhar(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             formatDocNumber(employee?.adharCardNumber, employee?.adharNumber, employee?.aadhaarCard, employee?.adharCard)
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -939,7 +955,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(formatDocNumber(employee?.voterIdNumber, employee?.voterNumber, employee?.voterId))}
                                         value={form.voterId} 
-                                        onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, voterId: formatVoter(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             formatDocNumber(employee?.voterIdNumber, employee?.voterNumber, employee?.voterId)
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -957,37 +973,82 @@ const Profile = () => {
                                 </div>
                                 <div className="col-span-1 space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Profile Picture</label>
-                                    <input 
-                                        type="file" 
-                                        ref={profileFileRef} 
-                                        accept="image/*" 
-                                        onChange={handleProfilePictureUpload} 
-                                        className="hidden" 
+                                    <input
+                                        type="file"
+                                        ref={profileFileRef}
+                                        accept="image/*"
+                                        onChange={handleProfilePictureUpload}
+                                        className="hidden"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => profileFileRef.current?.click()}
-                                        disabled={uploadingProfilePic || hasProfilePicture}
-                                        className={`w-full px-4 py-2.5 rounded-xl font-semibold font-sans text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xs ${
-                                            hasProfilePicture
-                                                ? 'bg-slate-100 border border-[#cbd5e1] text-gray-400 cursor-not-allowed opacity-60'
-                                                : 'bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-                                        }`}
-                                    >
-                                        {uploadingProfilePic ? (
-                                            <>
-                                                <Loader2 size={14} className="animate-spin" /> UPLOADING...
-                                            </>
-                                        ) : hasProfilePicture ? (
-                                            <>
-                                                <Upload size={14} /> PHOTO UPLOADED
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Upload size={14} /> UPLOAD PHOTO
-                                            </>
-                                        )}
-                                    </button>
+
+                                    {pendingProfilePreview ? (
+                                        /* ── Pending preview: thumbnail + eye + trash ── */
+                                        <div className="flex items-center gap-2 w-full">
+                                            <img
+                                                src={pendingProfilePreview}
+                                                alt="Preview"
+                                                className="w-10 h-10 rounded-lg object-cover border border-[#a5b4fc] shadow-xs flex-shrink-0"
+                                            />
+                                            <span className="flex-1 text-xs text-[#3730a3] font-semibold truncate">Photo selected</span>
+                                            <button
+                                                type="button"
+                                                title="Preview photo"
+                                                onClick={() => setPreviewModalOpen(true)}
+                                                className="p-2 rounded-lg bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] transition-all cursor-pointer"
+                                            >
+                                                <Eye size={14} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="Remove photo"
+                                                onClick={removePendingProfilePic}
+                                                className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-all cursor-pointer"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        /* ── Default upload button ── */
+                                        <button
+                                            type="button"
+                                            onClick={() => profileFileRef.current?.click()}
+                                            disabled={uploadingProfilePic || hasProfilePicture}
+                                            className={`w-full px-4 py-2.5 rounded-xl font-semibold font-sans text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xs ${
+                                                hasProfilePicture
+                                                    ? 'bg-slate-100 border border-[#cbd5e1] text-gray-400 cursor-not-allowed opacity-60'
+                                                    : 'bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] hover:bg-[#c7d2fe] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {hasProfilePicture ? (
+                                                <><Upload size={14} /> PHOTO UPLOADED</>
+                                            ) : (
+                                                <><Upload size={14} /> UPLOAD PHOTO</>
+                                            )}
+                                        </button>
+                                    )}
+
+                                    {/* Full-screen preview modal */}
+                                    {previewModalOpen && pendingProfilePreview && createPortal(
+                                        <div
+                                            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#011023]/10 backdrop-blur-xs"
+                                            onClick={() => setPreviewModalOpen(false)}
+                                        >
+                                            <p className="text-center text-gray-700 text-sm font-semibold uppercase mb-3 z-10">Click outside the image to close it</p>
+                                            <div
+                                                className="relative flex items-center justify-center"
+                                                style={{ maxWidth: '45vw', maxHeight: '40vh' }}
+                                                onClick={e => e.stopPropagation()}
+                                            >
+                                                <img
+                                                    src={pendingProfilePreview}
+                                                    alt="Profile preview"
+                                                    className="rounded-2xl object-contain shadow-2xl border border-white/20"
+                                                    style={{ maxWidth: '45vw', maxHeight: '40vh', width: 'auto', height: 'auto' }}
+                                                />
+                                            </div>
+                                        </div>,
+                                        document.body
+                                    )}
                                 </div>
                             </div>
                         </div>

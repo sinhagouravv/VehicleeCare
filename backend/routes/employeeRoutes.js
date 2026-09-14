@@ -22,7 +22,8 @@ const {
     deleteIdCardRequest,
     uploadEmployeeAvatar,
     uploadEmployeeDocument,
-    deleteEmployeeDocument
+    deleteEmployeeDocument,
+    resendWelcomeEmail
 } = require('../controllers/employeeController');
 
 router.get('/', getEmployees);
@@ -33,6 +34,7 @@ router.patch('/id-card-requests/:id/status', updateIdCardRequestStatus);
 router.delete('/id-card-requests/:id', deleteIdCardRequest);
 router.get('/:id', getEmployeeById);
 router.post('/', createEmployee);
+router.post('/:id/resend-welcome', resendWelcomeEmail);
 router.get('/garage/:garageId', getGarageEmployees);
 router.put('/:id', updateEmployee);
 router.delete('/:id', deleteEmployee);

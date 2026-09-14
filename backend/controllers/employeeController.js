@@ -4,15 +4,7 @@ const Remark = require('../models/Remark');
 const { generateEmployeeId } = require('../utils/generateId');
 const { createAdminNotification } = require('./notificationController');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const { sendEmployeeWelcomeEmail } = require('../services/emailService');
 
 // @desc    Get all employees
 // @route   GET /api/employees
@@ -70,27 +62,21 @@ const createEmployee = async (req, res) => {
         const garage = await Garage.findOne({ garageId: employee.garageId });
         const garageName = garage ? garage.name : 'Unknown Garage';
 
-        // Email the credentials
-        try {
-            await transporter.sendMail({
-                from: `"VehicleeCare" <${process.env.EMAIL_USER}>`,
-                to: employee.email,
-                subject: 'Welcome to VehicleeCare Employee Portal',
-                html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f0f6ff; border-radius: 16px;">
-                        <h2 style="color: #011023; margin-bottom: 4px;">VehicleeCare Employee Portal</h2>
-                        <p style="color: #527FB0; font-size: 13px; margin-bottom: 24px;">Account Credentials</p>
-                        <p style="color: #011023; font-size: 14px;">Hi <strong>${employee.name}</strong>, your account has been created. Use the credentials below to log in:</p>
-                        <div style="background: #011023; color: #fff; text-align: left; padding: 20px; border-radius: 12px; margin: 20px 0; font-size: 14px;">
-                            <p style="margin: 0 0 10px 0;"><strong>Employee ID:</strong> <span style="color: #C2E8FF;">${employee.employeeId}</span></p>
-                            <p style="margin: 0;"><strong>Password:</strong> <span style="color: #C2E8FF;">${plainPassword}</span></p>
-                        </div>
-                        <p style="color: #888; font-size: 12px;">For security, please do not share these credentials with anyone.</p>
-                    </div>
-                `
-            });
-        } catch (mailErr) {
-            console.error('Failed to send employee credentials email:', mailErr);
+        // Send Welcome Email if employee email is provided
+        if (employee.email) {
+            const employeePortalUrl = process.env.EMPLOYEE_PORTAL_URL || 'https://vehicleecareemployee.vercel.app';
+            try {
+                const info = await sendEmployeeWelcomeEmail({
+                    to: employee.email,
+                    name: employee.name,
+                    employeeId: employee.employeeId,
+                    temporaryPassword: plainPassword,
+                    portalUrl: employeePortalUrl
+                });
+                console.log("Welcome Email sent successfully to Employee:", employee.email, info?.response);
+            } catch (mailErr) {
+                console.error("Failed to send Welcome Email to Employee:", employee.email, mailErr);
+            }
         }
 
         // Fire admin notification
@@ -111,6 +97,41 @@ const createEmployee = async (req, res) => {
     } catch (err) {
         console.error("Error creating employee:", err);
         res.status(500).json({ success: false, message: err.message || 'Server Error' });
+    }
+};
+
+// @desc    Resend Welcome Email with credentials
+// @route   POST /api/employees/:id/resend-welcome
+const resendWelcomeEmail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        let employee;
+        if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+            employee = await Employee.findById(id);
+        }
+        if (!employee) {
+            employee = await Employee.findOne({ employeeId: id });
+        }
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+        if (!employee.email) {
+            return res.status(400).json({ success: false, message: 'Employee does not have an email registered' });
+        }
+
+        const plainPassword = req.body?.temporaryPassword || 'Pass@1234';
+        const employeePortalUrl = process.env.EMPLOYEE_PORTAL_URL || 'https://vehicleecareemployee.vercel.app';
+        await sendEmployeeWelcomeEmail({
+            to: employee.email,
+            name: employee.name,
+            employeeId: employee.employeeId,
+            temporaryPassword: plainPassword,
+            portalUrl: employeePortalUrl
+        });
+        res.status(200).json({ success: true, message: `Welcome email sent successfully to ${employee.email}` });
+    } catch (err) {
+        console.error('Error resending welcome email:', err);
+        res.status(500).json({ success: false, message: 'Failed to send welcome email: ' + err.message });
     }
 };
 
@@ -772,6 +793,7 @@ module.exports = {
     deleteIdCardRequest,
     uploadEmployeeAvatar,
     uploadEmployeeDocument,
-    deleteEmployeeDocument
+    deleteEmployeeDocument,
+    resendWelcomeEmail
 };
 

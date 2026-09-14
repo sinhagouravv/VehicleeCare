@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isGuestUser } from './useGuestGuard';
 import { useAlert } from '../context/AlertContext';
+import { broadcastGarageLogout } from './useMultiTabAuthSync';
 
 const TIMEOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 const START_KEY = 'guestSessionStartTime';
@@ -30,6 +31,9 @@ export const useGuestSessionTimeout = () => {
         const terminateSession = (reason) => {
             if (isTerminatingRef.current) return;
             isTerminatingRef.current = true;
+
+            // Broadcast to other tabs as a system-initiated logout
+            broadcastGarageLogout('system');
 
             // Clear credentials and guest session markers
             localStorage.removeItem('garageToken');

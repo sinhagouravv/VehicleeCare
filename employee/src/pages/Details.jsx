@@ -112,15 +112,21 @@ const Details = () => {
                         <div className="space-y-3 pt-2 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-black text-gray-400 uppercase">Current Pattern:</span>
-                                <span className="font-bold text-gray-700 uppercase">{employee.shift || 'Morning Shift'}</span>
+                                <span className="font-bold text-gray-700 uppercase">
+                                    {(employee.category || '').toLowerCase() === 'developer' ? 'FULL DAY' : (employee.shift || 'Morning Shift')}
+                                </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-black text-gray-400 uppercase">Hours / Week:</span>
-                                <span className="font-bold text-gray-700">48 Hours</span>
+                                <span className="font-bold text-gray-700">
+                                    {(employee.category || '').toLowerCase() === 'developer' ? '40 Hours' : '48 Hours'}
+                                </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-[10px] font-black text-gray-400 uppercase">Timings (EST):</span>
-                                <span className="font-bold text-gray-700">09:00 AM - 06:00 PM</span>
+                                <span className="font-bold text-gray-700">
+                                    {(employee.category || '').toLowerCase() === 'developer' ? '09:00 AM - 05:00 PM' : '09:00 AM - 06:00 PM'}
+                                </span>
                             </div>
                         </div>
                     </div>

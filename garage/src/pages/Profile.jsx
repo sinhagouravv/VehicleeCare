@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
 
 const GARAGE_DELETION_REASONS = [
     'Closing garage business permanently',
@@ -100,7 +101,7 @@ const Profile = () => {
             const localAvatar = user?.avatar || user?.profilePhoto || user?.profilePicture || user?.logo;
             
             // Fetch latest data from specific Garage endpoint (backend now handles dbId or 9-digit id)
-            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${user.dbId || user._id || user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/garages/${user.dbId || user._id || user.id}`);
             
             if (res.ok) {
                 const data = await res.json();
@@ -131,9 +132,18 @@ const Profile = () => {
         }
     }, [navigate]);
 
+    const isAddModalOpenRef = useRef(isAddModalOpen);
+    useEffect(() => {
+        isAddModalOpenRef.current = isAddModalOpen;
+    }, [isAddModalOpen]);
+
     useEffect(() => {
         fetchGarageProfile();
-        const interval = setInterval(() => fetchGarageProfile(true), 5000);
+        const interval = setInterval(() => {
+            if (!isAddModalOpenRef.current) {
+                fetchGarageProfile(true);
+            }
+        }, 5000);
         return () => clearInterval(interval);
     }, [fetchGarageProfile]);
 
@@ -158,7 +168,7 @@ const Profile = () => {
         setIsSubmittingDelete(true);
         try {
             // Send to Requests collection for Admin Request tracker
-            await fetch('https://vehicleecare.onrender.com/api/requests', {
+            await fetch(`${API_BASE_URL}/api/requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -176,7 +186,7 @@ const Profile = () => {
                 })
             });
 
-            const res = await fetch('https://vehicleecare.onrender.com/api/notifications/create', {
+            const res = await fetch(`${API_BASE_URL}/api/notifications/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -242,14 +252,7 @@ const Profile = () => {
     );
 
     const handleOpenEditModal = () => {
-        setIsAddModalOpen(true);
-        if (isAllDetailsFilled) {
-            triggerAlert('All the details are updated.\nIf you want to change any details, kindly contact the administrator', 'info');
-        }
-    };
-
-    useEffect(() => {
-        if (garage && isAddModalOpen) {
+        if (garage) {
             setForm({
                 name: garage.name || '',
                 ownerName: garage.ownerName || '',
@@ -269,7 +272,11 @@ const Profile = () => {
                 gstNumber: garage.gstNumber || ''
             });
         }
-    }, [garage, isAddModalOpen]);
+        setIsAddModalOpen(true);
+        if (isAllDetailsFilled) {
+            triggerAlert('All the details are updated.\nIf you want to change any details, kindly contact the administrator', 'info');
+        }
+    };
 
     const handleSave = async () => {
         if (guardGuestAction()) return;
@@ -292,7 +299,7 @@ const Profile = () => {
                         const formData = new FormData();
                         formData.append('document', pendingProfileFile);
                         formData.append('documentType', 'profilePicture');
-                        const apiRes = await fetch(`https://vehicleecare.onrender.com/api/garages/${garageId}/document`, {
+                        const apiRes = await fetch(`${API_BASE_URL}/api/garages/${garageId}/document`, {
                             method: 'POST',
                             body: formData
                         });
@@ -324,7 +331,7 @@ const Profile = () => {
             }
             // ───────────────────────────────────────────────────────────────
             const targetId = garage._id || garage.id || garage.dbId || garage.garageId;
-            const res = await fetch(`https://vehicleecare.onrender.com/api/garages/${targetId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/garages/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form)
@@ -359,7 +366,7 @@ const Profile = () => {
                 triggerAlert('Profile updated successfully', 'success');
 
                 // Notify admin of garage profile update
-                fetch('https://vehicleecare.onrender.com/api/notifications/create', {
+                fetch(`${API_BASE_URL}/api/notifications/create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -868,7 +875,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean((garage?.garageContact || garage?.whatsapp)?.trim())}
                                         value={form.garageContact || form.whatsapp} 
-                                        onChange={e => setForm({ ...form, garageContact: formatPhone(e.target.value), whatsapp: formatPhone(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, garageContact: formatPhone(e.target.value), whatsapp: formatPhone(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             (garage?.garageContact || garage?.whatsapp)?.trim()
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -882,7 +889,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(garage?.garageEmail?.trim())}
                                         value={form.garageEmail} 
-                                        onChange={e => setForm({ ...form, garageEmail: e.target.value })} 
+                                        onChange={e => setForm(prev => ({ ...prev, garageEmail: e.target.value }))} 
                                         className={`w-full px-4 py-2.5 rounded-xl font-semibold uppercase font-sans text-xs transition-all ${
                                             garage?.garageEmail?.trim()
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed lowercase'
@@ -899,7 +906,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(formatDocNumber(garage?.panCardNumber, garage?.panNumber, garage?.panCard))}
                                         value={form.panCard} 
-                                        onChange={e => setForm({ ...form, panCard: formatPAN(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, panCard: formatPAN(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             formatDocNumber(garage?.panCardNumber, garage?.panNumber, garage?.panCard)
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -913,7 +920,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(formatDocNumber(garage?.adharCardNumber, garage?.adharNumber, garage?.aadhaarCard, garage?.adharCard))}
                                         value={form.adharCard} 
-                                        onChange={e => setForm({ ...form, adharCard: formatAadhar(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, adharCard: formatAadhar(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             formatDocNumber(garage?.adharCardNumber, garage?.adharNumber, garage?.aadhaarCard, garage?.adharCard)
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -927,7 +934,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(formatDocNumber(garage?.voterIdNumber, garage?.voterNumber, garage?.voterId))}
                                         value={form.voterId} 
-                                        onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, voterId: formatVoter(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             formatDocNumber(garage?.voterIdNumber, garage?.voterNumber, garage?.voterId)
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -944,7 +951,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(garage?.gstNumber?.trim())}
                                         value={form.gstNumber} 
-                                        onChange={e => setForm({ ...form, gstNumber: formatGST(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, gstNumber: formatGST(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             garage?.gstNumber?.trim()
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -958,7 +965,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(garage?.sacCode?.trim())}
                                         value={form.sacCode} 
-                                        onChange={e => setForm({ ...form, sacCode: formatSAC(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, sacCode: formatSAC(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             garage?.sacCode?.trim()
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
@@ -972,7 +979,7 @@ const Profile = () => {
                                     <input 
                                         readOnly={Boolean(garage?.hsnCode?.trim())}
                                         value={form.hsnCode} 
-                                        onChange={e => setForm({ ...form, hsnCode: formatHSN(e.target.value) })} 
+                                        onChange={e => setForm(prev => ({ ...prev, hsnCode: formatHSN(e.target.value) }))} 
                                         className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
                                             garage?.hsnCode?.trim()
                                                 ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'

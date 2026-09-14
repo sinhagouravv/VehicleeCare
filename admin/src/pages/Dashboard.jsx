@@ -14,6 +14,7 @@ const chartDataFallback = [
 ];
 
 const Dashboard = () => {
+    const [loading, setLoading] = useState(true);
     const [dashboardStats, setDashboardStats] = useState({
         bookings: 0,
         users: 0,
@@ -27,7 +28,8 @@ const Dashboard = () => {
     const [_popularServices, setPopularServices] = useState([]);
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchDashboardData = async (isBackground = false) => {
+            if (!isBackground) setLoading(true);
             try {
                 const [bookingsRes, usersRes, garagesRes, stationsRes] = await Promise.all([
                     fetch('https://vehicleecare.onrender.com/api/bookings'),
@@ -140,11 +142,13 @@ const Dashboard = () => {
 
             } catch (err) {
                 console.error("Dashboard failed to fetch data:", err);
+            } finally {
+                if (!isBackground) setLoading(false);
             }
         };
 
         fetchDashboardData();
-        const interval = setInterval(fetchDashboardData, 5000);
+        const interval = setInterval(() => fetchDashboardData(true), 5000);
 
         return () => clearInterval(interval);
     }, []);
@@ -179,20 +183,33 @@ const Dashboard = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, idx) => (
-                    <div key={idx} className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-[0_8px_30px_rgba(5,37,88,0.08)] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-blue-50 rounded-xl">
-                                {stat.icon}
+                {loading ? (
+                    [...Array(4)].map((_, idx) => (
+                        <div key={idx} className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] animate-pulse">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="w-12 h-12 bg-blue-100/70 rounded-xl" />
+                                <div className="h-6 w-16 bg-emerald-100/70 rounded-lg" />
                             </div>
-                            <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                                {stat.change}
-                            </span>
+                            <div className="h-4 w-28 bg-slate-200/80 rounded-md mb-3" />
+                            <div className="h-8 w-20 bg-slate-300/80 rounded-md" />
                         </div>
-                        <h3 className="text-gray-500 font-semibold text-sm mb-1">{stat.title}</h3>
-                        <p className="text-3xl font-black text-[#011023]">{stat.value}</p>
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    stats.map((stat, idx) => (
+                        <div key={idx} className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] hover:shadow-[0_8px_30px_rgba(5,37,88,0.08)] transition-all">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-blue-50 rounded-xl">
+                                    {stat.icon}
+                                </div>
+                                <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                                    {stat.change}
+                                </span>
+                            </div>
+                            <h3 className="text-gray-500 font-semibold text-sm mb-1">{stat.title}</h3>
+                            <p className="text-3xl font-black text-[#011023]">{stat.value}</p>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Placeholder for Charts/Tables */}
@@ -217,8 +234,28 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 bg-white/60 backdrop-blur-xl border border-white pt-4 pb-4 pr-2 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] relative min-h-[350px] flex flex-col">
-                    <div className="flex-1 w-full h-full min-h-[445px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                    {loading ? (
+                        <div className="flex-1 w-full h-full min-h-[445px] p-6 flex flex-col justify-between animate-pulse">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="h-5 w-32 bg-slate-200/70 rounded-md" />
+                                <div className="h-5 w-24 bg-slate-200/70 rounded-md" />
+                            </div>
+                            <div className="space-y-7 flex-1 flex flex-col justify-around py-4">
+                                <div className="h-px w-full bg-slate-200/60" />
+                                <div className="h-px w-full bg-slate-200/60" />
+                                <div className="h-px w-full bg-slate-200/60" />
+                                <div className="h-px w-full bg-slate-200/60" />
+                                <div className="h-px w-full bg-slate-200/60" />
+                            </div>
+                            <div className="flex justify-between items-center pt-4 border-t border-slate-200/60 px-2">
+                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+                                    <div key={i} className="h-3.5 w-8 bg-slate-200/70 rounded-md" />
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex-1 w-full h-full min-h-[445px]">
+                            <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={currentChartData} margin={{ top: 20, right: 30, left: 1, bottom:1 }}>
                                 <defs>
                                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -305,6 +342,7 @@ const Dashboard = () => {
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
+                )}
                 </div>
 
 
@@ -313,22 +351,37 @@ const Dashboard = () => {
                         Recent Activity
                     </h2>
                     <div className="bg-white/60 backdrop-blur-xl border border-white p-4 rounded-2xl shadow-[0_8px_30px_rgba(5,37,88,0.04)] flex flex-col gap-2 h-full min-h-[350px] overflow-y-auto">
-                        {recentActivities.map((activity, idx) => (
-                            <div key={idx} className="flex gap-3 items-start p-3 bg-white/40 border border-blue-50/50 hover:bg-white/80 transition-all duration-300 shadow-sm rounded-xl">
-                                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                                    <Clock size={16} strokeWidth={2.5} />
+                        {loading ? (
+                            [...Array(5)].map((_, idx) => (
+                                <div key={idx} className="flex gap-3 items-start p-3 bg-white/40 border border-blue-50/50 shadow-sm rounded-xl animate-pulse">
+                                    <div className="w-8 h-8 rounded-xl bg-blue-100/60 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-3.5 w-3/4 bg-slate-200/70 rounded-md" />
+                                        <div className="h-3 w-1/2 bg-slate-200/50 rounded-md" />
+                                        <div className="h-2.5 w-1/3 bg-blue-100/70 rounded-md" />
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-[13px] font-bold text-[#011023] leading-tight flex flex-wrap items-center gap-1.5 uppercase">New Booking <span className="text-[10px] text-gray-400 tracking-wider">#{activity.bookingId}</span></p>
-                                    <p className="text-[11px] font-bold text-gray-500 mt-1 uppercase tracking-wide">Service: {activity.service?.title || 'Unknown'}</p>
-                                    <p className="text-[10px] text-[#527FB0] font-bold uppercase mt-1">
-                                        {new Date(activity.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                        {recentActivities.length === 0 && (
-                            <p className="text-center text-sm font-bold text-gray-400 mt-8">No recent activity.</p>
+                            ))
+                        ) : (
+                            <>
+                                {recentActivities.map((activity, idx) => (
+                                    <div key={idx} className="flex gap-3 items-start p-3 bg-white/40 border border-blue-50/50 hover:bg-white/80 transition-all duration-300 shadow-sm rounded-xl">
+                                        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                                            <Clock size={16} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[13px] font-bold text-[#011023] leading-tight flex flex-wrap items-center gap-1.5 uppercase">New Booking <span className="text-[10px] text-gray-400 tracking-wider">#{activity.bookingId}</span></p>
+                                            <p className="text-[11px] font-bold text-gray-500 mt-1 uppercase tracking-wide">Service: {activity.service?.title || 'Unknown'}</p>
+                                            <p className="text-[10px] text-[#527FB0] font-bold uppercase mt-1">
+                                                {new Date(activity.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {recentActivities.length === 0 && (
+                                    <p className="text-center text-sm font-bold text-gray-400 mt-8">No recent activity.</p>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

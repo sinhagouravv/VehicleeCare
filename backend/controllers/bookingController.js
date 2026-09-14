@@ -6,16 +6,7 @@ const Employee = require('../models/Employee');
 const Remark = require('../models/Remark');
 const { createAdminNotification } = require('./notificationController');
 const { generatePaymentId } = require('../utils/generateId');
-const nodemailer = require('nodemailer');
-
-// ── Mailer Setup ────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const { sendDeliveryOtpEmail, sendInServiceOtpEmail } = require('../services/emailService');
 
 // ── Load Balancer Helper ────────────────────────────────────
 const selectLeastLoadedEmployee = async (candidateEmployees, roleKey) => {
@@ -728,34 +719,35 @@ exports.sendInServiceOTP = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
+        // Resolve customer email: booking.user.email or fall back to User model by booking.user.id
+        let recipientEmail = booking.user?.email;
+        if (!recipientEmail && booking.user?.id) {
+            const userDoc = await User.findById(booking.user.id);
+            if (userDoc?.email) recipientEmail = userDoc.email;
+        }
+
+        if (!recipientEmail) {
+            return res.status(400).json({ success: false, message: 'Customer email not found for this booking' });
+        }
+
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         booking.otp = otp;
         booking.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
         await booking.save();
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: booking.user.email,
-            subject: 'VehicleeCare - Service Verification OTP',
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                    <h2 style="color: #011023; text-transform: uppercase; letter-spacing: 1px;">Service Verification</h2>
-                    <p style="color: #64748b;">Your vehicle service for booking <strong>#${booking.bookingId}</strong> is about to start. Please provide the following OTP to the technician:</p>
-                    <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #3b82f6;">${otp}</span>
-                    </div>
-                    <p style="font-size: 12px; color: #94a3b8;">This OTP is valid for 10 minutes. If you did not request this, please contact support.</p>
-                </div>
-            `
-        };
-
-        // Fire and forget email delivery for faster response
-        transporter.sendMail(mailOptions).catch(err => {
-            console.error("Delayed OTP email failure:", err);
-        });
-
-        // Return success immediately to UI
-        res.status(200).json({ success: true, message: 'OTP sending initiated' });
+        // Send via centralized email service
+        try {
+            await sendInServiceOtpEmail({
+                to: recipientEmail,
+                name: booking.user?.name,
+                bookingId: booking.bookingId,
+                otp
+            });
+            return res.status(200).json({ success: true, message: `OTP sent successfully to ${recipientEmail}` });
+        } catch (mailErr) {
+            console.error("Centralized In-Service OTP email failure:", mailErr);
+            return res.status(500).json({ success: false, message: 'Failed to deliver OTP email: ' + mailErr.message });
+        }
 
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
@@ -799,34 +791,35 @@ exports.sendDeliveryOTP = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
+        // Resolve customer email: booking.user.email or fall back to User model by booking.user.id
+        let recipientEmail = booking.user?.email;
+        if (!recipientEmail && booking.user?.id) {
+            const userDoc = await User.findById(booking.user.id);
+            if (userDoc?.email) recipientEmail = userDoc.email;
+        }
+
+        if (!recipientEmail) {
+            return res.status(400).json({ success: false, message: 'Customer email not found for this booking' });
+        }
+
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         booking.otp = otp;
         booking.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
         await booking.save();
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: booking.user.email,
-            subject: 'VehicleeCare - Delivery Verification OTP',
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                    <h2 style="color: #011023; text-transform: uppercase; letter-spacing: 1px;">Delivery Verification</h2>
-                    <p style="color: #64748b;">Your vehicle for booking <strong>#${booking.bookingId}</strong> is ready for delivery. Please provide the following OTP to the technician to complete the handover:</p>
-                    <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #10b981;">${otp}</span>
-                    </div>
-                    <p style="font-size: 12px; color: #94a3b8;">This OTP is valid for 10 minutes. If you did not request this, please contact support.</p>
-                </div>
-            `
-        };
-
-        // Fire and forget email delivery for faster response
-        transporter.sendMail(mailOptions).catch(err => {
-            console.error("Delayed delivery OTP email failure:", err);
-        });
-
-        // Return success immediately to UI
-        res.status(200).json({ success: true, message: 'Delivery OTP sending initiated' });
+        // Send via centralized email service
+        try {
+            await sendDeliveryOtpEmail({
+                to: recipientEmail,
+                name: booking.user?.name,
+                bookingId: booking.bookingId,
+                otp
+            });
+            return res.status(200).json({ success: true, message: `Delivery OTP sent successfully to ${recipientEmail}` });
+        } catch (mailErr) {
+            console.error("Centralized Delivery OTP email failure:", mailErr);
+            return res.status(500).json({ success: false, message: 'Failed to deliver OTP email: ' + mailErr.message });
+        }
 
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });

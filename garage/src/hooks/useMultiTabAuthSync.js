@@ -7,9 +7,16 @@ export const GARAGE_LOGOUT_SYNC_KEY = 'garage_logout_sync';
 
 /**
  * Broadcasts a garage logout event across all open browser tabs and clears auth storage.
+ * @param {string|object} options - 'manual' or 'system', or an object with reason
  */
-export const broadcastGarageLogout = () => {
+export const broadcastGarageLogout = (options = 'manual') => {
     try {
+        const reason = typeof options === 'string' ? options : (options?.reason || 'manual');
+        const syncPayload = { timestamp: Date.now(), reason };
+
+        // Record sync payload before clearing auth tokens
+        localStorage.setItem(GARAGE_LOGOUT_SYNC_KEY, JSON.stringify(syncPayload));
+
         localStorage.removeItem('garageToken');
         localStorage.removeItem('garageUser');
         localStorage.removeItem('guestWelcomeDismissed');
@@ -17,14 +24,11 @@ export const broadcastGarageLogout = () => {
         localStorage.removeItem('guestSessionStartTime');
         localStorage.removeItem('guestLastActivity');
         localStorage.removeItem('guestSessionExpired');
-        
-        // Trigger storage event in other tabs
-        localStorage.setItem(GARAGE_LOGOUT_SYNC_KEY, Date.now().toString());
 
         // Also broadcast via BroadcastChannel for instant same-browser cross-tab delivery
         if (typeof BroadcastChannel !== 'undefined') {
             const bc = new BroadcastChannel(GARAGE_AUTH_CHANNEL);
-            bc.postMessage({ type: 'LOGOUT', timestamp: Date.now() });
+            bc.postMessage({ type: 'LOGOUT', reason, timestamp: Date.now() });
             bc.close();
         }
     } catch (err) {
@@ -40,21 +44,37 @@ export const useMultiTabAuthSync = () => {
     const { triggerAlert } = useAlert() || {};
 
     useEffect(() => {
-        const performTabLogout = (notify = true) => {
-            if (notify && triggerAlert) {
+        const performTabLogout = (isSystemLogout = false) => {
+            if (isSystemLogout && triggerAlert) {
                 triggerAlert('You have been logged out from another tab.', 'info');
             }
             navigate('/login', { replace: true });
         };
 
+        const checkIsSystemLogout = (parsedData) => {
+            return parsedData?.reason === 'system';
+        };
+
         // 1. Cross-tab storage event listener
         const handleStorageChange = (e) => {
-            if (
-                (e.key === 'garageToken' && !e.newValue) ||
-                e.key === GARAGE_LOGOUT_SYNC_KEY ||
-                (!e.key && !localStorage.getItem('garageToken'))
-            ) {
+            if (e.key === GARAGE_LOGOUT_SYNC_KEY && e.newValue) {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    performTabLogout(checkIsSystemLogout(parsed));
+                } catch {
+                    performTabLogout(false);
+                }
+            } else if (e.key === 'guestSessionExpired' && e.newValue) {
+                // System session expiration (guest timeout)
                 performTabLogout(true);
+            } else if (e.key === 'garageToken' && !e.newValue) {
+                try {
+                    const syncRaw = localStorage.getItem(GARAGE_LOGOUT_SYNC_KEY);
+                    const parsed = syncRaw ? JSON.parse(syncRaw) : null;
+                    performTabLogout(checkIsSystemLogout(parsed));
+                } catch {
+                    performTabLogout(false);
+                }
             }
         };
 
@@ -65,7 +85,8 @@ export const useMultiTabAuthSync = () => {
                 channel = new BroadcastChannel(GARAGE_AUTH_CHANNEL);
                 channel.onmessage = (event) => {
                     if (event.data?.type === 'LOGOUT') {
-                        performTabLogout(true);
+                        const isSystem = event.data?.reason === 'system';
+                        performTabLogout(isSystem);
                     }
                 };
             } catch (err) {
@@ -77,7 +98,13 @@ export const useMultiTabAuthSync = () => {
         const handleFocusOrVisibility = () => {
             const token = localStorage.getItem('garageToken');
             if (!token) {
-                performTabLogout(false);
+                try {
+                    const syncRaw = localStorage.getItem(GARAGE_LOGOUT_SYNC_KEY);
+                    const parsed = syncRaw ? JSON.parse(syncRaw) : null;
+                    performTabLogout(checkIsSystemLogout(parsed));
+                } catch {
+                    performTabLogout(false);
+                }
             }
         };
 

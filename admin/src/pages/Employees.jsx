@@ -9,6 +9,7 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
 
 const Employees = () => {
     const { triggerAlert } = useAlert();
@@ -97,7 +98,7 @@ const Employees = () => {
             };
 
             const targetId = editDevTarget._id || editDevTarget.id || editDevTarget.employeeId;
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${targetId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/employees/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -179,7 +180,7 @@ const Employees = () => {
     const fetchEmployees = useCallback(async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/employees');
+            const res = await fetch(`${API_BASE_URL}/api/employees`);
             if (!res.ok) throw new Error('Failed to fetch employees');
             const data = await res.json();
             setEmployees(data.data || []);
@@ -229,13 +230,14 @@ const Employees = () => {
         }
     };
 
-    const _getShiftBadge = (shift) => {
-        switch (shift) {
-            case 'Morning': return 'bg-orange-50 text-orange-600';
-            case 'Evening': return 'bg-indigo-50 text-indigo-600';
-            case 'Night': return 'bg-purple-100 text-purple-700';
-            default: return 'bg-gray-50 text-gray-400';
-        }
+    const getShiftBadge = (shift, category) => {
+        const cat = (category || '').toLowerCase();
+        const s = (shift || '').toLowerCase();
+        if (cat === 'developer' || s === 'full day') return 'bg-sky-100 text-sky-700';
+        if (s === 'morning') return 'bg-amber-100 text-amber-700';
+        if (s === 'night') return 'bg-purple-100 text-purple-700';
+        if (s === 'evening') return 'bg-indigo-100 text-indigo-700';
+        return 'bg-blue-100 text-blue-700';
     };
 
     const formatRole = (role) => {
@@ -305,7 +307,7 @@ const Employees = () => {
         setLoadingBookings(true);
         setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${employeeId}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/employee/${employeeId}`);
             if (res.ok) {
                 const data = await res.json();
                 setServiceHistory(data.data || []);
@@ -357,7 +359,7 @@ const Employees = () => {
 
         // Fetch bookings
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${employee._id}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/employee/${employee._id}`);
             if (res.ok) {
                 const data = await res.json();
                 const bookings = data.data || [];
@@ -422,7 +424,7 @@ const Employees = () => {
         if (!employeeToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/${employeeToDelete._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/employees/${employeeToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -439,6 +441,35 @@ const Employees = () => {
             triggerAlert('Error deleting employee', 'error');
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const [resendingEmailId, setResendingEmailId] = useState(null);
+
+    const handleResendWelcomeEmail = async (employee) => {
+        if (guardGuestAction()) return;
+        if (!employee?.email) {
+            triggerAlert('This employee does not have an email address', 'error');
+            return;
+        }
+        setResendingEmailId(employee._id);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/employees/${employee._id || employee.employeeId}/resend-welcome`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ temporaryPassword: 'Pass@1234' })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                triggerAlert(data.message || `Welcome email sent successfully to ${employee.email}`, 'success');
+            } else {
+                throw new Error(data.message || 'Failed to send welcome email');
+            }
+        } catch (err) {
+            console.error('Error resending welcome email:', err);
+            triggerAlert(err.message || 'Failed to send welcome email', 'error');
+        } finally {
+            setResendingEmailId(null);
         }
     };
 
@@ -507,7 +538,7 @@ const Employees = () => {
                                 <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Joined at</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[10.5%]">Actions</th>
+                                <th className="p-4.5 font-bold text-center w-[12%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -617,16 +648,24 @@ const Employees = () => {
                                              </td>
                                             <td className="p-4 text-center">
                                                 <div className="flex items-center justify-center gap-3.5">
-                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500">
+                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500" title="View Details">
                                                         <Eye size={17} />
                                                     </button>
-                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500">
+                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500" title="Download ID Card">
                                                         <Download size={17} />
                                                     </button>
-                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500">
+                                                    <button 
+                                                        onClick={() => handleResendWelcomeEmail(employee)} 
+                                                        disabled={resendingEmailId === employee._id}
+                                                        className="text-gray-400 hover:text-indigo-600 disabled:opacity-50 transition-colors" 
+                                                        title="Send Login Credentials Email"
+                                                    >
+                                                        {resendingEmailId === employee._id ? <Loader2 size={17} className="animate-spin text-indigo-600" /> : <Mail size={17} />}
+                                                    </button>
+                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500" title="Disable Employee">
                                                         <UserX size={17} />
                                                     </button>
-                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600">
+                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600" title="Delete Employee">
                                                         <Trash2 size={17} />
                                                     </button>
                                                 </div>
@@ -706,12 +745,13 @@ const Employees = () => {
                                                 <p className="text-sm flex items-center">
                                                     <span className="text-gray-500 w-24 shrink-0">Shift:</span> 
                                                     <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${
-                                                        viewEmployee.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 
-                                                        viewEmployee.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 
-                                                        viewEmployee.shift === 'Evening' ? 'bg-indigo-100 text-indigo-700' : 
+                                                        (viewEmployee.category || '').toLowerCase() === 'developer' || (viewEmployee.shift || '').toLowerCase() === 'full day' ? 'bg-sky-100 text-sky-700' :
+                                                        (viewEmployee.shift || '').toLowerCase() === 'morning' ? 'bg-amber-100 text-amber-700' : 
+                                                        (viewEmployee.shift || '').toLowerCase() === 'night' ? 'bg-purple-100 text-purple-700' : 
+                                                        (viewEmployee.shift || '').toLowerCase() === 'evening' ? 'bg-indigo-100 text-indigo-700' : 
                                                         'bg-blue-100 text-blue-700'
                                                     }`}>
-                                                        {viewEmployee.shift || 'Full Time'}
+                                                        {(viewEmployee.category || '').toLowerCase() === 'developer' ? 'FULL DAY' : (viewEmployee.shift || 'FULL TIME')}
                                                     </span>
                                                 </p>
                                                 <p className="text-sm flex items-center">
@@ -724,7 +764,13 @@ const Employees = () => {
                                         ) : (
                                             <>
                                                 <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Role:</span> <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${getRoleBadge(viewEmployee.role)}`}>{formatRole(viewEmployee.role)}</span></p>
-                                                <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${viewEmployee.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : viewEmployee.shift === 'Night' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'}`}>{viewEmployee.shift || '—'}</span></p>
+                                                <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Shift:</span> <span className={`inline-block px-3 py-0.5 ml-2 text-xs font-semibold uppercase rounded-full ${
+                                                    (viewEmployee.category || '').toLowerCase() === 'developer' || (viewEmployee.shift || '').toLowerCase() === 'full day' ? 'bg-sky-100 text-sky-700' :
+                                                    (viewEmployee.shift || '').toLowerCase() === 'morning' ? 'bg-amber-100 text-amber-700' :
+                                                    (viewEmployee.shift || '').toLowerCase() === 'night' ? 'bg-purple-100 text-purple-700' :
+                                                    (viewEmployee.shift || '').toLowerCase() === 'evening' ? 'bg-indigo-100 text-indigo-700' :
+                                                    'bg-blue-100 text-blue-700'
+                                                }`}>{(viewEmployee.category || '').toLowerCase() === 'developer' ? 'FULL DAY' : (viewEmployee.shift || '—')}</span></p>
                                                 <p className="text-sm flex items-center"><span className="text-gray-500 w-16 shrink-0">Salary:</span> <span className="font-semibold ml-2 text-gray-800">{viewEmployee.salaryType || 'Monthly'}</span></p>
                                             </>
                                         )}
