@@ -6,6 +6,7 @@ import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
 import { broadcastEmployeeLogout } from '../hooks/useMultiTabAuthSync';
+import { updateGuestSessionStatus } from '../utils/guestCounter';
 import API_BASE_URL from '../config/api';
 
 const DELETION_REASONS = [
@@ -112,6 +113,9 @@ const Profile = () => {
         phone: '',
         category: '',
         role: '',
+        state: '',
+        district: '',
+        pincode: '',
         address: '',
         panCard: '',
         adharCard: '',
@@ -150,10 +154,17 @@ const Profile = () => {
         if (profileFileRef.current) profileFileRef.current.value = '';
     };
 
+    const hasExistingState = Boolean(employee?.state && String(employee.state).trim());
+    const hasExistingDistrict = Boolean(employee?.district && String(employee.district).trim());
+    const hasExistingPincode = Boolean(employee?.pincode && String(employee.pincode).trim());
+
     const isAllDetailsFilled = Boolean(
         formatDocNumber(employee?.panCardNumber, employee?.panNumber, employee?.panCard) &&
         formatDocNumber(employee?.adharCardNumber, employee?.adharNumber, employee?.aadhaarCard, employee?.adharCard) &&
-        formatDocNumber(employee?.voterIdNumber, employee?.voterNumber, employee?.voterId)
+        formatDocNumber(employee?.voterIdNumber, employee?.voterNumber, employee?.voterId) &&
+        hasExistingState &&
+        hasExistingDistrict &&
+        hasExistingPincode
     );
 
     const hasProfilePicture = Boolean(
@@ -186,6 +197,9 @@ const Profile = () => {
                 phone: employee.phone || '',
                 category: employee.category || '',
                 role: employee.role || '',
+                state: employee.state || '',
+                district: employee.district || '',
+                pincode: employee.pincode || '',
                 address: employee.address || '',
                 panCard: formatDocNumber(employee.panCardNumber, employee.panNumber, employee.panCard),
                 adharCard: formatDocNumber(employee.adharCardNumber, employee.adharNumber, employee.aadhaarCard, employee.adharCard),
@@ -200,6 +214,7 @@ const Profile = () => {
         if (form.panCard && form.panCard.length !== 10) return triggerAlert('Kindly enter the PAN CARD details correctly');
         if (form.adharCard && form.adharCard.length !== 14) return triggerAlert('Kindly enter the AADHAR CARD details correctly');
         if (form.voterId && form.voterId.length !== 10) return triggerAlert('Kindly enter the VOTER ID details correctly');
+        if (form.pincode && form.pincode.length !== 6) return triggerAlert('Please enter a valid 6-digit Pincode');
 
         setSaving(true);
         try {
@@ -356,6 +371,7 @@ const Profile = () => {
     }, [navigate]);
 
     const handleLogout = () => {
+        updateGuestSessionStatus('Ended', 'logout');
         broadcastEmployeeLogout();
         navigate('/login', { replace: true });
     };
@@ -625,7 +641,7 @@ const Profile = () => {
                             <div className="bg-white border border-[#e6f0fa] p-5 rounded-2xl shadow-sm flex items-center justify-between group text-left">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-2">Registered Email</p>
-                                    <p className={`text-sm font-semibold text-[#052558] lowercase ${isGuest && isRealValue(employee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(employee.email) || '—'}</p>
+                                    <p className={`text-sm font-semibold text-[#052558] uppercase ${isGuest && isRealValue(employee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(employee.email) || '—'}</p>
                                 </div>
                                 <div className="p-3 bg-blue-50 text-blue-500 rounded-xl transition-all">
                                     <Mail size={18} />
@@ -967,6 +983,60 @@ const Profile = () => {
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">State</label>
+                                    <input 
+                                        readOnly={hasExistingState}
+                                        value={form.state} 
+                                        onKeyDown={e => {
+                                            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !/^[a-zA-Z\s]$/.test(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={e => setForm(prev => ({ ...prev, state: e.target.value.replace(/[^a-zA-Z\s]/g, '') }))} 
+                                        className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
+                                            hasExistingState
+                                                ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
+                                                : 'bg-[#f8fafc] border border-[#cbd5e1] text-[#011023] focus:outline-none focus:bg-white focus:border-[#a5b4fc]'
+                                        }`}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">District</label>
+                                    <input 
+                                        readOnly={hasExistingDistrict}
+                                        value={form.district} 
+                                        onKeyDown={e => {
+                                            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !/^[a-zA-Z\s]$/.test(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={e => setForm(prev => ({ ...prev, district: e.target.value.replace(/[^a-zA-Z\s]/g, '') }))} 
+                                        className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
+                                            hasExistingDistrict
+                                                ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
+                                                : 'bg-[#f8fafc] border border-[#cbd5e1] text-[#011023] focus:outline-none focus:bg-white focus:border-[#a5b4fc]'
+                                        }`}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Pincode</label>
+                                    <input 
+                                        readOnly={hasExistingPincode}
+                                        type="tel"
+                                        maxLength={6}
+                                        value={form.pincode} 
+                                        onChange={e => setForm(prev => ({ ...prev, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} 
+                                        className={`w-full px-4 py-2.5 uppercase rounded-xl font-semibold font-sans text-xs transition-all ${
+                                            hasExistingPincode
+                                                ? 'bg-slate-100 border border-[#cbd5e1] text-gray-500 outline-none cursor-not-allowed'
+                                                : 'bg-[#f8fafc] border border-[#cbd5e1] text-[#011023] focus:outline-none focus:bg-white focus:border-[#a5b4fc]'
+                                        }`}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="col-span-2 space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Residential Address</label>
                                     <input readOnly value={form.address} className="w-full px-4 py-2.5 bg-slate-100 border border-[#cbd5e1] uppercase rounded-xl font-semibold font-sans text-xs text-gray-500 outline-none cursor-not-allowed" />
@@ -1058,9 +1128,9 @@ const Profile = () => {
                             <button
                                 type="button"
                                 onClick={handleSave}
-                                disabled={saving || isAllDetailsFilled}
+                                disabled={saving || (isAllDetailsFilled && !pendingProfileFile)}
                                 className={`flex-1 py-1.5 rounded-xl text-sm font-semibold uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 ${
-                                    isAllDetailsFilled
+                                    isAllDetailsFilled && !pendingProfileFile
                                         ? 'bg-gray-100 border border-gray-300 text-gray-400 cursor-not-allowed opacity-60'
                                         : 'bg-[#e0e7ff] border border-[#a5b4fc] text-[#3730a3] cursor-pointer hover:bg-[#c7d2fe] disabled:opacity-70 disabled:cursor-not-allowed'
                                 }`}

@@ -38,6 +38,7 @@ export const FilterProvider = ({ children }) => {
     }, [activeFilters]);
 
     const prevPathRef = useRef(location.pathname);
+    const configPathRef = useRef(location.pathname);
 
     // Reset when changing routes
     useEffect(() => {
@@ -46,18 +47,23 @@ export const FilterProvider = ({ children }) => {
             setIsFilterOpen(false);
             setIsSortOpen(false);
             setIsLabelMode(false);
-            setFilterConfigState(null);
-            setActiveFilters({});
-            setResultsCount(null);
+            // Only clear config if the new route didn't already register one during mount
+            if (configPathRef.current !== location.pathname) {
+                setFilterConfigState(null);
+                setActiveFilters({});
+                setResultsCount(null);
+            }
         }
     }, [location.pathname]);
 
     const setFilterConfig = useCallback((config) => {
-        setFilterConfigState(config);
         if (!config) {
+            setFilterConfigState(null);
             setActiveFilters({});
             return;
         }
+        configPathRef.current = location.pathname;
+        setFilterConfigState(config);
         setActiveFilters((prev) => {
             const next = { ...prev };
             if (config.initialValues) {

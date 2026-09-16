@@ -6,6 +6,7 @@ import API_BASE_URL from '../config/api';
 import { useAlert } from '../context/AlertContext';
 import { recordGuestLogin } from '../utils/guestCounter';
 
+
 const Login = () => {
     const { triggerAlert } = useAlert();
     const [employeeId, setEmployeeId] = useState('');
@@ -54,8 +55,12 @@ const Login = () => {
 
             if (res.ok) {
                 if (data.employee?.isGuest || data.employee?.role === 'guest_employee' || data.employee?.email === 'guestemployee@vehicleecare.com') {
-                    recordGuestLogin('employee');
+                    await recordGuestLogin('employee', {
+                        role: 'guest_employee',
+                        userId: data.employee?.email || 'guestemployee@vehicleecare.com'
+                    });
                 }
+
                 localStorage.setItem('employeeToken', data.token);
                 localStorage.setItem('employeeUser', JSON.stringify(data.employee));
                 localStorage.removeItem('guestWelcomeDismissed');

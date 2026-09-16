@@ -496,7 +496,7 @@ const UploadDocuments = () => {
             {/* View Document Modal (Matching Admin UI) */}
             {isViewModalOpen && selectedDoc && createPortal(
                 <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-sm"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#011023]/10 backdrop-blur-xs"
                     onClick={() => {
                         setIsViewModalOpen(false);
                         setSelectedDoc(null);

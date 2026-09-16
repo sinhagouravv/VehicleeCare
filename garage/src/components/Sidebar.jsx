@@ -3,11 +3,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CalendarCheck, Settings, Wrench, Star, PieChart, FileBarChart, Wallet, ClipboardList, Bell, ChevronLeft, LogOut, CreditCard, Users, UserSquare2, Car, CalendarDays, MessageCircleMore, BarChart3, Clock } from 'lucide-react';
 import Logo from '../assets/LOGO.svg';
 import { broadcastGarageLogout } from '../hooks/useMultiTabAuthSync';
+import { updateGuestSessionStatus } from '../utils/guestCounter';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
+        updateGuestSessionStatus('Ended', 'logout');
         broadcastGarageLogout();
         navigate('/login', { replace: true });
     };

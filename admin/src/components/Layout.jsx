@@ -6,12 +6,13 @@ import FilterButton from './FilterButton';
 import SortButton from './SortButton';
 import LabelButton from './LabelButton';
 import AddEmployeeButton from './AddEmployeeButton';
-import { Bug, MessageSquare, UploadCloud, ClipboardPen, Plus } from 'lucide-react';
+import { Bug, MessageSquare, UploadCloud, ClipboardPen, Plus, Mail } from 'lucide-react';
 import BugModal from '../pages/Bug';
 import RemarkModal from '../pages/Remark';
 import UploadDocumentsModal from '../pages/UploadDocuments';
 import RequestModal from '../pages/Request';
 import GuestWelcomeModal from './GuestWelcomeModal';
+import GuestAdminDetailsModal from './GuestAdminDetailsModal';
 import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
 import useMultiTabAuthSync from '../hooks/useMultiTabAuthSync';
 import { isGuestUser } from '../hooks/useGuestGuard';
@@ -26,14 +27,25 @@ const Layout = () => {
     const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-    const [guestCount, setGuestCount] = useState(0);
+    const [isGuestAdminModalOpen, setIsGuestAdminModalOpen] = useState(false);
+    const [guestCount, setGuestCount] = useState(() => {
+        const cached = localStorage.getItem('lastGuestCount');
+        return cached !== null && !isNaN(Number(cached)) ? Number(cached) : null;
+    });
+    const [isGuestCountLoading, setIsGuestCountLoading] = useState(() => {
+        return localStorage.getItem('lastGuestCount') === null;
+    });
 
     // Guest Logins counter polling
     useEffect(() => {
         let isMounted = true;
         const loadCount = async () => {
             const count = await fetchGuestCount();
-            if (isMounted) setGuestCount(count);
+            if (isMounted) {
+                setGuestCount(count);
+                setIsGuestCountLoading(false);
+                localStorage.setItem('lastGuestCount', String(count));
+            }
         };
         loadCount();
         const interval = setInterval(loadCount, 8000);
@@ -74,6 +86,7 @@ const Layout = () => {
             setIsRemarkModalOpen(false);
             setIsDocumentModalOpen(false);
             setIsRequestModalOpen(false);
+            setIsGuestAdminModalOpen(false);
             setModalHighlightId(location.state.highlightId || null);
             window.history.replaceState({}, document.title);
         } else if (location.state?.openRemarkModal) {
@@ -81,6 +94,7 @@ const Layout = () => {
             setIsBugModalOpen(false);
             setIsDocumentModalOpen(false);
             setIsRequestModalOpen(false);
+            setIsGuestAdminModalOpen(false);
             setModalHighlightId(location.state.highlightId || null);
             window.history.replaceState({}, document.title);
         } else if (location.state?.openDocumentModal) {
@@ -88,6 +102,7 @@ const Layout = () => {
             setIsBugModalOpen(false);
             setIsRemarkModalOpen(false);
             setIsRequestModalOpen(false);
+            setIsGuestAdminModalOpen(false);
             setModalHighlightId(location.state.highlightId || null);
             window.history.replaceState({}, document.title);
         } else if (location.state?.openRequestModal) {
@@ -95,6 +110,7 @@ const Layout = () => {
             setIsBugModalOpen(false);
             setIsRemarkModalOpen(false);
             setIsDocumentModalOpen(false);
+            setIsGuestAdminModalOpen(false);
             setModalHighlightId(location.state.highlightId || null);
             window.history.replaceState({}, document.title);
         }
@@ -138,6 +154,7 @@ const Layout = () => {
             setIsRemarkModalOpen(false);
             setIsDocumentModalOpen(false);
             setIsRequestModalOpen(false);
+            setIsGuestAdminModalOpen(false);
             setModalHighlightId(null);
         }
     }, [location.pathname]);
@@ -275,12 +292,21 @@ const Layout = () => {
         return () => clearInterval(interval);
     }, [checkNewItems]);
 
+    const isAnyModalOpen = isBugModalOpen || isRemarkModalOpen || isDocumentModalOpen || isRequestModalOpen || isGuestAdminModalOpen;
+
     return (
         <div className="min-h-screen bg-[#fafbfc] flex text-[#011023] font-sans">
             <GuestWelcomeModal />
             {/* Ambient Background Elements */}
             <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-300/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-5%] w-[30%] h-[50%] bg-blue-400/5 rounded-full blur-[150px] pointer-events-none"></div>
+
+            {/* Background Blur Overlay for Full App Container when Popup Modal is Open */}
+            {isAnyModalOpen && (
+                <div 
+                    className="fixed inset-0 bg-[#011023]/1 backdrop-blur-1 z-20 pointer-events-none transition-all duration-300"
+                />
+            )}
 
             <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
 
@@ -293,16 +319,49 @@ const Layout = () => {
 
             {/* Guest Logins Counter — stacked letter pill, top of right button column */}
             {!isGuestUser() && (
-                <div className="fixed top-[7.5rem] right-9 z-40 flex flex-col text-gray-600 items-center py-2.5 px-3 gap-0.5 border border-blue-200 bg-white/80 backdrop-blur-md shadow-sm rounded-full select-none cursor-default">
+                <div 
+                    onClick={() => {
+                        setIsBugModalOpen(false);
+                        setIsRemarkModalOpen(false);
+                        setIsDocumentModalOpen(false);
+                        setIsRequestModalOpen(false);
+                        setModalHighlightId(null);
+                        setIsGuestAdminModalOpen(prev => !prev);
+                    }}
+                    className={`fixed ${isAnyModalOpen ? 'top-[2.25rem]' : 'top-[7.5rem]'} right-9 z-40 flex flex-col items-center py-2.5 px-3 gap-0.5 border rounded-full select-none cursor-pointer transition-all duration-300 group shadow-xs hover:shadow-md ${
+                        isGuestAdminModalOpen 
+                            ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
+                            : 'border-blue-200 hover:border-blue-300 text-gray-600 hover:text-[#052558] bg-white/80 hover:bg-white backdrop-blur-sm'
+                    }`}
+                >
                     {['GC'].map((letter) => (
-                        <span key={letter} className="text-sm font-bold border-b border-gray-500 pb-2.5 uppercase mt-1 mb-1 leading-tight">
+                        <span key={letter} className={`text-sm font-bold border-b pb-2.5 uppercase mt-1 mb-1 leading-tight ${
+                            isGuestAdminModalOpen ? 'border-white text-white' : 'border-gray-500 group-hover:border-blue-500'
+                        }`}>
                             {letter}
                         </span>
                     ))}
-                    <span className="w-6 h-6 flex items-center justify-center text-[#052558] text-sm font-bold">
-                        {guestCount}
+                    <span className={`w-6 h-6 flex items-center justify-center text-sm font-semibold ${
+                        isGuestAdminModalOpen ? 'text-white' : 'text-[#052558]'}`}>
+                        {guestCount === null || isGuestCountLoading ? (
+                            <span className={`w-3.5 h-3.5 rounded-sm animate-pulse ${
+                                isGuestAdminModalOpen ? 'bg-white/70' : 'bg-slate-300'
+                            }`} />
+                        ) : (
+                            guestCount
+                        )}
                     </span>
                 </div>
+            )}
+
+            {/* Mail Button — positioned directly under the Guest Logins Counter pill */}
+            {!isGuestUser() && (
+                <button
+                    type="button"
+                    className={`fixed ${isAnyModalOpen ? 'top-[8.15rem]' : 'top-[13.5rem]'} right-9 z-40 p-3 rounded-full border border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group`}
+                >
+                    <Mail size={24} className="font-semibold"/>
+                </button>
             )}
 
             {/* Floating Action Buttons & Panels */}
@@ -310,13 +369,13 @@ const Layout = () => {
             <button
                 type="button"
                 onClick={() => setIsToolsMenuOpen(prev => !prev)}
-                className={`fixed bottom-[17.85rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group ${
+                className={`fixed bottom-[17.85rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group ${
                     isToolsMenuOpen 
                         ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
-                        : 'border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-[#fafbfc]'
+                        : 'border-blue-200 text-gray-600  hover:bg-blue-50 hover:text-blue-500 bg-[#fafbfc]'
                 }`}
             >
-                <Plus size={24} className={`transition-transform duration-300 ${isToolsMenuOpen ? 'rotate-45' : 'group-hover:scale-110'}`} />
+                <Plus size={24} className={`transition-transform duration-300 ${isToolsMenuOpen ? 'rotate-45' : ''}`} />
             </button>
 
             {/* Filter, Sort, Label & Add Employee Buttons (Smooth Expand / Collapse Upwards) */}
@@ -332,6 +391,7 @@ const Layout = () => {
                     setIsBugModalOpen(false);
                     setIsDocumentModalOpen(false);
                     setIsRequestModalOpen(false);
+                    setIsGuestAdminModalOpen(false);
                     setModalHighlightId(null);
                     if (!isRemarkModalOpen) {
                         setHasNewRemark(false);
@@ -339,13 +399,13 @@ const Layout = () => {
                     }
                     setIsRemarkModalOpen(prev => !prev);
                 }}
-                className={`fixed bottom-[13.95rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group ${
+                className={`fixed bottom-[13.95rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group ${
                     isRemarkModalOpen 
                         ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
-                        : 'border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                        : 'border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
                 }`}
             >
-                <MessageSquare size={24} className="group-hover:scale-110 transition-transform duration-300" />
+                <MessageSquare size={24} className="transition-transform duration-300" />
                 {hasNewRemark && !isRemarkModalOpen && (
                     <span className="absolute -top-0.25 -right-1 flex h-3 w-3">
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 ring-2 ring-white"></span>
@@ -360,6 +420,7 @@ const Layout = () => {
                     setIsBugModalOpen(false);
                     setIsRemarkModalOpen(false);
                     setIsDocumentModalOpen(false);
+                    setIsGuestAdminModalOpen(false);
                     setModalHighlightId(null);
                     if (!isRequestModalOpen) {
                         setHasNewRequest(false);
@@ -367,13 +428,13 @@ const Layout = () => {
                     }
                     setIsRequestModalOpen(prev => !prev);
                 }}
-                className={`fixed bottom-[10.05rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group ${
+                className={`fixed bottom-[10.05rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group ${
                     isRequestModalOpen 
                         ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
-                        : 'border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                        : 'border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
                 }`}
             >
-                <ClipboardPen size={24} className="group-hover:scale-110 transition-transform duration-300" />
+                <ClipboardPen size={24} className="transition-transform duration-300" />
                 {hasNewRequest && !isRequestModalOpen && (
                     <span className="absolute -top-0.25 -right-1 flex h-3 w-3">
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 ring-2 ring-white"></span>
@@ -388,6 +449,7 @@ const Layout = () => {
                     setIsBugModalOpen(false);
                     setIsRemarkModalOpen(false);
                     setIsRequestModalOpen(false);
+                    setIsGuestAdminModalOpen(false);
                     setModalHighlightId(null);
                     if (!isDocumentModalOpen) {
                         setHasNewDocument(false);
@@ -395,13 +457,13 @@ const Layout = () => {
                     }
                     setIsDocumentModalOpen(prev => !prev);
                 }}
-                className={`fixed bottom-[6.15rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group ${
+                className={`fixed bottom-[6.15rem] right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group ${
                     isDocumentModalOpen 
                         ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
-                        : 'border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                        : 'border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
                 }`}
             >
-                <UploadCloud size={24} className="group-hover:scale-110 transition-transform duration-300" />
+                <UploadCloud size={24} className="transition-transform duration-300" />
                 {hasNewDocument && !isDocumentModalOpen && (
                     <span className="absolute -top-0.25 -right-1 flex h-3 w-3">
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 ring-2 ring-white"></span>
@@ -416,6 +478,7 @@ const Layout = () => {
                     setIsRemarkModalOpen(false);
                     setIsDocumentModalOpen(false);
                     setIsRequestModalOpen(false);
+                    setIsGuestAdminModalOpen(false);
                     setModalHighlightId(null);
                     if (!isBugModalOpen) {
                         setHasNewBug(false);
@@ -423,13 +486,13 @@ const Layout = () => {
                     }
                     setIsBugModalOpen(prev => !prev);
                 }}
-                className={`fixed bottom-9 right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 duration-300 group ${
+                className={`fixed bottom-9 right-9 z-50 p-3 rounded-full border transition-all shadow-sm hover:shadow-sm cursor-pointer duration-300 group ${
                     isBugModalOpen 
                         ? 'bg-blue-500 text-white border-blue-500 shadow-md' 
-                        : 'border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                        : 'border-blue-200 text-text-gray-500 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
                 }`}
             >
-                <Bug size={24} className="group-hover:scale-110 transition-transform duration-300" />
+                <Bug size={24} className="transition-transform duration-300" />
                 {hasNewBug && !isBugModalOpen && (
                     <span className="absolute -top-0.25 -right-1 flex h-3 w-3">
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 ring-2 ring-white"></span>
@@ -502,6 +565,14 @@ const Layout = () => {
                     </div>
                 </>
             )}
+
+            {/* Guest Admin Details Modal */}
+            <GuestAdminDetailsModal 
+                isOpen={isGuestAdminModalOpen} 
+                onClose={() => setIsGuestAdminModalOpen(false)} 
+                guestCount={guestCount} 
+                isSidebarCollapsed={isSidebarCollapsed}
+            />
         </div>
     );
 };

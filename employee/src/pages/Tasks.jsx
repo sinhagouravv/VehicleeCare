@@ -1,21 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-    Search, 
-    Filter, 
-    Eye, 
-    Check, 
-    Loader2, 
-    AlertCircle, 
-    User, 
-    Phone, 
-    MapPin, 
-    Car, Calendar,
-    Clock,
-    X,
-    MessageSquare,
-    Send,
-    Bug as BugIcon } from 'lucide-react';
+import { Eye, Check, Loader2, X, MessageSquare, Send, Bug as BugIcon } from 'lucide-react';
 
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
@@ -25,12 +10,12 @@ import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL
 import useGuestGuard from '../hooks/useGuestGuard';
 
 const getSeverityColor = (severity) => {
-    switch (severity) {
-        case 'Critical': return 'bg-rose-100 text-rose-800 border-rose-200';
-        case 'High': return 'bg-orange-100 text-orange-800 border-orange-200';
-        case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        case 'Low': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        default: return 'bg-gray-100 text-gray-700';
+    switch (severity?.toLowerCase()) {
+        case 'critical': return 'bg-rose-100 text-rose-800 border-rose-200';
+        case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+        case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'low': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
 };
 
@@ -91,6 +76,12 @@ const Tasks = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [userRole, setUserRole] = useState('');
     const [employeeCategory, setEmployeeCategory] = useState('');
+
+    // Severity Assignment Modal State (for Developer bugs)
+    const [isSeverityModalOpen, setIsSeverityModalOpen] = useState(false);
+    const [bugForSeverity, setBugForSeverity] = useState(null);
+    const [selectedSeverityOption, setSelectedSeverityOption] = useState('');
+    const [submittingSeverity, setSubmittingSeverity] = useState(false);
 
     const isDeveloper = (employeeCategory || '').toLowerCase() === 'developer';
 
@@ -236,7 +227,10 @@ const Tasks = () => {
                 if (!res.ok) throw new Error("Server communication error.");
                 const data = await res.json();
                 if (data.success && Array.isArray(data.data)) {
-                    const allBugs = data.data;
+                    const allBugs = data.data.map(b => ({
+                        ...b,
+                        severity: b.status === 'Pending' ? '' : (b.severity || '')
+                    }));
                     const devBugs = allBugs.filter(b => {
                         const devId = String(b.assignedDeveloper?.id || '').toLowerCase();
                         const devEmpId = String(b.assignedDeveloper?.employeeId || '').toLowerCase();
@@ -275,27 +269,51 @@ const Tasks = () => {
         }
     };
 
-    const handleUpdateBugStatus = async (id, newStatus) => {
-        if (guardGuestAction()) return;
+    const handleUpdateBugStatus = async (id, newStatus, severity = null) => {
+        if (guardGuestAction()) return false;
         try {
+            const payload = { status: newStatus };
+            if (severity) payload.severity = severity;
+
             const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (data.success) {
-                setTasks(prev => prev.map(b => b._id === id ? { ...b, status: newStatus } : b));
+                setTasks(prev => prev.map(b => b._id === id ? { ...b, status: newStatus, ...(severity ? { severity } : {}) } : b));
                 if (selectedTask && selectedTask._id === id) {
-                    setSelectedTask(prev => ({ ...prev, status: newStatus }));
+                    setSelectedTask(prev => ({ ...prev, status: newStatus, ...(severity ? { severity } : {}) }));
                 }
-                triggerAlert('Bug status updated successfully', 'success');
+                triggerAlert(
+                    severity 
+                        ? `Bug marked as ${severity} & moved to ${newStatus}` 
+                        : 'Bug status updated successfully', 
+                    'success'
+                );
+                return true;
             } else {
                 triggerAlert(data.message || "Failed to update bug status.", 'error');
+                return false;
             }
         } catch (error) {
             console.error("Error updating bug status:", error);
             triggerAlert("Network error. Failed to update status.", 'error');
+            return false;
+        }
+    };
+
+    const handleConfirmSeverityAndProgress = async (severityOption) => {
+        if (guardGuestAction()) return;
+        if (!bugForSeverity) return;
+        const targetSeverity = severityOption || selectedSeverityOption || 'Medium';
+        setSubmittingSeverity(targetSeverity);
+        const success = await handleUpdateBugStatus(bugForSeverity._id, 'In Progress', targetSeverity);
+        setSubmittingSeverity(false);
+        if (success) {
+            setIsSeverityModalOpen(false);
+            setBugForSeverity(null);
         }
     };
 
@@ -729,12 +747,13 @@ const Tasks = () => {
                         <thead className="sticky top-0 z-30 shadow-sm">
                             {isDeveloper ? (
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4 font-bold text-center w-[10%]">Bug ID</th>
-                                    <th className="p-4 font-bold text-center w-[11%]">Portal</th>
+                                    <th className="p-4 font-bold text-center w-[9.25%]">Bug ID</th>
+                                    <th className="p-4 font-bold text-center w-[10%]">Portal</th>
                                     <th className="p-4 font-bold text-center w-[9%]">Reporter</th>
-                                    <th className="p-4 font-bold text-center w-[34%]">Bug Subject</th>
-                                    <th className="p-4 font-bold text-center w-[15%]">Reported At</th>
-                                    <th className="p-4 font-bold text-center w-[9.5%]">Status</th>
+                                    <th className="p-4 font-bold text-center w-[31%]">Bug Subject</th>
+                                    <th className="p-4 font-bold text-center w-[14%]">Reported At</th>
+                                    {/* <th className="p-4 font-bold text-center w-[8.75%]">Severity</th> */}
+                                    <th className="p-4 font-bold text-center w-[9%]">Status</th>
                                     <th className="p-4 font-bold text-center w-[7.5%]">Actions</th>
                                 </tr>
                             ) : (
@@ -751,10 +770,10 @@ const Tasks = () => {
                         </thead>
                         <tbody className="divide-y divide-[#e6f0fa] uppercase text-[12px]">
                             {loading && tasks.length === 0 ? (
-                                <TableSkeleton rows={15} cols={7} />
+                                <TableSkeleton rows={15} cols={isDeveloper ? 7 : 7} />
                             ) : filteredTasks.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="p-20 text-center text-sm text-gray-500 font-bold">
+                                    <td colSpan={isDeveloper ? 7 : 7} className="p-20 text-center text-sm text-gray-500 font-bold">
                                         {isDeveloper ? 'No bug reports found.' : 'No bookings found.'}
                                     </td>
                                 </tr>
@@ -809,7 +828,7 @@ const Tasks = () => {
                                                 </span>
                                             </td>
                                             <td className="p-4 text-sm font-semibold text-[#052558] text-center w-[12%]">{bug.reporterId}</td>
-                                            <td className="p-4 text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase ">{bug.title}</td>
+                                            <td className="p-4 text-sm text-center font-semibold text-[#011023] truncate max-w-[280px] uppercase ">{bug.title}</td>
                                             <td className="p-4 text-center whitespace-nowrap text-sm text-gray-800 font-semibold">
                                                 <div className="flex items-center justify-center w-full">
                                                     <span className="flex-1 text-right">{new Date(bug.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
@@ -817,6 +836,15 @@ const Tasks = () => {
                                                     <span className="flex-1 text-left">{new Date(bug.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
                                                 </div>
                                             </td>
+                                            {/* <td className="p-4 text-center w-[8.75%]">
+                                                {bug.status !== 'Pending' && bug.severity && bug.severity.trim() !== '' && bug.severity !== '-' ? (
+                                                    <span className={`inline-block px-3 py-1 text-xs text-center font-bold uppercase rounded-full border ${getSeverityColor(bug.severity)}`}>
+                                                        {bug.severity}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-600 font-bold text-sm">—</span>
+                                                )}
+                                            </td> */}
                                             <td className="p-4 text-center">
                                                 <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getBugStatusColor(bug.status)}`}>
                                                     {bug.status}
@@ -837,7 +865,9 @@ const Tasks = () => {
                                                         <button
                                                             onClick={() => {
                                                                 if (bug.status === 'Pending') {
-                                                                    handleUpdateBugStatus(bug._id, 'In Progress');
+                                                                    setBugForSeverity(bug);
+                                                                    setSelectedSeverityOption(bug.severity || '');
+                                                                    setIsSeverityModalOpen(true);
                                                                 } else if (bug.status === 'In Progress') {
                                                                     handleUpdateBugStatus(bug._id, 'Resolved');
                                                                 }
@@ -1017,6 +1047,85 @@ const Tasks = () => {
                 </div>
             </div>
 
+            {/* Assign Severity Level Modal (Developer Tasks) */}
+            {isSeverityModalOpen && bugForSeverity && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-[#011023]/10 backdrop-blur-sm" 
+                        onClick={() => {
+                            if (!submittingSeverity) {
+                                setIsSeverityModalOpen(false);
+                                setBugForSeverity(null);
+                            }
+                        }} 
+                    />
+                    <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 p-6 space-y-6 animate-in zoom-in duration-200">
+                        {/* Form Header */}
+                        <div className="flex justify-between items-center pb-2">
+                            <h3 className="text-xl font-bold text-[#011023] uppercase tracking-wide flex items-center gap-2">
+                                Mark Bug Severity
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    if (!submittingSeverity) {
+                                        setIsSeverityModalOpen(false);
+                                        setBugForSeverity(null);
+                                    }
+                                }}
+                                disabled={Boolean(submittingSeverity)}
+                                className="p-2 text-gray-400 hover:text-[#011023] hover:bg-slate-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={(e) => e.preventDefault()} className="space-y-4.5 text-left">
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Select severity for bug <span className="text-[#011023] font-bold">{(bugForSeverity.bugId || bugForSeverity._id?.slice(0, 8))?.replace(/-/g, '')}</span> to move to <span className="text-purple-600 font-bold">IN PROGRESS</span>:
+                                </p>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {[
+                                    { value: 'Low', label: 'Low', desc: 'Cosmetic / Minor issue', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+                                    { value: 'Medium', label: 'Medium', desc: 'Feature malfunctioning / Normal', badge: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+                                    { value: 'High', label: 'High', desc: 'Broken workflow / Major issue', badge: 'bg-orange-100 text-orange-800 border-orange-200' },
+                                    { value: 'Critical', label: 'Critical', desc: 'App crash / Blocker', badge: 'bg-rose-100 text-rose-800 border-rose-200' }
+                                ].map((option) => (
+                                    <button 
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => handleConfirmSeverityAndProgress(option.value)}
+                                        disabled={Boolean(submittingSeverity)}
+                                        className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer text-left group ${
+                                            selectedSeverityOption === option.value
+                                                ? 'bg-blue-50/70 border-blue-300 text-[#011023] shadow-xs'
+                                                : 'bg-gray-50/50 border-gray-200 text-gray-700 hover:bg-blue-50/30 hover:border-blue-200'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-full border ${option.badge}`}>
+                                                {option.label}
+                                            </span>
+                                            <span className="text-xs font-semibold text-gray-500 uppercase">{option.desc}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {submittingSeverity === option.value ? (
+                                                <Loader2 size={16} className="animate-spin text-blue-600" />
+                                            ) : (
+                                                <span className="text-xs font-bold text-blue-600 uppercase opacity-0 group-hover:opacity-100 transition-opacity">Select →</span>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {/* View Details Modal */}
             {isDeveloper && isViewModalOpen && selectedTask && createPortal(
                 <div
@@ -1052,27 +1161,30 @@ const Tasks = () => {
                                 </div>
                                 <div className="space-y-4 w-full md:w-[25%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Issue Meta</h4>
-                                    <div className="pt-4 rounded-xl uppercase space-y-2">
-                                        <div className="text-sm flex items-center"><span className="text-gray-500 w-20 shrink-0 font-medium">Severity</span> <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getSeverityColor(selectedTask.severity)}`}>{selectedTask.severity || 'Medium'}</span></div>
+                                    <div className="pt-3.75 rounded-xl uppercase space-y-1.75">
+                                        <div className="text-sm flex items-center">
+                                            <span className="text-gray-500 w-20 shrink-0 font-medium">Severity</span> 
+                                            {selectedTask.status !== 'Pending' && selectedTask.severity && selectedTask.severity.trim() !== '' && selectedTask.severity !== '-' ? (
+                                                <span className={`inline-block px-3 py-1 text-xs text-center font-bold uppercase rounded-full border ${getSeverityColor(selectedTask.severity)}`}>
+                                                    {selectedTask.severity}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-600 ml-8 font-bold text-sm">—</span>
+                                            )}
+                                        </div>
                                         <div className="text-sm flex items-center">
                                             <span className="text-gray-500 w-20 shrink-0 font-medium">Status</span> 
-                                            <select 
-                                                value={selectedTask.status} 
-                                                onChange={(e) => handleUpdateBugStatus(selectedTask._id, e.target.value)}
-                                                className={`px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent cursor-pointer outline-none ${getBugStatusColor(selectedTask.status)}`}
-                                            >
-                                                <option value="Pending">Pending</option>
-                                                <option value="In Progress">In Progress</option>
-                                                <option value="Resolved">Resolved</option>
-                                            </select>
+                                            <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getBugStatusColor(selectedTask.status)}`}>
+                                                {selectedTask.status}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="space-y-4 w-full md:w-[37%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Timeline</h4>
-                                    <div className="pt-4 rounded-xl uppercase space-y-2">
+                                    <div className="pt-3.5 rounded-xl uppercase space-y-2">
                                         <p className="text-sm flex items-center"><span className="text-gray-500 w-24 shrink-0 font-medium">Portal:</span> <span className={`inline-block px-3 py-1 text-xs font-semibold ml-3.5 rounded-full ${getPortalColor(selectedTask.portal)}`}>{getPortalLabel(selectedTask.portal)}</span></p>
-                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0 uppercase font-medium">Reported On:</span> <span className="font-bold text-gray-600 text-sm">{formatSubmittedAt(selectedTask.createdAt)}</span></p>
+                                        <p className="text-sm flex"><span className="text-gray-500 w-28 shrink-0 uppercase font-medium">Reported On:</span> <span className="font-semibold text-gray-800 text-sm">{formatSubmittedAt(selectedTask.createdAt)}</span></p>
                                     </div>
                                 </div>
                             </div>
@@ -1089,7 +1201,7 @@ const Tasks = () => {
                         </div>
 
                         {/* Footer Action */}
-                        <div className="p-4 border-t border-gray-100 flex justify-end gap-3">
+                        {/* <div className="p-4 border-t border-gray-100 flex justify-end gap-3">
                             <button
                                 onClick={() => handleUpdateBugStatus(selectedTask._id, selectedTask.status === 'Resolved' ? 'In Progress' : 'Resolved')}
                                 className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
@@ -1100,7 +1212,7 @@ const Tasks = () => {
                             >
                                 {selectedTask.status === 'Resolved' ? 'Reopen Bug (In Progress)' : 'Mark as Resolved'}
                             </button>
-                        </div>
+                        </div> */}
                     </div>
                 </div>,
                 document.body

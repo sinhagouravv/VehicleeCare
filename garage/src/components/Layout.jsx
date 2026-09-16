@@ -55,8 +55,7 @@ const Layout = () => {
                     reporterName: user.name || 'Garage Portal User',
                     portal: 'garage',
                     title: bugTitle,
-                    description: bugDesc,
-                    severity: bugSeverity
+                    description: bugDesc
                 })
             });
 

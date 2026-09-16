@@ -52,8 +52,7 @@ const Layout = () => {
                     reporterName: user.name || 'Employee Portal User',
                     portal: 'employee',
                     title: bugTitle,
-                    description: bugDesc,
-                    severity: bugSeverity
+                    description: bugDesc
                 })
             });
 

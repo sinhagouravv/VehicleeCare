@@ -210,15 +210,20 @@ const Staff = () => {
     const highlightedRow = useHighlight(filteredStaffMembers);
 
     const defaultForm = {
-        name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
+        name: '', email: '', phone: '', role: '', state: '', district: '', pincode: '', address: '', category: 'Garage',
         shift: '', panCard: '', adharCard: '', voterId: '', agreement: '', salaryType: ''
     };
 
     const [form, setForm] = useState(defaultForm);
+    const [touched, setTouched] = useState({});
+
+    const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+    const isPhoneValid = (phone) => /^\d{10}$/.test(String(phone || '').replace(/\D/g, ''));
 
     const handleCloseAddModal = () => {
         setIsAddModalOpen(false);
         setIsEditMode(false);
+        setTouched({});
         setForm(defaultForm);
     };
 
@@ -277,6 +282,9 @@ const Staff = () => {
         if (!form.name || !form.name.trim()) {
             return triggerAlert('Full Name is required', 'error');
         }
+        if (!/^[a-zA-Z\s]+$/.test(form.name.trim())) {
+            return triggerAlert('Full Name can only contain letters and spaces', 'error');
+        }
         if (!form.phone || !cleanPhone) {
             return triggerAlert('Phone Number is required', 'error');
         }
@@ -284,9 +292,11 @@ const Staff = () => {
             return triggerAlert('Phone Number must be exactly 10 digits', 'error');
         }
         if (!form.email || !form.email.trim()) {
+            setTouched(prev => ({ ...prev, email: true }));
             return triggerAlert('Email Address is required', 'error');
         }
         if (!emailRegex.test(form.email.trim())) {
+            setTouched(prev => ({ ...prev, email: true }));
             return triggerAlert('Please enter a valid Email Address', 'error');
         }
         if (!form.role) {
@@ -297,6 +307,9 @@ const Staff = () => {
         }
         if (!form.salaryType) {
             return triggerAlert('Salary Type is required', 'error');
+        }
+        if (form.pincode && form.pincode.length !== 6) {
+            return triggerAlert('Please enter a valid 6-digit Pincode', 'error');
         }
         if (!form.address || !form.address.trim()) {
             return triggerAlert('Residential Address is required', 'error');
@@ -324,10 +337,7 @@ const Staff = () => {
                 await fetchStaff(true);
                 setIsAddModalOpen(false);
                 setIsEditMode(false);
-                setForm({
-                    name: '', email: '', phone: '', role: '', address: '', category: 'Garage',
-                    shift: '', panCard: '', adharCard: '', voterId: '', agreement: '', salaryType: ''
-                });
+                setForm(defaultForm);
                 triggerAlert(isEditMode ? 'Employee updated successfully' : 'Employee added successfully', 'success');
             } else {
                 triggerAlert(data.message || 'Failed to process employee', 'error');
@@ -342,7 +352,13 @@ const Staff = () => {
 
     const handleEdit = (staff) => {
         if (guardGuestAction()) return;
-        setForm({ ...staff });
+        setForm({
+            ...defaultForm,
+            ...staff,
+            state: staff.state || '',
+            district: staff.district || '',
+            pincode: staff.pincode || ''
+        });
         setIsEditMode(true);
         setIsAddModalOpen(true);
     };
@@ -804,7 +820,17 @@ const Staff = () => {
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Full Name</label>
-                                    <input autoComplete="off" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" />
+                                    <input
+                                        autoComplete="off"
+                                        value={form.name}
+                                        onKeyDown={e => {
+                                            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !/^[a-zA-Z\s]$/.test(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={e => setForm({ ...form, name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Phone Number</label>
@@ -862,6 +888,48 @@ const Staff = () => {
                                     <input value={form.voterId} onChange={e => setForm({ ...form, voterId: formatVoter(e.target.value) })} className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]" maxLength={10} />
                                 </div>
                             </div> */}
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">State</label>
+                                    <input
+                                        autoComplete="off"
+                                        value={form.state}
+                                        onKeyDown={e => {
+                                            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !/^[a-zA-Z\s]$/.test(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={e => setForm({ ...form, state: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">District</label>
+                                    <input
+                                        autoComplete="off"
+                                        value={form.district}
+                                        onKeyDown={e => {
+                                            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !/^[a-zA-Z\s]$/.test(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={e => setForm({ ...form, district: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Pincode</label>
+                                    <input
+                                        autoComplete="off"
+                                        type="tel"
+                                        maxLength={6}
+                                        value={form.pincode}
+                                        onChange={e => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                                        className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#cbd5e1] uppercase rounded-xl focus:outline-none focus:bg-white focus:border-[#a5b4fc] transition-all font-semibold font-sans text-xs text-[#011023]"
+                                    />
+                                </div>
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="block text-xs font-semibold text-[#011023] uppercase tracking-wider">Residential Address</label>

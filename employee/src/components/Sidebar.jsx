@@ -4,11 +4,13 @@ import { LayoutDashboard, ClipboardList, Settings, CalendarCheck, ListTodo, Bell
 
 import Logo from '../assets/logo.svg';
 import { broadcastEmployeeLogout } from '../hooks/useMultiTabAuthSync';
+import { updateGuestSessionStatus } from '../utils/guestCounter';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
+        updateGuestSessionStatus('Ended', 'logout');
         broadcastEmployeeLogout();
         navigate('/login', { replace: true });
     };

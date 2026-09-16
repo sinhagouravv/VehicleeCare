@@ -648,24 +648,23 @@ const Employees = () => {
                                              </td>
                                             <td className="p-4 text-center">
                                                 <div className="flex items-center justify-center gap-3.5">
-                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500" title="View Details">
+                                                    <button onClick={() => handleViewEmployee(employee)} className="text-gray-400 hover:text-blue-500">
                                                         <Eye size={17} />
                                                     </button>
-                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500" title="Download ID Card">
+                                                    <button onClick={() => handleDownloadPDF(employee)} className="text-gray-400 hover:text-emerald-500">
                                                         <Download size={17} />
                                                     </button>
                                                     <button 
                                                         onClick={() => handleResendWelcomeEmail(employee)} 
                                                         disabled={resendingEmailId === employee._id}
                                                         className="text-gray-400 hover:text-indigo-600 disabled:opacity-50 transition-colors" 
-                                                        title="Send Login Credentials Email"
                                                     >
                                                         {resendingEmailId === employee._id ? <Loader2 size={17} className="animate-spin text-indigo-600" /> : <Mail size={17} />}
                                                     </button>
-                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500" title="Disable Employee">
+                                                    <button onClick={() => { setBanEmployee(employee); setBanReason(''); setBanSuccess(''); }} className="text-gray-400 hover:text-red-500">
                                                         <UserX size={17} />
                                                     </button>
-                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600" title="Delete Employee">
+                                                    <button onClick={() => { setEmployeeToDelete(employee); setIsDeleteModalOpen(true); }} className="text-gray-400 hover:text-red-600">
                                                         <Trash2 size={17} />
                                                     </button>
                                                 </div>

@@ -6,6 +6,7 @@ import API_BASE_URL from '../config/api';
 import { useAlert } from '../context/AlertContext';
 import { recordGuestLogin } from '../utils/guestCounter';
 
+
 const Login = () => {
     const { triggerAlert } = useAlert();
     const [garageId, setGarageId] = useState('');
@@ -117,8 +118,12 @@ const Login = () => {
 
             if (res.ok) {
                 if (data.garage?.isGuest || data.garage?.role === 'guest_garage' || data.garage?.ownerEmail === 'guestgarage@vehicleecare.com') {
-                    recordGuestLogin('garage');
+                    await recordGuestLogin('garage', {
+                        role: 'guest_garage',
+                        userId: data.garage?.ownerEmail || 'guestgarage@vehicleecare.com'
+                    });
                 }
+
                 localStorage.setItem('garageToken', data.token);
                 localStorage.setItem('garageUser', JSON.stringify(data.garage));
                 localStorage.removeItem('guestWelcomeDismissed');

@@ -79,24 +79,24 @@ const LabelButton = ({ isMenuOpen = true }) => {
             <button
                 ref={buttonRef}
                 onClick={handleToggle}
-                className={`fixed bottom-[29.55rem] right-9 z-50 p-3 rounded-full border flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:shadow-md cursor-pointer hover:scale-105 active:scale-95 group ${
+                className={`fixed bottom-[29.55rem] right-9 z-50 p-3 rounded-full border flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:shadow-md cursor-pointer group ${
                     isMenuOpen
                         ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
                         : 'opacity-0 scale-90 translate-y-4 pointer-events-none'
                 } ${
                     isLabelMode
                         ? 'bg-blue-500 text-white border-blue-600 shadow-md'
-                        : 'border-blue-200 text-[#527FB0] hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                        : 'border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
                 }`}
             >
-                <Tag size={24} className="group-hover:scale-110 transition-transform duration-300" />
+                <Tag size={24} className="transition-transform duration-300" />
             </button>
 
             {/* Floating Info Popover when info is explicitly opened */}
             {isInfoOpen && (
                 <div
                     ref={popupRef}
-                    className="fixed bottom-[25.65rem] right-24 z-50 w-max max-w-[calc(100vw-7.5rem)] bg-white/95 backdrop-blur-2xl border border-blue-100/80 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] overflow-hidden p-5 space-y-3 animate-in fade-in zoom-in-95 duration-200"
+                    className="fixed bottom-[29.55rem] right-24 z-50 w-max max-w-[calc(100vw-7.5rem)] bg-white/95 backdrop-blur-2xl border border-blue-100/80 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] overflow-hidden p-5 space-y-3 animate-in fade-in zoom-in-95 duration-200"
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between pb-2 border-b border-gray-100 gap-6">

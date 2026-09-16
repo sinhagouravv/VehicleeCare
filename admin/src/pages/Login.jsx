@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../config/api';
 import { useAlert } from '../context/AlertContext';
 import { recordGuestLogin } from '../utils/guestCounter';
 
+
 const Login = () => {
     const { triggerAlert } = useAlert();
     const [email, setEmail] = useState('');
@@ -180,8 +181,12 @@ const Login = () => {
 
             if (res.ok && !data.requires2FA) {
                 if (data.admin?.isGuest || data.admin?.role === 'guest_admin' || data.admin?.email === 'guestadmin@vehicleecare.com') {
-                    recordGuestLogin('admin');
+                    await recordGuestLogin('admin', {
+                        role: 'guest_admin',
+                        userId: data.admin?.email || 'guestadmin@vehicleecare.com'
+                    });
                 }
+
                 localStorage.setItem('adminToken', data.token);
                 localStorage.setItem('adminUser', JSON.stringify(data.admin));
                 localStorage.removeItem('guestWelcomeDismissed');

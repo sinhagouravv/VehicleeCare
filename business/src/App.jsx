@@ -36,8 +36,7 @@ const MainLayout = () => {
           reporterName: user.name || 'Business Portal User',
           portal: 'business',
           title: bugTitle,
-          description: bugDesc,
-          severity: bugSeverity
+          description: bugDesc
         })
       });
 
