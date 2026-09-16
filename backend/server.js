@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 5001;
 
 const authRoutes = require('./routes/authRoutes');
@@ -15,6 +16,10 @@ const { checkGuestReadOnly } = require('./middleware/authMiddleware');
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+    console.log(`[REQ] ${req.method} ${req.originalUrl || req.url}`);
+    next();
+});
 app.use(checkGuestReadOnly);
 
 // MongoDB Connection

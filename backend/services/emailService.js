@@ -249,6 +249,45 @@ const sendAuthOtpEmail = async ({ to, name, portalTitle, purpose, otp }) => {
     });
 };
 
+// ── Guest Login Security Alert Email ─────────────────────────────
+const sendGuestLoginAlertEmail = async (details = {}) => {
+    try {
+        const targetEmail = process.env.ADMIN_ALERT_EMAIL || process.env.EMAIL_USER;
+        if (!targetEmail) return null;
+
+        const html = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h1 style="color: #052558; font-size: 22px; font-weight: 800; margin: 0; text-transform: uppercase;">VehicleeCare Security Alert</h1>
+                    <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Guest Admin Login Detected</p>
+                </div>
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; font-size: 13px; line-height: 1.8; color: #1e293b;">
+                    <p style="margin: 0 0 8px 0;"><strong>Application:</strong> ${details.application || 'VehicleeCare'}</p>
+                    <p style="margin: 0 0 8px 0;"><strong>Session ID:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${details.sessionId || 'N/A'}</code></p>
+                    <p style="margin: 0 0 8px 0;"><strong>User ID:</strong> ${details.userId || 'guestadmin@vehicleecare.com'}</p>
+                    <p style="margin: 0 0 8px 0;"><strong>Role:</strong> <span style="background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 6px; font-weight: 600;">${details.role || 'guest_admin'}</span></p>
+                    <p style="margin: 0 0 8px 0;"><strong>Action:</strong> <span style="background: #fdf4ff; color: #86198f; padding: 2px 8px; border-radius: 6px; font-weight: 600;">${details.action || 'VIEW_DASHBOARD'}</span></p>
+                    <p style="margin: 0 0 8px 0;"><strong>IP Address:</strong> <code>${details.ipAddress || 'unknown'}</code></p>
+                    <p style="margin: 0 0 8px 0;"><strong>User Agent:</strong> <span style="color: #64748b; font-size: 12px; word-break: break-all;">${details.userAgent || 'unknown'}</span></p>
+                    <p style="margin: 0;"><strong>Timestamp:</strong> ${details.timestamp ? new Date(details.timestamp).toUTCString() : new Date().toUTCString()}</p>
+                </div>
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; margin-top: 16px;">
+                    This automated alert was generated when a user logged into VehicleeCare using guest credentials.
+                </p>
+            </div>
+        `;
+
+        return await sendEmail({
+            to: targetEmail,
+            subject: `[VehicleeCare Alert] Guest Admin Login Detected (${details.sessionId || 'Session'})`,
+            html
+        });
+    } catch (err) {
+        console.error('Failed to send guest login alert email:', err.message);
+        return null;
+    }
+};
+
 module.exports = {
     transporter,
     sendEmail,
@@ -256,5 +295,7 @@ module.exports = {
     sendInServiceOtpEmail,
     sendEmployeeWelcomeEmail,
     sendGarageWelcomeEmail,
-    sendAuthOtpEmail
+    sendAuthOtpEmail,
+    sendGuestLoginAlertEmail
 };
+

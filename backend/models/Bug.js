@@ -29,8 +29,8 @@ const BugSchema = new mongoose.Schema({
     },
     severity: {
         type: String,
-        enum: ['Low', 'Medium', 'High', 'Critical'],
-        default: 'Medium'
+        enum: ['Low', 'Medium', 'High', 'Critical', '', '-', null],
+        default: ''
     },
     status: {
         type: String,

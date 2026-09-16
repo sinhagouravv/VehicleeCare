@@ -46,6 +46,18 @@ const employeeSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    state: {
+        type: String,
+        default: ''
+    },
+    district: {
+        type: String,
+        default: ''
+    },
+    pincode: {
+        type: String,
+        default: ''
+    },
     shift: {
         type: String,
         default: 'Morning'

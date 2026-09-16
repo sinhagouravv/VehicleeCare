@@ -33,6 +33,11 @@ exports.checkGuestReadOnly = (req, res, next) => {
         return next();
     }
 
+    // Always allow auth and guest count incrementing routes
+    if (req.originalUrl && (req.originalUrl.includes('/increment-guest-count') || req.originalUrl.includes('/api/auth'))) {
+        return next();
+    }
+
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer')) {
         try {
@@ -56,7 +61,7 @@ exports.checkGuestReadOnly = (req, res, next) => {
                 });
             }
 
-            if (employee && (employee.role === 'guest_employee' || employee.isGuest === true)) {
+            if (employee && (employee.role === 'guest_employee' || employee.isGuest === true || employee.email === 'guestemployee@vehicleecare.com')) {
                 return res.status(403).json({
                     success: false,
                     msg: 'The guest employee only has read rights.'

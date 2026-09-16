@@ -132,7 +132,7 @@ exports.reportBug = async (req, res) => {
             portal,
             title,
             description,
-            severity: severity || 'Medium',
+            severity: '',
             assignedDeveloper
         });
 
@@ -165,7 +165,8 @@ exports.getAllBugs = async (req, res) => {
     try {
         const bugs = await Bug.find().sort({ createdAt: -1 }).lean();
         const enrichedBugs = await Promise.all(bugs.map(b => ensureAssignedDeveloper(b)));
-        res.status(200).json({ success: true, data: enrichedBugs });
+        const sanitizedBugs = enrichedBugs.map(b => (b.status === 'Pending' ? { ...b, severity: '' } : b));
+        res.status(200).json({ success: true, data: sanitizedBugs });
     } catch (err) {
         console.error("Error getting bugs:", err);
         res.status(500).json({ success: false, message: 'Server Error' });
@@ -181,8 +182,9 @@ exports.getDeveloperBugs = async (req, res) => {
 
         const allBugs = await Bug.find().sort({ createdAt: -1 }).lean();
         const enrichedBugs = await Promise.all(allBugs.map(b => ensureAssignedDeveloper(b)));
+        const sanitizedBugs = enrichedBugs.map(b => (b.status === 'Pending' ? { ...b, severity: '' } : b));
 
-        const devBugs = enrichedBugs.filter(b => {
+        const devBugs = sanitizedBugs.filter(b => {
             const devId = String(b.assignedDeveloper?.id || '').trim().toLowerCase();
             const devEmpId = String(b.assignedDeveloper?.employeeId || '').trim().toLowerCase();
             return devId === target || devEmpId === target;
@@ -199,14 +201,17 @@ exports.getDeveloperBugs = async (req, res) => {
 // @route   PATCH /api/bugs/:id/status
 exports.updateBugStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, severity } = req.body;
         if (!status) {
             return res.status(400).json({ success: false, message: 'Status is required' });
         }
 
+        const updateData = { status };
+        if (severity) updateData.severity = severity;
+
         const bug = await Bug.findByIdAndUpdate(
             req.params.id,
-            { status },
+            updateData,
             { new: true, runValidators: true }
         );
 
