@@ -45,6 +45,7 @@ exports.submitReview = async (req, res) => {
             }
         });
 
+        invalidateBusinessReviewsCache();
         res.status(201).json({
             success: true,
             message: 'Review submitted successfully and is pending approval.',
@@ -66,10 +67,41 @@ exports.getApprovedReviews = async (req, res) => {
     }
 };
 
+let allBusinessReviewsCache = null;
+let allBusinessReviewsCacheTime = 0;
+let allBusinessReviewsInFlight = null;
+
+const invalidateBusinessReviewsCache = () => {
+    allBusinessReviewsCache = null;
+    allBusinessReviewsCacheTime = 0;
+};
+
 exports.getAllReviews = async (req, res) => {
     try {
-        const reviews = await BusinessReview.find().sort({ createdAt: -1 }).populate('businessUser', 'name email userId');
-        res.status(200).json({ success: true, data: reviews });
+        const now = Date.now();
+        if (allBusinessReviewsCache && (now - allBusinessReviewsCacheTime < 5000)) {
+            return res.status(200).json({ success: true, count: allBusinessReviewsCache.length, data: allBusinessReviewsCache });
+        }
+
+        if (!allBusinessReviewsInFlight) {
+            allBusinessReviewsInFlight = BusinessReview.find()
+                .sort({ createdAt: -1 })
+                .populate('businessUser', 'name email userId')
+                .lean()
+                .then(data => {
+                    allBusinessReviewsCache = data;
+                    allBusinessReviewsCacheTime = Date.now();
+                    allBusinessReviewsInFlight = null;
+                    return data;
+                })
+                .catch(err => {
+                    allBusinessReviewsInFlight = null;
+                    throw err;
+                });
+        }
+
+        const reviews = await allBusinessReviewsInFlight;
+        res.status(200).json({ success: true, count: reviews.length, data: reviews });
     } catch (error) {
         console.error('Get All Business Reviews Error:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch reviews' });
@@ -95,6 +127,7 @@ exports.updateReviewStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Review not found' });
         }
 
+        invalidateBusinessReviewsCache();
         res.status(200).json({ success: true, message: `Review ${status} successfully`, data: review });
     } catch (error) {
         console.error('Update Business Review Status Error:', error);
@@ -111,6 +144,7 @@ exports.deleteReview = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Review not found' });
         }
 
+        invalidateBusinessReviewsCache();
         res.status(200).json({ success: true, message: 'Review deleted successfully' });
     } catch (error) {
         console.error('Delete Business Review Error:', error);

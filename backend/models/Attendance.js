@@ -58,5 +58,6 @@ const attendanceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 attendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
+attendanceSchema.index({ garageId: 1, date: -1 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

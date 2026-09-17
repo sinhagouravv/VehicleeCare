@@ -142,6 +142,7 @@ const checkIn = async (req, res) => {
             status
         });
 
+        if (record.garageId) invalidateGarageAttendanceCache(record.garageId);
         res.status(201).json({ success: true, data: record });
     } catch (err) {
         if (err.code === 11000) {
@@ -186,6 +187,7 @@ const checkOut = async (req, res) => {
 
         if (record.garageId) {
             delete lastAutoMarkTimes[record.garageId.toString()];
+            invalidateGarageAttendanceCache(record.garageId);
         }
 
         res.status(200).json({ success: true, data: record });
@@ -361,57 +363,106 @@ const autoMarkAbsences = async (garageId) => {
     }
 };
 
+const garageAttendanceInFlight = new Map();
+const garageAttendanceCache = new Map();
+
+const invalidateGarageAttendanceCache = (garageId) => {
+    if (garageId) {
+        for (const k of garageAttendanceCache.keys()) {
+            if (k.startsWith(String(garageId))) garageAttendanceCache.delete(k);
+        }
+    } else {
+        garageAttendanceCache.clear();
+    }
+};
+
 // ──────────────────────────────────────────────
 // @desc  Get all attendance records for a garage
 // @route GET /api/attendance/garage/:garageId
 // ──────────────────────────────────────────────
 const getGarageAttendance = async (req, res) => {
     try {
-        const garageId = req.params.garageId;
-        const now = Date.now();
-        const lastMark = lastAutoMarkTimes[garageId] || 0;
-        // Only run autoMarkAbsences at most once every 10 minutes (600000ms)
-        if (now - lastMark > 10 * 60 * 1000) {
-            await autoMarkAbsences(garageId);
-            lastAutoMarkTimes[garageId] = now;
+        const garageId = String(req.params.garageId || '').trim();
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
         }
 
         const { date } = req.query;
-        const query = { garageId: req.params.garageId };
-        if (date) query.date = date;
+        const cacheKey = date ? `${garageId}:${date}` : garageId;
+        const now = Date.now();
 
-        const records = await Attendance.find(query).sort({ date: -1 }).lean();
-        
-        // Fetch employees to get their actual current shift
-        const employees = await Employee.find({ garageId: req.params.garageId }).select('employeeId shift');
-        const shiftMap = {};
-        employees.forEach(emp => {
-            shiftMap[emp.employeeId] = emp.shift || 'Morning';
-        });
-
-        const updatedRecords = records.map(record => ({
-            ...record,
-            shift: shiftMap[record.employeeId] || record.shift || 'Morning'
-        }));
-
-        // Fetch leave requests for "On Leave" records to ensure leave dates are present
-        const onLeaveRecords = updatedRecords.filter(r => r.status === 'On Leave' && (!r.leaveStartDate || !r.leaveEndDate));
-        if (onLeaveRecords.length > 0) {
-            for (const r of onLeaveRecords) {
-                const leave = await LeaveRequest.findOne({
-                    employeeId: r.employeeId,
-                    status: 'Approved',
-                    startDate: { $lte: r.date },
-                    endDate: { $gte: r.date }
-                });
-                if (leave) {
-                    r.leaveStartDate = leave.startDate;
-                    r.leaveEndDate = leave.endDate;
-                }
+        if (garageAttendanceCache.size > 200) {
+            for (const [k, v] of garageAttendanceCache.entries()) {
+                if (now - v.timestamp >= 5000) garageAttendanceCache.delete(k);
             }
         }
 
-        res.status(200).json({ success: true, count: updatedRecords.length, data: updatedRecords });
+        const cached = garageAttendanceCache.get(cacheKey);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        let queryPromise = garageAttendanceInFlight.get(cacheKey);
+        if (!queryPromise) {
+            queryPromise = (async () => {
+                const lastMark = lastAutoMarkTimes[garageId] || 0;
+                if (now - lastMark > 10 * 60 * 1000) {
+                    await autoMarkAbsences(garageId);
+                    lastAutoMarkTimes[garageId] = now;
+                }
+
+                const query = { garageId };
+                if (date) query.date = date;
+
+                const [records, employees] = await Promise.all([
+                    Attendance.find(query).sort({ date: -1 }).lean(),
+                    Employee.find({ garageId }).select('employeeId shift').lean()
+                ]);
+
+                const shiftMap = {};
+                employees.forEach(emp => {
+                    shiftMap[emp.employeeId] = emp.shift || 'Morning';
+                });
+
+                const updatedRecords = records.map(record => ({
+                    ...record,
+                    shift: shiftMap[record.employeeId] || record.shift || 'Morning'
+                }));
+
+                const onLeaveRecords = updatedRecords.filter(r => r.status === 'On Leave' && (!r.leaveStartDate || !r.leaveEndDate));
+                if (onLeaveRecords.length > 0) {
+                    const empIds = [...new Set(onLeaveRecords.map(r => r.employeeId))];
+                    const leaves = await LeaveRequest.find({
+                        employeeId: { $in: empIds },
+                        status: 'Approved'
+                    }).lean();
+
+                    for (const r of onLeaveRecords) {
+                        const leave = leaves.find(l => l.employeeId === r.employeeId && l.startDate <= r.date && l.endDate >= r.date);
+                        if (leave) {
+                            r.leaveStartDate = leave.startDate;
+                            r.leaveEndDate = leave.endDate;
+                        }
+                    }
+                }
+
+                return updatedRecords;
+            })()
+            .then(data => {
+                garageAttendanceCache.set(cacheKey, { data, timestamp: Date.now() });
+                garageAttendanceInFlight.delete(cacheKey);
+                return data;
+            })
+            .catch(err => {
+                garageAttendanceInFlight.delete(cacheKey);
+                throw err;
+            });
+
+            garageAttendanceInFlight.set(cacheKey, queryPromise);
+        }
+
+        const data = await queryPromise;
+        res.status(200).json({ success: true, count: data.length, data });
     } catch (err) {
         console.error('Garage attendance fetch error:', err);
         res.status(500).json({ success: false, message: 'Server Error' });
@@ -469,6 +520,7 @@ const deleteRecord = async (req, res) => {
         
         if (record.garageId) {
             delete lastAutoMarkTimes[record.garageId.toString()];
+            invalidateGarageAttendanceCache(record.garageId);
         }
         
         res.status(200).json({ success: true, data: {} });

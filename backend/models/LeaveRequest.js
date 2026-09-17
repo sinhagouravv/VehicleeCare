@@ -99,4 +99,7 @@ const LeaveRequestSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+LeaveRequestSchema.index({ garageId: 1, createdAt: -1 });
+LeaveRequestSchema.index({ employeeId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('LeaveRequest', LeaveRequestSchema);

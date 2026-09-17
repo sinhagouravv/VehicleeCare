@@ -50,4 +50,6 @@ const requestSchema = new mongoose.Schema({
     timestamps: true
 });
 
+requestSchema.index({ employeeId: 1, portal: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Request', requestSchema);

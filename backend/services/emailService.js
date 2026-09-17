@@ -10,6 +10,8 @@ const transporter = nodemailer.createTransport({
     pool: true,   // Keep-alive connection pooling
     maxConnections: 5,
     maxMessages: 100,
+    socketTimeout: 15000,   // 15s — fail fast if SMTP stalls (prevents Render hanging)
+    greedyErrors: true,     // Release pooled connections on error immediately
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS

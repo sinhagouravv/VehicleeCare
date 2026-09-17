@@ -16,10 +16,40 @@ const generateUniqueRequestId = async () => {
     return newId;
 };
 
+let requestsCache = null;
+let requestsCacheTime = 0;
+let requestsInFlight = null;
+
+const invalidateRequestsCache = () => {
+    requestsCache = null;
+    requestsCacheTime = 0;
+};
+
 const getRequests = async (req, res) => {
     try {
-        const requests = await Request.find().sort({ createdAt: -1 });
-        res.json({ success: true, data: requests });
+        const now = Date.now();
+        if (requestsCache && (now - requestsCacheTime < 5000)) {
+            return res.json({ success: true, count: requestsCache.length, data: requestsCache });
+        }
+
+        if (!requestsInFlight) {
+            requestsInFlight = Request.find()
+                .sort({ createdAt: -1 })
+                .lean()
+                .then(data => {
+                    requestsCache = data;
+                    requestsCacheTime = Date.now();
+                    requestsInFlight = null;
+                    return data;
+                })
+                .catch(err => {
+                    requestsInFlight = null;
+                    throw err;
+                });
+        }
+
+        const requests = await requestsInFlight;
+        res.json({ success: true, count: requests.length, data: requests });
     } catch (err) {
         console.error('Error fetching requests:', err);
         res.status(500).json({ success: false, message: err.message });
@@ -46,6 +76,7 @@ const createRequest = async (req, res) => {
             status: 'Pending'
         });
 
+        invalidateRequestsCache();
         res.status(201).json({ success: true, data: newReq });
     } catch (err) {
         console.error('Error creating request:', err);
@@ -96,6 +127,7 @@ const updateRequestStatus = async (req, res) => {
             console.error('Error creating status update notification:', notifErr);
         }
 
+        invalidateRequestsCache();
         res.json({ success: true, data: updated });
     } catch (err) {
         console.error('Error updating request status:', err);
@@ -112,6 +144,7 @@ const deleteRequest = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Request not found' });
         }
 
+        invalidateRequestsCache();
         res.json({ success: true, message: 'Request deleted successfully' });
     } catch (err) {
         console.error('Error deleting request:', err);

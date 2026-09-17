@@ -19,11 +19,62 @@ const getEmployees = async (req, res) => {
     }
 };
 
+const garageEmployeesInFlight = new Map();
+const garageEmployeesCache = new Map();
+
+const invalidateGarageEmployeesCache = (garageId) => {
+    if (garageId) garageEmployeesCache.delete(String(garageId));
+    else garageEmployeesCache.clear();
+};
+
+const garageIdCardsInFlight = new Map();
+const garageIdCardsCache = new Map();
+
+const invalidateGarageIdCardsCache = (garageId) => {
+    if (garageId) garageIdCardsCache.delete(String(garageId));
+    else garageIdCardsCache.clear();
+};
+
 // @desc    Get garage employees
 // @route   GET /api/employees/garage/:garageId
 const getGarageEmployees = async (req, res) => {
     try {
-        const employees = await Employee.find({ garageId: req.params.garageId }).sort({ createdAt: -1 });
+        const garageId = String(req.params.garageId || '').trim();
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
+        }
+
+        const now = Date.now();
+        if (garageEmployeesCache.size > 200) {
+            for (const [k, v] of garageEmployeesCache.entries()) {
+                if (now - v.timestamp >= 5000) garageEmployeesCache.delete(k);
+            }
+        }
+
+        const cached = garageEmployeesCache.get(garageId);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        let queryPromise = garageEmployeesInFlight.get(garageId);
+        if (!queryPromise) {
+            queryPromise = Employee.find({ garageId })
+                .sort({ createdAt: -1 })
+                .lean()
+                .then(data => {
+                    garageEmployeesCache.set(garageId, { data, timestamp: Date.now() });
+                    garageEmployeesInFlight.delete(garageId);
+                    return data;
+                })
+                .catch(err => {
+                    garageEmployeesInFlight.delete(garageId);
+                    throw err;
+                });
+
+            garageEmployeesInFlight.set(garageId, queryPromise);
+        }
+
+        const employees = await queryPromise;
         res.status(200).json({ success: true, count: employees.length, data: employees });
     } catch (err) {
         console.error(err);
@@ -39,6 +90,7 @@ const deleteEmployee = async (req, res) => {
         if (!employee) {
             return res.status(404).json({ success: false, message: 'Employee not found' });
         }
+        invalidateGarageEmployeesCache(employee.garageId);
         res.status(200).json({ success: true, data: {} });
     } catch (err) {
         console.error("Error deleting employee:", err);
@@ -93,6 +145,7 @@ const createEmployee = async (req, res) => {
             }
         });
 
+        invalidateGarageEmployeesCache(employee.garageId);
         res.status(201).json({ success: true, data: employee });
     } catch (err) {
         console.error("Error creating employee:", err);
@@ -431,8 +484,43 @@ const getIdCardRequests = async (req, res) => {
 // @route   GET /api/employees/id-card-requests/garage/:garageId
 const getGarageIdCardRequests = async (req, res) => {
     try {
-        const requests = await IdCardRequest.find({ garageId: req.params.garageId }).sort({ createdAt: -1 });
-        const enriched = await enrichIdCardRequests(requests);
+        const garageId = String(req.params.garageId || '').trim();
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
+        }
+
+        const now = Date.now();
+        if (garageIdCardsCache.size > 200) {
+            for (const [k, v] of garageIdCardsCache.entries()) {
+                if (now - v.timestamp >= 5000) garageIdCardsCache.delete(k);
+            }
+        }
+
+        const cached = garageIdCardsCache.get(garageId);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        let queryPromise = garageIdCardsInFlight.get(garageId);
+        if (!queryPromise) {
+            queryPromise = IdCardRequest.find({ garageId })
+                .sort({ createdAt: -1 })
+                .lean()
+                .then(async (requests) => {
+                    const enriched = await enrichIdCardRequests(requests);
+                    garageIdCardsCache.set(garageId, { data: enriched, timestamp: Date.now() });
+                    garageIdCardsInFlight.delete(garageId);
+                    return enriched;
+                })
+                .catch(err => {
+                    garageIdCardsInFlight.delete(garageId);
+                    throw err;
+                });
+
+            garageIdCardsInFlight.set(garageId, queryPromise);
+        }
+
+        const enriched = await queryPromise;
         res.status(200).json({ success: true, data: enriched });
     } catch (err) {
         console.error("Error getting garage ID card requests:", err);
@@ -544,6 +632,7 @@ const updateIdCardRequestStatus = async (req, res) => {
             await request.save();
         }
 
+        invalidateGarageIdCardsCache(request.garageId);
         res.status(200).json({ success: true, data: request });
     } catch (err) {
         console.error("Error updating ID card request status:", err);
@@ -561,6 +650,7 @@ const deleteIdCardRequest = async (req, res) => {
         }
 
         await IdCardRequest.deleteOne({ _id: req.params.id });
+        invalidateGarageIdCardsCache(request.garageId);
         res.status(200).json({ success: true, message: 'Request deleted successfully' });
     } catch (err) {
         console.error("Error deleting ID card request:", err);

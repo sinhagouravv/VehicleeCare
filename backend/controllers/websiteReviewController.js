@@ -50,6 +50,7 @@ exports.createReview = async (req, res) => {
             }
         });
 
+        invalidateWebsiteReviewsCache();
         res.status(201).json(review);
     } catch (error) {
         console.error("Error in createReview:", error);
@@ -57,13 +58,42 @@ exports.createReview = async (req, res) => {
     }
 };
 
+let websiteReviewsCache = null;
+let websiteReviewsCacheTime = 0;
+let websiteReviewsInFlight = null;
+
+const invalidateWebsiteReviewsCache = () => {
+    websiteReviewsCache = null;
+    websiteReviewsCacheTime = 0;
+};
+
 // @desc    Get all APPROVED Website Reviews (For Public Frontend)
 // @route   GET /api/website-reviews
 // @access  Public
 exports.getApprovedReviews = async (req, res) => {
     try {
-        // Only fetch reviews that an admin has approved
-        const reviews = await WebsiteReview.find({ status: 'Approved' }).sort({ createdAt: -1 });
+        const now = Date.now();
+        if (websiteReviewsCache && (now - websiteReviewsCacheTime < 5000)) {
+            return res.status(200).json(websiteReviewsCache);
+        }
+
+        if (!websiteReviewsInFlight) {
+            websiteReviewsInFlight = WebsiteReview.find({ status: 'Approved' })
+                .sort({ createdAt: -1 })
+                .lean()
+                .then(data => {
+                    websiteReviewsCache = data;
+                    websiteReviewsCacheTime = Date.now();
+                    websiteReviewsInFlight = null;
+                    return data;
+                })
+                .catch(err => {
+                    websiteReviewsInFlight = null;
+                    throw err;
+                });
+        }
+
+        const reviews = await websiteReviewsInFlight;
         res.status(200).json(reviews);
     } catch (error) {
         console.error("Error in getApprovedReviews:", error);
@@ -106,6 +136,7 @@ exports.updateReviewStatus = async (req, res) => {
             return res.status(404).json({ message: 'Review not found' });
         }
 
+        invalidateWebsiteReviewsCache();
         res.status(200).json(review);
     } catch (error) {
         console.error("Error in updateReviewStatus:", error);
@@ -134,6 +165,7 @@ exports.rateReview = async (req, res) => {
         review.ratings.push(rating);
         await review.save();
 
+        invalidateWebsiteReviewsCache();
         res.status(200).json(review);
     } catch (error) {
         console.error("Error in rateReview:", error);
@@ -152,6 +184,7 @@ exports.deleteReview = async (req, res) => {
             return res.status(404).json({ message: 'Review not found' });
         }
 
+        invalidateWebsiteReviewsCache();
         res.status(200).json({ message: 'Review removed effectively' });
     } catch (error) {
         console.error("Error in deleteReview:", error);

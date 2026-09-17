@@ -451,23 +451,27 @@ exports.getUserBookings = async (req, res) => {
     }
 };
 
-const ensureAssignedEmployees = async (booking) => {
+// Accept pre-fetched garageEmployees to avoid N Employee.find() calls (one per booking)
+const ensureAssignedEmployees = async (booking, garageEmployees = null) => {
     if (!booking) return booking;
     if (!booking.assignedEmployees) booking.assignedEmployees = {};
-    const garageId = booking.garage?.id ? String(booking.garage.id).trim() : null;
 
-    let garageEmployees = [];
-    if (garageId) {
-        garageEmployees = await Employee.find({ garageId });
-    }
-    if (garageEmployees.length === 0) {
-        garageEmployees = await Employee.find({});
+    // Only fetch employees if not provided by caller
+    let employees = garageEmployees;
+    if (!employees) {
+        const garageId = booking.garage?.id ? String(booking.garage.id).trim() : null;
+        if (garageId) {
+            employees = await Employee.find({ garageId });
+        }
+        if (!employees || employees.length === 0) {
+            employees = await Employee.find({});
+        }
     }
 
     let updated = false;
 
     if (!booking.assignedEmployees.technician || !booking.assignedEmployees.technician.name || booking.assignedEmployees.technician.name === 'Waiting...') {
-        let techPool = garageEmployees.filter(e => /^Technician$/i.test(e.role));
+        let techPool = employees.filter(e => /^Technician$/i.test(e.role));
         if (techPool.length === 0) techPool = await Employee.find({ role: { $regex: /^Technician$/i } });
         if (techPool.length > 0) {
             const tech = await selectLeastLoadedEmployee(techPool, 'technician');
@@ -483,7 +487,7 @@ const ensureAssignedEmployees = async (booking) => {
     }
 
     if (!booking.assignedEmployees.support || !booking.assignedEmployees.support.name || booking.assignedEmployees.support.name === 'Waiting...') {
-        let suppPool = garageEmployees.filter(e => /^Support$/i.test(e.role));
+        let suppPool = employees.filter(e => /^Support$/i.test(e.role));
         if (suppPool.length === 0) suppPool = await Employee.find({ role: { $regex: /^Support$/i } });
         if (suppPool.length > 0) {
             const supp = await selectLeastLoadedEmployee(suppPool, 'support');
@@ -505,30 +509,91 @@ const ensureAssignedEmployees = async (booking) => {
     return booking;
 };
 
+const garageBookingsInFlight = new Map();
+const garageBookingsCache = new Map();
+
 // @desc    Get garage bookings
 // @route   GET /api/bookings/garage/:garageId
 exports.getGarageBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({ 'garage.id': req.params.garageId })
-            .populate('assignedEmployees.technician.id', 'role')
-            .populate('assignedEmployees.mechanic.id', 'role')
-            .sort({ createdAt: -1 })
-            .lean();
-        
-        // Populate missing paymentId, normalize vehicle info, and ensure assigned employees
-        const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
-            if (!booking.payment?.paymentId) {
-                const payment = await Payment.findOne({ booking: booking._id });
-                if (payment) {
-                    if (!booking.payment) booking.payment = {};
-                    booking.payment.paymentId = payment.paymentId;
-                }
-            }
-            normalizeBookingVehicle(booking);
-            await ensureAssignedEmployees(booking);
-            return booking;
-        }));
+        const garageId = String(req.params.garageId || '').trim();
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
+        }
 
+        const now = Date.now();
+
+        // Evict stale entries to prevent memory bloat
+        if (garageBookingsCache.size > 200) {
+            for (const [k, v] of garageBookingsCache.entries()) {
+                if (now - v.timestamp >= 5000) garageBookingsCache.delete(k);
+            }
+        }
+
+        // 1. Short-lived cache (5s) — instant response for repeat callers (e.g. 30s polling)
+        const cached = garageBookingsCache.get(garageId);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        // 2. Request coalescing — share 1 DB round-trip among concurrent requests
+        let queryPromise = garageBookingsInFlight.get(garageId);
+        if (!queryPromise) {
+            queryPromise = (async () => {
+                const bookings = await Booking.find({ 'garage.id': garageId })
+                    .populate('assignedEmployees.technician.id', 'role')
+                    .populate('assignedEmployees.mechanic.id', 'role')
+                    .sort({ createdAt: -1 })
+                    .lean();
+
+                // 3. Batch-fetch all missing paymentIds in ONE query instead of N queries
+                const missingPaymentBookingIds = bookings
+                    .filter(b => !b.payment?.paymentId)
+                    .map(b => b._id);
+
+                let paymentMap = {};
+                if (missingPaymentBookingIds.length > 0) {
+                    const payments = await Payment.find(
+                        { booking: { $in: missingPaymentBookingIds } },
+                        'booking paymentId'
+                    ).lean();
+                    payments.forEach(p => {
+                        if (p.booking) paymentMap[String(p.booking)] = p.paymentId;
+                    });
+                }
+
+                // 4. Fetch garage employees ONCE for all bookings (eliminates N Employee.find calls)
+                let sharedGarageEmployees = await Employee.find({ garageId });
+                if (sharedGarageEmployees.length === 0) {
+                    sharedGarageEmployees = await Employee.find({});
+                }
+
+                // 5. Enrich bookings — paymentId from map, employees from shared fetch
+                const enrichedBookings = await Promise.all(bookings.map(async (booking) => {
+                    if (!booking.payment?.paymentId) {
+                        const pid = paymentMap[String(booking._id)];
+                        if (pid) {
+                            if (!booking.payment) booking.payment = {};
+                            booking.payment.paymentId = pid;
+                        }
+                    }
+                    normalizeBookingVehicle(booking);
+                    await ensureAssignedEmployees(booking, sharedGarageEmployees);
+                    return booking;
+                }));
+
+                garageBookingsCache.set(garageId, { data: enrichedBookings, timestamp: Date.now() });
+                garageBookingsInFlight.delete(garageId);
+                return enrichedBookings;
+            })().catch(err => {
+                garageBookingsInFlight.delete(garageId);
+                throw err;
+            });
+
+            garageBookingsInFlight.set(garageId, queryPromise);
+        }
+
+        const enrichedBookings = await queryPromise;
         res.status(200).json({ success: true, count: enrichedBookings.length, data: enrichedBookings });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });

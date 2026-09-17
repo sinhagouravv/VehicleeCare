@@ -105,6 +105,7 @@ exports.requestOvertime = async (req, res) => {
             console.error('Failed to create garage notification for overtime request:', notifErr);
         }
 
+        invalidateGarageOvertimesCache(garageId);
         res.status(201).json({ success: true, message: 'Overtime request submitted successfully', data: newOvertime });
     } catch (error) {
         console.error('[OvertimeRequest] Error:', error);
@@ -183,14 +184,57 @@ exports.getEmployeeOvertimes = async (req, res) => {
     }
 };
 
+const garageOvertimesInFlight = new Map();
+const garageOvertimesCache = new Map();
+
+// Helper to invalidate overtime cache
+const invalidateGarageOvertimesCache = (garageId) => {
+    if (garageId) garageOvertimesCache.delete(String(garageId));
+    else garageOvertimesCache.clear();
+};
+
 // @desc    Get overtime requests for a specific garage
 // @route   GET /api/overtime/garage/:garageId
 exports.getGarageOvertimes = async (req, res) => {
     try {
-        const { garageId } = req.params;
-        const overtimes = await OvertimeRequest.find({ garageId }).sort({ createdAt: -1 });
-        const enriched = await enrichOvertimes(overtimes);
-        res.status(200).json({ success: true, data: enriched });
+        const garageId = String(req.params.garageId || '').trim();
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
+        }
+
+        const now = Date.now();
+        if (garageOvertimesCache.size > 200) {
+            for (const [k, v] of garageOvertimesCache.entries()) {
+                if (now - v.timestamp >= 5000) garageOvertimesCache.delete(k);
+            }
+        }
+
+        const cached = garageOvertimesCache.get(garageId);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        let queryPromise = garageOvertimesInFlight.get(garageId);
+        if (!queryPromise) {
+            queryPromise = OvertimeRequest.find({ garageId })
+                .sort({ createdAt: -1 })
+                .lean()
+                .then(async (overtimes) => {
+                    const enriched = await enrichOvertimes(overtimes);
+                    garageOvertimesCache.set(garageId, { data: enriched, timestamp: Date.now() });
+                    garageOvertimesInFlight.delete(garageId);
+                    return enriched;
+                })
+                .catch(err => {
+                    garageOvertimesInFlight.delete(garageId);
+                    throw err;
+                });
+
+            garageOvertimesInFlight.set(garageId, queryPromise);
+        }
+
+        const enriched = await queryPromise;
+        res.status(200).json({ success: true, count: enriched.length, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -266,6 +310,7 @@ exports.updateOvertimeStatus = async (req, res) => {
             }
         });
 
+        invalidateGarageOvertimesCache(overtime.garageId);
         res.status(200).json({ success: true, data: overtime });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
@@ -280,6 +325,7 @@ exports.deleteOvertimeRequest = async (req, res) => {
         if (!overtime) {
             return res.status(404).json({ success: false, message: 'Overtime request not found' });
         }
+        invalidateGarageOvertimesCache(overtime.garageId);
         res.status(200).json({ success: true, message: 'Overtime request deleted successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });

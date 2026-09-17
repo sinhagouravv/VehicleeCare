@@ -154,4 +154,6 @@ const employeeSchema = new mongoose.Schema({
     }
 });
 
+employeeSchema.index({ garageId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Employee', employeeSchema);

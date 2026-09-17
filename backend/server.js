@@ -23,8 +23,13 @@ app.use((req, res, next) => {
 });
 app.use(checkGuestReadOnly);
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
+// MongoDB Connection with connection pooling for high concurrency
+mongoose.connect(process.env.MONGO_URI, {
+    maxPoolSize: 50,
+    minPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
+})
     .then(() => {
         console.log('MongoDB connected successfully to:', mongoose.connection.name);
         initAttendanceCron();

@@ -119,6 +119,7 @@ exports.requestLeave = async (req, res) => {
             console.error('Failed to create garage notification for leave request:', notifErr);
         }
 
+        invalidateGarageLeavesCache(finalGarageId);
         res.status(201).json({ success: true, message: 'Leave request submitted successfully', data: newLeave });
     } catch (error) {
         console.error('[LeaveRequest] Error:', error);
@@ -200,33 +201,75 @@ exports.getEmployeeLeaves = async (req, res) => {
     }
 };
 
+const garageLeavesInFlight = new Map();
+const garageLeavesCache = new Map();
+
+// Helper to invalidate leave cache
+const invalidateGarageLeavesCache = (garageId) => {
+    if (garageId) garageLeavesCache.delete(String(garageId));
+    else garageLeavesCache.clear();
+};
+
 // @desc    Get leave requests for a specific garage
 // @route   GET /api/leaves/garage/:garageId
 exports.getGarageLeaves = async (req, res) => {
     try {
-        const { garageId } = req.params;
-        const targetGarageIds = [garageId];
-
-        try {
-            const Garage = require('../models/Garage');
-            let gDoc = null;
-            if (mongoose.Types.ObjectId.isValid(garageId)) {
-                gDoc = await Garage.findById(garageId);
-            }
-            if (!gDoc) {
-                gDoc = await Garage.findOne({ garageId });
-            }
-            if (gDoc) {
-                if (gDoc.garageId && !targetGarageIds.includes(gDoc.garageId)) targetGarageIds.push(gDoc.garageId);
-                if (gDoc._id && !targetGarageIds.includes(String(gDoc._id))) targetGarageIds.push(String(gDoc._id));
-            }
-        } catch (_gErr) {
-            // Ignore lookup error
+        const garageId = String(req.params.garageId || '').trim();
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
         }
 
-        const leaves = await LeaveRequest.find({ garageId: { $in: targetGarageIds } }).sort({ createdAt: -1 });
-        const enriched = await enrichLeaves(leaves);
-        res.status(200).json({ success: true, data: enriched });
+        const now = Date.now();
+        if (garageLeavesCache.size > 200) {
+            for (const [k, v] of garageLeavesCache.entries()) {
+                if (now - v.timestamp >= 5000) garageLeavesCache.delete(k);
+            }
+        }
+
+        const cached = garageLeavesCache.get(garageId);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        let queryPromise = garageLeavesInFlight.get(garageId);
+        if (!queryPromise) {
+            queryPromise = (async () => {
+                const targetGarageIds = [garageId];
+                try {
+                    const Garage = require('../models/Garage');
+                    let gDoc = null;
+                    if (mongoose.Types.ObjectId.isValid(garageId)) {
+                        gDoc = await Garage.findById(garageId).lean();
+                    }
+                    if (!gDoc) {
+                        gDoc = await Garage.findOne({ garageId }).lean();
+                    }
+                    if (gDoc) {
+                        if (gDoc.garageId && !targetGarageIds.includes(gDoc.garageId)) targetGarageIds.push(gDoc.garageId);
+                        if (gDoc._id && !targetGarageIds.includes(String(gDoc._id))) targetGarageIds.push(String(gDoc._id));
+                    }
+                } catch (_gErr) {}
+
+                const leaves = await LeaveRequest.find({ garageId: { $in: targetGarageIds } })
+                    .sort({ createdAt: -1 })
+                    .lean();
+                return await enrichLeaves(leaves);
+            })()
+            .then(data => {
+                garageLeavesCache.set(garageId, { data, timestamp: Date.now() });
+                garageLeavesInFlight.delete(garageId);
+                return data;
+            })
+            .catch(err => {
+                garageLeavesInFlight.delete(garageId);
+                throw err;
+            });
+
+            garageLeavesInFlight.set(garageId, queryPromise);
+        }
+
+        const enriched = await queryPromise;
+        res.status(200).json({ success: true, count: enriched.length, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
@@ -307,6 +350,7 @@ exports.updateLeaveStatus = async (req, res) => {
             }
         });
 
+        invalidateGarageLeavesCache(leave.garageId);
         res.status(200).json({ success: true, data: leave });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
@@ -321,6 +365,7 @@ exports.deleteLeaveRequest = async (req, res) => {
         if (!leave) {
             return res.status(404).json({ success: false, message: 'Leave request not found' });
         }
+        invalidateGarageLeavesCache(leave.garageId);
         res.status(200).json({ success: true, message: 'Leave request deleted successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });

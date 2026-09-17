@@ -37,4 +37,8 @@ const NotificationSchema = new mongoose.Schema({
     }
 });
 
+NotificationSchema.index({ createdAt: -1 });
+NotificationSchema.index({ superCategory: 1, createdAt: -1 });
+NotificationSchema.index({ 'meta.garageId': 1, createdAt: -1 });
+
 module.exports = mongoose.model('Notification', NotificationSchema);

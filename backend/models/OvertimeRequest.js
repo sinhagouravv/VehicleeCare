@@ -64,4 +64,7 @@ const OvertimeRequestSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+OvertimeRequestSchema.index({ garageId: 1, createdAt: -1 });
+OvertimeRequestSchema.index({ employeeId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('OvertimeRequest', OvertimeRequestSchema);

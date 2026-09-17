@@ -8,6 +8,7 @@ const Bug = require('../models/Bug');
 const createAdminNotification = async ({ eventType, superCategory = 'general', title, message, meta = {} }) => {
     try {
         await Notification.create({ eventType, superCategory, title, message, meta });
+        invalidateNotifsCache();
     } catch (err) {
         console.error('[Notification] Failed to create:', err.message);
     }
@@ -138,12 +139,50 @@ const syncMissingNotifications = async () => {
     }
 };
 
+let lastSyncTime = 0;
+const SYNC_INTERVAL = 5 * 60 * 1000;
+
+let notifsCache = null;
+let notifsCacheTime = 0;
+let notifsInFlight = null;
+
+const invalidateNotifsCache = () => {
+    notifsCache = null;
+    notifsCacheTime = 0;
+};
+
 // ── GET all admin notifications ────────────────────────────────
 // GET /api/notifications
 const getAll = async (req, res) => {
     try {
-        await syncMissingNotifications();
-        const notifications = await Notification.find().sort({ createdAt: -1 });
+        const now = Date.now();
+        if (now - lastSyncTime > SYNC_INTERVAL) {
+            lastSyncTime = now;
+            syncMissingNotifications().catch(err => console.error('Background sync error:', err));
+        }
+
+        if (notifsCache && (now - notifsCacheTime < 5000)) {
+            const unreadCount = notifsCache.filter(n => !n.isRead).length;
+            return res.status(200).json({ success: true, count: notifsCache.length, unreadCount, data: notifsCache });
+        }
+
+        if (!notifsInFlight) {
+            notifsInFlight = Notification.find()
+                .sort({ createdAt: -1 })
+                .lean()
+                .then(data => {
+                    notifsCache = data;
+                    notifsCacheTime = Date.now();
+                    notifsInFlight = null;
+                    return data;
+                })
+                .catch(err => {
+                    notifsInFlight = null;
+                    throw err;
+                });
+        }
+
+        const notifications = await notifsInFlight;
         const unreadCount = notifications.filter(n => !n.isRead).length;
         res.status(200).json({ success: true, count: notifications.length, unreadCount, data: notifications });
     } catch (err) {
@@ -173,6 +212,7 @@ const markRead = async (req, res) => {
             notif = await UserNotification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
         }
         if (!notif) return res.status(404).json({ success: false, message: 'Not found' });
+        invalidateNotifsCache();
         res.json({ success: true, data: notif });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server Error', error: err.message });
@@ -184,6 +224,7 @@ const markRead = async (req, res) => {
 const markAllRead = async (req, res) => {
     try {
         await Notification.updateMany({ isRead: false }, { isRead: true });
+        invalidateNotifsCache();
         res.json({ success: true, message: 'All notifications marked as read' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server Error', error: err.message });
@@ -195,6 +236,7 @@ const markAllRead = async (req, res) => {
 const deleteOne = async (req, res) => {
     try {
         await Notification.findByIdAndDelete(req.params.id);
+        invalidateNotifsCache();
         res.json({ success: true, message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server Error', error: err.message });
