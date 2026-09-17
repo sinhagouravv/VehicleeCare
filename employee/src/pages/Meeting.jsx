@@ -7,17 +7,33 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant tab revisits
+let cachedMeetings = null;
+let cachedMeetingsEmpId = null;
+let cachedMeetingsTimestamp = 0;
 
 const Meeting = () => {
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
+    const isFetchingRef = useRef(false);
+
+    const empIdInit = (() => { try { const u = JSON.parse(localStorage.getItem('employeeUser') || '{}'); return u.employeeId || u.id || u._id; } catch { return null; } })();
+
     const [showModal, setShowModal] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => {
+        if (cachedMeetingsEmpId === empIdInit && Array.isArray(cachedMeetings)) return false;
+        return true;
+    });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
-    const [meetings, setMeetings] = useState([]);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [meetings, setMeetings] = useState(() => {
+        if (cachedMeetingsEmpId === empIdInit && Array.isArray(cachedMeetings)) return cachedMeetings;
+        return [];
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedMeetingsTimestamp ? new Date(cachedMeetingsTimestamp) : null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedMeeting, setSelectedMeeting] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -218,23 +234,33 @@ const Meeting = () => {
 
     const fetchMeetings = useCallback(async (silent = false) => {
         if (!empId) return;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/employee/${empId}`);
+            if (!silent && !cachedMeetings) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-requests/employee/${empId}`);
             const data = await res.json();
             if (data.success) {
                 setMeetings(data.data || []);
+                cachedMeetings = data.data || [];
+                cachedMeetingsEmpId = empId;
+                cachedMeetingsTimestamp = Date.now();
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Fetch meetings failed:", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, [empId]);
 
     useEffect(() => {
-        fetchMeetings();
+        fetchMeetings(Boolean(cachedMeetings));
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') fetchMeetings(true);
+        }, 30000);
+        return () => clearInterval(interval);
     }, [fetchMeetings]);
 
     const handleSubmit = async (e) => {
@@ -249,7 +275,7 @@ const Meeting = () => {
         setSubmitting(true);
 
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/employees/id-card-request', {
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -303,7 +329,7 @@ const Meeting = () => {
         if (!selectedMeeting) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/${selectedMeeting._id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-requests/${selectedMeeting._id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
                 fetchMeetings(true);
@@ -358,7 +384,7 @@ const Meeting = () => {
                 : (selectedRemarkMeeting.approvedByRole || selectedRemarkMeeting.actionByRole || 'Manager');
 
             // Post new Remark to backend (/api/remarks)
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -378,7 +404,7 @@ const Meeting = () => {
             const remarkData = await remarkRes.json();
             const createdRemarkId = remarkData.data?.remarkId;
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/${selectedRemarkMeeting._id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-requests/${selectedRemarkMeeting._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ remark: remarkText, remarks: remarkText, employeeRemark: remarkText })

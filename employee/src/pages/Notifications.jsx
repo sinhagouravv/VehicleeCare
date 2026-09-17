@@ -7,6 +7,12 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache
+let cachedNotifications = null;
+let cachedNotifEmpId = null;
+let cachedNotifTimestamp = 0;
 
 const EVENT_MAPPING = {
     booking_created: { type: 'Booking', category: 'Task', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -27,12 +33,25 @@ const Notifications = () => {
     const navigate = useNavigate();
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
-    const [notifications, setNotifications] = useState([]);
-    const [users, setUsers] = useState([]); 
+    const isFetchingRef = useRef(false);
+
+    const empIdInit = (() => { try { const u = JSON.parse(localStorage.getItem('employeeUser') || '{}'); return u._id || u.id; } catch { return null; } })();
+
+    const [notifications, setNotifications] = useState(() => {
+        if (cachedNotifEmpId === empIdInit && Array.isArray(cachedNotifications)) return cachedNotifications;
+        return [];
+    });
+    const [users, setUsers] = useState([]);
     const [employees, setEmployees] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [unread, setUnread] = useState(0);
+    const [loading, setLoading] = useState(() => {
+        if (cachedNotifEmpId === empIdInit && Array.isArray(cachedNotifications)) return false;
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedNotifTimestamp ? new Date(cachedNotifTimestamp) : null);
+    const [unread, setUnread] = useState(() => {
+        if (cachedNotifEmpId === empIdInit && Array.isArray(cachedNotifications)) return cachedNotifications.filter(n => !n.isRead).length;
+        return 0;
+    });
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -132,8 +151,10 @@ const Notifications = () => {
     };
 
     const fetchNotifications = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && !cachedNotifications) setLoading(true);
             
             const storedUser = localStorage.getItem('employeeUser');
             let empId = null;
@@ -147,7 +168,7 @@ const Notifications = () => {
                 return;
             }
 
-            const res = await fetch('https://vehicleecare.onrender.com/api/notifications');
+            const res = await fetch(`${API_BASE_URL}/api/notifications`);
             const data = await res.json();
             
             let allNotifs = data.data || [];
@@ -211,16 +232,19 @@ const Notifications = () => {
             setNotifications(employeeNotifs);
             setUnread(employeeNotifs.filter(n => !n.isRead).length);
             setLastRefreshed(new Date());
+            cachedNotifications = employeeNotifs;
+            cachedNotifEmpId = empId;
+            cachedNotifTimestamp = Date.now();
 
             // Also fetch employees to build employee ID-to-Name map
-            const empRes = await fetch('https://vehicleecare.onrender.com/api/employees');
+            const empRes = await fetch(`${API_BASE_URL}/api/employees`);
             if (empRes.ok) {
                 const empData = await empRes.json();
                 setEmployees(empData.data || []);
             }
 
             // Also fetch users to build the name-to-ID map (similar to garage portal)
-            const userRes = await fetch('https://vehicleecare.onrender.com/api/users');
+            const userRes = await fetch(`${API_BASE_URL}/api/users`);
             if (userRes.ok) {
                 const userData = await userRes.json();
                 setUsers(userData.data || []);
@@ -228,18 +252,21 @@ const Notifications = () => {
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
+            isFetchingRef.current = false;
             if (!silent) setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchNotifications();
-        const interval = setInterval(() => fetchNotifications(true), 5000);
+        fetchNotifications(Boolean(cachedNotifications));
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') fetchNotifications(true);
+        }, 30000);
         return () => clearInterval(interval);
     }, [fetchNotifications]);
 
     const markRead = async (id) => {
-        await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/read`, { method: 'PATCH' });
+        await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, { method: 'PATCH' });
         setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
         setUnread(prev => Math.max(0, prev - 1));
     };
@@ -249,7 +276,7 @@ const Notifications = () => {
         if (!notifToDelete) return;
         setDeleting(true);
         try {
-            await fetch(`https://vehicleecare.onrender.com/api/notifications/${notifToDelete}`, { method: 'DELETE' });
+            await fetch(`${API_BASE_URL}/api/notifications/${notifToDelete}`, { method: 'DELETE' });
             const deleted = notifications.find(n => n._id === notifToDelete);
             setNotifications(prev => prev.filter(n => n._id !== notifToDelete));
             if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));
@@ -266,7 +293,7 @@ const Notifications = () => {
         if (e) e.stopPropagation();
         try {
             setNotifications(prev => prev.map(n => n._id === id ? { ...n, isStarred: !n.isStarred } : n));
-            await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/star`, {
+            await fetch(`${API_BASE_URL}/api/notifications/${id}/star`, {
                 method: 'PATCH'
             });
         } catch (err) {

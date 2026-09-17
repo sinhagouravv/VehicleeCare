@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, X, Check, MessageSquare, Send } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import useHighlight from '../hooks/useHighlight';
@@ -6,12 +6,28 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant tab revisits
+let cachedOvertimes = null;
+let cachedOvertimesEmpId = null;
+let cachedOvertimesTimestamp = 0;
 
 const Overtime = () => {
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
-    const [overtimes, setOvertimes] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const isFetchingRef = useRef(false);
+
+    const empIdInit = (() => { try { const u = JSON.parse(localStorage.getItem('employeeUser') || '{}'); return u.employeeId || u.id || u._id; } catch { return null; } })();
+
+    const [overtimes, setOvertimes] = useState(() => {
+        if (cachedOvertimesEmpId === empIdInit && Array.isArray(cachedOvertimes)) return cachedOvertimes;
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        if (cachedOvertimesEmpId === empIdInit && Array.isArray(cachedOvertimes)) return false;
+        return true;
+    });
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -117,12 +133,12 @@ const Overtime = () => {
         const fetchExtraData = async () => {
             if (!empId) return;
             try {
-                const attRes = await fetch(`https://vehicleecare.onrender.com/api/attendance/employee/${empId}`);
+                const attRes = await fetch(`${API_BASE_URL}/api/attendance/employee/${empId}`);
                 if (attRes.ok) {
                     const data = await attRes.json();
                     if (data.success) setAttendanceRecords(data.data || []);
                 }
-                const profRes = await fetch(`https://vehicleecare.onrender.com/api/employees/${empId}`);
+                const profRes = await fetch(`${API_BASE_URL}/api/employees/${empId}`);
                 if (profRes.ok) {
                     const data = await profRes.json();
                     if (data.success) setFullEmployeeProfile(data.data);
@@ -136,26 +152,34 @@ const Overtime = () => {
 
     const fetchOvertimes = useCallback(async (silent = false) => {
         if (!empId) return;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/employee/${empId}`);
+            if (!silent && !cachedOvertimes) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/overtime/employee/${empId}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
                     setOvertimes(data.data || []);
+                    cachedOvertimes = data.data || [];
+                    cachedOvertimesEmpId = empId;
+                    cachedOvertimesTimestamp = Date.now();
                 }
             }
         } catch (err) {
             console.error("Failed to fetch overtime requests", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, [empId]);
 
     useEffect(() => {
         if (empId) {
-            fetchOvertimes();
-            const interval = setInterval(() => fetchOvertimes(true), 5000);
+            fetchOvertimes(Boolean(cachedOvertimes));
+            const interval = setInterval(() => {
+                if (document.visibilityState === 'visible') fetchOvertimes(true);
+            }, 30000);
             return () => clearInterval(interval);
         }
     }, [empId, fetchOvertimes]);
@@ -195,7 +219,7 @@ const Overtime = () => {
         setSubmitting(true);
 
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/overtime/request', {
+            const res = await fetch(`${API_BASE_URL}/api/overtime/request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -234,7 +258,7 @@ const Overtime = () => {
         if (guardGuestAction()) return;
         if (window.confirm("Are you sure you want to delete this overtime request?")) {
             try {
-                const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${id}`, {
+                const res = await fetch(`${API_BASE_URL}/api/overtime/${id}`, {
                     method: 'DELETE'
                 });
                 const data = await res.json();
@@ -296,7 +320,7 @@ const Overtime = () => {
                 : (selectedRemarkOvertime.approvedByRole || selectedRemarkOvertime.actionByRole || 'Manager');
 
             // Post new Remark to backend (/api/remarks)
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -316,7 +340,7 @@ const Overtime = () => {
             const remarkData = await remarkRes.json();
             const createdRemarkId = remarkData.data?.remarkId;
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${selectedRemarkOvertime._id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/overtime/${selectedRemarkOvertime._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeRemark: remarkText })

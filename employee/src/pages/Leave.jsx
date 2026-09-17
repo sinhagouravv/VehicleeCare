@@ -9,17 +9,34 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache
+let cachedLeaves = null;
+let cachedLeavesEmpId = null;
+let cachedLeavesTimestamp = 0;
 
 const Leave = () => {
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
+    const isFetchingRef = useRef(false);
+
+    const storedUserInit = (() => { try { return JSON.parse(localStorage.getItem('employeeUser') || '{}'); } catch { return {}; } })();
+    const empIdInit = storedUserInit.employeeId || storedUserInit.id || storedUserInit._id;
+
     const [showModal, setShowModal] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => {
+        if (cachedLeavesEmpId === empIdInit && Array.isArray(cachedLeaves)) return false;
+        return true;
+    });
     const [submitting, setSubmitting] = useState(false);
     const [_error, setError] = useState(null);
     const [_success, setSuccess] = useState(null);
-    const [leaves, setLeaves] = useState([]);
-    const [_lastRefreshed, setLastRefreshed] = useState(null);
+    const [leaves, setLeaves] = useState(() => {
+        if (cachedLeavesEmpId === empIdInit && Array.isArray(cachedLeaves)) return cachedLeaves;
+        return [];
+    });
+    const [_lastRefreshed, setLastRefreshed] = useState(() => cachedLeavesTimestamp ? new Date(cachedLeavesTimestamp) : null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState(null);
     const [parentLeaveId, setParentLeaveId] = useState(null);
@@ -329,23 +346,33 @@ const Leave = () => {
 
     const fetchLeaves = useCallback(async (silent = false) => {
         if (!empId) return;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/employee/${empId}`);
+            if (!silent && !cachedLeaves) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/leaves/employee/${empId}`);
             const data = await res.json();
             if (data.success) {
                 setLeaves(data.data);
+                cachedLeaves = data.data;
+                cachedLeavesEmpId = empId;
+                cachedLeavesTimestamp = Date.now();
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Fetch leaves failed:", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, [empId]);
 
     useEffect(() => {
-        fetchLeaves();
+        fetchLeaves(Boolean(cachedLeaves));
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') fetchLeaves(true);
+        }, 30000);
+        return () => clearInterval(interval);
     }, [fetchLeaves]);
 
     const handleSubmit = async (e) => {
@@ -368,7 +395,7 @@ const Leave = () => {
         setSuccess(null);
 
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/leaves/request', {
+            const res = await fetch(`${API_BASE_URL}/api/leaves/request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -481,7 +508,7 @@ const Leave = () => {
                 ? 'Manager' 
                 : (selectedRemarkLeave.approvedByRole || selectedRemarkLeave.actionByRole || selectedRemarkLeave.approverRole || selectedRemarkLeave.reviewerRole || 'Manager');
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -501,7 +528,7 @@ const Leave = () => {
             const remarkData = await remarkRes.json();
             const createdRemarkId = remarkData.data?.remarkId;
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${selectedRemarkLeave._id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/leaves/${selectedRemarkLeave._id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeRemark: remarkText })
@@ -528,7 +555,7 @@ const Leave = () => {
         if (!selectedLeave) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${selectedLeave._id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE_URL}/api/leaves/${selectedLeave._id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
                 fetchLeaves(true);

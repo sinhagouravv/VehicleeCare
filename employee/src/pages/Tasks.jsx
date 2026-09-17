@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Check, Loader2, X, MessageSquare, Send, Bug as BugIcon } from 'lucide-react';
 
@@ -8,6 +8,12 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache
+let cachedTasks = null;
+let cachedTasksEmpId = null;
+let cachedTasksTimestamp = 0;
 
 const getSeverityColor = (severity) => {
     switch (severity?.toLowerCase()) {
@@ -68,12 +74,22 @@ const formatSubmittedAt = (dateString) => {
 const Tasks = () => {
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail, maskAddress } = useGuestGuard();
-    const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const isFetchingRef = useRef(false);
+
+    const empIdInit = (() => { try { const u = JSON.parse(localStorage.getItem('employeeUser') || '{}'); return u._id || u.id || u.employeeId; } catch { return null; } })();
+
+    const [tasks, setTasks] = useState(() => {
+        if (cachedTasksEmpId === empIdInit && Array.isArray(cachedTasks)) return cachedTasks;
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        if (cachedTasksEmpId === empIdInit && Array.isArray(cachedTasks)) return false;
+        return true;
+    });
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedTasksTimestamp ? new Date(cachedTasksTimestamp) : null);
     const [userRole, setUserRole] = useState('');
     const [employeeCategory, setEmployeeCategory] = useState('');
 
@@ -205,7 +221,9 @@ const Tasks = () => {
     const [remarkText, setRemarkText] = useState('');
     const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
 
-    const fetchTasks = async (silent = false) => {
+    const fetchTasks = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             const storedUser = localStorage.getItem('employeeUser');
             if (!storedUser) {
@@ -217,13 +235,13 @@ const Tasks = () => {
             const isDev = (user.category || '').toLowerCase() === 'developer';
             setEmployeeCategory(user.category || '');
 
-            if (!silent) setLoading(true);
+            if (!silent && !cachedTasks) setLoading(true);
 
             if (isDev) {
                 const empId = String(user._id || user.id || user.employeeId || '').toLowerCase();
                 const userName = String(user.name || '').toLowerCase();
 
-                const res = await fetch('https://vehicleecare.onrender.com/api/bugs');
+                const res = await fetch(`${API_BASE_URL}/api/bugs`);
                 if (!res.ok) throw new Error("Server communication error.");
                 const data = await res.json();
                 if (data.success && Array.isArray(data.data)) {
@@ -238,6 +256,9 @@ const Tasks = () => {
                         return (empId && (devId === empId || devEmpId === empId)) || (userName && devName === userName);
                     });
                     setTasks(devBugs);
+                    cachedTasks = devBugs;
+                    cachedTasksEmpId = user._id || user.id || user.employeeId;
+                    cachedTasksTimestamp = Date.now();
                 } else {
                     setError(data.message || "Failed to fetch bug tasks.");
                 }
@@ -250,11 +271,14 @@ const Tasks = () => {
                     if (!lastRefreshed) setLastRefreshed(new Date());
                     return;
                 }
-                const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/employee/${empId}`);
+                const res = await fetch(`${API_BASE_URL}/api/bookings/employee/${empId}`);
                 if (!res.ok) throw new Error("Server communication error.");
                 const data = await res.json();
                 if (data.success) {
                     setTasks(data.data || []);
+                    cachedTasks = data.data || [];
+                    cachedTasksEmpId = empId;
+                    cachedTasksTimestamp = Date.now();
                     setLastRefreshed(new Date());
                     setError(null);
                 } else {
@@ -265,9 +289,10 @@ const Tasks = () => {
             setError(err.message || "Connection failed.");
             if (!lastRefreshed) setLastRefreshed(new Date());
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
-    };
+    }, [lastRefreshed]);
 
     const handleUpdateBugStatus = async (id, newStatus, severity = null) => {
         if (guardGuestAction()) return false;
@@ -275,7 +300,7 @@ const Tasks = () => {
             const payload = { status: newStatus };
             if (severity) payload.severity = severity;
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bugs/${id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/bugs/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -318,8 +343,10 @@ const Tasks = () => {
     };
 
     useEffect(() => {
-        fetchTasks();
-        const timer = setInterval(() => fetchTasks(true), 5000); // Silent refresh every 5s
+        fetchTasks(Boolean(cachedTasks));
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible') fetchTasks(true);
+        }, 30000);
         return () => clearInterval(timer);
     }, []);
 
@@ -327,7 +354,7 @@ const Tasks = () => {
     const handleUpdateStatus = async (id, newStatus) => {
         if (guardGuestAction()) return;
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -377,7 +404,7 @@ const Tasks = () => {
             const refId = selectedRemarkTask.bugId || selectedRemarkTask.bookingId || String(selectedRemarkTask._id);
             const custDetails = selectedRemarkTask.reporterName || selectedRemarkTask.reporterId || selectedRemarkTask.user?.userId || selectedRemarkTask.user?.phone || selectedRemarkTask.user?.name || selectedRemarkTask.customerId || selectedRemarkTask.customerPhone || '—';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -398,13 +425,13 @@ const Tasks = () => {
             const createdRemarkId = remarkData.data?.remarkId;
 
             if (isBugTask) {
-                await fetch(`https://vehicleecare.onrender.com/api/bugs/${selectedRemarkTask._id}/status`, {
+                await fetch(`${API_BASE_URL}/api/bugs/${selectedRemarkTask._id}/status`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ remark: remarkText, employeeRemark: remarkText })
                 });
             } else {
-                const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${selectedRemarkTask._id}/status`, {
+                const res = await fetch(`${API_BASE_URL}/api/bookings/${selectedRemarkTask._id}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ remark: remarkText, remarks: remarkText, employeeRemark: remarkText })
@@ -480,7 +507,7 @@ const Tasks = () => {
 
         try {
             const endpoint = currentTask.status === 'Completed' ? 'send-delivery-otp' : 'send-otp';
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${taskId}/${endpoint}`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${taskId}/${endpoint}`, {
                 method: 'POST'
             });
             const data = await res.json();
@@ -558,7 +585,7 @@ const Tasks = () => {
             const endpoint = currentStatus === 'Completed' ? 'verify-delivery-otp' : 'verify-otp';
             const body = currentStatus === 'Completed' ? { otp: cleanOtp } : { otp: cleanOtp, duration };
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${selectedTaskId}/${endpoint}`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${selectedTaskId}/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)

@@ -362,10 +362,10 @@ const Profile = () => {
 
         fetchEmployeeProfile();
         const interval = setInterval(() => {
-            if (!isAddModalOpenRef.current) {
+            if (!isAddModalOpenRef.current && document.visibilityState === 'visible') {
                 fetchEmployeeProfile(true);
             }
-        }, 5000);
+        }, 30000);
 
         return () => clearInterval(interval);
     }, [navigate]);

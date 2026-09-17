@@ -1,20 +1,37 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { LogIn, LogOut, CheckCircle, Clock, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedTodayRecord = null;
+let cachedAttendanceRecords = [];
+let cachedEmpId = null;
+let cachedTimestamp = null;
 
 const Attendance = () => {
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
-    const [todayRecord, setTodayRecord] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const isFetchingRef = useRef(false);
+
+    const [employeeUser, setEmployeeUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem('employeeUser');
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    });
+
+    const [todayRecord, setTodayRecord] = useState(cachedTodayRecord);
+    const [attendanceRecords, setAttendanceRecords] = useState(cachedAttendanceRecords);
+    const [loading, setLoading] = useState(cachedAttendanceRecords.length === 0);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [employeeUser, setEmployeeUser] = useState(null);
-    const [attendanceRecords, setAttendanceRecords] = useState([]);
+    const [lastRefreshed, setLastRefreshed] = useState(cachedTimestamp ? new Date(cachedTimestamp) : null);
 
     // Filter states
     const [statusFilter, setStatusFilter] = useState('all');
@@ -190,6 +207,8 @@ const Attendance = () => {
     };
 
     const fetchTodayStatus = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             const storedUser = localStorage.getItem('employeeUser');
             if (!storedUser) {
@@ -200,14 +219,14 @@ const Attendance = () => {
             const user = JSON.parse(storedUser);
             setEmployeeUser(user);
 
-            if (!silent) setLoading(true);
+            if (!silent && cachedAttendanceRecords.length === 0) setLoading(true);
 
             const empId = user.employeeId || user.id;
 
             // Fetch today's status & records simultaneously
             const [statusRes, recordsRes] = await Promise.all([
-                fetch(`https://vehicleecare.onrender.com/api/attendance/status/${empId}`),
-                fetch(`https://vehicleecare.onrender.com/api/attendance/employee/${empId}`)
+                fetch(`${API_BASE_URL}/api/attendance/status/${empId}`),
+                fetch(`${API_BASE_URL}/api/attendance/employee/${empId}`)
             ]);
 
             const statusData = await statusRes.json();
@@ -215,6 +234,7 @@ const Attendance = () => {
 
             if (statusData.success && recordsData.success) {
                 setTodayRecord(statusData.data);
+                cachedTodayRecord = statusData.data;
 
                 // Format records to match table expectations
                 const records = (recordsData.data || []).map(r => ({
@@ -232,6 +252,9 @@ const Attendance = () => {
                     _id: r._id
                 }));
                 setAttendanceRecords(records);
+                cachedAttendanceRecords = records;
+                cachedEmpId = empId;
+                cachedTimestamp = Date.now();
 
                 setLastRefreshed(new Date());
                 setError(null);
@@ -241,6 +264,7 @@ const Attendance = () => {
         } catch (err) {
             setError('Connection Failed. Please check your network connection.');
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, []);
@@ -252,8 +276,12 @@ const Attendance = () => {
     }, [error, triggerAlert]);
 
     useEffect(() => {
-        fetchTodayStatus();
-        const timer = setInterval(() => fetchTodayStatus(true), 5000);
+        fetchTodayStatus(cachedAttendanceRecords.length > 0);
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchTodayStatus(true);
+            }
+        }, 30000);
         return () => clearInterval(timer);
     }, [fetchTodayStatus]);
 
@@ -262,7 +290,7 @@ const Attendance = () => {
         if (!employeeUser) return;
         setActionLoading(true);
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/attendance/check-in', {
+            const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ employeeId: employeeUser.employeeId || employeeUser.id })
@@ -285,7 +313,7 @@ const Attendance = () => {
         if (!todayRecord?._id) return;
         setActionLoading(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/check-out/${todayRecord._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/attendance/check-out/${todayRecord._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
