@@ -54,11 +54,19 @@ const Login = () => {
             const data = await res.json();
 
             if (res.ok) {
-                if (data.employee?.isGuest || data.employee?.role === 'guest_employee' || data.employee?.email === 'guestemployee@vehicleecare.com') {
-                    await recordGuestLogin('employee', {
+                if (data.guestSession?.sessionId) {
+                    try {
+                        localStorage.setItem('guestCurrentSessionId', data.guestSession.sessionId);
+                    } catch (e) {}
+                }
+
+                // Fire guest login recording asynchronously in the background so navigation is instant
+                if (data.employee?.isGuest === true) {
+                    recordGuestLogin('employee', {
                         role: 'guest_employee',
-                        userId: data.employee?.email || 'guestemployee@vehicleecare.com'
-                    });
+                        userId: data.employee?.email || 'guestemployee@vehicleecare.com',
+                        sessionId: data.guestSession?.sessionId
+                    }).catch(err => console.error('Background guest record error:', err));
                 }
 
                 localStorage.setItem('employeeToken', data.token);

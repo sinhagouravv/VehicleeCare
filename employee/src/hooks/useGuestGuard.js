@@ -5,15 +5,8 @@ export const isGuestUser = () => {
         const stored = localStorage.getItem('employeeUser');
         if (!stored) return false;
         const user = JSON.parse(stored);
-        if (user?.isGuest === false) return false;
-        return (
-            user?.isGuest === true ||
-            user?.role === 'guest_employee' ||
-            user?.role === 'guest_admin' ||
-            user?.role === 'guest' ||
-            user?.email === 'guestemployee@vehicleecare.com' ||
-            user?.employeeId === 'guestemployee@vehicleecare.com'
-        );
+        // Rely solely on the backend-authoritative isGuest flag.
+        return user?.isGuest === true;
     } catch (e) {
         return false;
     }
