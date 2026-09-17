@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, X, Check, Briefcase, Users, Loader2 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../garagedata/punjab.json';
 import haryanaData from '../garagedata/haryana.json';
 import delhiData from '../garagedata/delhi.json';
+import API_BASE_URL from '../config/api';
 
 const getOrderedTypes = (types = []) => {
     if (!Array.isArray(types) || types.length === 0) return [];
@@ -37,8 +38,6 @@ const formatDocNumber = (...vals) => {
 const GARAGE_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(GARAGE_LOCATIONS.map(l => l.state))].sort();
 
-const API = 'https://vehicleecare.onrender.com/api/garages';
-
 const VEHICLE_TYPES = ['PETROL', 'DIESEL', 'EV'];
 
 const emptyForm = { name: '', state: '', district: '', address: '', coordinates: '', type: [], rating: '', pickupDrop: '', workingHours: '', workingDays: '', ownerName: '', ownerContact: '', ownerEmail: '' };
@@ -48,6 +47,10 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+
+// Module-level cache for instant 0ms page revisits
+let cachedGarages = null;
+let cachedGaragesTimestamp = 0;
 
 const Garages = () => {
     const { triggerAlert } = useAlert();
@@ -117,15 +120,16 @@ const Garages = () => {
         return true;
     };
 
-    const [garages, setGarages] = useState([]);
+    const [garages, setGarages] = useState(() => Array.isArray(cachedGarages) ? cachedGarages : []);
     const highlightedRow = useHighlight(garages);
     // Add highlightedRow state for visual feedback
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedGarages);
     const [_search, _setSearch] = useState('');
     const [_filterState, _setFilterState] = useState('ALL');
     const [_filterDistrict, _setFilterDistrict] = useState('ALL');
     const [_filterType, _setFilterType] = useState('ALL');
-    const [_lastRefreshed, setLastRefreshed] = useState(null);
+    const [_lastRefreshed, setLastRefreshed] = useState(() => cachedGaragesTimestamp ? new Date(cachedGaragesTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState(null); // null = add, object = edit
     const [form, setForm] = useState(emptyForm);
@@ -195,7 +199,7 @@ const Garages = () => {
         setLoadingEmployees(true);
         setIsEmployeesModalOpen(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
+            const res = await fetch(`${API_BASE_URL}/api/employees/garage/${garageId}`);
             if (res.ok) {
                 const data = await res.json();
                 setGarageEmployees(data.data || []);
@@ -233,24 +237,37 @@ const Garages = () => {
     }, [showModal, viewTarget]);
 
     const fetchGarages = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(API);
+            if (!silent && (!cachedGarages || cachedGarages.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/garages`);
             const data = await res.json();
-            if (data.success) setGarages(data.data);
-            setLastRefreshed(new Date());
+            if (data.success) {
+                const list = data.data || [];
+                cachedGarages = list;
+                cachedGaragesTimestamp = Date.now();
+                setGarages(list);
+                setLastRefreshed(new Date());
+            }
         } catch (err) {
             console.error('Failed to fetch garages:', err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchGarages();
-        const interval = setInterval(() => fetchGarages(true), 5000);
+        fetchGarages(!!cachedGarages);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchGarages(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchGarages]);
+    }, [fetchGarages, isGuest]);
 
     const openAdd = () => { setForm(emptyForm); setEditTarget(null); setShowModal(true); };
     const openEdit = (g) => {
@@ -298,7 +315,7 @@ const Garages = () => {
         setSaving(true);
         try {
             const method = editTarget ? 'PUT' : 'POST';
-            const url = editTarget ? `${API}/${editTarget._id}` : API;
+            const url = editTarget ? `${API_BASE_URL}/api/garages/${editTarget._id}` : `${API_BASE_URL}/api/garages`;
             const payload = {
                 ...form,
                 pickupDrop: form.pickupDrop === 'yes' || form.pickupDrop === true ? true : false
@@ -334,10 +351,14 @@ const Garages = () => {
         if (!garageToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`${API}/${garageToDelete}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE_URL}/api/garages/${garageToDelete}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
-                setGarages(prev => prev.filter(g => g._id !== garageToDelete));
+                setGarages(prev => {
+                    const next = prev.filter(g => g._id !== garageToDelete);
+                    cachedGarages = next;
+                    return next;
+                });
                 triggerAlert('Garage deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setGarageToDelete(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Download, X, RefreshCw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -9,6 +9,7 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
 
 const isPendingCOD = (payment) => {
     if (!payment) return false;
@@ -17,17 +18,22 @@ const isPendingCOD = (payment) => {
     return (methodStr.includes('cod') || methodStr.includes('cash')) && (statusStr === 'pending' || statusStr === 'pending payment');
 };
 
+// Module-level cache for instant 0ms page revisits
+let cachedPayments = null;
+let cachedPaymentsTimestamp = 0;
+
 const Payments = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [payments, setPayments] = useState([]);
+    const [payments, setPayments] = useState(() => Array.isArray(cachedPayments) ? cachedPayments : []);
     const highlightedRow = useHighlight(payments);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedPayments);
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     const [_refreshing, setRefreshing] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedPaymentsTimestamp ? new Date(cachedPaymentsTimestamp) : null);
+    const isFetchingRef = useRef(false);
 
     // Filter, Sort & Row Label States
     const [filterStatus, setFilterStatus] = useState('All');
@@ -84,28 +90,38 @@ const Payments = () => {
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchPayments = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && (!cachedPayments || cachedPayments.length === 0)) setLoading(true);
             else setRefreshing(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/payments/all');
+            const res = await fetch(`${API_BASE_URL}/api/payments/all`);
             const result = await res.json();
             if (result.success && result.data) {
+                cachedPayments = result.data;
+                cachedPaymentsTimestamp = Date.now();
                 setPayments(result.data);
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Error fetching payments:", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
             setRefreshing(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchPayments();
-        const interval = setInterval(() => fetchPayments(true), 5000);
+        fetchPayments(!!cachedPayments);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchPayments(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchPayments]);
+    }, [fetchPayments, isGuest]);
 
     const getStatusColor = (status) => {
         switch (status) {

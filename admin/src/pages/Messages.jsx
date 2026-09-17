@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Mail, Eye, Trash2, X, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
@@ -7,6 +7,11 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedMessages = null;
+let cachedMessagesTimestamp = 0;
 
 const Messages = () => {
     const { triggerAlert } = useAlert();
@@ -44,12 +49,13 @@ const Messages = () => {
         return true;
     };
 
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState(() => Array.isArray(cachedMessages) ? cachedMessages : []);
     const highlightedRow = useHighlight(messages);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedMessages);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedMessagesTimestamp ? new Date(cachedMessagesTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -104,38 +110,52 @@ const Messages = () => {
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchMessages = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/messages');
+            if (!silent && (!cachedMessages || cachedMessages.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/messages`);
             const result = await res.json();
             if (result.success && result.data) {
+                cachedMessages = result.data;
+                cachedMessagesTimestamp = Date.now();
                 setMessages(result.data);
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Error fetching messages:", err);
         } finally {
-            if (!silent) setLoading(false);
+            isFetchingRef.current = false;
+            setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchMessages();
-        const interval = setInterval(() => fetchMessages(true), 5000);
+        fetchMessages(!!cachedMessages);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchMessages(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchMessages]);
+    }, [fetchMessages, isGuest]);
 
     const confirmDeleteMessage = async () => {
         if (guardGuestAction()) return;
         if (!messageToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/messages/${messageToDelete}`, {
+            const res = await fetch(`${API_BASE_URL}/api/messages/${messageToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
             if (data.success) {
-                setMessages(messages.filter(m => m._id !== messageToDelete));
+                setMessages(prev => {
+                    const next = prev.filter(m => m._id !== messageToDelete);
+                    cachedMessages = next;
+                    return next;
+                });
                 triggerAlert('Message deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setMessageToDelete(null);
@@ -156,12 +176,16 @@ const Messages = () => {
         // If unread, mark it as read permanently
         if (!message.isRead) {
             try {
-                const res = await fetch(`https://vehicleecare.onrender.com/api/messages/${message._id}/toggle-status`, {
+                const res = await fetch(`${API_BASE_URL}/api/messages/${message._id}/toggle-status`, {
                     method: 'PUT',
                 });
                 const data = await res.json();
                 if (data.success) {
-                    setMessages(messages.map(m => m._id === message._id ? { ...m, isRead: true } : m));
+                    setMessages(prev => {
+                        const next = prev.map(m => m._id === message._id ? { ...m, isRead: true } : m);
+                        cachedMessages = next;
+                        return next;
+                    });
                 }
             } catch (err) {
                 console.error("Error updating message status:", err);

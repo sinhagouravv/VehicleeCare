@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2, MoreVertical } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
@@ -7,11 +7,16 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedBusinessRequests = null;
+let cachedBusinessRequestsTimestamp = 0;
 
 const Business = ({ isModal = false, onClose, highlightId }) => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [requests, setRequests] = useState([]);
+    const [requests, setRequests] = useState(() => Array.isArray(cachedBusinessRequests) ? cachedBusinessRequests : []);
 
     const maskEmail = (email) => {
         if (!email || email === 'N/A' || email === '—') return email || '—';
@@ -45,12 +50,13 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
         return true;
     };
     const highlightedRow = useHighlight(requests, highlightId);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedBusinessRequests);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     const [_refreshing, setRefreshing] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedBusinessRequestsTimestamp ? new Date(cachedBusinessRequestsTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -120,41 +126,54 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchRequests = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && (!cachedBusinessRequests || cachedBusinessRequests.length === 0)) setLoading(true);
             else setRefreshing(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/business-requests');
+            const res = await fetch(`${API_BASE_URL}/api/business-requests`);
             const result = await res.json();
             if (result.success && result.data) {
+                cachedBusinessRequests = result.data;
+                cachedBusinessRequestsTimestamp = Date.now();
                 setRequests(result.data);
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Error fetching business requests:", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
             setRefreshing(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchRequests();
-        // Poll every 5 seconds for new requests
-        const interval = setInterval(() => fetchRequests(true), 5000);
+        fetchRequests(!!cachedBusinessRequests);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchRequests(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchRequests]);
+    }, [fetchRequests, isGuest]);
 
     const handleUpdateStatus = async (id, status) => {
         if (guardGuestAction()) return;
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/business-requests/${id}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/business-requests/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
             });
             const data = await res.json();
             if (data.success) {
-                setRequests(requests.map(r => r._id === id ? { ...data.data, displayId: r.displayId } : r));
+                setRequests(prev => {
+                    const next = prev.map(r => r._id === id ? { ...data.data, displayId: r.displayId } : r);
+                    cachedBusinessRequests = next;
+                    return next;
+                });
                 if (selectedRequest && selectedRequest._id === id) {
                     setSelectedRequest(prev => ({ ...prev, status }));
                 }
@@ -172,12 +191,16 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
         if (!requestToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/business-requests/${requestToDelete}`, {
+            const res = await fetch(`${API_BASE_URL}/api/business-requests/${requestToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
             if (data.success) {
-                setRequests(prev => prev.filter(r => r._id !== requestToDelete));
+                setRequests(prev => {
+                    const next = prev.filter(r => r._id !== requestToDelete);
+                    cachedBusinessRequests = next;
+                    return next;
+                });
                 if (selectedRequest && selectedRequest._id === requestToDelete) {
                     setIsViewModalOpen(false);
                     setSelectedRequest(null);

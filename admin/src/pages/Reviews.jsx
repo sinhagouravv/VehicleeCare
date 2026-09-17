@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Star, Trash2, Eye, Check, X, Loader2, MoreVertical } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
@@ -9,15 +9,22 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedReviews = null;
+let cachedAllUsers = null;
+let cachedReviewsTimestamp = 0;
 
 const Reviews = () => {
     const { triggerAlert } = useAlert();
-    const { guardGuestAction } = useGuestGuard();
-    const [reviews, setReviews] = useState([]);
+    const { isGuest, guardGuestAction } = useGuestGuard();
+    const [reviews, setReviews] = useState(() => Array.isArray(cachedReviews) ? cachedReviews : []);
     const highlightedRow = useHighlight(reviews);
-    const [allUsers, setAllUsers] = useState([]);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [allUsers, setAllUsers] = useState(() => Array.isArray(cachedAllUsers) ? cachedAllUsers : []);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedReviewsTimestamp ? new Date(cachedReviewsTimestamp) : null);
+    const [loading, setLoading] = useState(() => !cachedReviews);
+    const isFetchingRef = useRef(false);
     const [selectedReview, setSelectedReview] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState(null);
@@ -87,17 +94,20 @@ const Reviews = () => {
         return () => setFilterConfig(null);
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
-
-    const fetchReviews = async () => {
+    const fetchReviews = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
+            if (!silent && (!cachedReviews || cachedReviews.length === 0)) setLoading(true);
             const [websiteRes, businessRes, usersRes] = await Promise.all([
-                axios.get(`${API_URL}/api/website-reviews/admin`),
-                axios.get(`${API_URL}/api/business-reviews/all`),
-                axios.get(`${API_URL}/api/users`)
+                axios.get(`${API_BASE_URL}/api/website-reviews/admin`),
+                axios.get(`${API_BASE_URL}/api/business-reviews/all`),
+                axios.get(`${API_BASE_URL}/api/users`)
             ]);
 
-            setAllUsers(usersRes.data.data || []);
+            const usersList = usersRes.data.data || [];
+            setAllUsers(usersList);
+            cachedAllUsers = usersList;
 
             const webReviews = websiteRes.data.map(r => ({ 
                 ...r, 
@@ -114,25 +124,29 @@ const Reviews = () => {
             }));
 
             const combined = [...webReviews, ...bizReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            cachedReviews = combined;
+            cachedReviewsTimestamp = Date.now();
             setReviews(combined);
             setLastRefreshed(new Date());
-            setLoading(false);
         } catch (error) {
             console.error("Error fetching reviews", error);
+        } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchReviews();
-
-        // Auto-refresh every 5 seconds
+        fetchReviews(!!cachedReviews);
+        if (isGuest) return;
         const interval = setInterval(() => {
-            fetchReviews();
-        }, 5000);
+            if (document.visibilityState === 'visible') {
+                fetchReviews(true);
+            }
+        }, 30000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchReviews, isGuest]);
 
     // Smart mapping: Generate a map of reviewer names to their User IDs from known reviews
     const userResolvers = useMemo(() => {
@@ -202,11 +216,15 @@ const Reviews = () => {
         if (guardGuestAction()) return;
         try {
             if (type === 'Website') {
-                await axios.patch(`${API_URL}/api/website-reviews/${id}/status`, { status: newStatus });
+                await axios.patch(`${API_BASE_URL}/api/website-reviews/${id}/status`, { status: newStatus });
             } else {
-                await axios.put(`${API_URL}/api/business-reviews/${id}/status`, { status: newStatus.toLowerCase() });
+                await axios.put(`${API_BASE_URL}/api/business-reviews/${id}/status`, { status: newStatus.toLowerCase() });
             }
-            setReviews(prev => prev.map(rev => rev._id === id ? { ...rev, status: newStatus } : rev));
+            setReviews(prev => {
+                const next = prev.map(rev => rev._id === id ? { ...rev, status: newStatus } : rev);
+                cachedReviews = next;
+                return next;
+            });
             triggerAlert('Review status updated successfully', 'success');
         } catch (error) {
             console.error("Failed to update status", error);
@@ -221,11 +239,15 @@ const Reviews = () => {
         try {
             const { id, type } = reviewToDelete;
             if (type === 'Website') {
-                await axios.delete(`${API_URL}/api/website-reviews/${id}`);
+                await axios.delete(`${API_BASE_URL}/api/website-reviews/${id}`);
             } else {
-                await axios.delete(`${API_URL}/api/business-reviews/${id}`);
+                await axios.delete(`${API_BASE_URL}/api/business-reviews/${id}`);
             }
-            setReviews(prev => prev.filter(rev => rev._id !== id));
+            setReviews(prev => {
+                const next = prev.filter(rev => rev._id !== id);
+                cachedReviews = next;
+                return next;
+            });
             triggerAlert('Review deleted successfully', 'success');
             setIsDeleteModalOpen(false);
             setReviewToDelete(null);

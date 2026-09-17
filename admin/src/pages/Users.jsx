@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Briefcase } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
@@ -9,11 +9,16 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedUsers = null;
+let cachedUsersTimestamp = 0;
 
 const Users = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState(() => Array.isArray(cachedUsers) ? cachedUsers : []);
 
     const maskEmail = (email) => {
         if (!email || email === 'N/A' || email === '—') return email || '—';
@@ -55,8 +60,9 @@ const Users = () => {
         return true;
     };
     const highlightedRow = useHighlight(users);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedUsers);
     const [error, setError] = useState('');
+    const isFetchingRef = useRef(false);
 
     // Modals
     const [viewUser, setViewUser] = useState(null);
@@ -68,7 +74,7 @@ const Users = () => {
     const [banSubmitting, setBanSubmitting] = useState(false);
     const [banSuccess, setBanSuccess] = useState('');
 
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedUsersTimestamp ? new Date(cachedUsersTimestamp) : null);
 
     // Filter, Sort & Row Label States
     const [filterCategory, setFilterCategory] = useState('all');
@@ -122,26 +128,37 @@ const Users = () => {
     }, [setFilterConfig, filterCategory, labelFilter, sortOrder, timeRange]);
 
     const fetchUsers = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/users');
+            if (!silent && (!cachedUsers || cachedUsers.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/users`);
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
-            setUsers(data.data || []);
+            const list = data.data || [];
+            cachedUsers = list;
+            cachedUsersTimestamp = Date.now();
+            setUsers(list);
             setLastRefreshed(new Date());
         } catch (err) {
             console.error(err);
-            if (!silent) setError('Failed to load users. Is the backend running?');
+            if (!silent && (!cachedUsers || cachedUsers.length === 0)) setError('Failed to load users. Is the backend running?');
         } finally {
-            if (!silent) setLoading(false);
+            isFetchingRef.current = false;
+            setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchUsers();
-        const interval = setInterval(() => fetchUsers(true), 5000);
+        fetchUsers(!!cachedUsers);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchUsers(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchUsers]);
+    }, [fetchUsers, isGuest]);
 
     const getRoleBadge = (role) => {
         switch (role) {
@@ -196,7 +213,7 @@ const Users = () => {
         setLoadingBookings(true);
         setIsHistoryModalOpen(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/user/${userId}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/user/${userId}`);
             if (res.ok) {
                 const data = await res.json();
                 setServiceHistory(data.data || []);
@@ -247,7 +264,7 @@ const Users = () => {
 
         // Fetch bookings
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/user/${user._id}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/user/${user._id}`);
             if (res.ok) {
                 const data = await res.json();
                 const bookings = data.data || [];

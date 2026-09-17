@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Wrench, Plus, Edit, Trash2, SwitchCamera, X, Loader2 } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
@@ -8,6 +8,7 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
 
 const getCategoryBadgeClass = (category) => {
     const cat = (category || '').toLowerCase().trim();
@@ -24,12 +25,21 @@ const getCategoryBadgeClass = (category) => {
     return 'bg-blue-100 text-blue-700';
 };
 
+// Module-level cache for instant 0ms page revisits
+let cachedServicesList = null;
+let cachedDisabledServices = null;
+let cachedCustomServices = null;
+let cachedServiceOverrides = null;
+let cachedServicesTimestamp = 0;
+
 const Services = () => {
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
-    const [servicesList, setServicesList] = useState(defaultServicesList);
-    const [disabledServices, setDisabledServices] = useState([]);
-    const [serviceOverrides, setServiceOverrides] = useState({});
+    const [servicesList, setServicesList] = useState(() => cachedServicesList || defaultServicesList);
+    const [disabledServices, setDisabledServices] = useState(() => cachedDisabledServices || []);
+    const [serviceOverrides, setServiceOverrides] = useState(() => cachedServiceOverrides || {});
+    const [customServices, setCustomServices] = useState(() => cachedCustomServices || []);
+    const isFetchingRef = useRef(false);
 
     // Edit Modal States
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -40,7 +50,6 @@ const Services = () => {
     const [newService, setNewService] = useState({
         name: '', category: '', fuelType: '', price: '', duration: '', active: true
     });
-    const [customServices, setCustomServices] = useState([]);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [serviceToDelete, setServiceToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -96,82 +105,91 @@ const Services = () => {
         return () => setFilterConfig(null);
     }, [setFilterConfig, filterFuelType, labelFilter, sortOrder, timeRange]);
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                // Fetch disabled services
-                const resDisabled = await fetch('https://vehicleecare.onrender.com/api/settings/disabledServices');
-                const dataDisabled = await resDisabled.json();
-                if (dataDisabled.success && dataDisabled.data) {
-                    setDisabledServices(dataDisabled.data);
-                }
+    const fetchSettings = useCallback(async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        try {
+            // Fetch disabled services, custom services, and overrides in parallel
+            const [resDisabled, resCustom, resOverrides] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/settings/disabledServices`),
+                fetch(`${API_BASE_URL}/api/settings/customServices`),
+                fetch(`${API_BASE_URL}/api/settings/serviceOverrides`)
+            ]);
 
-                // Fetch custom services (newly added)
-                const resCustom = await fetch('https://vehicleecare.onrender.com/api/settings/customServices');
-                const dataCustom = await resCustom.json();
-                let newlyAddedServices = [];
-                if (dataCustom.success && dataCustom.data) {
-                    newlyAddedServices = dataCustom.data;
-                    setCustomServices(newlyAddedServices);
-                }
-
-                // Fetch service overrides
-                const resOverrides = await fetch('https://vehicleecare.onrender.com/api/settings/serviceOverrides');
-                const dataOverrides = await resOverrides.json();
-
-                const overrides = (dataOverrides.success && dataOverrides.data) ? dataOverrides.data : {};
-                setServiceOverrides(overrides);
-
-                setServicesList(prev => {
-                    const existingIds = new Set(prev.map(s => s.id));
-                    const toAdd = newlyAddedServices.filter(s => !existingIds.has(s.id));
-
-                    // Create unmapped raw list
-                    const allServices = [...prev, ...toAdd];
-
-                    // Apply price and duration overrides
-                    const withOverrides = allServices.map(s => {
-                        if (overrides[s.name]) {
-                            return { ...s, price: overrides[s.name].price || s.price, duration: overrides[s.name].duration || s.duration };
-                        }
-                        return s;
-                    });
-
-                    // Extract the exact sequence of categories as they appear in defaultServicesList
-                    const categoryOrderRaw = [...new Set(defaultServicesList.map(s => s.category))];
-                    const getCategoryIndex = (cat) => {
-                        // Some categories exist only in EV/Diesel, we just use the first chronological appearance across all fuels
-                        const idx = categoryOrderRaw.indexOf(cat);
-                        return idx !== -1 ? idx : 999;
-                    };
-
-                    // Group dynamically so new services fit right next to their parent category
-                    return withOverrides.sort((a, b) => {
-                        // 1. Sort by Fuel Type (Petrol -> Diesel -> EV -> Premium)
-                        const fuelOrder = { 'Petrol': 1, 'Diesel': 2, 'EV': 3, 'Premium': 4 };
-                        const fuelA = fuelOrder[a.fuelType] || 99;
-                        const fuelB = fuelOrder[b.fuelType] || 99;
-                        if (fuelA !== fuelB) return fuelA - fuelB;
-
-                        // 2. Sort by Original Category Appearance
-                        const catA = getCategoryIndex(a.category, a.fuelType);
-                        const catB = getCategoryIndex(b.category, b.fuelType);
-                        if (catA !== catB) return catA - catB;
-
-                        return 0; // Same fuel and category
-                    });
-                });
-            } catch (err) {
-                console.error("Failed to fetch settings:", err);
+            const dataDisabled = await resDisabled.json();
+            if (dataDisabled.success && dataDisabled.data) {
+                setDisabledServices(dataDisabled.data);
+                cachedDisabledServices = dataDisabled.data;
             }
-        };
-        fetchSettings();
+
+            const dataCustom = await resCustom.json();
+            let newlyAddedServices = [];
+            if (dataCustom.success && dataCustom.data) {
+                newlyAddedServices = dataCustom.data;
+                setCustomServices(newlyAddedServices);
+                cachedCustomServices = newlyAddedServices;
+            }
+
+            const dataOverrides = await resOverrides.json();
+            const overrides = (dataOverrides.success && dataOverrides.data) ? dataOverrides.data : {};
+            setServiceOverrides(overrides);
+            cachedServiceOverrides = overrides;
+
+            setServicesList(prev => {
+                const existingIds = new Set(prev.map(s => s.id));
+                const toAdd = newlyAddedServices.filter(s => !existingIds.has(s.id));
+
+                const allServices = [...prev, ...toAdd];
+
+                const withOverrides = allServices.map(s => {
+                    if (overrides[s.name]) {
+                        return { ...s, price: overrides[s.name].price || s.price, duration: overrides[s.name].duration || s.duration };
+                    }
+                    return s;
+                });
+
+                const categoryOrderRaw = [...new Set(defaultServicesList.map(s => s.category))];
+                const getCategoryIndex = (cat) => {
+                    const idx = categoryOrderRaw.indexOf(cat);
+                    return idx !== -1 ? idx : 999;
+                };
+
+                const sorted = withOverrides.sort((a, b) => {
+                    const fuelOrder = { 'Petrol': 1, 'Diesel': 2, 'EV': 3, 'Premium': 4 };
+                    const fuelA = fuelOrder[a.fuelType] || 99;
+                    const fuelB = fuelOrder[b.fuelType] || 99;
+                    if (fuelA !== fuelB) return fuelA - fuelB;
+
+                    const catA = getCategoryIndex(a.category);
+                    const catB = getCategoryIndex(b.category);
+                    if (catA !== catB) return catA - catB;
+
+                    return 0;
+                });
+
+                cachedServicesList = sorted;
+                cachedServicesTimestamp = Date.now();
+                return sorted;
+            });
+        } catch (err) {
+            console.error("Failed to fetch settings:", err);
+        } finally {
+            isFetchingRef.current = false;
+        }
     }, []);
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
 
     const handleSaveService = async (updatedService) => {
         if (guardGuestAction()) return;
         // 1. Update local list state so it reflects instantly
-        setServicesList(prev => prev.map(s => s.id === updatedService.id ? updatedService : s));
+        setServicesList(prev => {
+            const next = prev.map(s => s.id === updatedService.id ? updatedService : s);
+            cachedServicesList = next;
+            return next;
+        });
         setIsEditModalOpen(false);
         setSelectedService(null);
 
@@ -182,10 +200,11 @@ const Services = () => {
             duration: updatedService.duration
         };
         setServiceOverrides(newOverrides);
+        cachedServiceOverrides = newOverrides;
 
         // 3. Save to backend Settings
         try {
-            await fetch('https://vehicleecare.onrender.com/api/settings', {
+            await fetch(`${API_BASE_URL}/api/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'serviceOverrides', value: newOverrides })
@@ -222,7 +241,7 @@ const Services = () => {
                 return idx !== -1 ? idx : 999;
             };
 
-            return rawItems.sort((a, b) => {
+            const sorted = rawItems.sort((a, b) => {
                 const fuelOrder = { 'Petrol': 1, 'Diesel': 2, 'EV': 3, 'Premium': 4 };
                 const fuelA = fuelOrder[a.fuelType] || 99;
                 const fuelB = fuelOrder[b.fuelType] || 99;
@@ -234,9 +253,12 @@ const Services = () => {
 
                 return 0;
             });
+            cachedServicesList = sorted;
+            return sorted;
         });
 
         setCustomServices(updatedCustomServices);
+        cachedCustomServices = updatedCustomServices;
 
         setIsAddModalOpen(false);
         setNewService({ name: '', category: '', fuelType: '', price: '', duration: '', active: true });
@@ -244,7 +266,7 @@ const Services = () => {
 
         // Save back to DB Settings key customServices
         try {
-            await fetch('https://vehicleecare.onrender.com/api/settings', {
+            await fetch(`${API_BASE_URL}/api/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'customServices', value: updatedCustomServices })
@@ -270,13 +292,18 @@ const Services = () => {
         const updatedCustomServices = customServices.filter(s => s.id !== serviceToDelete.id);
 
         try {
-            await fetch('https://vehicleecare.onrender.com/api/settings', {
+            await fetch(`${API_BASE_URL}/api/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: 'customServices', value: updatedCustomServices })
             });
             setCustomServices(updatedCustomServices);
-            setServicesList(prev => prev.filter(s => s.id !== serviceToDelete.id));
+            cachedCustomServices = updatedCustomServices;
+            setServicesList(prev => {
+                const next = prev.filter(s => s.id !== serviceToDelete.id);
+                cachedServicesList = next;
+                return next;
+            });
             triggerAlert("Service deleted successfully", "success");
             setIsDeleteModalOpen(false);
             setServiceToDelete(null);

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check, Loader2 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 import punjabData from '../../../backend/chargingdata/punjab.json';
 import haryanaData from '../../../backend/chargingdata/haryana.json';
 import delhiData from '../../../backend/chargingdata/delhi.json';
+import API_BASE_URL from '../config/api';
 
 const STATION_LOCATIONS = [...punjabData, ...haryanaData, ...delhiData];
 const STATES = [...new Set(STATION_LOCATIONS.map(l => l.state))].sort();
@@ -32,6 +33,10 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+
+// Module-level cache for instant 0ms page revisits
+let cachedChargingStations = null;
+let cachedChargingStationsTimestamp = 0;
 
 const ChargingStations = () => {
     const { triggerAlert } = useAlert();
@@ -77,9 +82,10 @@ const ChargingStations = () => {
         return true;
     };
 
-    const [stations, setStations] = useState(initialStations);
+    const [stations, setStations] = useState(() => Array.isArray(cachedChargingStations) ? cachedChargingStations : initialStations);
     const highlightedRow = useHighlight(stations);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(() => !cachedChargingStations);
+    const isFetchingRef = useRef(false);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
@@ -139,24 +145,30 @@ const ChargingStations = () => {
         return () => setFilterConfig(null);
     }, [setFilterConfig, filterChargerType, labelFilter, sortOrder, timeRange]);
 
-    const fetchStations = async () => {
-        setLoading(true);
+    const fetchStations = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            const res = await fetch('https://vehicleecare.onrender.com/api/charging-stations');
+            if (!silent && (!cachedChargingStations || cachedChargingStations.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/charging-stations`);
             const data = await res.json();
             if (data.success) {
-                setStations(data.data);
+                const list = data.data || [];
+                cachedChargingStations = list;
+                cachedChargingStationsTimestamp = Date.now();
+                setStations(list);
             }
         } catch (err) {
             console.error('Failed to fetch stations:', err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchStations();
-    }, []);
+        fetchStations(!!cachedChargingStations);
+    }, [fetchStations]);
 
     const openAdd = () => { setForm(emptyForm); setEditTarget(null); setShowModal(true); };
     const openEdit = (s) => {
@@ -209,8 +221,8 @@ const ChargingStations = () => {
         setSaving(true);
         try {
             const url = editTarget
-                ? `https://vehicleecare.onrender.com/api/charging-stations/${editTarget.id}`
-                : 'https://vehicleecare.onrender.com/api/charging-stations';
+                ? `${API_BASE_URL}/api/charging-stations/${editTarget.id}`
+                : `${API_BASE_URL}/api/charging-stations`;
             const method = editTarget ? 'PUT' : 'POST';
 
             let payload = { ...form };
@@ -227,10 +239,18 @@ const ChargingStations = () => {
             const data = await res.json();
             if (data.success) {
                 if (editTarget) {
-                    setStations(prev => prev.map(s => s.id === editTarget.id ? data.data : s));
+                    setStations(prev => {
+                        const next = prev.map(s => s.id === editTarget.id ? data.data : s);
+                        cachedChargingStations = next;
+                        return next;
+                    });
                     triggerAlert('Charging station updated successfully', 'success');
                 } else {
-                    setStations(prev => [data.data, ...prev]);
+                    setStations(prev => {
+                        const next = [data.data, ...prev];
+                        cachedChargingStations = next;
+                        return next;
+                    });
                     triggerAlert('Charging station added successfully', 'success');
                 }
                 closeModal();
@@ -250,9 +270,13 @@ const ChargingStations = () => {
         if (!stationToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/charging-stations/${stationToDelete}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE_URL}/api/charging-stations/${stationToDelete}`, { method: 'DELETE' });
             if (res.ok) {
-                setStations(prev => prev.filter(s => s.id !== stationToDelete));
+                setStations(prev => {
+                    const next = prev.filter(s => s.id !== stationToDelete);
+                    cachedChargingStations = next;
+                    return next;
+                });
                 triggerAlert('Charging station deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setStationToDelete(null);

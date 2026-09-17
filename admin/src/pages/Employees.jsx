@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard, Zap, ShoppingBag, Pencil, Edit } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
@@ -11,10 +11,14 @@ import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL
 import useGuestGuard from '../hooks/useGuestGuard';
 import API_BASE_URL from '../config/api';
 
+// Module-level cache for instant 0ms page revisits
+let cachedEmployees = null;
+let cachedEmployeesTimestamp = 0;
+
 const Employees = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [employees, setEmployees] = useState([]);
+    const [employees, setEmployees] = useState(() => Array.isArray(cachedEmployees) ? cachedEmployees : []);
 
     const maskEmail = (email) => {
         if (!email || email === 'N/A' || email === '—') return email || '—';
@@ -56,8 +60,9 @@ const Employees = () => {
         return true;
     };
     const highlightedRow = useHighlight(employees);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedEmployees);
     const [error, setError] = useState('');
+    const isFetchingRef = useRef(false);
 
     // Modals
     const [viewEmployee, setViewEmployee] = useState(null);
@@ -107,7 +112,11 @@ const Employees = () => {
             const data = await res.json();
             if (res.ok) {
                 const updated = data.data || { ...editDevTarget, ...payload };
-                setEmployees(prev => prev.map(e => (e._id === updated._id || e.employeeId === updated.employeeId) ? { ...e, ...payload } : e));
+                setEmployees(prev => {
+                    const next = prev.map(e => (e._id === updated._id || e.employeeId === updated.employeeId) ? { ...e, ...payload } : e);
+                    cachedEmployees = next;
+                    return next;
+                });
                 if (viewEmployee && (viewEmployee._id === updated._id || viewEmployee.employeeId === updated.employeeId)) {
                     setViewEmployee(prev => ({ ...prev, ...payload }));
                 }
@@ -124,7 +133,7 @@ const Employees = () => {
         }
     };
 
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedEmployeesTimestamp ? new Date(cachedEmployeesTimestamp) : null);
 
     // Filter, Sort & Row Label States
     const [filterCategory, setFilterCategory] = useState('all');
@@ -178,26 +187,37 @@ const Employees = () => {
     }, [setFilterConfig, filterCategory, labelFilter, sortOrder, timeRange]);
 
     const fetchEmployees = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && (!cachedEmployees || cachedEmployees.length === 0)) setLoading(true);
             const res = await fetch(`${API_BASE_URL}/api/employees`);
             if (!res.ok) throw new Error('Failed to fetch employees');
             const data = await res.json();
-            setEmployees(data.data || []);
+            const list = data.data || [];
+            cachedEmployees = list;
+            cachedEmployeesTimestamp = Date.now();
+            setEmployees(list);
             setLastRefreshed(new Date());
         } catch (err) {
             console.error(err);
-            if (!silent) setError('Failed to load employees. Is the backend running?');
+            if (!silent && (!cachedEmployees || cachedEmployees.length === 0)) setError('Failed to load employees. Is the backend running?');
         } finally {
-            if (!silent) setLoading(false);
+            isFetchingRef.current = false;
+            setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchEmployees();
-        const interval = setInterval(() => fetchEmployees(true), 5000);
+        fetchEmployees(!!cachedEmployees);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchEmployees(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchEmployees]);
+    }, [fetchEmployees, isGuest]);
 
     const getRoleBadge = (role) => {
         const r = (role || '').toUpperCase().replace(/\s+/g, '');
@@ -429,7 +449,11 @@ const Employees = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setEmployees(prev => prev.filter(emp => emp._id !== employeeToDelete._id));
+                setEmployees(prev => {
+                    const next = prev.filter(emp => emp._id !== employeeToDelete._id);
+                    cachedEmployees = next;
+                    return next;
+                });
                 triggerAlert('Employee deleted successfully', 'success');
                 setIsDeleteModalOpen(false);
                 setEmployeeToDelete(null);
@@ -453,12 +477,16 @@ const Employees = () => {
             return;
         }
         setResendingEmailId(employee._id);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
         try {
             const res = await fetch(`${API_BASE_URL}/api/employees/${employee._id || employee.employeeId}/resend-welcome`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ temporaryPassword: 'Pass@1234' })
+                body: JSON.stringify({ temporaryPassword: 'Pass@1234' }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
             const data = await res.json();
             if (res.ok && data.success) {
                 triggerAlert(data.message || `Welcome email sent successfully to ${employee.email}`, 'success');
@@ -466,8 +494,12 @@ const Employees = () => {
                 throw new Error(data.message || 'Failed to send welcome email');
             }
         } catch (err) {
+            clearTimeout(timeoutId);
             console.error('Error resending welcome email:', err);
-            triggerAlert(err.message || 'Failed to send welcome email', 'error');
+            const msg = err.name === 'AbortError'
+                ? 'Request timed out. The server may be busy — please try again.'
+                : (err.message || 'Failed to send welcome email');
+            triggerAlert(msg, 'error');
         } finally {
             setResendingEmailId(null);
         }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, MoreVertical, Eye, Download, X, Trash2, RefreshCw, Loader2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -9,11 +9,16 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedBookings = null;
+let cachedBookingsTimestamp = 0;
 
 const Bookings = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [bookings, setBookings] = useState([]);
+    const [bookings, setBookings] = useState(() => Array.isArray(cachedBookings) ? cachedBookings : []);
 
     const maskEmail = (email) => {
         if (!email || email === 'N/A' || email === '—') return email || 'N/A';
@@ -47,12 +52,13 @@ const Bookings = () => {
         return true;
     };
     const highlightedRow = useHighlight(bookings);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !cachedBookings);
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     const [_refreshing, setRefreshing] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedBookingsTimestamp ? new Date(cachedBookingsTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookingToDelete, setBookingToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -113,29 +119,38 @@ const Bookings = () => {
     }, [setFilterConfig, filterStatus, labelFilter, sortOrder, timeRange]);
 
     const fetchBookings = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && (!cachedBookings || cachedBookings.length === 0)) setLoading(true);
             else setRefreshing(true);
-            const res = await fetch('https://vehicleecare.onrender.com/api/bookings');
+            const res = await fetch(`${API_BASE_URL}/api/bookings`);
             const result = await res.json();
             if (result.success && result.data) {
+                cachedBookings = result.data;
+                cachedBookingsTimestamp = Date.now();
                 setBookings(result.data);
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Error fetching bookings:", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
             setRefreshing(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchBookings();
-        // Poll every 5 seconds for new bookings
-        const interval = setInterval(() => fetchBookings(true), 5000);
+        fetchBookings(!!cachedBookings);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchBookings(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchBookings]);
+    }, [fetchBookings, isGuest]);
 
 
     const getStatusColor = (status) => {
@@ -155,12 +170,16 @@ const Bookings = () => {
         if (!bookingToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingToDelete}`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingToDelete}`, {
                 method: 'DELETE',
             });
             const data = await res.json();
             if (data.success) {
-                setBookings(bookings.filter(b => b._id !== bookingToDelete));
+                setBookings(prev => {
+                    const next = prev.filter(b => b._id !== bookingToDelete);
+                    cachedBookings = next;
+                    return next;
+                });
                 triggerAlert("Booking deleted successfully", "success");
                 setIsDeleteModalOpen(false);
                 setBookingToDelete(null);
