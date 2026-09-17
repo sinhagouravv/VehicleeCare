@@ -45,4 +45,6 @@ const guestLogSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+guestLogSchema.index({ portal: 1, userId: 1, timestamp: -1 });
+
 module.exports = mongoose.model('GuestLog', guestLogSchema);

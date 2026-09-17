@@ -24,7 +24,8 @@ const PaymentSchema = new mongoose.Schema({
         ref: 'Booking'
     },
     garageId: {
-        type: String
+        type: String,
+        index: true
     },
     amount: {
         type: Number,
@@ -45,8 +46,11 @@ const PaymentSchema = new mongoose.Schema({
     },
     date: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true
     }
 });
+
+PaymentSchema.index({ garageId: 1, date: -1 });
 
 module.exports = mongoose.model('Payment', PaymentSchema);

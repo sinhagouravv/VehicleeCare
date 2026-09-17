@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 5001;
 const authRoutes = require('./routes/authRoutes');
 const { initAttendanceCron } = require('./cron/attendanceCron');
 const { checkGuestReadOnly } = require('./middleware/authMiddleware');
+const { seedAllGuestAccounts } = require('./controllers/authController');
 
 // Middleware
 app.use(cors());
@@ -27,6 +28,8 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('MongoDB connected successfully to:', mongoose.connection.name);
         initAttendanceCron();
+        // Warm up and pre-seed guest accounts in background so the very first login is instantaneous
+        seedAllGuestAccounts().catch(err => console.error('Error pre-seeding guest accounts:', err));
     })
     .catch(err => console.error('MongoDB connection error:', err));
 

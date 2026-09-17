@@ -92,18 +92,59 @@ exports.getAllPayments = async (req, res) => {
     }
 };
 
+const garagePaymentsInFlight = new Map();
+const garagePaymentsCache = new Map();
+
 // @desc    Get payments for a specific garage
 // @route   GET /api/payments/garage/:garageId
 exports.getGaragePayments = async (req, res) => {
     try {
-        const payments = await Payment.find({ garageId: req.params.garageId })
-            .populate('user', 'name email userId')
-            .populate({
-                path: 'booking',
-                select: 'bookingId vehicle service status'
-            })
-            .sort({ date: -1 });
+        const garageId = String(req.params.garageId || '').trim();
+        // Strict input validation to prevent injection or malformed parameters
+        if (!garageId || garageId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(garageId)) {
+            return res.status(400).json({ success: false, message: 'Invalid garage identifier' });
+        }
 
+        const now = Date.now();
+
+        // Bound cache size to prevent memory bloat
+        if (garagePaymentsCache.size > 200) {
+            for (const [k, v] of garagePaymentsCache.entries()) {
+                if (now - v.timestamp >= 5000) garagePaymentsCache.delete(k);
+            }
+        }
+
+        // 1. Check short-lived cache (5s) for instant response
+        const cached = garagePaymentsCache.get(garageId);
+        if (cached && (now - cached.timestamp < 5000)) {
+            return res.status(200).json({ success: true, count: cached.data.length, data: cached.data });
+        }
+
+        // 2. Request coalescing (single-flight): share 1 DB query among concurrent users
+        let queryPromise = garagePaymentsInFlight.get(garageId);
+        if (!queryPromise) {
+            queryPromise = Payment.find({ garageId })
+                .populate('user', 'name email userId')
+                .populate({
+                    path: 'booking',
+                    select: 'bookingId vehicle service status'
+                })
+                .sort({ date: -1 })
+                .lean()
+                .then(data => {
+                    garagePaymentsCache.set(garageId, { data, timestamp: Date.now() });
+                    garagePaymentsInFlight.delete(garageId);
+                    return data;
+                })
+                .catch(err => {
+                    garagePaymentsInFlight.delete(garageId);
+                    throw err;
+                });
+
+            garagePaymentsInFlight.set(garageId, queryPromise);
+        }
+
+        const payments = await queryPromise;
         res.status(200).json({ success: true, count: payments.length, data: payments });
     } catch (error) {
         console.error("Error fetching garage payments:", error);

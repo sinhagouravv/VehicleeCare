@@ -105,14 +105,16 @@ const recordGuestSessionInternal = async ({ portal, role, userId, req }) => {
             timestamp: new Date()
         });
 
-        const total = await GuestLog.countDocuments();
-        await Setting.findOneAndUpdate(
-            { key: 'guestLoginCount' },
-            { value: total, updatedAt: Date.now() },
-            { upsert: true }
-        ).catch(() => {});
+        // Fire count & setting update in background — do not block the login response
+        GuestLog.countDocuments().then(total => {
+            Setting.findOneAndUpdate(
+                { key: 'guestLoginCount' },
+                { value: total, updatedAt: Date.now() },
+                { upsert: true }
+            ).catch(() => {});
+        }).catch(() => {});
 
-        console.log(`[Guest Tracker] Recorded ${portal} guest login for ${normalizedUser}: ${newLog.sessionId}, total: ${total}`);
+        console.log(`[Guest Tracker] Recorded ${portal} guest login for ${normalizedUser}: ${newLog.sessionId}`);
         return newLog;
     } catch (err) {
         console.error(`[Guest Tracker] Error recording ${portal} guest login:`, err);
@@ -164,28 +166,36 @@ exports.login = async (req, res) => {
 };
 
 // ── Admin Login ──────────────────────────────────────────────
+// Pre-computed bcrypt hashes for instant guest account initialization (bypasses 300ms+ bcrypt.hash on cold start)
+const GUEST_ADMIN_HASH = '$2b$10$qi9YK4Dvtoi9B64MYXEtUuNClJpgQoA27jOoJWYe3grJLnQy5drPm';
+const GUEST_GARAGE_HASH = '$2b$10$IAohCC1zJzEO0tBSKF4fouW.dATYQHFPZH3V55DtWLzAsswGAZ0f.';
+const GUEST_EMPLOYEE_HASH = '$2b$10$ok0eYc9YRNIoK/guRCoYzu5hN/JXZ2aOcNfPR/X8EuU/kWnp/MMS6';
+
+let guestAdminSeeded = false;
+
 const seedGuestAdmin = async () => {
+    if (guestAdminSeeded) return; // skip on subsequent calls — saves ~300ms bcrypt.hash
     try {
         let guestAdmin = await Admin.findOne({ email: 'guestadmin@vehicleecare.com' });
-        const hashedPassword = await bcrypt.hash('GuestAdmin@2026', 10);
         if (!guestAdmin) {
             await Admin.create({
                 adminId: 'guestadmin@vehicleecare.com',
                 email: 'guestadmin@vehicleecare.com',
-                password: hashedPassword,
+                password: GUEST_ADMIN_HASH,
                 role: 'guest_admin'
             });
-        } else {
-            guestAdmin.password = hashedPassword;
+        } else if (guestAdmin.role !== 'guest_admin') {
+            // Only fix role if wrong — no password re-hash needed
             guestAdmin.role = 'guest_admin';
             await guestAdmin.save();
         }
+        guestAdminSeeded = true;
     } catch (err) {
         console.error('Error seeding guest admin:', err);
     }
 };
 
-
+exports.seedGuestAdmin = seedGuestAdmin;
 
 exports.adminLogin = async (req, res) => {
     try {
@@ -202,9 +212,7 @@ exports.adminLogin = async (req, res) => {
         let admin = await Admin.findOne({
             $or: [
                 { email: normalizedEmail },
-                { adminId: normalizedEmail },
-                { email: email },
-                { adminId: email }
+                { adminId: normalizedEmail }
             ]
         });
 
@@ -212,7 +220,11 @@ exports.adminLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid admin credentials' });
         }
 
-        const isMatch = await bcrypt.compare(password, admin.password);
+        // Fast-path: instant match for default guest password without waiting for bcrypt.compare CPU lag
+        const isMatch = (isGuest && password === 'GuestAdmin@2026')
+            ? true
+            : await bcrypt.compare(password, admin.password);
+
         if (!isMatch) {
             return res.status(401).json({ msg: 'Invalid admin credentials' });
         }
@@ -415,56 +427,55 @@ exports.adminResetPassword = async (req, res) => {
     }
 };
 
+// In-memory flags — skip re-seeding on every login within the same server process
+let guestGarageSeeded = false;
+let guestEmployeeSeeded = false;
+
 const seedGuestGarage = async () => {
+    if (guestGarageSeeded) return; // already seeded this session — skip expensive bcrypt.hash
     try {
-        let guestGarage = await Garage.findOne({
-            $or: [
-                { ownerEmail: 'guestgarage@vehicleecare.com' },
-                { garageId: '663428591' }
-            ]
-        });
-        const hashedPassword = await bcrypt.hash('GuestGarage@2026', 10);
+        let guestGarage = await Garage.findOne({ ownerEmail: 'guestgarage@vehicleecare.com' });
         if (!guestGarage) {
+            // First time: create the record with pre-computed hash (instant 0ms, no bcrypt.hash CPU load)
             await Garage.create({
                 garageId: '663428591',
-                name: "sinha's garage center",
+                name: 'Demo Garage',
                 ownerName: 'Guest Garage Admin',
                 ownerEmail: 'guestgarage@vehicleecare.com',
-                password: hashedPassword,
+                password: GUEST_GARAGE_HASH,
                 phone: '+91 98765 43210',
                 isGuest: true,
                 role: 'guest_garage',
                 status: 'Approved'
             });
-        } else {
-            guestGarage.ownerEmail = 'guestgarage@vehicleecare.com';
-            guestGarage.password = hashedPassword;
+        } else if (!guestGarage.isGuest) {
+            // Record exists but flags are wrong — fix without touching password
             guestGarage.isGuest = true;
             guestGarage.role = 'guest_garage';
             guestGarage.status = 'Approved';
             await guestGarage.save();
         }
+        // Mark as seeded so subsequent logins skip this entirely
+        guestGarageSeeded = true;
     } catch (err) {
         console.error('Error seeding guest garage:', err);
     }
 };
 
+exports.seedGuestGarage = seedGuestGarage;
+
 const seedGuestEmployee = async () => {
+    if (guestEmployeeSeeded) return; // skip on subsequent calls
     try {
         const Employee = require('../models/Employee');
-        let guestEmp = await Employee.findOne({
-            $or: [
-                { email: 'guestemployee@vehicleecare.com' },
-                { employeeId: '618191751' }
-            ]
-        });
-        const hashedPassword = await bcrypt.hash('GuestEmployee@2026', 10);
+        let guestEmp = await Employee.findOne({ email: 'guestemployee@vehicleecare.com' });
         if (!guestEmp) {
+            // First time: create with precomputed hash (instant 0ms)
             await Employee.create({
-                employeeId: '618191751',
+                employeeId: 'GUESTEMP001',
                 name: 'Guest Demo Employee',
                 email: 'guestemployee@vehicleecare.com',
-                password: hashedPassword,
+                password: GUEST_EMPLOYEE_HASH,
                 phone: '+91 98765 43210',
                 role: 'guest_employee',
                 category: 'Technician',
@@ -473,18 +484,19 @@ const seedGuestEmployee = async () => {
                 isVerified: true,
                 isGuest: true
             });
-        } else {
-            guestEmp.email = 'guestemployee@vehicleecare.com';
-            guestEmp.password = hashedPassword;
+        } else if (!guestEmp.isGuest) {
             guestEmp.role = 'guest_employee';
             guestEmp.isGuest = true;
             guestEmp.isVerified = true;
             await guestEmp.save();
         }
+        guestEmployeeSeeded = true;
     } catch (err) {
         console.error('Error seeding guest employee:', err);
     }
 };
+
+exports.seedGuestEmployee = seedGuestEmployee;
 
 // ── Garage Login ─────────────────────────────────────────────
 exports.garageLogin = async (req, res) => {
@@ -501,20 +513,15 @@ exports.garageLogin = async (req, res) => {
 
         let garage = null;
         if (isGuest) {
-            garage = await Garage.findOne({
-                $or: [
-                    { ownerEmail: 'guestgarage@vehicleecare.com' },
-                    { garageId: '663428591' }
-                ]
-            });
+            // Guest login: find the garage by the guest email
+            garage = await Garage.findOne({ ownerEmail: 'guestgarage@vehicleecare.com' });
         } else {
+            // Real login: try garageId first (most common), fall back to email fields
             garage = await Garage.findOne({
                 $or: [
-                    { garageId: normalizedId },
-                    { ownerEmail: normalizedId },
-                    { garageEmail: normalizedId },
                     { garageId: garageId },
-                    { ownerEmail: garageId }
+                    { ownerEmail: garageId },
+                    { garageEmail: garageId }
                 ]
             });
         }
@@ -523,7 +530,11 @@ exports.garageLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid garage credentials' });
         }
 
-        const isMatch = await bcrypt.compare(password, garage.password);
+        // Fast-path: instant match for default guest password without waiting for bcrypt.compare
+        const isMatch = (isGuest && password === 'GuestGarage@2026')
+            ? true
+            : await bcrypt.compare(password, garage.password);
+
         if (!isMatch) {
             return res.status(401).json({ msg: 'Invalid garage credentials' });
         }
@@ -560,7 +571,9 @@ exports.garageLogin = async (req, res) => {
                     avatar: garage.avatar || garage.profilePicture || garage.profilePhoto || garage.logo || '',
                     address: garage.address || '',
                     phone: garage.phone || '',
-                    role: isGuest ? 'guest_garage' : (garage.role || 'garage'),
+                    // For real logins, always return 'garage' — even if DB has 'guest_garage'
+                    // because this garage document doubles as the guest demo garage
+                    role: isGuest ? 'guest_garage' : 'garage',
                     isGuest
                 },
                 guestSession
@@ -588,19 +601,16 @@ exports.employeeLogin = async (req, res) => {
         let employee = null;
         if (isGuest) {
             employee = await Employee.findOne({
-                $or: [
-                    { email: 'guestemployee@vehicleecare.com' },
-                    { employeeId: '618191751' }
-                ]
+                email: 'guestemployee@vehicleecare.com'
             });
         } else {
             employee = await Employee.findOne({
                 $or: [
                     { email: normalizedId },
-                    { employeeId: normalizedId },
-                    { employeeId: employeeId },
-                    { email: employeeId }
-                ]
+                    { employeeId: normalizedId }
+                ],
+                // Never match the guest employee account during a real login
+                isGuest: { $ne: true }
             });
         }
 
@@ -608,15 +618,25 @@ exports.employeeLogin = async (req, res) => {
             return res.status(401).json({ msg: 'Invalid employee credentials' });
         }
 
-        const isMatch = await bcrypt.compare(password, employee.password || '');
+        // Fast-path: instant match for default guest password without waiting for bcrypt.compare
+        const isMatch = (isGuest && password === 'GuestEmployee@2026')
+            ? true
+            : await bcrypt.compare(password, employee.password || '');
+
         if (!isMatch) {
             return res.status(401).json({ msg: 'Invalid employee credentials' });
         }
 
         let garage = null;
-        if (employee.garageId) {
+        if (isGuest) {
+            // Guest demo employee always maps to demo garage — avoid extra round-trip DB lookup
+            garage = {
+                name: 'Guest Demo Garage',
+                address: 'Bilga, Jalandhar, Punjab - 144036'
+            };
+        } else if (employee.garageId) {
             const Garage = require('../models/Garage');
-            garage = await Garage.findOne({ garageId: employee.garageId });
+            garage = await Garage.findOne({ garageId: employee.garageId }).lean().select('name address district state');
         }
 
         const payload = { 
@@ -1266,3 +1286,20 @@ exports.deleteAccount = async (req, res) => {
         res.status(500).json({ msg: 'Failed to delete account' });
     }
 };
+
+// ── Startup Pre-seeding (Warm-up for ultra-fast first login) ───
+const seedAllGuestAccounts = async () => {
+    try {
+        await Promise.all([
+            seedGuestAdmin(),
+            seedGuestGarage(),
+            seedGuestEmployee()
+        ]);
+        console.log('[Auth] Guest demo accounts pre-seeded & verified for instant first login.');
+    } catch (err) {
+        console.error('[Auth] Error during initial guest accounts pre-seed:', err);
+    }
+};
+
+exports.seedAllGuestAccounts = seedAllGuestAccounts;
+
