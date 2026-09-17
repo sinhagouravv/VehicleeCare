@@ -1,24 +1,67 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Star, Eye, X, Trash2, Loader2, MessageSquare, Check, Send } from 'lucide-react';
 import { createPortal } from 'react-dom';
-// import useHighlight from '../hooks/useHighlight'; // Keep highlighted row hook
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
 import { useAlert } from '../context/AlertContext';
+import { API_BASE_URL } from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedReviews = null;
+let cachedAllReviews = null;
+let cachedAllUsers = null;
+let cachedReviewsGarageId = null;
+let cachedReviewsTimestamp = null;
 
 const Reviews = () => {
-    const API_URL = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
     const { isGuest, guardGuestAction } = useGuestGuard();
     const { triggerAlert } = useAlert();
 
-    const [reviews, setReviews] = useState([]);
-    const [allReviews, setAllReviews] = useState([]);
-    const [allUsers, setAllUsers] = useState([]);
-    const [lastRefreshed, setLastRefreshed] = useState(new Date());
-    const [loading, setLoading] = useState(true);
+    const [reviews, setReviews] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedReviewsGarageId === gId && Array.isArray(cachedReviews)) return cachedReviews;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [allReviews, setAllReviews] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedReviewsGarageId === gId && Array.isArray(cachedAllReviews)) return cachedAllReviews;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [allUsers, setAllUsers] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedReviewsGarageId === gId && Array.isArray(cachedAllUsers)) return cachedAllUsers;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedReviewsTimestamp ? new Date(cachedReviewsTimestamp) : new Date());
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedReviewsGarageId === gId && Array.isArray(cachedReviews)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const isFetchingRef = useRef(false);
     const [selectedReview, setSelectedReview] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState(null);
@@ -214,8 +257,11 @@ const Reviews = () => {
         setDeleting(false);
     };
 
-    const fetchReviews = async () => {
+    const fetchReviews = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
+            if (!silent && !cachedReviews) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) {
                 console.warn("No garage user found in local storage");
@@ -225,17 +271,19 @@ const Reviews = () => {
             const garageUser = JSON.parse(storedUser);
 
             const [websiteRes, businessRes, usersRes] = await Promise.all([
-                fetch(`${API_URL}/api/website-reviews`),
-                fetch(`${API_URL}/api/business-reviews/all`),
-                fetch(`${API_URL}/api/users`)
+                fetch(`${API_BASE_URL}/api/website-reviews`),
+                fetch(`${API_BASE_URL}/api/business-reviews/all`),
+                fetch(`${API_BASE_URL}/api/users`)
             ]);
             
             const websiteData = await websiteRes.json();
             const businessData = await businessRes.json();
             const usersData = await usersRes.json();
 
-            setAllReviews([...websiteData, ...(businessData.data || [])]);
-            setAllUsers(usersData.data || []);
+            const combinedAll = [...websiteData, ...(businessData.data || [])];
+            const usersList = usersData.data || [];
+            setAllReviews(combinedAll);
+            setAllUsers(usersList);
 
             const garageReviews = websiteData
                 .filter(r => r.type === 'garage' && r.targetName?.toLowerCase().trim() === garageUser.name?.toLowerCase().trim())
@@ -243,19 +291,31 @@ const Reviews = () => {
 
             const combined = [...garageReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             setReviews(combined);
+            const now = new Date();
+            setLastRefreshed(now);
+            cachedReviews = combined;
+            cachedAllReviews = combinedAll;
+            cachedAllUsers = usersList;
+            cachedReviewsGarageId = garageUser.id;
+            cachedReviewsTimestamp = now.getTime();
         } catch (error) {
             console.error('Error fetching reviews', error);
         } finally {
-            setLastRefreshed(new Date());
             setLoading(false);
+            isFetchingRef.current = false;
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchReviews();
-        const interval = setInterval(() => { fetchReviews(); }, 5000);
+        fetchReviews(!!cachedReviews);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchReviews(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchReviews, isGuest]);
 
     const userResolvers = useMemo(() => {
         const idMap = {};
@@ -362,7 +422,7 @@ const Reviews = () => {
             const targetId = selectedRemarkReview.name || '—';
             const targetRole = 'Customer';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

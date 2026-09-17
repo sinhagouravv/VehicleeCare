@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Check, X, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
@@ -9,12 +9,38 @@ import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL
 import useGuestGuard from '../hooks/useGuestGuard';
 import API_BASE_URL from '../config/api';
 
+// Module-level cache for instant 0ms page revisits
+let cachedRequests = null;
+let cachedRequestsGarageId = null;
+let cachedRequestsTimestamp = 0;
+
 const Meeting = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [requests, setRequests] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [requests, setRequests] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const gId = user.id || user._id;
+                if (cachedRequestsGarageId === gId && Array.isArray(cachedRequests)) return cachedRequests;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const gId = user.id || user._id;
+                if (cachedRequestsGarageId === gId && Array.isArray(cachedRequests)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedRequestsTimestamp ? new Date(cachedRequestsTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [updatingId, setUpdatingId] = useState(null);
     
     // Modal states
@@ -240,17 +266,22 @@ const Meeting = () => {
 
     const fetchGarageRequests = useCallback(async (silent = false) => {
         if (!garageId) return;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/garage/${garageId}`);
+            if (!silent && (!cachedRequests || cachedRequests.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-requests/garage/${garageId}`);
             const data = await res.json();
             if (data.success) {
-                setRequests(data.data || []);
+                cachedRequests = data.data || [];
+                cachedRequestsGarageId = garageId;
+                cachedRequestsTimestamp = Date.now();
+                setRequests(cachedRequests);
                 setLastRefreshed(new Date());
             }
 
             // Also fetch managers of this garage
-            const empRes = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
+            const empRes = await fetch(`${API_BASE_URL}/api/employees/garage/${garageId}`);
             const empData = await empRes.json();
             if (empData.success) {
                 const mgrs = (empData.data || []).filter(emp => String(emp.role || '').toLowerCase() === 'manager' && emp.isVerified !== false);
@@ -259,15 +290,17 @@ const Meeting = () => {
         } catch (error) {
             console.error("Failed to fetch garage ID card requests/managers:", error);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, [garageId]);
 
     useEffect(() => {
         fetchGarageRequests();
-        const interval = setInterval(() => fetchGarageRequests(true), 5000); // Refresh every 5s
+        if (isGuest) return;
+        const interval = setInterval(() => fetchGarageRequests(true), 30000);
         return () => clearInterval(interval);
-    }, [fetchGarageRequests]);
+    }, [fetchGarageRequests, isGuest]);
 
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
@@ -280,7 +313,7 @@ const Meeting = () => {
         setUpdatingId(actionRequestId);
         setIsActionModalOpen(false);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/${actionRequestId}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-requests/${actionRequestId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: actionType, employeeId: actionEmpId, remarks: actionRemarks })
@@ -305,7 +338,7 @@ const Meeting = () => {
         if (!selectedRequest) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/id-card-requests/${selectedRequest._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/employees/id-card-requests/${selectedRequest._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

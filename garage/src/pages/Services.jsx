@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2, X, MessageSquare, Download, Check, Send } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -8,13 +8,38 @@ import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
 import { useAlert } from '../context/AlertContext';
+import { API_BASE_URL } from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedBookings = null;
+let cachedBookingsGarageId = null;
+let cachedBookingsTimestamp = null;
 
 const Services = () => {
     const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const { triggerAlert } = useAlert();
-    const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [bookings, setBookings] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedBookingsGarageId === gId && Array.isArray(cachedBookings)) return cachedBookings;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedBookingsGarageId === gId && Array.isArray(cachedBookings)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedBookingsTimestamp ? new Date(cachedBookingsTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookingToDelete, setBookingToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -158,31 +183,43 @@ const Services = () => {
         });
     };
 
-    const fetchBookings = async (silent = false) => {
+    const fetchBookings = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && !cachedBookings) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 setBookings(data.data);
-                setLastRefreshed(new Date());
+                const now = new Date();
+                setLastRefreshed(now);
+                cachedBookings = data.data;
+                cachedBookingsGarageId = user.id;
+                cachedBookingsTimestamp = now.getTime();
             }
         } catch (error) {
             console.error("Failed to fetch garage bookings", error);
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchBookings();
-        const timer = setInterval(() => fetchBookings(true), 5000);
+        fetchBookings(!!cachedBookings);
+        if (isGuest) return;
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchBookings(true);
+            }
+        }, 30000);
         return () => clearInterval(timer);
-    }, []);
+    }, [fetchBookings, isGuest]);
 
     useEffect(() => {
         if (selectedBooking && bookings.length > 0) {
@@ -196,14 +233,18 @@ const Services = () => {
     const _toggleStatus = async (bookingId, field, value) => {
         if (guardGuestAction()) return;
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingId}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [field]: value })
             });
             const data = await res.json();
             if (data.success) {
-                setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, [field]: value } : b));
+                setBookings(prev => {
+                    const updated = prev.map(b => b._id === bookingId ? { ...b, [field]: value } : b);
+                    cachedBookings = updated;
+                    return updated;
+                });
             }
         } catch (error) {
             console.error(`Failed to update ${field}`, error);
@@ -213,14 +254,18 @@ const Services = () => {
     const _handleStatusChange = async (bookingId, newStatus) => {
         if (guardGuestAction()) return;
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingId}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
             });
             const data = await res.json();
             if (data.success) {
-                setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: newStatus } : b));
+                setBookings(prev => {
+                    const updated = prev.map(b => b._id === bookingId ? { ...b, status: newStatus } : b);
+                    cachedBookings = updated;
+                    return updated;
+                });
             }
         } catch (error) {
             console.error("Failed to update status", error);
@@ -232,12 +277,16 @@ const Services = () => {
         if (!bookingToDelete) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/${bookingToDelete}`, {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingToDelete}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
             if (data.success) {
-                setBookings(prev => prev.filter(b => b._id !== bookingToDelete));
+                setBookings(prev => {
+                    const updated = prev.filter(b => b._id !== bookingToDelete);
+                    cachedBookings = updated;
+                    return updated;
+                });
                 setIsDeleteModalOpen(false);
                 setBookingToDelete(null);
             }
@@ -320,7 +369,7 @@ const Services = () => {
             const targetId = selectedRemarkBooking.user?.name || selectedRemarkBooking.userName || selectedRemarkBooking.customerName || '—';
             const targetRole = 'Customer';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

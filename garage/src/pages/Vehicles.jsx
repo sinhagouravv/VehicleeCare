@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Loader2, Download } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -7,12 +7,37 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import { API_BASE_URL } from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedVehicles = null;
+let cachedVehiclesGarageId = null;
+let cachedVehiclesTimestamp = null;
 
 const Vehicles = () => {
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [vehicles, setVehicles] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedVehiclesTimestamp ? new Date(cachedVehiclesTimestamp) : null);
+    const [vehicles, setVehicles] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedVehiclesGarageId === gId && Array.isArray(cachedVehicles)) return cachedVehicles;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedVehiclesGarageId === gId && Array.isArray(cachedVehicles)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const isFetchingRef = useRef(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -130,13 +155,15 @@ const Vehicles = () => {
     const highlightedRow = useHighlight(filteredVehicles);
 
     const fetchVehicles = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && !cachedVehicles) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 const vehicleMap = {};
@@ -171,20 +198,30 @@ const Vehicles = () => {
 
                 const formattedVehicles = Object.values(vehicleMap).sort((a, b) => b.lastVisitDate - a.lastVisitDate);
                 setVehicles(formattedVehicles);
-                setLastRefreshed(new Date());
+                const now = new Date();
+                setLastRefreshed(now);
+                cachedVehicles = formattedVehicles;
+                cachedVehiclesGarageId = user.id;
+                cachedVehiclesTimestamp = now.getTime();
             }
         } catch (error) {
             console.error("Failed to fetch garage vehicles", error);
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
     }, []);
 
     useEffect(() => {
-        fetchVehicles();
-        const timer = setInterval(() => fetchVehicles(true), 5000);
+        fetchVehicles(!!cachedVehicles);
+        if (isGuest) return;
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchVehicles(true);
+            }
+        }, 30000);
         return () => clearInterval(timer);
-    }, [fetchVehicles]);
+    }, [fetchVehicles, isGuest]);
 
     const handleViewDetails = (vehicle) => {
         setSelectedVehicle(vehicle);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Activity,
     Wrench,
@@ -15,42 +15,81 @@ import {
     ChevronUp
 } from 'lucide-react';
 import { SkeletonBlock } from '../components/Skeleton';
+import useGuestGuard from '../hooks/useGuestGuard';
+import { API_BASE_URL } from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedProgressBookings = null;
+let cachedProgressGarageId = null;
+let cachedProgressTimestamp = null;
 
 const Progress = () => {
-    const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const { isGuest } = useGuestGuard();
+    const [bookings, setBookings] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedProgressGarageId === gId && Array.isArray(cachedProgressBookings)) return cachedProgressBookings;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedProgressGarageId === gId && Array.isArray(cachedProgressBookings)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedProgressTimestamp ? new Date(cachedProgressTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [expandedJob, setExpandedJob] = useState(null);
 
     const fetchProgressData = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && !cachedProgressBookings) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/garage/${user.id}`);
             const data = await res.json();
 
             if (data.success) {
                 // Filter for active jobs (Progress pipeline includes all except Cancelled)
                 const activeStatuses = ['Pending', 'Confirmed', 'In Progress', 'In Service', 'Completed', 'Delivered'];
-                const filtered = data.data.filter(b => activeStatuses.includes(b.status));
+                const filtered = (data.data || []).filter(b => activeStatuses.includes(b.status));
                 setBookings(filtered);
-                setLastRefreshed(new Date());
+                const now = new Date();
+                setLastRefreshed(now);
+                cachedProgressBookings = filtered;
+                cachedProgressGarageId = user.id;
+                cachedProgressTimestamp = now.getTime();
             }
         } catch (error) {
             console.error("Failed to fetch progress data", error);
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
     }, []);
 
     useEffect(() => {
-        fetchProgressData();
-        const timer = setInterval(() => fetchProgressData(true), 5000); // 15s live refresh
+        fetchProgressData(!!cachedProgressBookings);
+        if (isGuest) return;
+        const timer = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchProgressData(true);
+            }
+        }, 30000);
         return () => clearInterval(timer);
-    }, [fetchProgressData]);
+    }, [fetchProgressData, isGuest]);
 
     useEffect(() => {
         if (expandedJob) {

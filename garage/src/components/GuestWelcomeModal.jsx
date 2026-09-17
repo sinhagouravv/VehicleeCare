@@ -20,12 +20,11 @@ const policyData = {
         subtitle: "Guest Garage Access",
         icon: <FileText className="text-[#527FB0]" size={22} />,
         paragraphs: [
-            "VehicleeCare provides Guest Garage access solely to allow authorized users to explore and experience the functionality and features of the Garage Dashboard.",
-            "Guest Garage accounts are provided with read-only access. You may view authorized garage information, but you may not modify, delete, manipulate, download, reproduce, distribute, or misuse any data displayed within the dashboard.",
-            "Access to certain features, records, and sensitive information may be restricted based on your assigned permissions. You must not attempt to bypass these restrictions, access unauthorized areas, or interfere with the operation or security of the platform.",
-            "All information accessible through the dashboard should be treated as confidential and for authorized viewing only, unless explicitly identified as public information.",
-            "VehicleeCare reserves the right to modify, suspend, or terminate Guest Garage access at any time if misuse, unauthorized activity, or a violation of these terms is detected.",
-            "By selecting “Get Started”, you acknowledge that you have read, understood, and agree to these Terms & Conditions and will use the dashboard responsibly and only for its intended purpose."
+            "VehicleeCare provides Guest Admin access solely to allow authorized users to explore and experience the functionality and features of the Admin Dashboard. Guest Admin accounts are provided with read-only access, allowing users to view authorized dashboard information while protecting restricted records and sensitive information from unauthorized access, modification, or misuse of information.",
+            "Users must not modify, delete, manipulate, download, reproduce, distribute, or misuse any information displayed within the dashboard. Access to certain features, records, and sensitive information may be restricted according to assigned permissions. Users must not attempt to bypass authentication, access controls, or security restrictions, or interfere with the operation of the platform.",
+            "All information accessible through the dashboard should be treated as confidential and for authorized viewing, unless identified as public information. VehicleeCare may modify, suspend, or terminate Guest Admin access if misuse or unauthorized activity is detected. By selecting “Get Started”, you agree to use the dashboard responsibly and only for its intended purpose.",
+            "Guest Admin access is provided for demonstration, evaluation, and authorized viewing purposes only. Users are responsible for maintaining the confidentiality of any credentials provided to them and must not share account credentials with unauthorized individuals. Any information viewed through the dashboard must not be used for purposes unrelated to the intended Guest Admin experience.",
+            "VehicleeCare does not grant Guest Admin users ownership or other rights over information, software, interfaces, or materials accessible through the dashboard. Users must comply with applicable laws and platform requirements while using the service. Any violation of these Terms & Conditions may result in immediate restriction or termination of Guest Admin access."
         ]
     },
     privacy: {
@@ -33,11 +32,11 @@ const policyData = {
         subtitle: "Privacy & Data Protection",
         icon: <ShieldCheck className="text-[#527FB0]" size={22} />,
         paragraphs: [
-            "VehicleeCare respects your privacy and is committed to protecting information accessed through the Garage Dashboard. We take reasonable technical and organizational measures to maintain the confidentiality and security of information available through the platform.",
-            "During your Guest Garage session, we may collect certain technical and usage information, including your IP address, device information, browser information, access time, and relevant activity logs. This information may be used for authentication, security monitoring, auditing, troubleshooting, abuse prevention, and service improvement.",
-            "Guest Garage access is limited to authorized information, and sensitive, confidential, or personally identifiable information may be restricted or excluded based on your access level.",
-            "Information collected through the dashboard will be handled responsibly and used only for legitimate operational, security, administrative, and service-related purposes.",
-            "By continuing to use the Guest Garage Dashboard, you acknowledge and understand that the information described above may be collected and processed for the purposes stated in this Privacy Policy."
+            "VehicleeCare respects your privacy and is committed to protecting information accessed through the Admin Dashboard. We take technical and organizational measures to maintain the confidentiality, integrity, and security of information available through the platform. Guest Admin access is limited to authorized information, while sensitive, confidential, or personally identifiable information may be restricted.",
+            "During your Guest Admin session, we may collect certain technical and usage information, including your IP address, device information, browser information, access time, and relevant activity logs. This information may be used for authentication, security monitoring, auditing, troubleshooting, abuse prevention, and service improvement, while being handled securely and responsibly for legitimate purposes.",
+            "Information collected through the dashboard will be used only for legitimate operational, security, administrative, and service-related purposes. VehicleeCare may review information when necessary to maintain platform security and prevent misuse. By continuing to use the Guest Admin Dashboard, you acknowledge and understand that the information described above may be collected and processed.",
+            "VehicleeCare may retain technical and activity information for a reasonable period when necessary for security, auditing, troubleshooting, legal compliance, or investigation of potential misuse. Access to collected information is limited to authorized personnel or systems that require it for legitimate operational and security purposes. VehicleeCare does not provide unrestricted access to collected information.",
+            "Users should understand that information transmitted through internet-connected services may be subject to security and network risks despite reasonable protective measures. VehicleeCare continuously works to improve platform security and privacy practices. If you have questions regarding information collection, usage, protection, or Guest Admin access, you may contact the VehicleeCare team."
         ]
     },
     security: {
@@ -45,12 +44,11 @@ const policyData = {
         subtitle: "Security & Monitoring",
         icon: <Lock className="text-[#527FB0]" size={22} />,
         paragraphs: [
-            "Guest Garage access is provided for authorized and controlled use only. Users are expected to use the dashboard responsibly and comply with all applicable policies, security requirements, and access restrictions.",
-            "Any attempt to bypass authentication or access controls, gain unauthorized privileges, modify or delete data, access restricted information, or interfere with the platform's operation is strictly prohibited.",
-            "For security purposes, your activity on this Guest Garage page may be monitored and recorded. This may include your IP address, device and browser information, access time, and relevant activity logs. This information is collected for security, auditing, troubleshooting, and abuse-prevention purposes related to the Guest Garage experience.",
-            "Your activity may be reviewed when necessary to identify unauthorized access, suspicious behavior, or potential security incidents. VehicleeCare may restrict, suspend, or terminate access if activity is found to violate security requirements or these terms.",
-            "Users must not attempt to exploit vulnerabilities, obtain credentials or system information, or conduct security testing without explicit authorization from VehicleeCare.",
-            "By selecting “Get Started” and continuing to use the Guest Garage Dashboard, you acknowledge and consent to the monitoring and collection of technical information described above as part of the Guest Garage experience."
+            "Guest Admin access is provided for authorized and controlled use only. Users are expected to use the dashboard responsibly and comply with policies, security requirements, and access restrictions. Any attempt to bypass authentication or access controls, gain unauthorized privileges, modify or delete data, access restricted information, or interfere with operations is prohibited.",
+            "For security, your activity on this Guest Admin page may be monitored and recorded. This may include your IP address, device and browser information, access time, and activity logs. This information is collected for security, auditing, troubleshooting, and abuse-prevention purposes related to the Guest Admin experience and may be reviewed when necessary.",
+            "Users must not attempt to exploit vulnerabilities, obtain credentials or system information, or conduct security testing without explicit authorization from VehicleeCare. VehicleeCare may restrict, suspend, or terminate access if security requirements are violated. By selecting “Get Started” and continuing to use the dashboard, you acknowledge and consent to the monitoring described above.",
+            "Security controls may include authentication, authorization, access restrictions, activity monitoring, logging, and other technical safeguards designed to protect the platform and its information. Guest Admin users are permitted to access only the features and information associated with their assigned permissions and must not attempt to obtain additional privileges.",
+            "VehicleeCare may investigate suspicious activity, unauthorized access attempts, policy violations, or other security events associated with Guest Admin accounts. Relevant technical information and activity records may be reviewed during such investigations. Users are expected to report suspected security issues responsibly and must not attempt to exploit or publicly disclose vulnerabilities without authorization."
         ]
     }
 };
@@ -206,32 +204,25 @@ const GuestWelcomeModal = () => {
                                 />
                                 <motion.div 
                                     key={activePolicyModal}
-                                    initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                    transition={{ 
-                                        type: "spring", 
-                                        stiffness: 380, 
-                                        damping: 28, 
-                                        mass: 0.8 
-                                    }}
-                                    className={`w-full ${
-                                        activePolicyModal === 'terms' ? 'max-w-3xl' : 'max-w-4xl'
-                                    } bg-white/100 border border-white/70 rounded-3xl relative z-10 px-6 py-4 flex flex-col max-h-[85vh] text-center shadow-sm`}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="w-full max-w-4xl h-[530px] max-h-[85vh] bg-white border border-white/70 rounded-3xl relative z-10 px-8 py-5 flex flex-col text-center shadow-sm"
                                 >
-                                    <div className="relative flex items-center justify-center pb-4 border-b border-gray-100 mb-6">
+                                    <div className="relative flex items-center justify-center pb-4 border-b border-gray-100 mb-4 flex-shrink-0">
                                         <h3 className="text-lg font-bold text-center text-[#011023] uppercase tracking-tight">
                                             {policyData[activePolicyModal].title}
                                         </h3>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto text-xs font-semibold text-gray-600 leading-normal uppercase tracking-wide custom-scrollbar">
+                                    <div className="flex-1 min-h-0 overflow-y-auto text-xs font-semibold text-gray-600 leading-relaxed uppercase tracking-wide hide-scrollbar space-y-2">
                                         {policyData[activePolicyModal].paragraphs.map((p, idx) => (
-                                            <p key={idx} className="py-1 text-justify rounded-xl">
-                                                {p}
-                                            </p>
+                                             <p key={idx} className="text-justify rounded-xl">
+                                                 {p}
+                                             </p>
                                         ))}
                                     </div>
-                                    <div className="pt-4 mt-4 border-t border-gray-100 flex items-center gap-3">
+                                    <div className="pt-7 mt-auto border-t border-gray-100 flex items-center gap-3 flex-shrink-0">
                                         <ToggleSwitch
                                             size="xs"
                                             isActive={agreedPolicies[activePolicyModal]}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
@@ -7,13 +7,40 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedOvertimes = null;
+let cachedOvertimesGarageId = null;
+let cachedOvertimesTimestamp = 0;
 
 const Overtime = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [overtimes, setOvertimes] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [overtimes, setOvertimes] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const gId = user.id || user._id;
+                if (cachedOvertimesGarageId === gId && Array.isArray(cachedOvertimes)) return cachedOvertimes;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const gId = user.id || user._id;
+                if (cachedOvertimesGarageId === gId && Array.isArray(cachedOvertimes)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedOvertimesTimestamp ? new Date(cachedOvertimesTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [updatingId, setUpdatingId] = useState(null);
     
     // Modal states
@@ -223,17 +250,22 @@ const Overtime = () => {
 
     const fetchGarageOvertimes = useCallback(async (silent = false) => {
         if (!garageId) return;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/garage/${garageId}`);
+            if (!silent && (!cachedOvertimes || cachedOvertimes.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/overtime/garage/${garageId}`);
             const data = await res.json();
             if (data.success) {
-                setOvertimes(data.data || []);
+                cachedOvertimes = data.data || [];
+                cachedOvertimesGarageId = garageId;
+                cachedOvertimesTimestamp = Date.now();
+                setOvertimes(cachedOvertimes);
                 setLastRefreshed(new Date());
             }
 
             // Also fetch managers of this garage
-            const empRes = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
+            const empRes = await fetch(`${API_BASE_URL}/api/employees/garage/${garageId}`);
             const empData = await empRes.json();
             if (empData.success) {
                 const mgrs = (empData.data || []).filter(emp => String(emp.role || '').toLowerCase() === 'manager' && emp.isVerified !== false);
@@ -242,15 +274,17 @@ const Overtime = () => {
         } catch (error) {
             console.error("Failed to fetch garage overtimes/managers:", error);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, [garageId]);
 
     useEffect(() => {
         fetchGarageOvertimes();
-        const interval = setInterval(() => fetchGarageOvertimes(true), 5000); // Refresh every 5s
+        if (isGuest) return;
+        const interval = setInterval(() => fetchGarageOvertimes(true), 30000);
         return () => clearInterval(interval);
-    }, [fetchGarageOvertimes]);
+    }, [fetchGarageOvertimes, isGuest]);
 
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
@@ -263,7 +297,7 @@ const Overtime = () => {
         setUpdatingId(actionOvertimeId);
         setIsActionModalOpen(false);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${actionOvertimeId}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/overtime/${actionOvertimeId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: actionType, employeeId: actionEmpId, remarks: actionRemarks })
@@ -288,7 +322,7 @@ const Overtime = () => {
         if (!selectedOvertime) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/overtime/${selectedOvertime._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/overtime/${selectedOvertime._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -373,7 +407,7 @@ const Overtime = () => {
             const targetId = selectedRemarkOvertime.employeeId || '—';
             const targetRole = 'Employee';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

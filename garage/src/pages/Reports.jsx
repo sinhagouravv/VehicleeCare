@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
     Download 
 } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import useGuestGuard from '../hooks/useGuestGuard';
+import { API_BASE_URL } from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedReportsBookings = null;
+let cachedReportsGarageId = null;
+let cachedReportsTimestamp = null;
 
 const ReportsSkeleton = () => (
     <div className="space-y-4.5 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] pb-10 animate-pulse">
@@ -112,38 +118,70 @@ const ReportsSkeleton = () => (
 const Reports = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [bookings, setBookings] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedReportsGarageId === gId && Array.isArray(cachedReportsBookings)) return cachedReportsBookings;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedReportsGarageId === gId && Array.isArray(cachedReportsBookings)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedReportsTimestamp ? new Date(cachedReportsTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [timeFilter, setTimeFilter] = useState('all'); // 'this_month', 'last_30', 'last_6_months', 'all'
     const [activeHoverBar, setActiveHoverBar] = useState(null);
     const [activeHoverFuel, setActiveHoverFuel] = useState(null);
 
     const fetchReportsData = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && !cachedReportsBookings) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/bookings/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
-                setBookings(data.data || []);
-                setLastRefreshed(new Date());
+                const bData = data.data || [];
+                setBookings(bData);
+                const now = new Date();
+                setLastRefreshed(now);
+                cachedReportsBookings = bData;
+                cachedReportsGarageId = user.id;
+                cachedReportsTimestamp = now.getTime();
             }
         } catch (error) {
             console.error("Failed to fetch reports data", error);
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
     }, []);
 
     useEffect(() => {
-        fetchReportsData();
-        const interval = setInterval(() => fetchReportsData(true), 5000);
+        fetchReportsData(!!cachedReportsBookings);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchReportsData(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchReportsData]);
+    }, [fetchReportsData, isGuest]);
 
     // Filter bookings based on time range
     const filteredBookings = useMemo(() => {

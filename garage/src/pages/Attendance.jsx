@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2, MessageSquare, Download, Check, Send } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -8,13 +8,40 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedAttendance = null;
+let cachedAttendanceGarageId = null;
+let cachedAttendanceTimestamp = 0;
 
 const Attendance = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskPhone, isRealValue } = useGuestGuard();
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [attendanceRecords, setAttendanceRecords] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedAttendanceTimestamp ? new Date(cachedAttendanceTimestamp) : null);
+    const [attendanceRecords, setAttendanceRecords] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedAttendanceGarageId === garageId && Array.isArray(cachedAttendance)) return cachedAttendance;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedAttendanceGarageId === garageId && Array.isArray(cachedAttendance)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const isFetchingRef = useRef(false);
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -205,18 +232,20 @@ const Attendance = () => {
     }, [isViewModalOpen, isMarkModalOpen, isDeleteModalOpen]);
 
     const fetchAttendance = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) { setLoading(false); return; }
             const user = JSON.parse(storedUser);
+            const garageId = user.garageId || user.id;
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/garage/${user.id}`);
+            if (!silent && (!cachedAttendance || cachedAttendance.length === 0)) setLoading(true);
+
+            const res = await fetch(`${API_BASE_URL}/api/attendance/garage/${garageId}`);
             const data = await res.json();
 
             if (data.success) {
-                // Map the backend shape to what the table expects
                 const records = (data.data || []).map(r => ({
                     id: r._id,
                     employeeId: r.employeeId,
@@ -231,12 +260,16 @@ const Attendance = () => {
                     status: r.status,
                     _id: r._id
                 }));
+                cachedAttendance = records;
+                cachedAttendanceGarageId = garageId;
+                cachedAttendanceTimestamp = Date.now();
                 setAttendanceRecords(records);
                 setLastRefreshed(new Date());
             }
         } catch (error) {
             console.error('Failed to fetch attendance records', error);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, []);
@@ -247,7 +280,7 @@ const Attendance = () => {
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${user.id}`);
+            const res = await fetch(`${API_BASE_URL}/api/employees/garage/${user.id}`);
             const data = await res.json();
             if (data.success) {
                 setEmployees(data.data || []);
@@ -264,7 +297,7 @@ const Attendance = () => {
         }
         setStatusLoading(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/status/${empId}`);
+            const res = await fetch(`${API_BASE_URL}/api/attendance/status/${empId}`);
             const data = await res.json();
             if (data.success) {
                 setAttendanceStatus(data.data);
@@ -291,7 +324,7 @@ const Attendance = () => {
         setActionLoading(true);
         try {
             if (action === 'check-in') {
-                const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/check-in`, {
+                const res = await fetch(`${API_BASE_URL}/api/attendance/check-in`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ employeeId: selectedEmployeeId })
@@ -304,7 +337,7 @@ const Attendance = () => {
                 triggerAlert('Check-in successful', 'success');
             } else if (action === 'check-out') {
                 if (!attendanceStatus || !attendanceStatus._id) return;
-                const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/check-out/${attendanceStatus._id}`, {
+                const res = await fetch(`${API_BASE_URL}/api/attendance/check-out/${attendanceStatus._id}`, {
                     method: 'PUT'
                 });
                 const data = await res.json();
@@ -330,9 +363,10 @@ const Attendance = () => {
     useEffect(() => {
         fetchAttendance();
         fetchEmployees();
-        const timer = setInterval(() => fetchAttendance(true), 5000);
+        if (isGuest) return;
+        const timer = setInterval(() => fetchAttendance(true), 30000);
         return () => clearInterval(timer);
-    }, [fetchAttendance, fetchEmployees]);
+    }, [fetchAttendance, fetchEmployees, isGuest]);
 
     const handleViewDetails = (record) => {
         setSelectedRecord(record);
@@ -378,7 +412,7 @@ const Attendance = () => {
         }
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/attendance/${recordToDelete._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/attendance/${recordToDelete._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -513,7 +547,7 @@ const Attendance = () => {
             const targetId = selectedRemarkRecord.name || selectedRemarkRecord.employeeId || '—';
             const targetRole = selectedRemarkRecord.role || 'Employee';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -578,14 +612,8 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                            {loading && filteredData.length === 0 ? (
+                            {filteredData.length === 0 ? (
                                 <TableSkeleton rows={15} cols={10} />
-                            ) : filteredData.length === 0 ? (
-                                <tr>
-                                    <td colSpan="10" className="p-8 text-center py-20 text-gray-400 font-bold uppercase">
-                                        No attendance records found.
-                                    </td>
-                                </tr>
                             ) : filteredData.map((r) => {
                                 const rowId = r._id || r.id || r.employeeId;
                                 return (

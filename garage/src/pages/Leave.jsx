@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, CheckCircle2, XCircle, Check, X, Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
@@ -7,13 +7,40 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedLeaves = null;
+let cachedLeavesGarageId = null;
+let cachedLeavesTimestamp = 0;
 
 const Leave = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
-    const [leaves, setLeaves] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [leaves, setLeaves] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const gId = user.garageId || user.garage_id || user.id || user._id;
+                if (cachedLeavesGarageId === gId && Array.isArray(cachedLeaves)) return cachedLeaves;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const gId = user.garageId || user.garage_id || user.id || user._id;
+                if (cachedLeavesGarageId === gId && Array.isArray(cachedLeaves)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedLeavesTimestamp ? new Date(cachedLeavesTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [updatingId, setUpdatingId] = useState(null);
     
     // Modal states
@@ -209,17 +236,22 @@ const Leave = () => {
 
     const fetchGarageLeaves = useCallback(async (silent = false) => {
         if (!garageId) return;
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
-            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/garage/${garageId}`);
+            if (!silent && (!cachedLeaves || cachedLeaves.length === 0)) setLoading(true);
+            const res = await fetch(`${API_BASE_URL}/api/leaves/garage/${garageId}`);
             const data = await res.json();
             if (data.success) {
-                setLeaves(data.data || []);
+                cachedLeaves = data.data || [];
+                cachedLeavesGarageId = garageId;
+                cachedLeavesTimestamp = Date.now();
+                setLeaves(cachedLeaves);
                 setLastRefreshed(new Date());
             }
 
             // Also fetch managers of this garage
-            const empRes = await fetch(`https://vehicleecare.onrender.com/api/employees/garage/${garageId}`);
+            const empRes = await fetch(`${API_BASE_URL}/api/employees/garage/${garageId}`);
             const empData = await empRes.json();
             if (empData.success) {
                 const mgrs = (empData.data || []).filter(emp => String(emp.role || '').toLowerCase() === 'manager' && emp.isVerified !== false);
@@ -228,15 +260,17 @@ const Leave = () => {
         } catch (error) {
             console.error("Failed to fetch garage leaves/managers:", error);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, [garageId]);
 
     useEffect(() => {
         fetchGarageLeaves();
-        const interval = setInterval(() => fetchGarageLeaves(true), 5000); // Refresh every 5s
+        if (isGuest) return;
+        const interval = setInterval(() => fetchGarageLeaves(true), 30000);
         return () => clearInterval(interval);
-    }, [fetchGarageLeaves]);
+    }, [fetchGarageLeaves, isGuest]);
 
     const handleStatusUpdate = async (e) => {
         if (e) e.preventDefault();
@@ -249,7 +283,7 @@ const Leave = () => {
         setUpdatingId(actionLeaveId);
         setIsActionModalOpen(false);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${actionLeaveId}/status`, {
+            const res = await fetch(`${API_BASE_URL}/api/leaves/${actionLeaveId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: actionType, employeeId: actionEmpId, remarks: actionRemarks })
@@ -274,7 +308,7 @@ const Leave = () => {
         if (!selectedLeave) return;
         setDeleting(true);
         try {
-            const res = await fetch(`https://vehicleecare.onrender.com/api/leaves/${selectedLeave._id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/leaves/${selectedLeave._id}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -386,7 +420,7 @@ const Leave = () => {
             const targetId = selectedRemarkLeave.employeeId || '—';
             const targetRole = 'Employee';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

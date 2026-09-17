@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { UserSquare2, Plus, Shield, Eye, Edit, Trash2, X, Wrench, Briefcase, UserCheck, ShieldCheck, Loader2, Download, Mail, Phone, MapPin, Calendar, UserX, FileText, CreditCard, Ban } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -11,15 +11,41 @@ import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL
 import useGuestGuard from '../hooks/useGuestGuard';
 import API_BASE_URL from '../config/api';
 
+// Module-level cache for instant 0ms page revisits
+let cachedStaff = null;
+let cachedStaffGarageId = null;
+let cachedStaffTimestamp = 0;
+
 const Staff = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
-    const [staffMembers, setStaffMembers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [staffMembers, setStaffMembers] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedStaffGarageId === garageId && Array.isArray(cachedStaff)) return cachedStaff;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedStaffGarageId === garageId && Array.isArray(cachedStaff)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [_lastRefreshed, setLastRefreshed] = useState(null);
+    const [_lastRefreshed, setLastRefreshed] = useState(() => cachedStaffTimestamp ? new Date(cachedStaffTimestamp) : null);
+    const isFetchingRef = useRef(false);
     const [saving, setSaving] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [serviceHistory, setServiceHistory] = useState([]);
@@ -228,30 +254,40 @@ const Staff = () => {
     };
 
     const fetchStaff = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
+            const garageId = user.garageId || user.id;
+            if (!garageId) return;
 
-            const res = await fetch(`${API_BASE_URL}/api/employees/garage/${user.id}`);
+            if (!silent && (!cachedStaff || cachedStaff.length === 0)) setLoading(true);
+
+            const res = await fetch(`${API_BASE_URL}/api/employees/garage/${garageId}`);
             const data = await res.json();
             if (data.success) {
-                setStaffMembers(data.data || []);
+                cachedStaff = data.data || [];
+                cachedStaffGarageId = garageId;
+                cachedStaffTimestamp = Date.now();
+                setStaffMembers(cachedStaff);
                 setLastRefreshed(new Date());
             }
         } catch (error) {
             console.error("Failed to fetch garage staff", error);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
         fetchStaff();
-        const interval = setInterval(() => fetchStaff(true), 10000); // Refresh every 10s
+        if (isGuest) return;
+        const interval = setInterval(() => fetchStaff(true), 30000);
         return () => clearInterval(interval);
-    }, [fetchStaff]);
+    }, [fetchStaff, isGuest]);
 
     const handleViewDetails = (staff) => {
         setSelectedStaff(staff);

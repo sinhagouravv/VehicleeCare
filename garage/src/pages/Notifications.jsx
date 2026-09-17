@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
@@ -6,6 +6,13 @@ import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import { API_BASE_URL } from '../config/api';
+
+// Module-level cache for instant tab transitions
+let cachedNotifications = null;
+let cachedUsers = null;
+let cachedNotificationsGarageId = null;
+let cachedNotificationsTimestamp = null;
 
 const EVENT_MAPPING = {
     booking: { type: 'Booking', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700' },
@@ -25,11 +32,42 @@ const EVENT_MAPPING = {
 const Notifications = () => {
     const { isGuest, guardGuestAction } = useGuestGuard();
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState([]);
-    const [users, setUsers] = useState([]); // Added for smart ID mapping
-    const [loading, setLoading] = useState(true);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [_unread, setUnread] = useState(0);
+    const [notifications, setNotifications] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedNotificationsGarageId === gId && Array.isArray(cachedNotifications)) return cachedNotifications;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [users, setUsers] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedNotificationsGarageId === gId && Array.isArray(cachedUsers)) return cachedUsers;
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const stored = localStorage.getItem('garageUser');
+            if (stored) {
+                const gId = JSON.parse(stored).id;
+                if (cachedNotificationsGarageId === gId && Array.isArray(cachedNotifications)) return false;
+            }
+        } catch (e) {}
+        return true;
+    });
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedNotificationsTimestamp ? new Date(cachedNotificationsTimestamp) : null);
+    const [_unread, setUnread] = useState(() => {
+        if (Array.isArray(cachedNotifications)) return cachedNotifications.filter(n => !n.isRead).length;
+        return 0;
+    });
+    const isFetchingRef = useRef(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [notifToDelete, setNotifToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -179,8 +217,10 @@ const Notifications = () => {
     };
 
     const fetchNotifications = useCallback(async (silent = false) => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
-            if (!silent) setLoading(true);
+            if (!silent && !cachedNotifications) setLoading(true);
             
             const storedUser = localStorage.getItem('garageUser');
             let garageId = null;
@@ -189,9 +229,12 @@ const Notifications = () => {
                 garageId = user.id;
             }
 
-            const res = await fetch('https://vehicleecare.onrender.com/api/notifications');
-            const data = await res.json();
-            
+            const [notifRes, userRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/notifications`),
+                fetch(`${API_BASE_URL}/api/users`)
+            ]);
+
+            const data = await notifRes.json();
             let allNotifs = data.data || [];
             
             // Filter notifications for this garage ONLY
@@ -220,31 +263,47 @@ const Notifications = () => {
 
             setNotifications(garageNotifs);
             setUnread(garageNotifs.filter(n => !n.isRead).length);
-            setLastRefreshed(new Date());
+            const now = new Date();
+            setLastRefreshed(now);
 
-            // Also fetch users to build the name-to-ID map
-            const userRes = await fetch('https://vehicleecare.onrender.com/api/users');
+            let usersList = [];
             if (userRes.ok) {
                 const userData = await userRes.json();
-                setUsers(userData.data || []);
+                usersList = userData.data || [];
+                setUsers(usersList);
             }
+
+            cachedNotifications = garageNotifs;
+            cachedUsers = usersList;
+            cachedNotificationsGarageId = garageId;
+            cachedNotificationsTimestamp = now.getTime();
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
-            if (!silent) setLoading(false);
+            setLoading(false);
+            isFetchingRef.current = false;
         }
     }, []);
 
     useEffect(() => {
-        fetchNotifications();
-        const interval = setInterval(() => fetchNotifications(true), 5000);
+        fetchNotifications(!!cachedNotifications);
+        if (isGuest) return;
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                fetchNotifications(true);
+            }
+        }, 30000);
         return () => clearInterval(interval);
-    }, [fetchNotifications]);
+    }, [fetchNotifications, isGuest]);
 
     const markRead = async (id) => {
         if (guardGuestAction()) return;
-        await fetch(`https://vehicleecare.onrender.com/api/notifications/${id}/read`, { method: 'PATCH' });
-        setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+        await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, { method: 'PATCH' });
+        setNotifications(prev => {
+            const updated = prev.map(n => n._id === id ? { ...n, isRead: true } : n);
+            cachedNotifications = updated;
+            return updated;
+        });
         setUnread(prev => Math.max(0, prev - 1));
     };
 
@@ -253,9 +312,13 @@ const Notifications = () => {
         if (!notifToDelete) return;
         setDeleting(true);
         try {
-            await fetch(`https://vehicleecare.onrender.com/api/notifications/${notifToDelete}`, { method: 'DELETE' });
+            await fetch(`${API_BASE_URL}/api/notifications/${notifToDelete}`, { method: 'DELETE' });
             const deleted = notifications.find(n => n._id === notifToDelete);
-            setNotifications(prev => prev.filter(n => n._id !== notifToDelete));
+            setNotifications(prev => {
+                const updated = prev.filter(n => n._id !== notifToDelete);
+                cachedNotifications = updated;
+                return updated;
+            });
             if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));
             setIsDeleteModalOpen(false);
             setNotifToDelete(null);
@@ -387,18 +450,9 @@ const Notifications = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {loading && filteredNotifications.length === 0 ? (
+                            {filteredNotifications.length === 0 ? (
                                 <TableSkeleton rows={15} cols={6} />
-                            ) : filteredNotifications.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="p-20 text-center text-gray-300">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <Bell size={40} />
-                                            <p className="text-sm font-semibold uppercase">No notifications yet</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                             ) : (
+                            ) : (
                                 filteredNotifications.map((notif) => {
                                     const mapping = getMapping(notif);
                                     const isExpanded = expandedIds.has(notif._id);

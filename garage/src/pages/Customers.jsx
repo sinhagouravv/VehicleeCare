@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, X, Search, Trash2, Loader2, Download, MessageSquare, Check, Send } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -8,6 +8,12 @@ import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
 import { useAlert } from '../context/AlertContext';
+import API_BASE_URL from '../config/api';
+
+// Module-level cache for instant 0ms page revisits
+let cachedCustomers = null;
+let cachedGarageId = null;
+let cachedTimestamp = 0;
 
 const getFuelBadgeClass = (v) => {
     const ft = (v?.fuelType || v?.fuel || '').toLowerCase();
@@ -31,16 +37,53 @@ const getFuelBadgeClass = (v) => {
 const Customers = () => {
     const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const { triggerAlert } = useAlert();
-    const [lastRefreshed, setLastRefreshed] = useState(null);
-    const [customers, setCustomers] = useState([]);
-    const [filteredCustomers, setFilteredCustomers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedTimestamp ? new Date(cachedTimestamp) : null);
+    const [customers, setCustomers] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedGarageId === garageId && Array.isArray(cachedCustomers)) {
+                    return cachedCustomers;
+                }
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [filteredCustomers, setFilteredCustomers] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedGarageId === garageId && Array.isArray(cachedCustomers)) {
+                    return cachedCustomers;
+                }
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                const garageId = user.garageId || user.id;
+                if (cachedGarageId === garageId && Array.isArray(cachedCustomers)) {
+                    return false;
+                }
+            }
+        } catch (e) {}
+        return true;
+    });
     const [searchQuery, _setSearchQuery] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const isFetchingRef = useRef(false);
 
     // Remark states
     const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
@@ -78,94 +121,113 @@ const Customers = () => {
         };
     }, [setFilterConfig, setResultsCount]);
 
-    useEffect(() => {
-        const fetchCustomers = async () => {
-            try {
-                const storedUser = localStorage.getItem('garageUser');
-                if (!storedUser) return;
-                const user = JSON.parse(storedUser);
+    const fetchCustomers = useCallback(async (silent = false) => {
+        // Prevent concurrent duplicate requests
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (!storedUser) return;
+            const user = JSON.parse(storedUser);
+            const garageId = user.garageId || user.id;
+            if (!garageId) return;
 
-                const res = await fetch(`https://vehicleecare.onrender.com/api/bookings/garage/${user.id}`);
-                const data = await res.json();
-                if (data.success) {
-                    const customerMap = {};
-                    data.data.forEach(b => {
-                        if (!b.user || !b.user.name) return;
+            if (!silent && (!cachedCustomers || cachedCustomers.length === 0)) {
+                setLoading(true);
+            }
 
-                        const emailOrPhone = b.user.email || b.user.phone || 'Unknown';
-                        const key = b.user.id || emailOrPhone;
+            const res = await fetch(`${API_BASE_URL}/api/bookings/garage/${garageId}`);
+            const data = await res.json();
+            if (data.success) {
+                const customerMap = {};
+                data.data.forEach(b => {
+                    if (!b.user || !b.user.name) return;
 
-                        if (!customerMap[key]) {
-                            customerMap[key] = {
-                                id: key,
-                                userId: b.user.userId || key,
-                                name: b.user.name,
-                                email: b.user.email || 'N/A',
-                                phone: b.user.phone || 'N/A',
-                                vehicleSet: new Set(),
-                                vehicleDetails: [],
-                                totalSpent: 0,
-                                lastVisitDate: new Date(0),
-                                bookingCount: 0,
-                            };
+                    const emailOrPhone = b.user.email || b.user.phone || 'Unknown';
+                    const key = b.user.id || emailOrPhone;
+
+                    if (!customerMap[key]) {
+                        customerMap[key] = {
+                            id: key,
+                            userId: b.user.userId || key,
+                            name: b.user.name,
+                            email: b.user.email || 'N/A',
+                            phone: b.user.phone || 'N/A',
+                            vehicleSet: new Set(),
+                            vehicleDetails: [],
+                            totalSpent: 0,
+                            lastVisitDate: new Date(0),
+                            bookingCount: 0,
+                        };
+                    }
+
+                    const vehicle = b.vehicle || b.booking?.vehicle;
+                    if (vehicle) {
+                        const vNum = vehicle.number || b.vehicleNumber || b.vehicleId || 'N/A';
+                        customerMap[key].vehicleSet.add(vNum);
+
+                        let vStr = `${vehicle.make || ''} ${vehicle.model || ''}`.trim();
+                        if (!vStr) vStr = vNum !== 'N/A' ? vNum : (vehicle.name || 'Unknown Vehicle');
+
+                        const fuelType = (vehicle.fuelType || vehicle.fuel || '').toLowerCase();
+                        if (vStr && !customerMap[key].vehicleDetails.some(v => v.label === vStr)) {
+                            customerMap[key].vehicleDetails.push({ label: vStr, fuelType });
                         }
+                    }
 
-                        const vehicle = b.vehicle || b.booking?.vehicle;
-                        if (vehicle) {
-                            const vNum = vehicle.number || b.vehicleNumber || b.vehicleId || 'N/A';
-                            customerMap[key].vehicleSet.add(vNum);
-                            
-                            let vStr = `${vehicle.make || ''} ${vehicle.model || ''}`.trim();
-                            if (!vStr) vStr = vNum !== 'N/A' ? vNum : (vehicle.name || 'Unknown Vehicle');
-                            
-                            const fuelType = (vehicle.fuelType || vehicle.fuel || '').toLowerCase();
-                            if (vStr && !customerMap[key].vehicleDetails.some(v => v.label === vStr)) {
-                                customerMap[key].vehicleDetails.push({ label: vStr, fuelType });
-                            }
-                        }
+                    // Robust amount extraction
+                    const pAmt = b.payment?.amount;
+                    const sPrice = b.service?.price;
+                    const rawAmount = pAmt !== undefined && pAmt !== null ? pAmt : (sPrice || '0');
+                    const amount = parseFloat(String(rawAmount).replace(/[^0-9.]/g, '')) || 0;
 
-                        // Robust amount extraction
-                        const pAmt = b.payment?.amount;
-                        const sPrice = b.service?.price;
-                        const rawAmount = pAmt !== undefined && pAmt !== null ? pAmt : (sPrice || '0');
-                        const amount = parseFloat(String(rawAmount).replace(/[^0-9.]/g, '')) || 0;
-                        
-                        // Count as spent if Completed, Paid, or has a valid Payment ID
-                        if (b.status === 'Completed' || b.status === 'Paid' || (b.payment && b.payment.paymentId)) {
-                            customerMap[key].totalSpent += amount;
-                        }
+                    // Count as spent if Completed, Paid, or has a valid Payment ID
+                    if (b.status === 'Completed' || b.status === 'Paid' || (b.payment && b.payment.paymentId)) {
+                        customerMap[key].totalSpent += amount;
+                    }
 
-                        customerMap[key].bookingCount += 1;
+                    customerMap[key].bookingCount += 1;
 
-                        const defaultDate = new Date(b.schedule?.date || b.createdAt);
-                        if (!isNaN(defaultDate.getTime()) && defaultDate > customerMap[key].lastVisitDate) {
-                            customerMap[key].lastVisitDate = defaultDate;
-                        }
-                    });
+                    const defaultDate = new Date(b.schedule?.date || b.createdAt);
+                    if (!isNaN(defaultDate.getTime()) && defaultDate > customerMap[key].lastVisitDate) {
+                        customerMap[key].lastVisitDate = defaultDate;
+                    }
+                });
 
-                    const formattedCustomers = Object.values(customerMap).map(c => ({
-                        ...c,
-                        vehicleCount: c.vehicleSet.size,
-                        vehicleObjects: c.vehicleDetails,
-                        vehicleLabel: c.vehicleDetails.map(v => v.label).join(', ') || `${c.vehicleSet.size} Vehicle${c.vehicleSet.size !== 1 ? 's' : ''}`,
-                        lastVisit: c.lastVisitDate.getTime() === 0 ? 'Unknown' : c.lastVisitDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-                    })).sort((a, b) => b.lastVisitDate - a.lastVisitDate);
+                const formattedCustomers = Object.values(customerMap).map(c => ({
+                    ...c,
+                    vehicleCount: c.vehicleSet.size,
+                    vehicleObjects: c.vehicleDetails,
+                    vehicleLabel: c.vehicleDetails.map(v => v.label).join(', ') || `${c.vehicleSet.size} Vehicle${c.vehicleSet.size !== 1 ? 's' : ''}`,
+                    lastVisit: c.lastVisitDate.getTime() === 0 ? 'Unknown' : c.lastVisitDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+                })).sort((a, b) => b.lastVisitDate - a.lastVisitDate);
 
-                    setCustomers(formattedCustomers);
-                    setFilteredCustomers(formattedCustomers);
-                }
-            } catch (error) {
-                console.error('Failed to fetch garage customers', error);
-            } finally {
-                setLoading(false);
+                // Update module-level cache
+                cachedCustomers = formattedCustomers;
+                cachedGarageId = garageId;
+                cachedTimestamp = Date.now();
+
+                setCustomers(formattedCustomers);
                 setLastRefreshed(new Date());
             }
-        };
-
-        fetchCustomers();
-        const timer = setInterval(fetchCustomers, 5000);
-        return () => clearInterval(timer);
+        } catch (error) {
+            console.error('Failed to fetch garage customers', error);
+        } finally {
+            isFetchingRef.current = false;
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchCustomers();
+
+        // Guest mode: never run polling loop — data is read-only
+        if (isGuest) return;
+
+        // Normal mode: poll every 30s (not 5s), with in-flight guard
+        const timer = setInterval(() => fetchCustomers(true), 30000);
+        return () => clearInterval(timer);
+    }, [fetchCustomers, isGuest]);
 
     useEffect(() => {
         const q = searchQuery.toLowerCase();
@@ -287,7 +349,7 @@ const Customers = () => {
             const targetId = selectedRemarkCustomer.name || '—';
             const targetRole = 'Customer';
 
-            const remarkRes = await fetch('https://vehicleecare.onrender.com/api/remarks', {
+            const remarkRes = await fetch(`${API_BASE_URL}/api/remarks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
