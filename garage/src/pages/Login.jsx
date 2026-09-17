@@ -117,11 +117,19 @@ const Login = () => {
             const data = await res.json();
 
             if (res.ok) {
-                if (data.garage?.isGuest || data.garage?.role === 'guest_garage' || data.garage?.ownerEmail === 'guestgarage@vehicleecare.com') {
-                    await recordGuestLogin('garage', {
+                if (data.guestSession?.sessionId) {
+                    try {
+                        localStorage.setItem('guestCurrentSessionId', data.guestSession.sessionId);
+                    } catch (e) {}
+                }
+
+                // Fire guest login recording asynchronously in the background so navigation is instant
+                if (data.garage?.isGuest === true) {
+                    recordGuestLogin('garage', {
                         role: 'guest_garage',
-                        userId: data.garage?.ownerEmail || 'guestgarage@vehicleecare.com'
-                    });
+                        userId: data.garage?.ownerEmail || 'guestgarage@vehicleecare.com',
+                        sessionId: data.guestSession?.sessionId
+                    }).catch(err => console.error('Background guest record error:', err));
                 }
 
                 localStorage.setItem('garageToken', data.token);

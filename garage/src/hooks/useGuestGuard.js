@@ -5,15 +5,10 @@ export const isGuestUser = () => {
         const stored = localStorage.getItem('garageUser');
         if (!stored) return false;
         const user = JSON.parse(stored);
-        if (user?.isGuest === false) return false;
-        return (
-            user?.isGuest === true ||
-            user?.role === 'guest_garage' ||
-            user?.role === 'guest_admin' ||
-            user?.role === 'guest' ||
-            user?.ownerEmail === 'guestgarage@vehicleecare.com' ||
-            user?.email === 'guestgarage@vehicleecare.com'
-        );
+        // Rely solely on the backend-authoritative isGuest flag.
+        // Do NOT check ownerEmail or role — the same garage document
+        // may have ownerEmail 'guestgarage@vehicleecare.com' even for real logins.
+        return user?.isGuest === true;
     } catch (e) {
         return false;
     }

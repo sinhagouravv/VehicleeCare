@@ -9,6 +9,12 @@ import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
+import API_BASE_URL from '../config/api';
+
+// Module-level in-memory cache for instant 0ms page loads
+let cachedPayments = null;
+let cachedGarageId = null;
+let cachedTimestamp = 0;
 
 const isPendingCOD = (payment) => {
     if (!payment) return false;
@@ -20,11 +26,33 @@ const isPendingCOD = (payment) => {
 const Payments = () => {
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskEmail, maskPhone, maskTransactionId, isRealValue } = useGuestGuard();
-    const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [payments, setPayments] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                if (cachedGarageId === user.id && Array.isArray(cachedPayments)) {
+                    return cachedPayments;
+                }
+            }
+        } catch (e) {}
+        return [];
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('garageUser');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                if (cachedGarageId === user.id && Array.isArray(cachedPayments)) {
+                    return false;
+                }
+            }
+        } catch (e) {}
+        return true;
+    });
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [lastRefreshed, setLastRefreshed] = useState(() => cachedTimestamp ? new Date(cachedTimestamp) : null);
 
     // Filter & Sort states
     const [methodFilter, setMethodFilter] = useState('all');
@@ -192,31 +220,55 @@ const Payments = () => {
 
     const highlightedRow = useHighlight(filteredPayments);
 
+    const isFetchingRef = React.useRef(false);
+
     const fetchPayments = useCallback(async (silent = false) => {
+        // Prevent concurrent duplicate requests
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+
         try {
-            if (!silent) setLoading(true);
             const storedUser = localStorage.getItem('garageUser');
             if (!storedUser) return;
             const user = JSON.parse(storedUser);
 
-            const res = await fetch(`https://vehicleecare.onrender.com/api/payments/garage/${user.id}`);
+            if (!silent && (!cachedPayments || cachedPayments.length === 0)) {
+                setLoading(true);
+            }
+
+            const garageId = user.garageId || user.id;
+            if (!garageId) return;
+
+            const res = await fetch(`${API_BASE_URL}/api/payments/garage/${garageId}`);
             const result = await res.json();
-            if (result.success && result.data) {
+            if (result.success && Array.isArray(result.data)) {
+                cachedPayments = result.data;
+                cachedGarageId = garageId;
+                cachedTimestamp = Date.now();
                 setPayments(result.data);
                 setLastRefreshed(new Date());
             }
         } catch (err) {
             console.error("Error fetching garage payments:", err);
         } finally {
+            isFetchingRef.current = false;
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
         fetchPayments();
-        const interval = setInterval(() => fetchPayments(true), 5000);
+
+        // Guest mode demo: never run polling loop — data is read-only
+        if (isGuest) return;
+
+        // Normal mode: poll every 30s (not 5s), with in-flight guard
+        const interval = setInterval(() => {
+            fetchPayments(true);
+        }, 30000);
+
         return () => clearInterval(interval);
-    }, [fetchPayments]);
+    }, [fetchPayments, isGuest]);
 
     const getStatusColor = (status) => {
         switch (status) {
