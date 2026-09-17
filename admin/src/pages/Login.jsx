@@ -180,11 +180,18 @@ const Login = () => {
             const data = await res.json();
 
             if (res.ok && !data.requires2FA) {
+                if (data.guestSession?.sessionId) {
+                    try {
+                        localStorage.setItem('guestCurrentSessionId', data.guestSession.sessionId);
+                    } catch (e) {}
+                }
+
                 if (data.admin?.isGuest || data.admin?.role === 'guest_admin' || data.admin?.email === 'guestadmin@vehicleecare.com') {
-                    await recordGuestLogin('admin', {
+                    recordGuestLogin('admin', {
                         role: 'guest_admin',
-                        userId: data.admin?.email || 'guestadmin@vehicleecare.com'
-                    });
+                        userId: data.admin?.email || 'guestadmin@vehicleecare.com',
+                        sessionId: data.guestSession?.sessionId
+                    }).catch(err => console.error('Background guest record error:', err));
                 }
 
                 localStorage.setItem('adminToken', data.token);

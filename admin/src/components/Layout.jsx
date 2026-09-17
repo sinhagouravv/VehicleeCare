@@ -42,9 +42,22 @@ const Layout = () => {
         const loadCount = async () => {
             const count = await fetchGuestCount();
             if (isMounted) {
+                latestGuestCountRef.current = count;
                 setGuestCount(count);
                 setIsGuestCountLoading(false);
                 localStorage.setItem('lastGuestCount', String(count));
+
+                // Notify dot if new logins since last seen
+                const savedLastSeen = localStorage.getItem('lastSeenGuestCount');
+                if (savedLastSeen === null) {
+                    // First ever load — save as seen so no dot on fresh install
+                    localStorage.setItem('lastSeenGuestCount', String(count));
+                } else if (!isGuestAdminModalOpenRef.current) {
+                    const lastSeen = parseInt(savedLastSeen, 10);
+                    if (count > lastSeen) {
+                        setHasNewGuest(true);
+                    }
+                }
             }
         };
         loadCount();
@@ -62,12 +75,15 @@ const Layout = () => {
     const [hasNewBug, setHasNewBug] = useState(false);
     const [hasNewDocument, setHasNewDocument] = useState(false);
     const [hasNewRequest, setHasNewRequest] = useState(false);
+    const [hasNewGuest, setHasNewGuest] = useState(false);
     const [modalHighlightId, setModalHighlightId] = useState(null);
 
     const latestRemarkCountRef = useRef(0);
     const latestBugCountRef = useRef(0);
     const latestDocCountRef = useRef(0);
     const latestRequestCountRef = useRef(0);
+    const latestGuestCountRef = useRef(0);
+    const isGuestAdminModalOpenRef = useRef(isGuestAdminModalOpen);
     const isRemarkModalOpenRef = useRef(isRemarkModalOpen);
     const isBugModalOpenRef = useRef(isBugModalOpen);
     const isDocumentModalOpenRef = useRef(isDocumentModalOpen);
@@ -147,6 +163,15 @@ const Layout = () => {
             localStorage.setItem('lastSeenRequestCount', String(latestRequestCountRef.current));
         }
     }, [isRequestModalOpen, location.pathname]);
+
+    // Clear guest dot when panel is opened
+    useEffect(() => {
+        isGuestAdminModalOpenRef.current = isGuestAdminModalOpen;
+        if (isGuestAdminModalOpen) {
+            setHasNewGuest(false);
+            localStorage.setItem('lastSeenGuestCount', String(latestGuestCountRef.current));
+        }
+    }, [isGuestAdminModalOpen]);
 
     useEffect(() => {
         if (!location.state?.openBugModal && !location.state?.openRemarkModal && !location.state?.openDocumentModal && !location.state?.openRequestModal) {
@@ -328,12 +353,18 @@ const Layout = () => {
                         setModalHighlightId(null);
                         setIsGuestAdminModalOpen(prev => !prev);
                     }}
-                    className={`fixed ${isAnyModalOpen ? 'top-[2.25rem]' : 'top-[7.5rem]'} right-9 z-40 flex flex-col items-center py-2.5 px-3 gap-0.5 border rounded-full select-none cursor-pointer transition-all duration-300 group shadow-xs hover:shadow-md ${
+                    className={`fixed ${isAnyModalOpen ? 'top-[2.25rem]' : 'top-[7.25rem]'} right-9 z-40 flex flex-col items-center py-2.5 px-3 gap-0.5 border rounded-full select-none cursor-pointer transition-all duration-300 group shadow-xs hover:shadow-md ${
                         isGuestAdminModalOpen 
                             ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
                             : 'border-blue-200 hover:border-blue-300 text-gray-600 hover:text-[#052558] bg-white/80 hover:bg-white backdrop-blur-sm'
                     }`}
                 >
+                    {/* New guest login dot — only shows when there are unseen new logins */}
+                    {hasNewGuest && !isGuestAdminModalOpen && (
+                        <span className="absolute -top-0.25 -right-1 flex h-3 w-3">
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 ring-2 ring-white"></span>
+                        </span>
+                    )}
                     {['GC'].map((letter) => (
                         <span key={letter} className={`text-sm font-bold border-b pb-2.5 uppercase mt-1 mb-1 leading-tight ${
                             isGuestAdminModalOpen ? 'border-white text-white' : 'border-gray-500 group-hover:border-blue-500'
@@ -348,7 +379,7 @@ const Layout = () => {
                                 isGuestAdminModalOpen ? 'bg-white/70' : 'bg-slate-300'
                             }`} />
                         ) : (
-                            guestCount
+                            guestCount > 99 ? '99+' : guestCount
                         )}
                     </span>
                 </div>
@@ -358,7 +389,7 @@ const Layout = () => {
             {!isGuestUser() && (
                 <button
                     type="button"
-                    className={`fixed ${isAnyModalOpen ? 'top-[8.15rem]' : 'top-[13.5rem]'} right-9 z-40 p-3 rounded-full border border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group`}
+                    className={`fixed ${isAnyModalOpen ? 'top-[8.15rem]' : 'top-[13.25rem]'} right-9 z-40 p-3 rounded-full border border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group`}
                 >
                     <Mail size={24} className="font-semibold"/>
                 </button>

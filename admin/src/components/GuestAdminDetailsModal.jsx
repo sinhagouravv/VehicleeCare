@@ -7,6 +7,7 @@ import { fetchGuestLogs, fetchGuestStats } from '../utils/guestCounter';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from './RowLabel';
+import { UAParser } from 'ua-parser-js';
 
 const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, guestCount = 0 }) => {
     const { triggerAlert } = useAlert();
@@ -235,7 +236,7 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
         switch (portal?.toLowerCase()) {
             case 'employee': return 'employee web';
             case 'app': return 'employee app';
-            case 'garage': return 'garage website';
+            case 'garage': return 'garage web';
             case 'customer app': return 'customer app';
             case 'business': return 'business web';
             case 'frontend': return 'customer web';
@@ -641,45 +642,53 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                                 <table className="w-full text-center border-collapse table-fixed">
                                     <thead className="sticky top-0 z-30 shadow-sm bg-[#f0f6ff]">
                                         <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                            <th className="p-4 font-bold text-center w-[22%]">Session ID</th>
-                                            <th className="p-4 font-bold text-center w-[13%]">Portal</th>
-                                            <th className="p-4 font-bold text-center w-[15%]">IP Address</th>
-                                            <th className="p-4 font-bold text-center w-[12%]">Role</th>
-                                            <th className="p-4 font-bold text-center w-[12%]">Status</th>
-                                            <th className="p-4 font-bold text-center w-[16%]">Date and Time</th>
-                                            <th className="p-4 font-bold text-center w-[10%]">Actions</th>
+                                            <th className="p-4 font-bold text-center w-[18%]">Session ID</th>
+                                            <th className="p-4 font-bold text-center w-[9%]">Portal</th>
+                                            <th className="p-4 font-bold text-center w-[9%]">IP Address</th>
+                                            <th className="p-4 font-bold text-center w-[7.5%]">Browser</th>
+                                            <th className="p-4 font-bold text-center w-[7.5%]">OS</th>
+                                            <th className="p-4 font-bold text-center w-[9.5%]">Role</th>
+                                            <th className="p-4 font-bold text-center w-[13%]">Date and Time</th>
+                                            <th className="p-4 font-bold text-center w-[7%]">Status</th>
+                                            <th className="p-4 font-bold text-center w-[6.5%]">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y text-[13px] divide-[#e6f0fa] uppercase font-semibold text-gray-700">
                                         {loading && logs.length === 0 ? (
                                             Array.from({ length: 17 }).map((_, i) => (
                                                 <tr key={i} className="border-b border-[#e6f0fa] animate-pulse">
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-[70%] mx-auto" />
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-16 mx-auto" />
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-24 mx-auto" />
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-20 mx-auto" />
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
+                                                        <div className="h-4 bg-slate-200/80 rounded-md w-20 mx-auto" />
+                                                    </td>
+                                                    <td className="p-4.25 text-center">
+                                                        <div className="h-4 bg-slate-200/80 rounded-md w-20 mx-auto" />
+                                                    </td>
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-16 mx-auto" />
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-28 mx-auto" />
                                                     </td>
-                                                    <td className="p-4 text-center">
+                                                    <td className="p-4.25 text-center">
                                                         <div className="h-4 bg-slate-200/80 rounded-md w-10 mx-auto" />
                                                     </td>
                                                 </tr>
                                             ))
                                         ) : filteredLogs.length === 0 ? (
                                             <tr>
-                                                <td colSpan={7} className="p-8 text-center text-gray-400 font-bold">
+                                                <td colSpan={9} className="p-8 text-center text-gray-400 font-bold">
                                                     No guest login records found.
                                                 </td>
                                             </tr>
@@ -743,6 +752,22 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                                                             {session.ipAddress || '—'}
                                                         </td>
 
+                                                        {/* Browser & OS */}
+                                                        {(() => {
+                                                            const parser = new UAParser(session.userAgent || '');
+                                                            const { browser, os } = parser.getResult();
+                                                            return (
+                                                                <>
+                                                                    <td className="p-4 text-sm text-center text-gray-700 font-semibold truncate">
+                                                                        {browser.name || '—'}
+                                                                    </td>
+                                                                    <td className="p-4 text-sm text-center text-gray-700 font-semibold truncate">
+                                                                        {os.name || '—'}
+                                                                    </td>
+                                                                </>
+                                                            );
+                                                        })()}
+
                                                         {/* Role */}
                                                         <td className="p-4 text-center">
                                                             <span className={`inline-block px-2.5 py-0.5 text-xs text-center font-semibold uppercase rounded-full ${getRoleColor(session.role, session.portal)}`}>
@@ -750,16 +775,17 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                                                             </span>
                                                         </td>
 
+
+                                                        {/* Date and Time */}
+                                                        <td className="p-4 font-semibold text-gray-600 text-sm text-center">
+                                                            {formatSubmittedAt(session.timestamp || session.createdAt)}
+                                                        </td>
+
                                                         {/* Status */}
                                                         <td className="p-4 text-center">
                                                             <span className={`inline-block px-3 py-1 text-xs text-center font-semibold rounded-full border border-transparent ${getStatusColor(getComputedStatus(session))}`}>
                                                                 {getComputedStatus(session)}
                                                             </span>
-                                                        </td>
-
-                                                        {/* Date and Time */}
-                                                        <td className="p-4 font-semibold text-gray-600 text-sm text-center">
-                                                            {formatSubmittedAt(session.timestamp || session.createdAt)}
                                                         </td>
 
                                                         {/* Actions: View Details & Download */}
@@ -834,7 +860,7 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                             <div className="flex flex-col md:flex-row gap-6 w-full text-left">
 
                                 {/* Column 1: Portal & IP */}
-                                <div className="space-y-4 w-full md:w-[35%]">
+                                <div className="space-y-4 w-full md:w-[34%]">
                                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Portal & IP</h4>
                                     <div className="pt-3.5 rounded-xl uppercase space-y-2">
                                         <div className="text-sm flex items-center">
@@ -882,7 +908,7 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                                                     {getComputedStatus(selectedSession)}
                                                 </span>
                                             ) : (
-                                                <span className="text-gray-400 font-bold text-sm">—</span>
+                                                <span className="text-gray-600 font-bold text-sm">—</span>
                                             )}
                                         </div>
                                         <p className="text-sm flex items-center">
@@ -898,12 +924,37 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                             </div>
 
                             {/* Client User Agent info */}
-                            <div className="text-left space-y-1">
-                                <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Browser Used</span>
-                                <p className="text-[13px] font-mono text-gray-500 break-all pt-5 tracking-tight">
-                                    {selectedSession.userAgent || 'Unknown Browser'}
-                                </p>
-                            </div>
+                            {(() => {
+                                const parser = new UAParser(selectedSession.userAgent || '');
+                                const { browser, os } = parser.getResult();
+                                const browserName = browser.name || 'Unknown';
+                                const browserVersion = browser.version || 'Unknown';
+                                const osName = os.name || 'Unknown';
+                                const osVersion = os.version || 'Unknown';
+                                return (
+                                    <div className="text-left space-y-3">
+                                        <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Browser &amp; Device Info</span>
+                                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 pt-2">
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Browser</p>
+                                                <p className="text-[13px] font-medium text-gray-600">{browserName}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Browser Version</p>
+                                                <p className="text-[13px] font-medium text-gray-600">{browserVersion}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">OS</p>
+                                                <p className="text-[13px] font-medium text-gray-600">{osName}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">OS Version</p>
+                                                <p className="text-[13px] font-medium text-gray-600">{osVersion}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                     </div>
