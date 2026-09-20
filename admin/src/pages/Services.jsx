@@ -429,7 +429,6 @@ const Services = () => {
                                                         setActiveLabelRowId(prev => prev === (service.id || service._id) ? null : (service.id || service._id));
                                                     }}
                                                     className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[service.id || service._id] || 'Add label')}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[service.id || service._id], 16)}
                                                 </button>

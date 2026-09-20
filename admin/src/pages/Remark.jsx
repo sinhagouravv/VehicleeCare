@@ -292,7 +292,6 @@ const Remark = ({ isModal = false, onClose, highlightId }) => {
                                                                 setActiveLabelRowId(prev => prev === item._id ? null : item._id);
                                                             }}
                                                             className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5 z-10"
-                                                            title={`Label: ${stripEmoji(rowLabels[item._id] || 'Add label')}`}
                                                         >
                                                             {renderLabelIcon(rowLabels[item._id], 16)}
                                                         </button>

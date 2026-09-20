@@ -365,7 +365,6 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
                                                         setActiveLabelRowId(prev => prev === req._id ? null : req._id);
                                                     }}
                                                     className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[req._id] || 'Add label')}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[req._id], 16)}
                                                 </button>

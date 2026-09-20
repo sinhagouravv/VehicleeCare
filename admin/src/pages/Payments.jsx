@@ -361,7 +361,6 @@ const Payments = () => {
                                                             setActiveLabelRowId(prev => prev === payment._id ? null : payment._id);
                                                         }}
                                                         className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                        title={`Label: ${stripEmoji(rowLabels[payment._id] || 'Add label')}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[payment._id], 16)}
                                                     </button>

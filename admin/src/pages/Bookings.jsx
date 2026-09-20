@@ -461,7 +461,6 @@ const Bookings = () => {
                                                             setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
                                                         }}
                                                         className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                        title={`Label: ${stripEmoji(rowLabels[booking._id] || 'Add label')}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[booking._id], 16)}
                                                     </button>

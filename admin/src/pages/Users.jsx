@@ -438,7 +438,6 @@ const Users = () => {
                                                                 setActiveLabelRowId(prev => prev === u._id ? null : u._id);
                                                             }}
                                                             className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                            title={`Label: ${stripEmoji(rowLabels[u._id] || 'Add label')}`}
                                                         >
                                                             {renderLabelIcon(rowLabels[u._id], 16)}
                                                         </button>

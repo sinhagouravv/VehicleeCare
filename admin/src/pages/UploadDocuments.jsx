@@ -608,7 +608,6 @@ const UploadDocuments = ({ isModal = false, onClose, highlightId }) => {
                                                                 setActiveLabelRowId(prev => prev === doc._id ? null : doc._id);
                                                             }}
                                                             className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5 z-10"
-                                                            title={`Label: ${stripEmoji(rowLabels[doc._id] || 'Add label')}`}
                                                         >
                                                             {renderLabelIcon(rowLabels[doc._id], 16)}
                                                         </button>

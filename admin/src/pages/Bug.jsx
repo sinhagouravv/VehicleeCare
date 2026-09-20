@@ -362,7 +362,6 @@ const Bug = ({ isModal = false, onClose, highlightId }) => {
                                                             setActiveLabelRowId(prev => prev === bug._id ? null : bug._id);
                                                         }}
                                                         className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5 z-10"
-                                                        title={`Label: ${stripEmoji(rowLabels[bug._id] || 'Add label')}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[bug._id], 16)}
                                                     </button>

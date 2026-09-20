@@ -550,7 +550,6 @@ const Notifications = () => {
                                                                 setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
                                                             }}
                                                             className="absolute -left-2 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                            title={`Label: ${stripEmoji(rowLabels[notif._id] || 'Add label')}`}
                                                         >
                                                             {renderLabelIcon(rowLabels[notif._id], 16)}
                                                         </button>

@@ -483,7 +483,6 @@ const Garages = () => {
                                                             setActiveLabelRowId(prev => prev === garage._id ? null : garage._id);
                                                         }}
                                                         className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                        title={`Label: ${stripEmoji(rowLabels[garage._id] || 'Add label')}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[garage._id], 16)}
                                                     </button>
