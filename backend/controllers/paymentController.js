@@ -81,7 +81,7 @@ exports.getAllPayments = async (req, res) => {
             .populate('business', 'name businessName email userId')
             .populate({
                 path: 'booking',
-                select: 'bookingId vehicle service status'
+                select: 'bookingId vehicle service status garage'
             })
             .sort({ date: -1 });
 

@@ -90,12 +90,27 @@ exports.incrementGuestCount = async (req, res) => {
             });
         }
 
-        // Deduplication: if a log was auto-recorded on login in the last 15 seconds, reuse it
-        const fifteenSecondsAgo = new Date(Date.now() - 15000);
+        // 1. Direct check: If this specific sessionId is already recorded, return it without creating a duplicate
+        if (req.body.sessionId) {
+            const existingBySession = await GuestLog.findOne({ sessionId: req.body.sessionId });
+            if (existingBySession) {
+                const total = await GuestLog.countDocuments();
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+                return res.status(200).json({
+                    success: true,
+                    count: total,
+                    log: existingBySession,
+                    deduplicated: true
+                });
+            }
+        }
+
+        // 2. Window check: if a log was auto-recorded on login in the last 30 seconds for this portal/user, reuse it
+        const dedupeWindow = new Date(Date.now() - 30000);
         const existingRecentLog = await GuestLog.findOne({
             portal,
             userId: normalizedUserId,
-            timestamp: { $gte: fifteenSecondsAgo }
+            timestamp: { $gte: dedupeWindow }
         });
 
         if (existingRecentLog) {
@@ -109,18 +124,34 @@ exports.incrementGuestCount = async (req, res) => {
             });
         }
 
-        // Create the guest login record
-        const log = await GuestLog.create({
-            sessionId,
-            userId: normalizedUserId,
-            role,
-            portal,
-            action: req.body.action || 'LOGIN',
-            status: 'Active',
-            ipAddress,
-            userAgent,
-            timestamp: new Date()
-        });
+        // 3. Create the guest login record (with race condition duplicate key safeguard)
+        let log;
+        try {
+            log = await GuestLog.create({
+                sessionId,
+                userId: normalizedUserId,
+                role,
+                portal,
+                action: req.body.action || 'LOGIN',
+                status: 'Active',
+                ipAddress,
+                userAgent,
+                timestamp: new Date()
+            });
+        } catch (createErr) {
+            if (createErr.code === 11000) {
+                const existing = await GuestLog.findOne({ sessionId });
+                const total = await GuestLog.countDocuments();
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+                return res.status(200).json({
+                    success: true,
+                    count: total,
+                    log: existing,
+                    deduplicated: true
+                });
+            }
+            throw createErr;
+        }
 
         // Count live records
         const total = await GuestLog.countDocuments();
@@ -199,10 +230,23 @@ exports.getGuestLogs = async (req, res) => {
             }
         ).catch(() => {});
 
-        const logs = await GuestLog.find()
+        const rawLogs = await GuestLog.find()
             .sort({ timestamp: -1, createdAt: -1 })
             .limit(300)
             .lean();
+
+        // Safety deduplication by sessionId (preserving the newest record)
+        const seenSessions = new Set();
+        const logs = [];
+        for (const log of rawLogs) {
+            const sId = String(log.sessionId || log._id || '').trim();
+            if (sId && !seenSessions.has(sId)) {
+                seenSessions.add(sId);
+                logs.push(log);
+            } else if (!sId) {
+                logs.push(log);
+            }
+        }
 
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.status(200).json({

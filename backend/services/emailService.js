@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { logEmail } = require('../controllers/emailLogController');
 
 // ── Centralized SMTP Transporter ──────────────────────────────────
 // Uses Gmail SMTP with connection pooling for maximum reliability,
@@ -32,20 +33,46 @@ const getSender = () => `"VehicleeCare" <${process.env.EMAIL_USER || 'support@ve
 /**
  * Generic mail sender wrapper with error logging and validation
  */
-const sendEmail = async ({ to, subject, html, text, from }) => {
-    if (!to || !to.trim()) {
-        throw new Error('Recipient email is missing or empty');
+const sendEmail = async ({ to, subject, html, text, from, recipientType = 'User', recipientName = 'Recipient', category = 'Notification', metadata = {} }) => {
+    try {
+        if (!to || !to.trim()) {
+            throw new Error('Recipient email address is missing or empty');
+        }
+
+        const mailOptions = {
+            from: from || getSender(),
+            to: to.trim(),
+            subject,
+            html,
+            ...(text ? { text } : {})
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        logEmail({
+            recipientType,
+            recipientName,
+            recipientEmail: to.trim(),
+            subject,
+            category,
+            body: html || text || '',
+            status: 'Sent',
+            metadata
+        }).catch(e => console.error('[EmailService] Log error:', e.message));
+        return info;
+    } catch (err) {
+        logEmail({
+            recipientType,
+            recipientName,
+            recipientEmail: (to && to.trim()) ? to.trim() : 'missing-recipient@vehicleecare.com',
+            subject: subject || '(No Subject)',
+            category,
+            body: html || text || '',
+            status: 'Failed',
+            error: err.message,
+            metadata
+        }).catch(e => console.error('[EmailService] Log error:', e.message));
+        throw err;
     }
-
-    const mailOptions = {
-        from: from || getSender(),
-        to: to.trim(),
-        subject,
-        html,
-        ...(text ? { text } : {})
-    };
-
-    return await transporter.sendMail(mailOptions);
 };
 
 // ── Delivery Verification OTP Email ──────────────────────────────
@@ -93,7 +120,11 @@ const sendDeliveryOtpEmail = async ({ to, name, bookingId, otp }) => {
     return await sendEmail({
         to,
         subject: `VehicleeCare - Delivery Verification OTP (Booking #${bId})`,
-        html
+        html,
+        recipientType: 'Customer',
+        recipientName: customerName,
+        category: 'Service OTP',
+        metadata: { bookingId: bId, otp }
     });
 };
 
@@ -135,7 +166,11 @@ const sendInServiceOtpEmail = async ({ to, name, bookingId, otp }) => {
     return await sendEmail({
         to,
         subject: `VehicleeCare - Service Verification OTP (Booking #${bId})`,
-        html
+        html,
+        recipientType: 'Customer',
+        recipientName: customerName,
+        category: 'Service OTP',
+        metadata: { bookingId: bId, otp }
     });
 };
 
@@ -165,7 +200,11 @@ const sendEmployeeWelcomeEmail = async ({ to, name, employeeId, temporaryPasswor
     return await sendEmail({
         to,
         subject: 'Welcome to VehicleeCare - Employee Portal Access',
-        html
+        html,
+        recipientType: 'Employee',
+        recipientName: empName,
+        category: 'Welcome & Credentials',
+        metadata: { employeeId }
     });
 };
 
@@ -218,7 +257,11 @@ const sendGarageWelcomeEmail = async ({ to, name, garageId, temporaryPassword, p
     return await sendEmail({
         to,
         subject: 'Welcome to VehicleeCare - Garage Portal Access',
-        html
+        html,
+        recipientType: 'Garage',
+        recipientName: garageName,
+        category: 'Welcome & Credentials',
+        metadata: { garageId }
     });
 };
 
@@ -247,7 +290,11 @@ const sendAuthOtpEmail = async ({ to, name, portalTitle, purpose, otp }) => {
     return await sendEmail({
         to,
         subject: `${portal} - ${title}`,
-        html
+        html,
+        recipientType: 'User',
+        recipientName,
+        category: 'Authentication OTP',
+        metadata: { otp, purpose: title }
     });
 };
 
@@ -282,7 +329,11 @@ const sendGuestLoginAlertEmail = async (details = {}) => {
         return await sendEmail({
             to: targetEmail,
             subject: `[VehicleeCare Alert] Guest Admin Login Detected (${details.sessionId || 'Session'})`,
-            html
+            html,
+            recipientType: 'Admin',
+            recipientName: 'Administrator',
+            category: 'Security Alert',
+            metadata: details
         });
     } catch (err) {
         console.error('Failed to send guest login alert email:', err.message);
