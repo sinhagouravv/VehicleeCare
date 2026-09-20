@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Loader2, CheckCircle2, XCircle, Check, X, Clock, AlertCircle, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
@@ -15,6 +16,8 @@ let cachedLeavesGarageId = null;
 let cachedLeavesTimestamp = 0;
 
 const Leave = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [leaves, setLeaves] = useState(() => {
@@ -454,14 +457,16 @@ const Leave = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Leave Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -475,10 +480,8 @@ const Leave = () => {
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Leave Type</th>
                                 <th className="p-4.5 font-bold text-center w-[7.5%]">Duration</th>
-                                <th className="p-4.5 font-bold text-center w-[36%]">Reason</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[36%]' : 'w-[26%]'}`}>Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Date Applied</th>
-                                {/* <th className="p-4.5 font-bold w-[7.5%]">Start</th>
-                                <th className="p-4.5 font-bold w-[7.5%]">End</th> */}
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
@@ -519,7 +522,6 @@ const Leave = () => {
                                                         setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
                                                     }}
                                                     className="absolute -left-0.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[leave._id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[leave._id], 16)}
                                                 </button>

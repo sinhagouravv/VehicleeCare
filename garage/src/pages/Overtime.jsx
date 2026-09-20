@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Loader2, Check, X, Clock, Eye, Trash2, Calendar, User, FileText, MessageSquare, MoreVertical, Send } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
@@ -15,6 +16,8 @@ let cachedOvertimesGarageId = null;
 let cachedOvertimesTimestamp = 0;
 
 const Overtime = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [overtimes, setOvertimes] = useState(() => {
@@ -441,14 +444,16 @@ const Overtime = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -461,8 +466,7 @@ const Overtime = () => {
                                 <th className="p-4.5 font-bold text-center w-[9%]">Overtime ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Employee ID</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Applied for</th>
-                                {/* <th className="p-4.5 font-bold text-center w-[6%]">Hours</th> */}
-                                <th className="p-4.5 font-bold text-center w-[37%]">Reason</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[37%]' : 'w-[27%]'}`}>Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[13.5%]">Date Applied</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
@@ -473,7 +477,7 @@ const Overtime = () => {
                                 <TableSkeleton rows={15} cols={7} />
                             ) : filteredOvertimes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
+                                    <td colSpan="7" className="py-20 text-gray-400 font-bold tracking-widest opacity-60">
                                         No overtime requests found.
                                     </td>
                                 </tr>
@@ -504,7 +508,6 @@ const Overtime = () => {
                                                         setActiveLabelRowId(prev => prev === overtime._id ? null : overtime._id);
                                                     }}
                                                     className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[overtime._id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[overtime._id], 16)}
                                                 </button>

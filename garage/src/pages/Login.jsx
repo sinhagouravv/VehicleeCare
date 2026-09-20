@@ -125,11 +125,20 @@ const Login = () => {
 
                 // Fire guest login recording asynchronously in the background so navigation is instant
                 if (data.garage?.isGuest === true) {
-                    recordGuestLogin('garage', {
-                        role: 'guest_garage',
-                        userId: data.garage?.ownerEmail || 'guestgarage@vehicleecare.com',
-                        sessionId: data.guestSession?.sessionId
-                    }).catch(err => console.error('Background guest record error:', err));
+                    if (!data.guestSession) {
+                        recordGuestLogin('garage', {
+                            role: 'guest_garage',
+                            userId: data.garage?.ownerEmail || 'guestgarage@vehicleecare.com',
+                            sessionId: data.guestSession?.sessionId
+                        }).catch(err => console.error('Background guest record error:', err));
+                    } else {
+                        window.dispatchEvent(new CustomEvent('guestCountUpdated', { detail: { log: data.guestSession } }));
+                        try {
+                            const bc = new BroadcastChannel('guest_tracker_channel');
+                            bc.postMessage({ type: 'GUEST_LOGIN_RECORDED', data: { log: data.guestSession } });
+                            bc.close();
+                        } catch (e) {}
+                    }
                 }
 
                 localStorage.setItem('garageToken', data.token);

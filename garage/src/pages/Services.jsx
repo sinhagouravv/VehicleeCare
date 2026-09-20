@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Plus, Filter, Wrench, Settings, AlertCircle, Edit, Trash2, Eye, Loader2, X, MessageSquare, Download, Check, Send } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
@@ -16,6 +17,8 @@ let cachedBookingsGarageId = null;
 let cachedBookingsTimestamp = null;
 
 const Services = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const { triggerAlert } = useAlert();
     const [bookings, setBookings] = useState(() => {
@@ -425,13 +428,15 @@ const Services = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Service Management</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -443,14 +448,14 @@ const Services = () => {
                                 <th className="p-4.5 font-bold text-center w-[10.5%]">Booking ID</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Assigned To</th>
-                                <th className="p-4.5 font-bold text-center w-[45%]">Service Details</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[45%]' : 'w-[35%]'}`}>Service Details</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Duration</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
-                    {loading ? (
+                            {loading ? (
                                 <TableSkeleton rows={15} cols={7} />
                             ) : filteredBookings.length === 0 ? (
                                 <tr>
@@ -485,7 +490,6 @@ const Services = () => {
                                                             setActiveLabelRowId(prev => prev === booking._id ? null : booking._id);
                                                         }}
                                                         className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                        title={`Label: ${stripEmoji(rowLabels[booking._id])}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[booking._id], 16)}
                                                     </button>
@@ -521,9 +525,9 @@ const Services = () => {
                                             {booking.assignedEmployees?.technician?.employeeId || '—'}
                                         </div>
                                     </td>
-                                    <td className="p-3.25 text-center w-[45%]">
+                                    <td className="p-3.25 text-center">
                                         <div className="font-semibold text-[#0f172a] text-[13.5px] uppercase leading-snug line-clamp-2">{booking.service?.title}</div>
-                                        <div className="text-[11.5px] text-slate-500 uppercase mt-1 tracking-wide">{booking.service?.id || '—'}</div>
+                                        <div className="text-[11.5px] text-slate-500 uppercase mt-1 line-clamp-1 tracking-wide">{booking.service?.id || '—'}</div>
                                     </td>
                                     <td className="p-3.25 text-center">
                                         <div className="flex items-center justify-center">

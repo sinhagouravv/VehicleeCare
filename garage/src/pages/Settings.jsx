@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Save, Home, Clock, Wrench, Car, Loader2, Bell, Shield } from 'lucide-react';
 import { useAlert } from '../context/AlertContext';
 import { defaultServicesList } from '../data/servicesData';
@@ -24,6 +25,8 @@ const ToggleSwitch = ({ isActive, onChange, size = 'default' }) => {
 };
 
 const Settings = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const [activeTab, setActiveTab] = useState('services');
     const [activeServiceTab, setActiveServiceTab] = useState('PETROL');
     const [disabledServices, setDisabledServices] = useState([]);
@@ -202,7 +205,7 @@ const Settings = () => {
     }
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto ">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Settings</h1>

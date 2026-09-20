@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, Calendar, Loader2, MessageSquare, Download, Check, Send } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -16,6 +17,8 @@ let cachedAttendanceGarageId = null;
 let cachedAttendanceTimestamp = 0;
 
 const Attendance = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskPhone, isRealValue } = useGuestGuard();
     const [lastRefreshed, setLastRefreshed] = useState(() => cachedAttendanceTimestamp ? new Date(cachedAttendanceTimestamp) : null);
@@ -581,7 +584,7 @@ const Attendance = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Attendance Directory</h1>
@@ -603,17 +606,21 @@ const Attendance = () => {
                                 <th className="p-4.5 font-bold text-center w-[13%]">Employee Name</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Role</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Shift</th>
+                                <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                    isSidebarCollapsed ? 'w-[9%] p-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                }`}>
+                                    Shift
+                                </th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Date</th>
                                 <th className="p-4.5 font-bold text-center w-[12%]">Check-in Time</th>
-                                <th className="p-4.5 font-bold text-center w-[13%]">Check-out Time</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[13%]' : 'w-[13.5%]'}`}>Check-out Time</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[9%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {filteredData.length === 0 ? (
-                                <TableSkeleton rows={15} cols={10} />
+                                <TableSkeleton rows={15} cols={isSidebarCollapsed ? 10 : 9} />
                             ) : filteredData.map((r) => {
                                 const rowId = r._id || r.id || r.employeeId;
                                 return (
@@ -643,7 +650,6 @@ const Attendance = () => {
                                                             setActiveLabelRowId(prev => prev === rowId ? null : rowId);
                                                         }}
                                                         className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                        title={`Label: ${stripEmoji(rowLabels[rowId])}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[rowId], 16)}
                                                     </button>
@@ -679,14 +685,20 @@ const Attendance = () => {
                                                 <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-center">
-                                            {hasBadgeValue(r.shift) ? (
-                                                <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
-                                                    {r.shift}
-                                                </span>
-                                            ) : (
-                                                <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
-                                            )}
+                                        <td className={`p-4 text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                            isSidebarCollapsed ? 'opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                        }`}>
+                                            <div className={`transition-all duration-300 overflow-hidden ${
+                                                isSidebarCollapsed ? 'opacity-100' : 'max-w-0 opacity-0'
+                                            }`}>
+                                                {hasBadgeValue(r.shift) ? (
+                                                    <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${getShiftBadge(r.shift)}`}>
+                                                        {r.shift}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[13px] font-bold text-gray-600 tracking-wide">—</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="p-4 font-semibold text-[#011023] text-sm text-center">
                                             {formatDateStr(r.checkIn || r.date)}

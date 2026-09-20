@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, Download, X, Search, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -24,6 +25,8 @@ const isPendingCOD = (payment) => {
 };
 
 const Payments = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskEmail, maskPhone, maskTransactionId, isRealValue } = useGuestGuard();
     const [payments, setPayments] = useState(() => {
@@ -362,7 +365,7 @@ const Payments = () => {
     }, [filteredPayments]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Payments</h1>
@@ -381,7 +384,11 @@ const Payments = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="px-6 py-4.5 font-bold text-center w-[9%]">Payment ID</th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[9%]">Booking ID</th>
-                                <th className="px-6 py-4.5 font-bold text-center w-[12%]">User</th>
+                                <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                    isSidebarCollapsed ? 'w-[12%] px-6 py-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                }`}>
+                                    User
+                                </th>
                                 <th className="px-6 py-4.5 font-bold text-center w-[10%]">User ID</th>
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[9%]">User Type</th> */}
                                 {/* <th className="px-6 py-4.5 font-bold text-center w-[14%]">Details</th> */}
@@ -394,10 +401,10 @@ const Payments = () => {
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <TableSkeleton rows={15} cols={9} />
+                                <TableSkeleton rows={15} cols={isSidebarCollapsed ? 9 : 8} />
                             ) : filteredPayments.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">
+                                    <td colSpan={isSidebarCollapsed ? 9 : 8} className="p-8 text-center text-sm text-gray-500">
                                         No payment records found.
                                     </td>
                                 </tr>
@@ -430,7 +437,6 @@ const Payments = () => {
                                                             setActiveLabelRowId(prev => prev === payment._id ? null : payment._id);
                                                         }}
                                                         className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                        title={`Label: ${stripEmoji(rowLabels[payment._id])}`}
                                                     >
                                                         {renderLabelIcon(rowLabels[payment._id], 16)}
                                                     </button>
@@ -454,8 +460,14 @@ const Payments = () => {
                                                 {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
                                             </span>
                                         </td>
-                                        <td className="p-3.5 text-center w-[12%]">
-                                            <div className="font-semibold text-sm text-[#011023]">{getCustomerName(payment)}</div>
+                                        <td className={`text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                            isSidebarCollapsed ? 'p-3.5 opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                        }`}>
+                                            <div className={`transition-all duration-300 overflow-hidden ${
+                                                isSidebarCollapsed ? 'opacity-100' : 'max-w-0 opacity-0'
+                                            }`}>
+                                                <div className="font-semibold text-sm text-[#011023] truncate">{getCustomerName(payment)}</div>
+                                            </div>
                                         </td>
                                         <td className="p-3.5 text-center w-[10%]">
                                             <div className="text-sm font-semibold uppercase">{payment.user?.userId || '—'}</div>

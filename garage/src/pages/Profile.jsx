@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Mail, Phone, MapPin, Clock, Calendar, Plus, Wrench, ShieldCheck, Globe, Trash2, LogOut, Loader2, Star, Shield, Smartphone, ArrowRight, Building2, ExternalLink, CreditCard, FileCheck, Landmark, X, AlertTriangle, Send, Upload, Eye } from 'lucide-react';
 import { createPortal } from 'react-dom';
-
-
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
@@ -22,6 +20,8 @@ const GARAGE_DELETION_REASONS = [
 
 const Profile = () => {
     const { triggerAlert } = useAlert();
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest, guardGuestAction, maskEmail, maskPhone, maskAddress, isRealValue } = useGuestGuard();
     const [garage, setGarage] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -444,7 +444,7 @@ const Profile = () => {
     if (!garage) return null;
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-500 transition-all duration-300`}>
             {/* Header (Leave.jsx style) */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Garage Profile</h1>

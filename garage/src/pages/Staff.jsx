@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { UserSquare2, Plus, Shield, Eye, Edit, Trash2, X, Wrench, Briefcase, UserCheck, ShieldCheck, Loader2, Download, Mail, Phone, MapPin, Calendar, UserX, FileText, CreditCard, Ban } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -17,6 +18,8 @@ let cachedStaffGarageId = null;
 let cachedStaffTimestamp = 0;
 
 const Staff = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const [staffMembers, setStaffMembers] = useState(() => {
@@ -555,7 +558,7 @@ const Staff = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Employee Management</h1>
@@ -580,7 +583,11 @@ const Staff = () => {
                                 <th className="p-4.5 font-bold text-center w-[11%]">Employee</th>
                                 <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Role</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Shift</th>
+                                <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                    isSidebarCollapsed ? 'w-[8%] p-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                }`}>
+                                    Shift
+                                </th>
                                 <th className="p-4.5 font-bold text-center w-[14%]">Join Date & Time</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[9.5%]">Actions</th>
@@ -588,10 +595,10 @@ const Staff = () => {
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                             {loading && staffMembers.length === 0 ? (
-                                <TableSkeleton rows={15} cols={8} />
+                                <TableSkeleton rows={15} cols={isSidebarCollapsed ? 8 : 7} />
                             ) : filteredStaffMembers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-16 text-gray-400 text-sm uppercase font-bold tracking-widest opacity-60 text-center">
+                                    <td colSpan={isSidebarCollapsed ? 8 : 7} className="py-16 text-gray-400 text-sm uppercase font-bold tracking-widest opacity-60 text-center">
                                         No staff members found.
                                     </td>
                                 </tr>
@@ -624,7 +631,6 @@ const Staff = () => {
                                                         setActiveLabelRowId(prev => prev === staff._id ? null : staff._id);
                                                     }}
                                                     className="absolute -left-0.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[staff._id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[staff._id], 16)}
                                                 </button>
@@ -659,12 +665,18 @@ const Staff = () => {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="p-3.25 text-center">
-                                        <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${
-                                            staff.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'
+                                    <td className={`p-3.25 text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                        isSidebarCollapsed ? 'opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                    }`}>
+                                        <div className={`transition-all duration-300 overflow-hidden ${
+                                            isSidebarCollapsed ? 'opacity-100' : 'max-w-0 opacity-0'
                                         }`}>
-                                            {staff.shift || '—'}
-                                        </span>
+                                            <span className={`inline-block px-3 py-1 text-xs font-semibold uppercase rounded-full whitespace-nowrap ${
+                                                staff.shift === 'Morning' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'
+                                            }`}>
+                                                {staff.shift || '—'}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="p-3.25 text-center uppercase">
                                         <div className="font-semibold text-[#011023] text-center">

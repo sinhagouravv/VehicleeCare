@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Activity, Car, CheckCircle, TrendingUp, AlertCircle, Wrench, CalendarCheck, Clock, ArrowRight } from 'lucide-react';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
@@ -6,6 +7,8 @@ import GuestRestrictedOverlay from '../components/GuestRestrictedOverlay';
 import { API_BASE_URL } from '../config/api';
 
 const Dashboard = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest } = useGuestGuard();
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
@@ -116,7 +119,7 @@ const Dashboard = () => {
     const upcomingJobs = bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').slice(0, 5);
 
     return (
-        <div className="space-y-4 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col overflow-hidden">
+        <div className={`space-y-4 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col overflow-hidden transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center shrink-0">
                 <div>

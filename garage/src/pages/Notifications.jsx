@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
-import { TableSkeleton } from '../components/Skeleton';
+import { Bell, Loader2, ExternalLink } from 'lucide-react';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
+import { useAlert } from '../context/AlertContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
 import { API_BASE_URL } from '../config/api';
@@ -21,17 +22,21 @@ const EVENT_MAPPING = {
     id_card_requested: { type: 'Meeting', category: 'Admin', color: 'bg-fuchsia-100 text-fuchsia-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
     leave: { type: 'Leave', category: 'HR', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-amber-100 text-amber-800 border border-amber-200' },
     overtime: { type: 'Overtime', category: 'HR', color: 'bg-orange-100 text-orange-700', typeColor: 'bg-orange-100 text-orange-700 border border-orange-200' },
-    account_deletion: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
-    account_deletion_request: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
-    deletion_request: { type: 'Request', category: 'General', color: 'bg-purple-100 text-purple-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
-    reminder: { type: 'Reminder', category: 'General', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
-    warning: { type: 'Warning', category: 'General', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
-    document: { type: 'Document', category: 'Document', color: 'bg-blue-100 text-blue-700', typeColor: 'bg-sky-100 text-sky-700 border border-sky-200' },
+    account_deletion: { type: 'Request', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    account_deletion_request: { type: 'Request', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    deletion_request: { type: 'Request', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' },
+    reminder: { type: 'Reminder', category: 'Admin', color: 'bg-orange-100 text-orange-900', typeColor: 'bg-orange-100 text-orange-900 border border-orange-200' },
+    warning: { type: 'Warning', category: 'Admin', color: 'bg-rose-100 text-rose-800', typeColor: 'bg-rose-100 text-rose-800 border border-rose-200' },
+    document: { type: 'Document', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700 border border-sky-200' },
 };
 
 const Notifications = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
+    const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const navigate = useNavigate();
+
     const [notifications, setNotifications] = useState(() => {
         try {
             const stored = localStorage.getItem('garageUser');
@@ -74,8 +79,8 @@ const Notifications = () => {
     const [expandedIds, setExpandedIds] = useState(new Set());
 
     // Filter & Sort states
-    const [typeFilter, setTypeFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [filterType, setFilterType] = useState('all');
     const [labelFilter, setLabelFilter] = useState('all');
     const [sortOrder, setSortOrder] = useState('latest');
     const [timeRange, setTimeRange] = useState('all');
@@ -90,13 +95,14 @@ const Notifications = () => {
             hasSort: true,
             groups: [
                 {
-                    id: 'status',
-                    label: 'Status',
+                    id: 'category',
+                    label: 'Category',
                     defaultValue: 'all',
                     options: [
                         { label: 'All', value: 'all' },
-                        { label: 'Unread', value: 'unread' },
-                        { label: 'Read', value: 'read' }
+                        { label: 'Garage', value: 'Garage' },
+                        { label: 'Admin', value: 'Admin' },
+                        { label: 'HR', value: 'HR' },
                     ]
                 },
                 LABEL_FILTER_GROUP,
@@ -106,31 +112,34 @@ const Notifications = () => {
                     defaultValue: 'all',
                     options: [
                         { label: 'All', value: 'all' },
-                        { label: 'Request', value: 'Request' },
                         { label: 'Booking', value: 'Booking' },
+                        { label: 'Request', value: 'Request' },
+                        { label: 'Document', value: 'Document' },
                         { label: 'Leave', value: 'Leave' },
                         { label: 'Overtime', value: 'Overtime' },
                         { label: 'Meeting', value: 'Meeting' },
                         { label: 'Reminder', value: 'Reminder' },
-                        { label: 'Warning', value: 'Warning' }
+                        { label: 'Warning', value: 'Warning' },
                     ]
                 }
             ],
             initialValues: {
-                type: 'all',
-                status: 'all',
-                label: 'all'
+                category: filterCategory,
+                type: filterType,
+                label: labelFilter,
+                sortOrder,
+                timeRange
             },
             onChange: (newValues) => {
-                if (newValues.type !== undefined) setTypeFilter(newValues.type);
-                if (newValues.status !== undefined) setStatusFilter(newValues.status);
+                if (newValues.category !== undefined) setFilterCategory(newValues.category);
+                if (newValues.type !== undefined) setFilterType(newValues.type);
                 if (newValues.label !== undefined) setLabelFilter(newValues.label);
                 if (newValues.sortOrder !== undefined) setSortOrder(newValues.sortOrder);
                 if (newValues.timeRange !== undefined) setTimeRange(newValues.timeRange);
             },
             onReset: () => {
-                setTypeFilter('all');
-                setStatusFilter('all');
+                setFilterCategory('all');
+                setFilterType('all');
                 setLabelFilter('all');
                 setSortOrder('latest');
                 setTimeRange('all');
@@ -141,67 +150,7 @@ const Notifications = () => {
             setFilterConfig(null);
             setResultsCount(null);
         };
-    }, [setFilterConfig, setResultsCount]);
-
-    const getItemDate = (item) => {
-        if (!item) return null;
-        if (item.createdAt) {
-            const d = new Date(item.createdAt);
-            if (!isNaN(d.getTime())) return d;
-        }
-        return null;
-    };
-
-    const filteredNotifications = useMemo(() => {
-        const filtered = notifications.filter((n) => {
-            if (typeFilter && typeFilter !== 'all') {
-                const mapInfo = EVENT_MAPPING[n.event] || { type: 'General' };
-                const nType = (mapInfo.type || '').trim().toLowerCase();
-                if (nType !== typeFilter.trim().toLowerCase()) return false;
-            }
-            if (statusFilter && statusFilter !== 'all') {
-                if (statusFilter === 'unread' && n.read) return false;
-                if (statusFilter === 'read' && !n.read) return false;
-            }
-            if (timeRange && timeRange !== 'all') {
-                const itemDate = getItemDate(n);
-                if (itemDate) {
-                    const now = new Date();
-                    let cutoff;
-                    if (timeRange === 'week') {
-                        cutoff = new Date();
-                        cutoff.setDate(now.getDate() - 7);
-                    } else if (timeRange === 'month') {
-                        cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    }
-                    if (cutoff) {
-                        cutoff.setHours(0, 0, 0, 0);
-                        if (itemDate < cutoff) return false;
-                    }
-                }
-            }
-            if (labelFilter !== 'all') {
-                const currentLabel = rowLabels[n._id];
-                if (!currentLabel || currentLabel.toUpperCase() !== labelFilter.toUpperCase()) return false;
-            }
-            return true;
-        });
-
-        return filtered.sort((a, b) => {
-            const dateA = getItemDate(a)?.getTime() || 0;
-            const dateB = getItemDate(b)?.getTime() || 0;
-            if (sortOrder === 'oldest') {
-                return dateA - dateB;
-            }
-            return dateB - dateA;
-        });
-    }, [notifications, typeFilter, statusFilter, labelFilter, rowLabels, sortOrder, timeRange]);
-
-    useEffect(() => {
-        if (setResultsCount) {
-            setResultsCount(filteredNotifications.length);
-        }
-    }, [filteredNotifications.length, setResultsCount]);
+    }, [setFilterConfig, setResultsCount, filterCategory, filterType, labelFilter, sortOrder, timeRange]);
 
     const toggleExpand = (id, e) => {
         if (e) e.stopPropagation();
@@ -286,7 +235,7 @@ const Notifications = () => {
     }, []);
 
     useEffect(() => {
-        fetchNotifications(!!cachedNotifications);
+        fetchNotifications(Boolean(cachedNotifications));
         if (isGuest) return;
         const interval = setInterval(() => {
             if (document.visibilityState === 'visible') {
@@ -307,7 +256,7 @@ const Notifications = () => {
         setUnread(prev => Math.max(0, prev - 1));
     };
 
-    const confirmDeleteNotif = async () => {
+    const confirmDelete = async () => {
         if (guardGuestAction()) return;
         if (!notifToDelete) return;
         setDeleting(true);
@@ -320,10 +269,12 @@ const Notifications = () => {
                 return updated;
             });
             if (deleted && !deleted.isRead) setUnread(prev => Math.max(0, prev - 1));
+            triggerAlert('Notification deleted successfully', 'success');
             setIsDeleteModalOpen(false);
             setNotifToDelete(null);
         } catch (error) {
             console.error('Error deleting notification:', error);
+            triggerAlert('Failed to delete notification.', 'error');
         } finally {
             setDeleting(false);
         }
@@ -345,50 +296,8 @@ const Notifications = () => {
         }
     };
 
-    // Build a map of Name -> userId from all users AND notifications to fill in gaps
-    const nameToUserIdMap = useMemo(() => {
-        const map = {};
-        
-        // 1. Fill from the full user database (highest priority source)
-        users.forEach(u => {
-            if (u.name && u.userId) {
-                map[u.name.trim().toUpperCase()] = u.userId;
-            }
-        });
-
-        // 2. Supplement from notifications (for vendors or others)
-        notifications.forEach(n => {
-            const name = (n.meta?.userName || n.meta?.name || n.message.split(' (')[0].split(' booked')[0]).trim().toUpperCase();
-            if (name && n.meta?.displayUserId && n.meta.displayUserId !== 'GUEST') {
-                map[name] = n.meta.displayUserId;
-            }
-        });
-
-        return map;
-    }, [users, notifications]);
-
-    const _getDisplayUserId = (notif) => {
-        if (notif.eventType === 'message_received') return 'GUEST';
-        if (notif.eventType === 'employee_added') return notif.meta?.employeeId || 'EMP-N/A';
-        if (notif.eventType === 'garage_added') return notif.meta?.garageId || 'GAR-N/A';
-        
-        // 1. Direct hit from meta
-        if (notif.meta?.displayUserId && notif.meta.displayUserId !== 'GUEST') return notif.meta.displayUserId;
-        
-        // 2. Try map lookup by name
-        const name = (notif.meta?.userName || notif.meta?.name || notif.message.split(' (')[0].split(' booked')[0]).trim().toUpperCase();
-        if (nameToUserIdMap[name]) return nameToUserIdMap[name];
-
-        // 3. Fallback to legacy userId if it looks like a custom ID (e.g. 65...)
-        if (notif.meta?.userId && notif.meta.userId.length < 15 && (notif.meta.userId.startsWith('65') || notif.meta.userId.startsWith('75'))) {
-            return notif.meta.userId;
-        }
-
-        return 'GUEST';
-    };
-
     const getMapping = (notif) => {
-        let mapping = EVENT_MAPPING[notif.eventType] ? { ...EVENT_MAPPING[notif.eventType] } : { type: 'Event', category: 'System', color: 'bg-gray-50 text-gray-600' };
+        let mapping = EVENT_MAPPING[notif.eventType] ? { ...EVENT_MAPPING[notif.eventType] } : { type: notif.eventType ? notif.eventType.replace(/_/g, ' ') : 'General', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-slate-100 text-slate-700' };
         
         const typeLower = (notif.eventType || '').toLowerCase();
         const msgLower = (notif.message || '').toLowerCase();
@@ -399,59 +308,106 @@ const Notifications = () => {
             typeLower === 'account_deletion' ||
             typeLower === 'account_deletion_request' ||
             typeLower === 'deletion_request' ||
+            typeLower === 'request' ||
             msgLower.includes('requested account deletion') ||
             msgLower.includes('requested deletion') ||
             msgLower.includes('deletion request') ||
             msgLower.includes('requested deletion.')
         ) {
-            mapping = { ...mapping, type: 'Request', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' };
+            mapping = { ...mapping, type: 'Request', category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-purple-100 text-purple-700 border border-purple-200' };
         }
         
-        // Refine based on meta
-        if (notif.eventType === 'message_received' && notif.meta?.type === 'business') {
-            mapping.category = 'Business';
-            mapping.color = 'bg-purple-100 text-purple-700';
-            mapping.typeColor = 'bg-fuchsia-100 text-fuchsia-700';
-        }
-        if (notif.eventType === 'review_submitted' && notif.meta?.reviewType === 'Business') {
-            mapping.category = 'Business';
-            mapping.color = 'bg-purple-100 text-purple-700';
-            mapping.typeColor = 'bg-amber-100 text-amber-700';
+        if (notif.eventType === 'document') {
+            mapping = { ...mapping, category: 'Garage', color: 'bg-emerald-100 text-emerald-700', typeColor: 'bg-sky-100 text-sky-700 border border-sky-200' };
         }
 
         return mapping;
     };
 
+    const filteredNotifications = React.useMemo(() => {
+        return notifications.filter(notif => {
+            const mapping = getMapping(notif);
+            if (filterCategory !== 'all') {
+                if (mapping.category.toLowerCase() !== filterCategory.toLowerCase()) return false;
+            }
+            if (filterType !== 'all') {
+                if (mapping.type.toLowerCase() !== filterType.toLowerCase()) return false;
+            }
+            if (labelFilter !== 'all') {
+                const label = rowLabels[notif._id];
+                if (!label || label.toUpperCase() !== labelFilter.toUpperCase()) {
+                    return false;
+                }
+            }
+            if (timeRange !== 'all') {
+                const itemDate = notif.createdAt ? new Date(notif.createdAt) : null;
+                if (itemDate && !isNaN(itemDate.getTime())) {
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - itemDate) / (1000 * 60 * 60 * 24));
+                    if (timeRange === 'week' && diffDays > 7) return false;
+                    if (timeRange === 'month' && diffDays > 30) return false;
+                }
+            }
+            return true;
+        }).sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (dateA !== dateB && dateA > 0 && dateB > 0) {
+                return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+            }
+            const idA = String(a._id || a.title || '');
+            const idB = String(b._id || b.title || '');
+            return sortOrder === 'latest' ? idB.localeCompare(idA) : idA.localeCompare(idB);
+        });
+    }, [notifications, filterCategory, filterType, labelFilter, timeRange, sortOrder, rowLabels]);
+
+    useEffect(() => {
+        if (setResultsCount) {
+            setResultsCount(filteredNotifications.length);
+        }
+    }, [filteredNotifications.length, setResultsCount]);
+
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Notifications</h1>
-                </div>
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">
+                    Notifications
+                </h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
-            {/* Main Content Table (Glassmorphism) */}
+            {/* Main Content Table */}
             <div className="bg-white border border-[#e9f2fb] rounded-2xl shadow-[0_1px_2.5px_0_rgba(0,0,0,0.07)] flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="overflow-x-hidden overflow-y-auto text-center flex-1 relative hide-scrollbar">
-                    <table className="w-full text-left border-collapse table-fixed">
+                    <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[11.5%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Send By</th>
-                                <th className="p-4.5 font-bold text-center w-[53%]">Content</th>
+                                <th className="p-4.5 font-bold text-center w-[10.5%]">Category</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[57%]' : 'w-[46%]'}`}>Content</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
-                                <th className="p-4.5 font-bold text-center w-[6%]">Status</th>
+                                <th className="p-4.5 font-bold text-center w-[6.5%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[5%]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
-                            {filteredNotifications.length === 0 ? (
+                            {loading ? (
                                 <TableSkeleton rows={15} cols={6} />
+                            ) : filteredNotifications.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="p-20 text-center text-gray-300">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Bell size={40} />
+                                            <p className="text-sm font-semibold uppercase">No notifications found</p>
+                                        </div>
+                                    </td>
+                                </tr>
                             ) : (
                                 filteredNotifications.map((notif) => {
                                     const mapping = getMapping(notif);
@@ -459,14 +415,17 @@ const Notifications = () => {
                                     return (
                                         <tr 
                                             key={notif._id} 
-                                            onClick={() => {
+                                            onClick={(e) => {
                                                 if (isLabelMode) {
+                                                    e.stopPropagation();
                                                     setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
                                                 } else if (!notif.isRead) {
                                                     markRead(notif._id);
                                                 }
                                             }}
-                                            className={`transition-all duration-300 group cursor-pointer ${notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'}`}
+                                            className={`transition-all duration-300 group cursor-pointer ${
+                                                isLabelMode ? 'hover:bg-blue-50/60' : notif.isRead ? 'hover:bg-white/50' : 'bg-blue-50/40 hover:bg-blue-50/60'
+                                            }`}
                                         >
                                             <td className="p-4.25 text-center relative">
                                                 <div className="relative flex items-center justify-center w-full">
@@ -477,8 +436,7 @@ const Notifications = () => {
                                                                 e.stopPropagation();
                                                                 setActiveLabelRowId(prev => prev === notif._id ? null : notif._id);
                                                             }}
-                                                            className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                            title={`Label: ${stripEmoji(rowLabels[notif._id])}`}
+                                                            className="absolute -left-2 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
                                                         >
                                                             {renderLabelIcon(rowLabels[notif._id], 16)}
                                                         </button>
@@ -490,23 +448,19 @@ const Notifications = () => {
                                                             currentLabel={rowLabels[notif._id]}
                                                             onSaveLabel={handleSaveRowLabel}
                                                             labelPopupRef={labelPopupRef}
-                                                            positionClass="-left-4"
+                                                            positionClass="-left-4.5"
                                                         />
                                                     )}
-
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
-                                                        {mapping.type}
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.color}`}>
+                                                        {mapping.category}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="p-4.25 text-center">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span className="font-semibold text-[#011023] uppercase text-[13px] truncate max-w-[140px]">
-                                                        {notif.meta?.senderName || 'ADMINISTRATOR'}
+                                                <div className="flex items-center justify-center">
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${mapping.typeColor || 'bg-gray-100 text-gray-700'}`}>
+                                                        {mapping.type}
                                                     </span>
-                                                    {/* <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-tight">
-                                                        {notif.meta?.senderId || '184592037461'}
-                                                    </span> */}
                                                 </div>
                                             </td>
                                             <td 
@@ -517,10 +471,10 @@ const Notifications = () => {
                                                 }}
                                             >
                                                 <div 
-                                                    className={`overflow-hidden transition-all ml-2 duration-300 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
+                                                    className={`overflow-hidden transition-all duration-300 ml-1.5 ease-in-out ${isExpanded ? 'max-h-96' : 'max-h-[2.6rem]'}`}
                                                 >
                                                     <p 
-                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-semibold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
+                                                        className={`text-sm text-center uppercase leading-snug transition-colors duration-200 ${notif.isRead ? 'text-gray-500 font-semibold' : 'text-[#011023] font-bold'} ${!isExpanded ? 'line-clamp-2' : ''}`}
                                                         style={!isExpanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}
                                                     >
                                                         {(() => {
@@ -561,10 +515,10 @@ const Notifications = () => {
                                                                 const employeeId = notif.meta?.employeeId || '';
                                                                 return `Dear ${garageName}, Your employee ${employeeName} ${employeeId} had requested for a overtime. Kindly review the details of the overtime and approved or reject accordingly.`;
                                                             }
-                                                             if (notif.message && notif.message.toLowerCase().includes('account deletion request')) {
-                                                                 if (notif.message.toLowerCase().startsWith('dear garage')) return notif.message;
-                                                                 return `Dear Garage, ${notif.message}`;
-                                                             }
+                                                            if (notif.message && notif.message.toLowerCase().includes('account deletion request')) {
+                                                                if (notif.message.toLowerCase().startsWith('dear garage')) return notif.message;
+                                                                return `Dear Garage, ${notif.message}`;
+                                                            }
                                                             return notif.message;
                                                         })()}
                                                     </p>
@@ -572,7 +526,7 @@ const Notifications = () => {
                                             </td>
                                             <td className="p-4.25 uppercase text-center">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <span className="text-sm font-semibold ">
+                                                    <span className="text-sm font-semibold text-[#011023]">
                                                         {new Date(notif.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
@@ -583,7 +537,7 @@ const Notifications = () => {
                                             <td className="p-4.25 text-center">
                                                 <div className="flex justify-center">
                                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${notif.isRead
-                                                        ? 'bg-gray-100 text-gray-700 border border-gray-300'
+                                                        ? 'bg-gray-100 text-gray-700 border border-gray-200'
                                                         : 'bg-blue-100 text-blue-700 border border-blue-100'
                                                         }`}>
                                                         {notif.isRead ? 'Read' : 'Unread'}
@@ -591,7 +545,7 @@ const Notifications = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4.25 text-center">
-                                                <div className="flex items-center justify-center gap-4">
+                                                <div className="flex justify-center">
                                                     <button 
                                                         onClick={(e) => handleRedirect(notif, e)}
                                                         className="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors"
@@ -599,13 +553,6 @@ const Notifications = () => {
                                                     >
                                                         <ExternalLink size={18} />
                                                     </button>
-                                                    {/* <button 
-                                                        onClick={(e) => { e.stopPropagation(); setNotifToDelete(notif._id); setIsDeleteModalOpen(true); }}
-                                                        className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors"
-                                                        title="Delete Notification"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button> */}
                                                 </div>
                                             </td>
                                         </tr>
@@ -616,6 +563,7 @@ const Notifications = () => {
                     </table>
                 </div>
             </div>
+
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && createPortal(
                 <div 
@@ -629,7 +577,7 @@ const Notifications = () => {
                         <div className="p-8 text-center uppercase space-y-4">
                             <h3 className="text-2xl font-bold text-[#011023] uppercase tracking-tighter mb-9">Delete Notification</h3>
                             <p className="text-[13px] text-gray-500 font-medium leading-relaxed">
-                                This will permanently remove this notification. <br/>
+                                This will permanently remove this notification from the record. <br/>
                                 This action <span className="text-rose-600 font-bold uppercase">cannot be undone</span>.
                             </p>
                         </div>
@@ -641,7 +589,7 @@ const Notifications = () => {
                                 Cancel
                             </button>
                             <button 
-                                onClick={confirmDeleteNotif}
+                                onClick={confirmDelete}
                                 disabled={deleting}
                                 className="px-4 py-3.5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                             >

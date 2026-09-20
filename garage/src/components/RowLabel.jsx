@@ -128,7 +128,6 @@ export const FloatingLabelSelector = ({
                         key={preset.name}
                         type="button"
                         onClick={() => onSaveLabel(rowId, preset.name)}
-                        title={preset.label}
                         className={`transition-all cursor-pointer hover:scale-110 active:scale-95 p-0.5 ${
                             isSelected ? 'scale-110 opacity-100' : 'opacity-70 hover:opacity-100'
                         }`}
@@ -141,7 +140,6 @@ export const FloatingLabelSelector = ({
                 <button
                     type="button"
                     onClick={() => onSaveLabel(rowId, '')}
-                    title="Remove Label"
                     className="text-rose-400 hover:text-rose-600 transition-all cursor-pointer hover:scale-115 active:scale-95 border-l border-slate-200 pl-1 -ml-1"
                 >
                     <X size={17} />

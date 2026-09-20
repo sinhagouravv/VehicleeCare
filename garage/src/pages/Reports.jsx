@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { 
     Download 
 } from 'lucide-react';
@@ -116,6 +117,8 @@ const ReportsSkeleton = () => (
 );
 
 const Reports = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [bookings, setBookings] = useState(() => {
@@ -407,7 +410,7 @@ const Reports = () => {
     }
 
     return (
-        <div className="space-y-4.5 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] pb-10">
+        <div className={`space-y-4.5 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] pb-10 transition-all duration-300`}>
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-7">
                 <div>

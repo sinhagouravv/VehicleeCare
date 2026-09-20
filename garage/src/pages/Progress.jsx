@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
     Activity,
     Wrench,
@@ -24,6 +25,8 @@ let cachedProgressGarageId = null;
 let cachedProgressTimestamp = null;
 
 const Progress = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest } = useGuestGuard();
     const [bookings, setBookings] = useState(() => {
         try {
@@ -339,7 +342,7 @@ const Progress = () => {
 };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             {/* Header Area */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Service Progress</h1>
@@ -378,7 +381,7 @@ const Progress = () => {
             </div>
 
             {/* Main Shop Floor Layout */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+            <div className={`grid grid-cols-1 ${isSidebarCollapsed ? 'lg:grid-cols-2' : 'xl:grid-cols-2'} gap-4 items-start transition-all duration-300`}>
 
                 {/* Active Jobs Pipeline */}
                 <div className="space-y-5">

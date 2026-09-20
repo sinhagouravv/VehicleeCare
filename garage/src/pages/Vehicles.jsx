@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, X, Trash2, Loader2, Download } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -15,6 +16,8 @@ let cachedVehiclesGarageId = null;
 let cachedVehiclesTimestamp = null;
 
 const Vehicles = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [lastRefreshed, setLastRefreshed] = useState(() => cachedVehiclesTimestamp ? new Date(cachedVehiclesTimestamp) : null);
     const [vehicles, setVehicles] = useState(() => {
@@ -288,7 +291,7 @@ const Vehicles = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Vehicles</h1>
@@ -311,17 +314,21 @@ const Vehicles = () => {
                                 <th className="p-4.5 font-bold text-center w-[11.5%]">Brand</th>
                                 <th className="p-4.5 font-bold text-center w-[11.5%]">Model</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Number</th>
-                                <th className="p-4.5 font-bold text-center w-[15%]">Other Details</th>
+                                <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                    isSidebarCollapsed ? 'w-[15%] p-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                }`}>
+                                    Other Details
+                                </th>
                                 <th className="p-4.5 font-bold text-center w-[15%]">Visited At</th>
                                 <th className="p-4.5 font-bold text-center w-[7%]">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <TableSkeleton rows={15} cols={9} />
+                                <TableSkeleton rows={15} cols={isSidebarCollapsed ? 9 : 8} />
                             ) : filteredVehicles.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="p-8 text-center text-sm text-gray-500">No vehicles found.</td>
+                                    <td colSpan={isSidebarCollapsed ? 9 : 8} className="p-8 text-center text-sm text-gray-500">No vehicles found.</td>
                                 </tr>
                             ) : filteredVehicles.map((v) => (
                                 <tr 
@@ -350,7 +357,6 @@ const Vehicles = () => {
                                                         setActiveLabelRowId(prev => prev === v.id ? null : v.id);
                                                     }}
                                                     className="absolute -left-0.75 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[v.id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[v.id], 16)}
                                                 </button>
@@ -386,13 +392,19 @@ const Vehicles = () => {
                                             {isGuest ? '••••••••' : v.number}
                                         </span>
                                     </td>
-                                    <td className="p-3.25 text-center">
-                                        <div className="grid grid-cols-2 gap-2 items-center">
-                                            <div className="flex justify-end">
-                                                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full font-semibold border border-emerald-100">{v.type}</span>
-                                            </div>
-                                            <div className="flex justify-start">
-                                                <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full font-semibold border border-purple-100">{v.transmission}</span>
+                                    <td className={`text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                        isSidebarCollapsed ? 'p-3.25 opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                    }`}>
+                                        <div className={`transition-all duration-300 overflow-hidden ${
+                                            isSidebarCollapsed ? 'opacity-100' : 'max-w-0 opacity-0'
+                                        }`}>
+                                            <div className="grid grid-cols-2 gap-2 items-center">
+                                                <div className="flex justify-end">
+                                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full font-semibold border border-emerald-100">{v.type}</span>
+                                                </div>
+                                                <div className="flex justify-start">
+                                                    <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full font-semibold border border-purple-100">{v.transmission}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, X, Search, Trash2, Loader2, Download, MessageSquare, Check, Send } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import useHighlight from '../hooks/useHighlight';
-import { TableSkeleton } from '../components/Skeleton';
+import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
 import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL_FILTER_GROUP } from '../components/RowLabel';
 import useGuestGuard from '../hooks/useGuestGuard';
@@ -35,6 +36,8 @@ const getFuelBadgeClass = (v) => {
 };
 
 const Customers = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest, guardGuestAction, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const { triggerAlert } = useAlert();
     const [lastRefreshed, setLastRefreshed] = useState(() => cachedTimestamp ? new Date(cachedTimestamp) : null);
@@ -384,14 +387,16 @@ const Customers = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Customers</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
-                    {lastRefreshed
-                        ? `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
-                        : <div className="h-3.5 w-70 bg-slate-200 rounded-full animate-pulse" />}
+                    {!lastRefreshed ? (
+                        <SkeletonBlock className="h-4 w-64 bg-slate-200/80 rounded-md" />
+                    ) : (
+                        `Last refreshed | ${lastRefreshed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} | ${lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`
+                    )}
                 </div>
             </div>
 
@@ -404,7 +409,7 @@ const Customers = () => {
                                 <th className="p-4.5 font-bold text-center w-[10.5%]">Customer ID</th>
                                 <th className="p-4.5 font-bold text-center w-[11%]">Customer</th>
                                 <th className="p-4.5 font-bold text-center w-[16%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[34%]">Vehicle</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[34%]' : 'w-[24%]'}`}>Vehicle</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Amount</th>
                                 <th className="p-4.5 font-bold text-center w-[8.5%]">Last Visit</th>
                                 <th className="p-4.5 font-bold text-center w-[8.5%]">Actions</th>
@@ -447,7 +452,6 @@ const Customers = () => {
                                                         setActiveLabelRowId(prev => prev === rowId ? null : rowId);
                                                     }}
                                                     className="absolute -left-1.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[rowId])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[rowId], 16)}
                                                 </button>
@@ -504,7 +508,7 @@ const Customers = () => {
                                     </td>
 
                                     {/* Last Visit */}
-                                    <td className="p-4 text-center w-[11%]">
+                                    <td className="p-4 text-center">
                                         <span className="text-sm font-semibold text-[#052558]">{customer.lastVisit}</span>
                                     </td>
 
