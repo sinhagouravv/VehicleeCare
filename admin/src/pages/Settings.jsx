@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Save, Bell, Shield, Globe, CreditCard, Wrench, Car, Database, FileText, Users, Zap, MapPin, Briefcase, Star, MessageSquare, Activity, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
 import { useAlert } from '../context/AlertContext';
@@ -6,6 +7,8 @@ import useGuestGuard from '../hooks/useGuestGuard';
 import ToggleSwitch from '../components/ui/toggle-switch-glass';
 
 const Settings = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -272,7 +275,7 @@ const Settings = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto ">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">System Settings</h1>
                 {!['records', 'log'].includes(activeTab) && (

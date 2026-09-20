@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Wrench, Plus, Edit, Trash2, SwitchCamera, X, Loader2 } from 'lucide-react';
 import { defaultServicesList } from '../data/servicesData';
@@ -33,6 +34,8 @@ let cachedServiceOverrides = null;
 let cachedServicesTimestamp = 0;
 
 const Services = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
     const [servicesList, setServicesList] = useState(() => cachedServicesList || defaultServicesList);
@@ -373,7 +376,7 @@ const Services = () => {
     }, [filteredServices.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Services</h1>
                 <button
@@ -390,11 +393,11 @@ const Services = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-center text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4.5 font-bold text-center w-[9.25%]">Service ID</th>
-                                <th className="p-4.5 font-bold text-center w-[22%]">Service Details</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Fuel Type</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Price</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Duration</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[22%]' : 'w-[19%]'}`}>Service Details</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[18%]' : 'w-[15.5%]'}`}>Category</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[11%]' : 'w-[8%]'}`}>Fuel Type</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[8%]'}`}>Price</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[9%]'}`}>Duration</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Actions</th>
                             </tr>

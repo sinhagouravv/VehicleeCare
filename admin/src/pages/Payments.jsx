@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, Download, X, RefreshCw } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -23,6 +24,8 @@ let cachedPayments = null;
 let cachedPaymentsTimestamp = 0;
 
 const Payments = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [payments, setPayments] = useState(() => Array.isArray(cachedPayments) ? cachedPayments : []);
@@ -288,7 +291,7 @@ const Payments = () => {
     }, [filteredPayments.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Payments</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -306,22 +309,26 @@ const Payments = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[9.5%]">Payment ID</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Type</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">ID</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">User</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">User Type</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Paid At</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Amount</th>
-                                <th className="p-4.5 font-bold text-center w-[8.5%]">Method</th>
-                                <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[7%]">Actions</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9.5%]' : 'w-[10.25%]'}`}>Payment ID</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[8%]' : 'w-[8.5%]'}`}>Category</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[10.5%]'}`}>Type</th>
+                                <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                    isSidebarCollapsed ? 'w-[7%] p-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                }`}>
+                                    ID
+                                </th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[11%]'}`}>User</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[9.5%]'}`}>User Type</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[10%]'}`}>Paid At</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[7%]' : 'w-[7.5%]'}`}>Amount</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[8.5%]' : 'w-[9%]'}`}>Method</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[8%]' : 'w-[8.5%]'}`}>Status</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[7%]' : 'w-[8%]'}`}>Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">
                             {loading ? (
-                                <TableSkeleton rows={15} cols={11} />
+                                <TableSkeleton rows={15} cols={isSidebarCollapsed ? 11 : 10} />
                             ) : filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan="11" className="p-8 text-center text-sm text-gray-500">
@@ -390,8 +397,12 @@ const Payments = () => {
                                                 {payment.type || 'Booking'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-center">
-                                            <div className="flex justify-center items-center">
+                                        <td className={`text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                            isSidebarCollapsed ? 'p-4 opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                        }`}>
+                                            <div className={`transition-all duration-300 overflow-hidden flex justify-center items-center ${
+                                                isSidebarCollapsed ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0'
+                                            }`}>
                                                 <span className="font-semibold text-sm text-center">
                                                     {payment.type === 'Booking' ? (payment.booking?.bookingId || '—') : '—'}
                                                 </span>

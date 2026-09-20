@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Wrench, Briefcase, UserCheck, UserSquare2, Shield, Trash2, CreditCard, Zap, ShoppingBag, Pencil, Edit } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
@@ -16,6 +17,8 @@ let cachedEmployees = null;
 let cachedEmployeesTimestamp = 0;
 
 const Employees = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [employees, setEmployees] = useState(() => Array.isArray(cachedEmployees) ? cachedEmployees : []);
@@ -544,7 +547,7 @@ const Employees = () => {
     }, [filteredEmployees.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Employees</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -562,15 +565,19 @@ const Employees = () => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Employee ID</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Employee</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[11%]">Category ID</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Role</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Joined at</th>
-                                <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[12%]">Actions</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[11%]'}`}>Employee ID</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[11%]' : 'w-[12%]'}`}>Employee</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[9%]'}`}>Category</th>
+                                <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                    isSidebarCollapsed ? 'w-[11%] p-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                }`}>
+                                    Category ID
+                                </th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[18%]' : 'w-[22%]'}`}>Contact</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[10%]'}`}>Role</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[10%]'}`}>Joined at</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[9%]'}`}>Status</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[12%]' : 'w-[13%]'}`}>Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
@@ -642,12 +649,16 @@ const Employees = () => {
                                                      {employee.category || 'System'}
                                                  </span>
                                              </td>
-                                            <td className="p-4 text-center">
-                                                <div className="font-semibold text-sm uppercase text-center">
-                                                    {employee.category === 'Garage' ? (employee.garageId || '—') : '—'}
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-center">
+                                             <td className={`text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                                 isSidebarCollapsed ? 'p-4 opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                             }`}>
+                                                 <div className={`transition-all duration-300 overflow-hidden text-center uppercase font-semibold text-sm ${
+                                                     isSidebarCollapsed ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0'
+                                                 }`}>
+                                                     {employee.category === 'Garage' ? (employee.garageId || '—') : '—'}
+                                                 </div>
+                                             </td>
+                                             <td className="p-4 text-center">
                                                 <div className={`text-xs text-gray-500 mt-0.5 text-center ${isGuest && isRealValue(employee.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(employee.phone)}</div>
                                                 <div className={`font-semibold text-gray-700 text-sm text-center ${isGuest && isRealValue(employee.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(employee.email)}</div>
                                             </td>
@@ -656,11 +667,6 @@ const Employees = () => {
                                                      {formatRole(employee.role)}
                                                  </span>
                                              </td>
-                                            {/* <td className="p-4 text-center">
-                                                <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-lg uppercase tracking-wider ${getShiftBadge(employee.shift)}`}>
-                                                    {employee.shift || '—'}
-                                                </span>
-                                            </td> */}
                                              <td className="p-4 text-center uppercase">
                                                  <div className="flex flex-col items-center justify-center">
                                                      <span className="text-sm font-semibold text-[#011023]">

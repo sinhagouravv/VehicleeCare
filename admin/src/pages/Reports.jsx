@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { FileBarChart, Loader2, TrendingUp, TrendingDown, ClipboardList, CheckCircle, Clock, AlertCircle, Shield, Briefcase, Activity } from 'lucide-react';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
 import GuestRestrictedOverlay from '../components/GuestRestrictedOverlay';
 
 const Reports = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest } = useGuestGuard();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -59,7 +62,7 @@ const Reports = () => {
     }, [bookings]);
 
     return (
-        <div className="relative space-y-6 max-w-[92rem] mx-auto">
+        <div className={`relative space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             {isGuest && <GuestRestrictedOverlay />}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">System Operational Reports</h1>

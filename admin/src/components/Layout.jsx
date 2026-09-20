@@ -6,13 +6,15 @@ import FilterButton from './FilterButton';
 import SortButton from './SortButton';
 import LabelButton from './LabelButton';
 import AddEmployeeButton from './AddEmployeeButton';
-import { Bug, MessageSquare, UploadCloud, ClipboardPen, Plus, Mail } from 'lucide-react';
+import { Bug, MessageSquare, UploadCloud, ClipboardPen, Plus, Mail, Code2 } from 'lucide-react';
 import BugModal from '../pages/Bug';
 import RemarkModal from '../pages/Remark';
 import UploadDocumentsModal from '../pages/UploadDocuments';
 import RequestModal from '../pages/Request';
 import GuestWelcomeModal from './GuestWelcomeModal';
 import GuestAdminDetailsModal from './GuestAdminDetailsModal';
+import DeveloperRequestsModal from './DeveloperRequestsModal';
+import MailModal from './MailModal';
 import useGuestSessionTimeout from '../hooks/useGuestSessionTimeout';
 import useMultiTabAuthSync from '../hooks/useMultiTabAuthSync';
 import { isGuestUser } from '../hooks/useGuestGuard';
@@ -28,6 +30,8 @@ const Layout = () => {
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [isGuestAdminModalOpen, setIsGuestAdminModalOpen] = useState(false);
+    const [isDevRequestsModalOpen, setIsDevRequestsModalOpen] = useState(false);
+    const [isMailModalOpen, setIsMailModalOpen] = useState(false);
     const [guestCount, setGuestCount] = useState(() => {
         const cached = localStorage.getItem('lastGuestCount');
         return cached !== null && !isNaN(Number(cached)) ? Number(cached) : null;
@@ -180,6 +184,7 @@ const Layout = () => {
             setIsDocumentModalOpen(false);
             setIsRequestModalOpen(false);
             setIsGuestAdminModalOpen(false);
+            setIsDevRequestsModalOpen(false);
             setModalHighlightId(null);
         }
     }, [location.pathname]);
@@ -317,7 +322,7 @@ const Layout = () => {
         return () => clearInterval(interval);
     }, [checkNewItems]);
 
-    const isAnyModalOpen = isBugModalOpen || isRemarkModalOpen || isDocumentModalOpen || isRequestModalOpen || isGuestAdminModalOpen;
+    const isAnyModalOpen = isBugModalOpen || isRemarkModalOpen || isDocumentModalOpen || isRequestModalOpen || isGuestAdminModalOpen || isDevRequestsModalOpen || isMailModalOpen;
 
     return (
         <div className="min-h-screen bg-[#fafbfc] flex text-[#011023] font-sans">
@@ -335,10 +340,10 @@ const Layout = () => {
 
             <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
 
-            <div className={`flex-1 flex flex-col relative z-10 h-screen overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'ml-[5.5rem]' : 'ml-[16.75rem]'}`}>
-                <Header />
+            <div className={`flex-1 flex flex-col relative z-10 h-screen overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'ml-[5.5rem]' : 'ml-[15.75rem]'}`}>
+                <Header isSidebarCollapsed={isSidebarCollapsed} />
                 <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                    <Outlet />
+                    <Outlet context={{ isSidebarCollapsed }} />
                 </main>
             </div>
 
@@ -350,10 +355,12 @@ const Layout = () => {
                         setIsRemarkModalOpen(false);
                         setIsDocumentModalOpen(false);
                         setIsRequestModalOpen(false);
+                        setIsDevRequestsModalOpen(false);
+                        setIsMailModalOpen(false);
                         setModalHighlightId(null);
                         setIsGuestAdminModalOpen(prev => !prev);
                     }}
-                    className={`fixed ${isAnyModalOpen ? 'top-[2.25rem]' : 'top-[7.25rem]'} right-9 z-40 flex flex-col items-center py-2.5 px-3 gap-0.5 border rounded-full select-none cursor-pointer transition-all duration-300 group shadow-xs hover:shadow-md ${
+                    className={`fixed ${isAnyModalOpen ? 'top-[2.25rem]' : 'top-[7.25rem]'} right-9 z-40 flex flex-col items-center py-2.5 px-3 gap-0.5 border rounded-full select-none cursor-pointer transition-all duration-500 ease-in-out group shadow-xs hover:shadow-md ${
                         isGuestAdminModalOpen 
                             ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
                             : 'border-blue-200 hover:border-blue-300 text-gray-600 hover:text-[#052558] bg-white/80 hover:bg-white backdrop-blur-sm'
@@ -366,20 +373,22 @@ const Layout = () => {
                         </span>
                     )}
                     {['GC'].map((letter) => (
-                        <span key={letter} className={`text-sm font-bold border-b pb-2.5 uppercase mt-1 mb-1 leading-tight ${
+                        <span key={letter} className={`text-sm font-bold border-b pb-2.5 uppercase mt-1 mb-1 leading-tight transition-colors duration-500 ease-in-out ${
                             isGuestAdminModalOpen ? 'border-white text-white' : 'border-gray-500 group-hover:border-blue-500'
                         }`}>
                             {letter}
                         </span>
                     ))}
-                    <span className={`w-6 h-6 flex items-center justify-center text-sm font-semibold ${
+                    <span className={`min-w-6 h-6 flex items-center justify-center text-sm font-semibold transition-colors duration-500 ease-in-out ${
                         isGuestAdminModalOpen ? 'text-white' : 'text-[#052558]'}`}>
                         {guestCount === null || isGuestCountLoading ? (
                             <span className={`w-3.5 h-3.5 rounded-sm animate-pulse ${
                                 isGuestAdminModalOpen ? 'bg-white/70' : 'bg-slate-300'
                             }`} />
                         ) : (
-                            guestCount > 99 ? '99+' : guestCount
+                            guestCount > 99 ? (
+                                <span className="relative leading-none">99<span className="absolute -top-1 -right-1.5 text-[11px] font-semibold leading-none">+</span></span>
+                            ) : guestCount
                         )}
                     </span>
                 </div>
@@ -389,9 +398,49 @@ const Layout = () => {
             {!isGuestUser() && (
                 <button
                     type="button"
-                    className={`fixed ${isAnyModalOpen ? 'top-[8.15rem]' : 'top-[13.25rem]'} right-9 z-40 p-3 rounded-full border border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md transition-all shadow-sm hover:shadow-md cursor-pointer duration-300 group`}
+                    onClick={() => {
+                        setIsBugModalOpen(false);
+                        setIsRemarkModalOpen(false);
+                        setIsDocumentModalOpen(false);
+                        setIsRequestModalOpen(false);
+                        setIsGuestAdminModalOpen(false);
+                        setIsDevRequestsModalOpen(false);
+                        setModalHighlightId(null);
+                        setIsMailModalOpen(prev => !prev);
+                    }}
+                    title="Sent Emails (User, Employee, Customer)"
+                    className={`fixed ${isAnyModalOpen ? 'top-[8.15rem]' : 'top-[13.15rem]'} right-9 z-40 p-3 rounded-full border transition-all duration-500 ease-in-out shadow-sm hover:shadow-md cursor-pointer group ${
+                        isMailModalOpen 
+                            ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
+                            : 'border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                    }`}
                 >
                     <Mail size={24} className="font-semibold"/>
+                </button>
+            )}
+
+            {/* Developer Requests Button (Leave, Meeting, Overtime) — positioned directly under the Mail button */}
+            {!isGuestUser() && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        setIsBugModalOpen(false);
+                        setIsRemarkModalOpen(false);
+                        setIsDocumentModalOpen(false);
+                        setIsRequestModalOpen(false);
+                        setIsGuestAdminModalOpen(false);
+                        setIsMailModalOpen(false);
+                        setModalHighlightId(null);
+                        setIsDevRequestsModalOpen(prev => !prev);
+                    }}
+                    title="Developer Requests (Leave, Meeting, Overtime)"
+                    className={`fixed ${isAnyModalOpen ? 'top-[12.05rem]' : 'top-[17.05rem]'} right-9 z-40 p-3 rounded-full border transition-all duration-500 ease-in-out shadow-sm hover:shadow-md cursor-pointer group ${
+                        isDevRequestsModalOpen 
+                            ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
+                            : 'border-blue-200 text-gray-600 hover:bg-blue-50 hover:text-blue-500 bg-white/80 backdrop-blur-md'
+                    }`}
+                >
+                    <Code2 size={24} className="font-semibold"/>
                 </button>
             )}
 
@@ -423,6 +472,8 @@ const Layout = () => {
                     setIsDocumentModalOpen(false);
                     setIsRequestModalOpen(false);
                     setIsGuestAdminModalOpen(false);
+                    setIsDevRequestsModalOpen(false);
+                    setIsMailModalOpen(false);
                     setModalHighlightId(null);
                     if (!isRemarkModalOpen) {
                         setHasNewRemark(false);
@@ -452,6 +503,8 @@ const Layout = () => {
                     setIsRemarkModalOpen(false);
                     setIsDocumentModalOpen(false);
                     setIsGuestAdminModalOpen(false);
+                    setIsDevRequestsModalOpen(false);
+                    setIsMailModalOpen(false);
                     setModalHighlightId(null);
                     if (!isRequestModalOpen) {
                         setHasNewRequest(false);
@@ -481,6 +534,8 @@ const Layout = () => {
                     setIsRemarkModalOpen(false);
                     setIsRequestModalOpen(false);
                     setIsGuestAdminModalOpen(false);
+                    setIsDevRequestsModalOpen(false);
+                    setIsMailModalOpen(false);
                     setModalHighlightId(null);
                     if (!isDocumentModalOpen) {
                         setHasNewDocument(false);
@@ -510,6 +565,8 @@ const Layout = () => {
                     setIsDocumentModalOpen(false);
                     setIsRequestModalOpen(false);
                     setIsGuestAdminModalOpen(false);
+                    setIsDevRequestsModalOpen(false);
+                    setIsMailModalOpen(false);
                     setModalHighlightId(null);
                     if (!isBugModalOpen) {
                         setHasNewBug(false);
@@ -539,7 +596,7 @@ const Layout = () => {
                         onClick={() => { setIsRequestModalOpen(false); setModalHighlightId(null); }}
                     />
 
-                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[16.75rem]'}`}>
+                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[15.75rem]'}`}>
                         <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-xl w-full max-w-[101rem] h-[93.75vh] overflow-hidden relative z-10 p-6 flex flex-col animate-in zoom-in duration-200 pointer-events-auto">
                             <RequestModal isModal onClose={() => { setIsRequestModalOpen(false); setModalHighlightId(null); }} highlightId={modalHighlightId} />
                         </div>
@@ -555,7 +612,7 @@ const Layout = () => {
                         onClick={() => { setIsDocumentModalOpen(false); setModalHighlightId(null); }}
                     />
 
-                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[16.75rem]'}`}>
+                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[15.75rem]'}`}>
                         <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-xl w-full max-w-[101rem] h-[93.75vh] overflow-hidden relative z-10 p-6 flex flex-col animate-in zoom-in duration-200 pointer-events-auto">
                             <UploadDocumentsModal isModal onClose={() => { setIsDocumentModalOpen(false); setModalHighlightId(null); }} highlightId={modalHighlightId} />
                         </div>
@@ -571,7 +628,7 @@ const Layout = () => {
                         onClick={() => { setIsRemarkModalOpen(false); setModalHighlightId(null); }}
                     />
 
-                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[16.75rem]'}`}>
+                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[15.75rem]'}`}>
                         <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-xl w-full max-w-[101rem] h-[93.75vh] overflow-hidden relative z-10 p-6 flex flex-col animate-in zoom-in duration-200 pointer-events-auto">
                             <RemarkModal isModal onClose={() => { setIsRemarkModalOpen(false); setModalHighlightId(null); }} highlightId={modalHighlightId} />
                         </div>
@@ -589,7 +646,7 @@ const Layout = () => {
                     />
 
                     {/* Modal Container */}
-                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[16.75rem]'}`}>
+                    <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[15.75rem]'}`}>
                         <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-xl w-full max-w-[101rem] h-[93.75vh] overflow-hidden relative z-10 p-6 flex flex-col animate-in zoom-in duration-200 pointer-events-auto">
                             <BugModal isModal onClose={() => { setIsBugModalOpen(false); setModalHighlightId(null); }} highlightId={modalHighlightId} />
                         </div>
@@ -602,6 +659,20 @@ const Layout = () => {
                 isOpen={isGuestAdminModalOpen} 
                 onClose={() => setIsGuestAdminModalOpen(false)} 
                 guestCount={guestCount} 
+                isSidebarCollapsed={isSidebarCollapsed}
+            />
+
+            {/* Developer Requests Modal (Leave, Meeting, Overtime) */}
+            <DeveloperRequestsModal 
+                isOpen={isDevRequestsModalOpen} 
+                onClose={() => setIsDevRequestsModalOpen(false)} 
+                isSidebarCollapsed={isSidebarCollapsed}
+            />
+
+            {/* Sent Emails Modal (User, Employee, Customer) */}
+            <MailModal 
+                isOpen={isMailModalOpen} 
+                onClose={() => setIsMailModalOpen(false)} 
                 isSidebarCollapsed={isSidebarCollapsed}
             />
         </div>

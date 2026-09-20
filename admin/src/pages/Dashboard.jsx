@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { TrendingUp, Users, CalendarCheck, MapPin, Clock, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { defaultServicesList } from '../data/servicesData';
@@ -14,6 +15,8 @@ const chartDataFallback = [
 ];
 
 const Dashboard = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const [loading, setLoading] = useState(true);
     const [dashboardStats, setDashboardStats] = useState({
         bookings: 0,
@@ -167,7 +170,7 @@ const Dashboard = () => {
     ];
 
     return (
-        <div className="space-y-8 max-w-[92rem] mx-auto ">
+        <div className={`space-y-8 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Dashboard</h1>

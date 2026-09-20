@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Bell, UserPlus, CalendarCheck, MessageSquare, Star, Zap, Warehouse, Loader2, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
@@ -40,6 +40,8 @@ import { useRowLabels, FloatingLabelSelector, renderLabelIcon, stripEmoji, LABEL
 import useGuestGuard from '../hooks/useGuestGuard';
 
 const Notifications = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
     const navigate = useNavigate();
@@ -478,7 +480,7 @@ const Notifications = () => {
     }, [filteredNotifications.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">
                     Notifications
@@ -501,7 +503,7 @@ const Notifications = () => {
                                 <th className="p-4.5 font-bold text-center w-[10.5%]">Category</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Type</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[10%]">User</th> */}
-                                <th className="p-4.5 font-bold text-center w-[57%]">Content</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[57%]' : 'w-[46%]'}`}>Content</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received On</th>
                                 <th className="p-4.5 font-bold text-center w-[6.5%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[5%]"></th>

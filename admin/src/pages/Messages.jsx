@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Mail, Eye, Trash2, X, Loader2 } from 'lucide-react';
 import useHighlight from '../hooks/useHighlight';
@@ -14,6 +15,8 @@ let cachedMessages = null;
 let cachedMessagesTimestamp = 0;
 
 const Messages = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
 
@@ -234,7 +237,7 @@ const Messages = () => {
     }, [filteredMessages.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Messages</h1>
                 <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
@@ -255,7 +258,7 @@ const Messages = () => {
                                 <th className="p-4.5 font-bold text-center w-[10%]">Message id</th>
                                 <th className="p-4.5 font-bold text-center w-[14%]">Contact Info</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[16%]">Subject</th> */}
-                                <th className="p-4.5 font-bold text-center w-[41%]">Message preview</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[41%]' : 'w-[31%]'}`}>Message preview</th>
                                 <th className="p-4.5 font-bold text-center w-[8%]">Source</th>
                                 <th className="p-4.5 font-bold text-center w-[10%]">Received at</th>
                                 <th className="p-4.5 font-bold text-center w-[6.5%]">Status</th>

@@ -35,13 +35,13 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     ];
 
     return (
-        <aside className={`${isCollapsed ? 'w-22.5' : 'w-67'} transition-all duration-300 bg-white transform-gpu border-r border-[#e2e8f0] h-screen fixed left-0 top-0 flex flex-col shadow-xs z-20`}>
+        <aside className={`${isCollapsed ? 'w-22.5' : 'w-[15.75rem]'} transition-all duration-300 bg-white transform-gpu border-r border-[#e2e8f0] h-screen fixed left-0 top-0 flex flex-col shadow-xs z-20`}>
             {/* Logo Area */}
             <div className={`pt-6 pb-4 pl-4.5 pr-4.5 border-b border-[#e2e8f0] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} relative`}>
                 <div className={`flex items-center gap-3 ${isCollapsed ? 'hidden' : 'block'}`}>
-                    <img src={Logo} alt="VehicleeCare Logo" className="-ml-3 w-16 h-16 object-contain drop-shadow-md flex-shrink-0" />
-                    <div className="-ml-4">
-                        <h1 className="text-xl font-black tracking-tight text-semibold leading-none">VehicleeCare</h1>
+                    <img src={Logo} alt="VehicleeCare Logo" className="-ml-2 w-16 h-10 object-contain drop-shadow-md flex-shrink-0" />
+                    <div className="-ml-5.5">
+                        <h1 className="text-xl font-bold tracking- text-semibold leading-none">VehicleeCare</h1>
                         <p className="text-[#527FB0] font-bold text-[10px] tracking-widest uppercase mt-0.5">Admin Panel</p>
                     </div>
                 </div>
@@ -59,7 +59,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                 {!isCollapsed && (
                     <button
                         onClick={toggleSidebar}
-                        className="absolute right-3 top-10 bg-white border border-blue-100 text-[#052558] rounded-full p-1 shadow-md hover:bg-blue-50 transition-colors"
+                        className="absolute right-3 top-7 bg-white border border-blue-100 text-[#052558] rounded-full p-1 shadow-sm hover:bg-blue-50 transition-colors"
                     >
                         <ChevronLeft size={16} />
                     </button>
@@ -67,14 +67,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
             </div>
 
             {/* Navigation Menu */}
-            <nav className="flex-1 px-4 py-5.5 uppercase space-y-1 overflow-y-auto custom-scrollbar">
+            <nav className="flex-1 px-4 py-6 uppercase space-y-1 overflow-y-auto custom-scrollbar">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.path}
                         className={({ isActive }) =>
-                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-11.5 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
-                                ? 'bg-white text-[#011023] shadow-md'
+                            `flex items-center text-sm gap-3 ${isCollapsed ? 'justify-center w-12 h-11 mx-auto px-0' : 'px-4 py-3'} rounded-xl transition-all duration-300 font-bold outline-none focus:outline-none ${isActive
+                                ? 'bg-white text-[#011023] shadow-sm'
                                 : 'text-gray-500 hover:bg-white/50 items-center hover:text-[#011023]'
                             }`
                         }

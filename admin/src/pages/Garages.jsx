@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, X, Check, Briefcase, Users, Loader2 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
@@ -53,6 +54,8 @@ let cachedGarages = null;
 let cachedGaragesTimestamp = 0;
 
 const Garages = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
 
@@ -420,7 +423,7 @@ const Garages = () => {
     const _inputClass = "w-full px-4 font-semibold text-xs py-2.5 bg-white/50 border border-white/60 rounded-xl transition-all outline-none focus:bg-white/80 focus:border-[#052558] text-[#011023]";
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Garages</h1>
                 <div className="flex items-center gap-3">
@@ -441,10 +444,10 @@ const Garages = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10.5%]">Garage ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Garage Name</th>
-                                <th className="p-4 font-bold text-center w-[23%]">Location</th>
-                                <th className="p-4 font-bold text-center w-[18%]">Vehicle Types</th>
-                                <th className="p-4 font-bold text-center w-[8%]">Pickup</th>
-                                <th className="p-4 font-bold text-center w-[7%]">Rating</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[23%]' : 'w-[19%]'}`}>Location</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[18%]' : 'w-[16%]'}`}>Vehicle Type</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[8%]'}`}>Pickup</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[6.5%]'}`}>Rating</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4 font-bold text-center w-[9%]">Actions</th>
                             </tr>

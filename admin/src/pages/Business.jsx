@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Eye, Check, X, RefreshCw, Briefcase, Zap, MapPin, Car, Trash2, Loader2, MoreVertical } from 'lucide-react';
 import { TableSkeleton, SkeletonBlock } from '../components/Skeleton';
@@ -14,6 +15,8 @@ let cachedBusinessRequests = null;
 let cachedBusinessRequestsTimestamp = 0;
 
 const Business = ({ isModal = false, onClose, highlightId }) => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [requests, setRequests] = useState(() => Array.isArray(cachedBusinessRequests) ? cachedBusinessRequests : []);
@@ -291,7 +294,7 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
     }, [filteredRequests.length, setResultsCount]);
 
     return (
-        <div className={`space-y-6 max-w-[92rem] mx-auto flex flex-col ${isModal ? 'h-full' : 'h-[calc(100vh-9.25rem)]'}`}>
+        <div className={`space-y-6 ${isModal ? 'max-w-full h-full' : `${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} h-[calc(100vh-9.25rem)]`} mx-auto flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Business Requests</h1>
                 <div className="flex items-center gap-4">
@@ -319,13 +322,13 @@ const Business = ({ isModal = false, onClose, highlightId }) => {
                     <table className="w-full text-center border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase text-center tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                <th className="p-4.5 font-bold text-center w-[10%]">Request ID</th>
-                                <th className="p-4.5 font-bold text-center w-[20%]">Business Name</th>
-                                <th className="p-4.5 font-bold text-center w-[14%]">Category</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Contact</th>
-                                <th className="p-4.5 font-bold text-center w-[18%]">Date</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Status</th>
-                                <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[11.5%]'}`}>Request ID</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[20%]' : 'w-[19%]'}`}>Business Name</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[14%]' : 'w-[13.5%]'}`}>Category</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[18%]' : 'w-[20%]'}`}>Contact</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[18%]' : 'w-[18%]'}`}>Date</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[10%]'}`}>Status</th>
+                                <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[9%]'}`}>Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y uppercase text-[12px] divide-[#e6f0fa]">

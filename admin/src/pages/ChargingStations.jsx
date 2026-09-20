@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check, Loader2 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
@@ -39,6 +40,8 @@ let cachedChargingStations = null;
 let cachedChargingStationsTimestamp = 0;
 
 const ChargingStations = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
 
@@ -343,7 +346,7 @@ const ChargingStations = () => {
     const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Charging Stations</h1>
                 <div className="flex items-center gap-3">
@@ -362,10 +365,10 @@ const ChargingStations = () => {
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10.5%]">Station ID</th>
-                                <th className="p-4 font-bold text-center w-[15%]">Station Name</th>
-                                <th className="p-4 font-bold text-center w-[25%]">Location</th>
-                                <th className="p-4 font-bold text-center w-[8%]">Ports</th>
-                                <th className="p-4 font-bold text-center w-[25%]">Charger Type</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[15%]' : 'w-[13%]'}`}>Station Name</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[25%]' : 'w-[21%]'}`}>Location</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[8%]' : 'w-[6%]'}`}>Ports</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[25%]' : 'w-[21.5%]'}`}>Charger Type</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Status</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Actions</th>
                             </tr>

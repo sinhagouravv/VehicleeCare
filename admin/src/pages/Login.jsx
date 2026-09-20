@@ -187,11 +187,20 @@ const Login = () => {
                 }
 
                 if (data.admin?.isGuest || data.admin?.role === 'guest_admin' || data.admin?.email === 'guestadmin@vehicleecare.com') {
-                    recordGuestLogin('admin', {
-                        role: 'guest_admin',
-                        userId: data.admin?.email || 'guestadmin@vehicleecare.com',
-                        sessionId: data.guestSession?.sessionId
-                    }).catch(err => console.error('Background guest record error:', err));
+                    if (!data.guestSession) {
+                        recordGuestLogin('admin', {
+                            role: 'guest_admin',
+                            userId: data.admin?.email || 'guestadmin@vehicleecare.com',
+                            sessionId: data.guestSession?.sessionId
+                        }).catch(err => console.error('Background guest record error:', err));
+                    } else {
+                        window.dispatchEvent(new CustomEvent('guestCountUpdated', { detail: { log: data.guestSession } }));
+                        try {
+                            const bc = new BroadcastChannel('guest_tracker_channel');
+                            bc.postMessage({ type: 'GUEST_LOGIN_RECORDED', data: { log: data.guestSession } });
+                            bc.close();
+                        } catch (e) {}
+                    }
                 }
 
                 localStorage.setItem('adminToken', data.token);

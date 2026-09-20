@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Eye, Download, UserX, Loader2, X, User, Mail, Phone, MapPin, Calendar, ShieldCheck, Clipboard, Ban, Briefcase } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
@@ -16,6 +17,8 @@ let cachedUsers = null;
 let cachedUsersTimestamp = 0;
 
 const Users = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [users, setUsers] = useState(() => Array.isArray(cachedUsers) ? cachedUsers : []);
@@ -363,7 +366,7 @@ const Users = () => {
     }, [filteredUsers.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Manage Users</h1>
                 <div className="text-xs uppercase text-gray-400 font-medium self-center">
@@ -386,22 +389,26 @@ const Users = () => {
                         <table className="w-full text-center border-collapse table-fixed">
                             <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
-                                    <th className="p-4.5 font-bold text-center w-[10.5%]">User ID</th>
-                                    <th className="p-4.5 font-bold text-center w-[13%]">User</th>
-                                    <th className="p-4.5 font-bold text-center w-[10%]">Category</th>
-                                    <th className="p-4.5 font-bold text-center w-[20%]">Contact</th>
-                                    <th className="p-4.5 font-bold text-center w-[9%]">Role</th>
-                                    <th className="p-4.5 font-bold text-center w-[17%]">Join Date & Time</th>
-                                    <th className="p-4.5 font-bold text-center w-[9%]">Status</th>
-                                    <th className="p-4.5 font-bold text-center w-[10%]">Actions</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10.5%]' : 'w-[13%]'}`}>User ID</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[13%]' : 'w-[14.5%]'}`}>User</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[10%]'}`}>Category</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[20%]' : 'w-[23%]'}`}>Contact</th>
+                                    <th className={`font-bold text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                        isSidebarCollapsed ? 'w-[9%] p-4.5 opacity-100' : 'w-0 max-w-0 p-0 border-0 opacity-0 pointer-events-none'
+                                    }`}>
+                                        Role
+                                    </th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[17%]' : 'w-[18.5%]'}`}>Join Date & Time</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[9%]' : 'w-[10.5%]'}`}>Status</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[10%]' : 'w-[10.5%]'}`}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y text-[13px] divide-[#e6f0fa]">
                                 {loading ? (
-                                    <TableSkeleton rows={15} cols={8} />
+                                    <TableSkeleton rows={15} cols={isSidebarCollapsed ? 8 : 7} />
                                 ) : filteredUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="p-8 text-center text-sm text-gray-500">
+                                        <td colSpan={isSidebarCollapsed ? 8 : 7} className="p-8 text-center text-sm text-gray-500">
                                             No users found.
                                         </td>
                                     </tr>
@@ -461,10 +468,16 @@ const Users = () => {
                                                 <div className={`font-medium text-gray-700 text-sm ${isGuest && isRealValue(u.email) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskEmail(u.email)}</div>
                                                 <div className={`text-xs text-gray-500 mt-0.5 ${isGuest && isRealValue(u.phone) ? 'blur-sm select-none pointer-events-none' : ''}`}>{maskPhone(u.phone)}</div>
                                             </td>
-                                            <td className="p-4">
-                                                <span className={`inline-block uppercase font-semibold rounded-full ${getRoleBadge(u.role)}`}>
-                                                    {formatRole(u.role)}
-                                                </span>
+                                            <td className={`text-center transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                                                isSidebarCollapsed ? 'p-4 opacity-100' : 'p-0 w-0 max-w-0 border-0 opacity-0 pointer-events-none'
+                                            }`}>
+                                                <div className={`transition-all duration-300 overflow-hidden flex justify-center items-center ${
+                                                    isSidebarCollapsed ? 'max-w-[120px] opacity-100' : 'max-w-0 opacity-0'
+                                                }`}>
+                                                    <span className={`inline-block uppercase font-semibold rounded-full ${getRoleBadge(u.role)}`}>
+                                                        {formatRole(u.role)}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="p-4">
                                                 <span className="text-sm uppercase font-semibold text-gray-600">

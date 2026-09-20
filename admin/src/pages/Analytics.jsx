@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { TrendingUp, Users, DollarSign, Activity, BarChart2, PieChart } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RePieChart, Pie, Cell } from 'recharts';
 import { SkeletonBlock } from '../components/Skeleton';
@@ -16,6 +17,8 @@ const chartData = [
 ];
 
 const Analytics = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest } = useGuestGuard();
     const [activeChartTab, setActiveChartTab] = useState('REVENUE');
     const [dynamicChartData, setDynamicChartData] = useState([]);
@@ -346,7 +349,7 @@ const Analytics = () => {
     };
 
     return (
-        <div className="relative space-y-6 max-w-[92rem] mx-auto">
+        <div className={`relative space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             {isGuest && <GuestRestrictedOverlay />}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Analytics Overview</h1>

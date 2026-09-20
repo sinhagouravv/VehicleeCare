@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Plus, MapPin, Eye, Edit, Trash2, Settings, X, Check } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
@@ -33,6 +34,8 @@ const emptyForm = {
 const initialParkings = [];
 
 const Parking = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
     const [parkings, setParkings] = useState(initialParkings);
@@ -264,7 +267,7 @@ const Parking = () => {
     const inputClass = "w-full border border-[#e6f0fa] rounded-xl px-4 py-2.5 text-sm text-[#011023] focus:outline-none focus:border-[#527FB0] bg-white";
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Parkings</h1>
                 <div className="flex items-center gap-3">
@@ -284,7 +287,7 @@ const Parking = () => {
                             <tr className="bg-[#f0f6ff] text-[15px] uppercase tracking-wider text-gray-500 border-b border-[#e6f0fa]">
                                 <th className="p-4 font-bold text-center w-[10%]">Parking ID</th>
                                 <th className="p-4 font-bold text-center w-[15%]">Parking Name</th>
-                                <th className="p-4 font-bold text-center w-[28%]">Location</th>
+                                <th className={`p-4 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[28%]' : 'w-[18%]'}`}>Location</th>
                                 <th className="p-4 font-bold text-center w-[5%]">Ports</th>
                                 <th className="p-4 font-bold text-center w-[22%]">Parking Type</th>
                                 <th className="p-4 font-bold text-center w-[10%]">Status</th>

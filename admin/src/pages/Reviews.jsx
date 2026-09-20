@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Star, Trash2, Eye, Check, X, Loader2, MoreVertical } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
@@ -17,6 +18,8 @@ let cachedAllUsers = null;
 let cachedReviewsTimestamp = 0;
 
 const Reviews = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction } = useGuestGuard();
     const [reviews, setReviews] = useState(() => Array.isArray(cachedReviews) ? cachedReviews : []);
@@ -309,7 +312,7 @@ const Reviews = () => {
 
     return (
         <>
-            <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
                     <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">
@@ -332,7 +335,7 @@ const Reviews = () => {
                                     <th className="p-4.5 font-bold text-center w-[9%]">Review ID</th>
                                     <th className="p-4.5 font-bold text-center w-[9%]">Reviewer</th>
                                     <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
-                                    <th className="p-4.5 font-bold text-center w-[35%]">Review Text</th>
+                                    <th className={`p-4.5 font-bold text-center transition-all duration-300 ${isSidebarCollapsed ? 'w-[35%]' : 'w-[25%]'}`}>Review Text</th>
                                     <th className="p-4.5 font-bold text-center w-[6.5%]">Rating</th>
                                     <th className="p-4.5 font-bold text-center w-[9%]">Date</th>
                                     <th className="p-4.5 font-bold text-center w-[8%]">Status</th>
@@ -428,7 +431,7 @@ const Reviews = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-center w-[14%]">
+                                        <td className="p-4 text-center">
                                             <div className="flex flex-col items-center justify-center">
                                                 <span className="text-sm font-semibold text-[#011023]">
                                                     {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
