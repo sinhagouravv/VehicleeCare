@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Star, Eye, X, Trash2, Loader2, MessageSquare, Check, Send } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -17,6 +18,8 @@ let cachedReviewsGarageId = null;
 let cachedReviewsTimestamp = null;
 
 const Reviews = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest, guardGuestAction } = useGuestGuard();
     const { triggerAlert } = useAlert();
 
@@ -457,7 +460,7 @@ const Reviews = () => {
 
     return (
         <>
-            <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+            <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
                     <div className="flex items-center gap-2 text-xs uppercase text-gray-400 font-medium self-center">
