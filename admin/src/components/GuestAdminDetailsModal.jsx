@@ -127,17 +127,30 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
                 fetchGuestLogs(),
                 fetchGuestStats()
             ]);
-            let combinedLogs = Array.isArray(logsData) ? [...logsData] : [];
+            let rawList = Array.isArray(logsData) ? [...logsData] : [];
+
+            // Strict deduplication by sessionId / _id (preserving the newest record)
+            const seenSessions = new Set();
+            const uniqueLogs = [];
+            for (const log of rawList) {
+                const key = String(log.sessionId || log._id || '').trim();
+                if (key && !seenSessions.has(key)) {
+                    seenSessions.add(key);
+                    uniqueLogs.push(log);
+                } else if (!key) {
+                    uniqueLogs.push(log);
+                }
+            }
 
             // Always guarantee newest logs are strictly at the top
-            combinedLogs.sort((a, b) => {
+            uniqueLogs.sort((a, b) => {
                 const timeA = new Date(a.timestamp || a.createdAt || 0).getTime();
                 const timeB = new Date(b.timestamp || b.createdAt || 0).getTime();
                 if (timeB !== timeA) return timeB - timeA;
                 return String(b._id || '').localeCompare(String(a._id || ''));
             });
 
-            setLogs(combinedLogs);
+            setLogs(uniqueLogs);
             if (statsRes?.data) {
                 setStats(statsRes.data);
                 try {
@@ -280,7 +293,14 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
     };
 
     const filteredLogs = useMemo(() => {
+        const seenInFilter = new Set();
         return logs.filter(session => {
+            const key = String(session.sessionId || session._id || '').trim();
+            if (key) {
+                if (seenInFilter.has(key)) return false;
+                seenInFilter.add(key);
+            }
+
             // Portal filter
             if (filterPortal !== 'All') {
                 const p = (session.portal || '').toLowerCase();
@@ -557,7 +577,7 @@ const GuestAdminDetailsModal = ({ isOpen, onClose, isSidebarCollapsed = true, gu
             />
 
             {/* Modal Container */}
-            <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[16.75rem]'}`}>
+            <div className={`fixed top-0 bottom-0 right-0 z-30 flex items-center justify-center p-6 transition-all duration-300 pointer-events-none ${isSidebarCollapsed ? 'left-[0.5rem]' : 'left-[15.75rem]'}`}>
                 <div className="bg-white border border-[#cbd5e1] rounded-3xl shadow-xl w-full max-w-[101rem] h-[93.75vh] overflow-hidden relative z-10 p-6 flex flex-col animate-in zoom-in duration-200 pointer-events-auto">
                     
                     {/* Bug.jsx:L295-L629 Format */}
