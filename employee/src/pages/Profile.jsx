@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Phone, MapPin, Clock, Calendar, ShieldCheck, LogOut, Loader2, Briefcase, BadgeCheck, PhoneCall, Home, Hash, Shield, CreditCard, FileCheck, Landmark, Trash2, X, Send, Smartphone, Globe, ExternalLink, Plus, Upload, Eye } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useAlert } from '../context/AlertContext';
 import { SkeletonBlock } from '../components/Skeleton';
 import useGuestGuard from '../hooks/useGuestGuard';
@@ -93,6 +93,8 @@ const getCategoryBadge = (category) => {
 };
 
 const Profile = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { isGuest, guardGuestAction, maskEmail, maskPhone, maskAddress, isRealValue } = useGuestGuard();
     const [employee, setEmployee] = useState(null);
@@ -452,7 +454,7 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <div className="space-y-6 max-w-[92rem] mx-auto animate-pulse">
+            <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-pulse transition-all duration-300`}>
                 {/* Header */}
                 <div className="flex justify-between items-center">
                     <SkeletonBlock className="h-8 w-56 bg-slate-200 rounded-xl" />
@@ -503,7 +505,7 @@ const Profile = () => {
     if (!employee) return null;
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-700 transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Employee Profile</h1>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Target, CheckCircle2, Star, ShieldAlert, Award, ArrowUpRight, Loader2, HeartHandshake } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { PageSkeleton } from '../components/Skeleton';
 
 const SuccessRate = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [employeeUser, setEmployeeUser] = useState(null);
@@ -66,7 +68,7 @@ const SuccessRate = () => {
     }
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-700 transition-all duration-300`}>
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Success Rate</h1>

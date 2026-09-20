@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, UserPlus } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
 import useGuestGuard from '../hooks/useGuestGuard';
 
 const Makeup = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { guardGuestAction } = useGuestGuard();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -121,7 +124,7 @@ const Makeup = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-700 transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Makeup Requests</h1>

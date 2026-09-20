@@ -1,8 +1,11 @@
 import React from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 const Settings = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Settings</h1>
             </div>

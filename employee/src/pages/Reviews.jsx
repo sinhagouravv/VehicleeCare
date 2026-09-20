@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Eye, X, Loader2, Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
 import { TableSkeleton } from '../components/Skeleton';
 import useHighlight from '../hooks/useHighlight';
 import { useFilter } from '../context/FilterContext';
 
 const Reviews = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const API_URL = import.meta.env.VITE_API_URL || 'https://vehicleecare.onrender.com';
 
     const [reviews, setReviews] = useState([]);
@@ -263,7 +266,7 @@ const Reviews = () => {
 
     return (
         <>
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Customer Reviews</h1>
                     <div className="text-xs uppercase text-gray-400 font-medium self-center flex items-center gap-2">

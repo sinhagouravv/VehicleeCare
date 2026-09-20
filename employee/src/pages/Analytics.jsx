@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, BarChart2, CheckCircle2, UserCheck, Star, Clock, Trophy, Target, ArrowUpRight } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 
 const Analytics = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const [lastRefreshed, setLastRefreshed] = useState(new Date());
     const [employeeUser, setEmployeeUser] = useState(null);
     const [bookings, setBookings] = useState([]);
@@ -52,7 +55,7 @@ const Analytics = () => {
     const milestones = [];
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-700 transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>

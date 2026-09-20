@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, User, QrCode, RefreshCw, Mail, Phone, Calendar, Loader2 } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 import Logo from '../assets/logo.svg';
 import useGuestGuard from '../hooks/useGuestGuard';
 
 const VirtualIDCard = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { isGuest, maskEmail, maskPhone, isRealValue } = useGuestGuard();
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -66,7 +69,7 @@ const VirtualIDCard = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-700 transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>

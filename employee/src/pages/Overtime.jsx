@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Clock, Plus, Trash2, ShieldAlert, Loader2, Eye, X, Check, MessageSquare, Send } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
 import useHighlight from '../hooks/useHighlight';
 import { TableSkeleton } from '../components/Skeleton';
 import { useFilter } from '../context/FilterContext';
@@ -14,6 +15,8 @@ let cachedOvertimesEmpId = null;
 let cachedOvertimesTimestamp = 0;
 
 const Overtime = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
     const isFetchingRef = useRef(false);
@@ -238,6 +241,11 @@ const Overtime = () => {
 
             if (res.ok && data.success) {
                 triggerAlert("Overtime request submitted successfully!", "success");
+                try {
+                    const bc = new BroadcastChannel('developer_requests_channel');
+                    bc.postMessage({ type: 'DEVELOPER_REQUEST_CREATED', category: 'Overtime' });
+                    bc.close();
+                } catch (e) {}
                 fetchOvertimes(true);
                 setShowModal(false);
                 setSelectedDate(null);
@@ -500,7 +508,7 @@ const Overtime = () => {
     }, [filteredOvertimes.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Overtime Requests</h1>
                 <div className="relative group">

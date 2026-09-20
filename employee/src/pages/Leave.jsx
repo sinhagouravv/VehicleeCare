@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-
+import { useOutletContext } from 'react-router-dom';
 import { Plane, Calendar as CalendarIcon, Clock, Loader2, AlertCircle, Plus, ChevronRight, History, X, Eye, Trash2, User, FileText, Check, MessageSquare, Send } from 'lucide-react';
 import { Calendar } from '../components/ui/calendar';
 import useHighlight from '../hooks/useHighlight';
@@ -17,6 +17,8 @@ let cachedLeavesEmpId = null;
 let cachedLeavesTimestamp = 0;
 
 const Leave = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail } = useGuestGuard();
     const isFetchingRef = useRef(false);
@@ -411,6 +413,11 @@ const Leave = () => {
             const data = await res.json();
             if (data.success) {
                 triggerAlert("Leave request submitted successfully!", "success");
+                try {
+                    const bc = new BroadcastChannel('developer_requests_channel');
+                    bc.postMessage({ type: 'DEVELOPER_REQUEST_CREATED', category: 'Leave' });
+                    bc.close();
+                } catch (e) {}
                 setFormData({
                     type: '',
                     leaveTime: '',
@@ -675,7 +682,7 @@ const Leave = () => {
     }, [filteredLeaves.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Leave Management</h1>
@@ -713,7 +720,7 @@ const Leave = () => {
                                 <th className="p-4.5 font-bold text-center w-[9%]">Type</th>
                                 <th className="p-4.5 font-bold text-center w-[25%]">Reason</th>
                                 <th className="p-4.5 font-bold text-center w-[7.5%]"> Start</th>
-                                <th className="p-4.5 font-bold text-center w-[7.5%]"> End</th>
+                                <th className="p-4.5 font-bold text-center w-[8%]"> End</th>
                                 {/* <th className="p-4.5 font-bold text-center w-[8%]">Duration</th> */}
                                 <th className="p-4.5 font-bold text-center w-[7%]">Status</th>
                                 <th className="p-4.5 font-bold text-center w-[6.5%]">Action</th>
@@ -749,7 +756,6 @@ const Leave = () => {
                                                         setActiveLabelRowId(prev => prev === leave._id ? null : leave._id);
                                                     }}
                                                     className="absolute -left-2.5 top-1/2 -translate-y-1/2 cursor-pointer hover:scale-115 transition-transform active:scale-95 p-0.5"
-                                                    title={`Label: ${stripEmoji(rowLabels[leave._id])}`}
                                                 >
                                                     {renderLabelIcon(rowLabels[leave._id], 16)}
                                                 </button>

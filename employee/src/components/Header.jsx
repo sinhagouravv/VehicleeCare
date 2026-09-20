@@ -43,7 +43,7 @@ const matchesPrefix = (text, query) => {
     return false;
 };
 
-const Header = () => {
+const Header = ({ isSidebarCollapsed = true }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
@@ -262,7 +262,7 @@ const Header = () => {
                     </span>
                 </div>
             )}
-            <div className="w-full max-w-[92rem] mx-auto flex items-center justify-end">
+            <div className={`w-full ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto flex items-center justify-end transition-all duration-300`}>
                 {/* Search Bar */}
                 <div ref={wrapperRef} className={`relative flex items-center transition-all duration-300 ease-out ${isExpanded ? 'w-[18rem] sm:w-[21rem]' : 'w-10'}`}>
                     {!isExpanded ? (
@@ -301,7 +301,7 @@ const Header = () => {
                                     setIsOpen(true);
                                 }}
                                 onKeyDown={handleKeyDown}
-                                className={`w-full h-10 pl-10 ${searchTerm ? 'pr-9' : 'pr-4'} bg-white uppercase border border-gray-200 rounded-full focus:outline-none focus:bg-white focus:border-blue-200 focus:ring-1 focus:ring-blue-500/10 transition-all duration-300 text-sm font-semibold text-[#011023] placeholder-gray-400 shadow-xs`}
+                                className={`w-full h-10 pl-10 ${searchTerm ? 'pr-9' : 'pr-4'} bg-white uppercase border border-gray-200 rounded-3xl focus:outline-none focus:bg-white focus:border-blue-200 focus:ring-1 focus:ring-blue-500/10 transition-all duration-300 text-sm font-semibold text-[#011023] placeholder-gray-400 shadow-xs`}
                             />
 
                             {searchTerm && (

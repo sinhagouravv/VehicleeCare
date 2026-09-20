@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Calendar, ShieldCheck, MapPin, Loader2, User, Clock, CheckSquare } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { FormSkeleton } from '../components/Skeleton';
 
 const Details = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -35,7 +37,7 @@ const Details = () => {
 
     if (loading) {
         return (
-            <div className="space-y-6 max-w-[92rem] mx-auto animate-pulse">
+            <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-pulse transition-all duration-300`}>
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -53,7 +55,7 @@ const Details = () => {
     if (!employee) return null;
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto animate-in fade-in duration-700">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto animate-in fade-in duration-700 transition-all duration-300`}>
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { LayoutDashboard, Users, CheckCircle, Clock } from 'lucide-react';
 
 const StatsCard = ({ title, value, unit, icon, accentColor = "bg-blue-50 text-blue-500" }) => (
@@ -17,10 +18,12 @@ const StatsCard = ({ title, value, unit, icon, accentColor = "bg-blue-50 text-bl
 );
 
 const Dashboard = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto transition-all duration-300`}>
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold uppercase text-[#011023] tracking-tight">Dashboard</h1>

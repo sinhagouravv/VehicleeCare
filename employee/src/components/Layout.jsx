@@ -84,12 +84,12 @@ const Layout = () => {
             <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
 
             {/* Main Content Area */}
-            <div className={`flex-1 flex flex-col relative z-10 h-screen overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'ml-[5.5rem]' : 'ml-[16.75rem]'}`}>
-                <Header />
+            <div className={`flex-1 flex flex-col relative z-10 h-screen overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'ml-[5.5rem]' : 'ml-[15.75rem]'}`}>
+                <Header isSidebarCollapsed={isSidebarCollapsed} />
                 <main className="flex-1 overflow-y-auto p-8 hide-scrollbar relative">
                     {/* Content Outlet */}
                     <div className="relative z-10 w-full h-full border border-transparent">
-                        <Outlet />
+                        <Outlet context={{ isSidebarCollapsed }} />
                     </div>
                 </main>
             </div>

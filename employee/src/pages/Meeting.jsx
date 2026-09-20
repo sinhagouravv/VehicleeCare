@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useOutletContext } from 'react-router-dom';
 import { Calendar as CalendarIcon, Clock, Loader2, AlertCircle, Plus, X, Eye, Trash2, User, FileText, CheckCircle, Check, MessageSquare, Send } from 'lucide-react';
 import { Calendar } from '../components/ui/calendar';
 import useHighlight from '../hooks/useHighlight';
@@ -15,6 +16,8 @@ let cachedMeetingsEmpId = null;
 let cachedMeetingsTimestamp = 0;
 
 const Meeting = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction } = useGuestGuard();
     const isFetchingRef = useRef(false);
@@ -289,6 +292,11 @@ const Meeting = () => {
             const data = await res.json();
             if (data.success) {
                 triggerAlert("Meeting request submitted successfully!", "success");
+                try {
+                    const bc = new BroadcastChannel('developer_requests_channel');
+                    bc.postMessage({ type: 'DEVELOPER_REQUEST_CREATED', category: 'Meeting' });
+                    bc.close();
+                } catch (e) {}
                 setFormData({
                     purpose: '',
                     appointmentDate: '',
@@ -520,7 +528,7 @@ const Meeting = () => {
     }, [filteredMeetings.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">Meeting Management</h1>
 

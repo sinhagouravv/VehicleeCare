@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Eye, Check, Loader2, X, MessageSquare, Send, Bug as BugIcon } from 'lucide-react';
 
@@ -72,6 +73,8 @@ const formatSubmittedAt = (dateString) => {
 };
 
 const Tasks = () => {
+    const outletContext = useOutletContext();
+    const isSidebarCollapsed = outletContext?.isSidebarCollapsed ?? true;
     const { triggerAlert } = useAlert();
     const { guardGuestAction, maskPhone, maskEmail, maskAddress } = useGuestGuard();
     const isFetchingRef = useRef(false);
@@ -756,7 +759,7 @@ const Tasks = () => {
     }, [filteredTasks.length, setResultsCount]);
 
     return (
-        <div className="space-y-6 max-w-[92rem] mx-auto h-[calc(100vh-9.25rem)] flex flex-col">
+        <div className={`space-y-6 ${isSidebarCollapsed ? 'max-w-[92rem]' : 'max-w-[81.75rem]'} mx-auto h-[calc(100vh-9.25rem)] flex flex-col transition-all duration-300`}>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-[#011023] uppercase tracking-tight">
                     {isDeveloper ? 'Bug Tracker' : 'My Tasks'}
@@ -968,24 +971,24 @@ const Tasks = () => {
                                     <td className="p-4">
                                         <div className="flex flex-col items-center">
                                             <div className="font-semibold text-[13px] uppercase">
-                                                {task.user.name}
+                                                {task.user?.name || '—'}
                                             </div>
                                             <div className="text-[11.5px] text-slate-500 uppercase">
-                                                {task.user.userId}
+                                                {task.user?.userId || '—'}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="font-semibold text-[13px] uppercase truncate max-w-[150px] mx-auto">
-                                            {task.user.phone}
+                                            {task.user?.phone || '—'}
                                         </div>
                                         <div className="text-[11.5px] text-slate-500 lowercase tracking-wide">
-                                            {task.user.email}
+                                            {task.user?.email || '—'}
                                         </div>
                                     </td>
                                     <td className="p-4 text-center">
                                         <div className="font-semibold text-[13px] uppercase leading-snug">
-                                            {task.service.title}
+                                            {task.service?.title || '—'}
                                         </div>
                                         <div className="text-[11.5px] text-slate-500 uppercase tracking-wide">
                                             {(() => {
